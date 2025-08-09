@@ -448,7 +448,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                   builder: (context) => ModalBottomSheet(
                                     title: 'App Info',
                                     bigTitle: true,
-                                      'child': Icon(
+                                    extraButton: {
+                                      'onTap': () {
+                                        Share.share(
+                                          'Check out expandiware on Github: https://www.github.com/Sergey842248/Substitute',
+                                        );
+                                      },
+                                      'child': const Icon(
                                         Icons.share_rounded,
                                         size: 18,
                                       ),
@@ -457,10 +463,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Padding(
-                                          padding: const EdgeInsets.all(8.0),
+                                        const Padding(
+                                          padding: EdgeInsets.all(8.0),
                                           child: Text(
-                                            'Main-Developer: Sergey842248'
+                                            'Main-Developer: Sergey842248\n'
                                             'Former Developer: Oskar',
                                             style: TextStyle(
                                               fontSize: 17,
@@ -480,11 +486,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                           }
                                         ].map(
                                           (e) => Padding(
-                                            padding: EdgeInsets.all(8.0),
+                                            padding: const EdgeInsets.all(8.0),
                                             child: InkWell(
                                               onTap: () => launch(e['link']!),
                                               child: Text(
-                                                '${e['name']}: www.${e['link']![12] + e['link']![13] + e['link']![14] + e['link']![15]}...',
+                                                '${e['name']}: www.${e['link']!.substring(12, 22)}...',
                                                 style: TextStyle(
                                                   decoration:
                                                       TextDecoration.underline,
@@ -501,7 +507,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                           padding: const EdgeInsets.all(8.0),
                                           child: Text(
                                             'version: $version',
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               fontSize: 17,
                                               fontWeight: FontWeight.bold,
                                             ),
