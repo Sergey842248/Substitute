@@ -1,12 +1,13 @@
-# expandiware - expanded indiware
-
-An enhanced version of the vpMobil app of indiware<br />
-download the app -> https://www.kellermann.team/expandiware/
+# Substitute
+An enhanced version of the vpMobil app based on Indiware<br />
 
 ## Features
 
-### Normal VPlan
-### load vplan in background
-### Find Teachers
-### Find empty rooms
-### News Feeds
+- Normal Substitution Plan
+- load vplan in background
+- Find Teachers
+- Find empty rooms for specific times
+
+
+### Credits
+Origingal Project: https://github.com/badbryany/expandiware
