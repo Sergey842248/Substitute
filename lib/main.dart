@@ -451,7 +451,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                     extraButton: {
                                       'onTap': () {
                                         Share.share(
-                                          'Check out expandiware on Github: https://www.github.com/Sergey842248/Substitute',
+                                          'Check out Substitute on Github: https://www.github.com/Sergey842248/Substitute',
                                         );
                                       },
                                       'child': const Icon(
