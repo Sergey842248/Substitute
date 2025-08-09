@@ -477,7 +477,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                           {
                                             'name': 'Open Issue',
                                             'link':
-                                                'https://github.com/Sergey842248/Substitute/issues/new?template=bug_report.yml',
+                                                'https://www.github.com/Sergey842248/Substitute/issues/new?template=bug_report.yml',
                                           },
                                           {
                                             'name': 'Github',
