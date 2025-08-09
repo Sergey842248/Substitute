@@ -18,35 +18,30 @@ class Settings extends StatefulWidget {
 class _SettingsState extends State<Settings> {
   List<dynamic> settingPages = [
     {
-      'title': 'Zugangsdaten',
+      'title': 'Credentials',
       'icon': Icons.lock_outline_rounded,
-      'subtitle': 'stundenplan24 Nutzerdaten',
+      'subtitle': 'stundenplan24 credentials',
       'link': VPlanLogin(),
     },
     {
       'title': 'Notifications',
       'icon': Icons.notifications_none_rounded,
-      'subtitle': 'Benachrichtigungen für den Stundenplan',
+      'subtitle': 'Notifications for substitution plan',
       'link': Notifications(),
     },
     {
-      'title': 'Lehrernamen eintragen',
+      'title': 'Set Teacher abbreviations',
       'icon': Icons.people_alt_outlined,
-      'subtitle': 'Lehrerkürzel mit richtigen Namen ersetzen',
+      'subtitle': 'Replace teacher abbreviations with Real ones',
       'link': TeacherShorts(),
     },
     {
-      'title': 'Unterricht',
+      'title': 'Lessons',
       'icon': Icons.list_alt,
-      'subtitle': 'Informationen zum Unterricht eintragen',
+      'subtitle': 'Set time periods for lessons',
       'link': Lessons(),
     },
-    {
-      'title': '----',
-      'icon': Icons.manage_accounts_rounded,
-      'subtitle': '----',
-      'link': SizedBox(),
-    },
+
   ];
 
   void developerOptions() async {

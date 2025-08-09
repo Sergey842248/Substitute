@@ -122,7 +122,7 @@ class _VPlanLoginState extends State<VPlanLogin> {
 
     return Scaffold(
       body: ListPage(
-        title: 'Zugangsdaten',
+        title: 'Credentials',
         actions: [
           IconButton(
             onPressed: () async {
@@ -176,7 +176,7 @@ class _VPlanLoginState extends State<VPlanLogin> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                'Zugangsdaten teilen',
+                                'Share credentials',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 20,
@@ -212,7 +212,7 @@ class _VPlanLoginState extends State<VPlanLogin> {
                                   ),
                                   child: Center(
                                     child: Text(
-                                      'fertig',
+                                      'Save',
                                       style: TextStyle(
                                         fontSize: 18,
                                         color: Colors.black,

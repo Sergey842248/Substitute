@@ -22,7 +22,7 @@ class ModalBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     onPop ??= () => Navigator.pop(context);
     bigTitle ??= false;
-    submitButtonText ??= 'fertig';
+    submitButtonText ??= 'Close';
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.only(

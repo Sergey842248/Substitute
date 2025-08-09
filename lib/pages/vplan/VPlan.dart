@@ -564,7 +564,7 @@ class _SelectClassState extends State<SelectClass> {
           ),
           SizedBox(height: 30),
           Button(
-            text: 'Zugangsdaten',
+            text: 'Credentials',
             onPressed: () => Navigator.push(
               context,
               PageTransition(
@@ -577,7 +577,7 @@ class _SelectClassState extends State<SelectClass> {
       );
     }
     return ListPage(
-      title: 'Klassenauswahl',
+      title: 'Select class',
       animate: true,
       children: [
         classes.length == 0

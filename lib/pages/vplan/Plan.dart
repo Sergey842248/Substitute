@@ -165,7 +165,7 @@ class _PlanState extends State<Plan> {
           ),
           SizedBox(height: 30),
           Button(
-            text: 'Zugangsdaten',
+            text: 'Credentials',
             onPressed: () => Navigator.push(
               context,
               PageTransition(
