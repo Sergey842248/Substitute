@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:expandiware/introduction/introscreen.dart';
 
 import 'package:expandiware/models/Button.dart';
@@ -20,6 +21,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lottie/lottie.dart';
 
+import 'dart:convert';
 import 'background_service.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 
@@ -107,17 +109,6 @@ void sendAppOpenData() async {
   } on PlatformException {
     deviceData = <String, dynamic>{'Error:': 'Failed to get platform version.'};
   }
-
-  // send request to kellermann.team to save the data
-  try {
-    if (prefs.getBool('analisis') == null ||
-        prefs.getBool('analisis')! == true) {
-      http.post(
-        Uri.parse('https://www.kellermann.team/expandiware/analytics.php'),
-        body: logindata,
-      );
-    }
-  } catch (e) {}
 }
 
 void main() async {
@@ -242,60 +233,79 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  String version = '1.15';
-  void checkForUpdates(BuildContext context) async {
-    String _version = version;
-    var r;
-    try {
-      r = await http.get(
-        Uri.parse(
-          'https://www.kellermann.team/expandiware/shouldUpdate.php?version=${_version}',
-        ),
-      );
-    } catch (e) {
-      return;
-    }
-    if (r.body == 'update') {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: Theme.of(context).backgroundColor,
-          title: Row(
-            children: [
-              Icon(Icons.system_security_update_outlined),
-              SizedBox(width: 10),
-              Text('New version available'),
-            ],
-          ),
-          content: Text('Download now!'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Later',
-                style: TextStyle(
-                  color: Theme.of(context).primaryColor,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-            Button(
-              text: 'Download',
-              onPressed: () async {
-                String url =
-                    'https://github.com/Sergey842248/Substitute/releases/download/latest/Substitute.apk';
+  String version = 'loading...';
 
-                try {
-                  await launch(url);
-                } catch (e) {
-                  print('failed');
-                }
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      version = packageInfo.version;
+    });
+    checkForUpdates(context);
+  }
+
+  void checkForUpdates(BuildContext context) async {
+    if (version == 'loading...') return; // Don't check if version is not loaded yet
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.github.com/repos/Sergey842248/Substitute/releases/latest'),
       );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        final latestVersion = jsonResponse['tag_name'].replaceAll('v', ''); // Assuming tags are like 'v1.2.3'
+
+        if (latestVersion.compareTo(version) > 0) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: Theme.of(context).backgroundColor,
+              title: Row(
+                children: [
+                  Icon(Icons.system_security_update_outlined),
+                  SizedBox(width: 10),
+                  Text('New version available'),
+                ],
+              ),
+              content: Text('A new version ($latestVersion) is available. Download now!'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Later',
+                    style: TextStyle(
+                      color: Theme.of(context).primaryColor,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                Button(
+                  text: 'Download',
+                  onPressed: () async {
+                    String url = jsonResponse['assets'][0]['browser_download_url']; // Assuming the first asset is the APK
+                    try {
+                      await launch(url);
+                    } catch (e) {
+                      print('failed to launch URL: $e');
+                    }
+                    Navigator.pop(context);
+                  },
+                ),
+              ],
+            ),
+          );
+        }
+      } else {
+        print('Failed to fetch latest release: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error checking for updates: $e');
+      return;
     }
   }
 
@@ -334,7 +344,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         key: ValueKey(2),
         color: Theme.of(context).focusColor,
       );
-    checkForUpdates(context);
     List<Map<String, dynamic>> pages = [
       {
         'text': 'vplan students',

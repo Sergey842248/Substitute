@@ -32,6 +32,7 @@ dependencies:
   angles: ^2.1.1
   intl: ^0.17.0
   flutter_time_picker_spinner: ^2.0.0
+  package_info_plus: ^1.4.2
 
 dev_dependencies:
   flutter_test:

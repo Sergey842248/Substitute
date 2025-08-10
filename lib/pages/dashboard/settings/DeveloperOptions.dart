@@ -113,22 +113,6 @@ class _DeveloperOptionsState extends State<DeveloperOptions> {
           prefs.setBool('firstTime', true);
         },
       },
-      {
-        'title': 'Toggle Analysis',
-        'actionText': _isAnalysisEnabled ? 'Disable' : 'Enable',
-        'action': () async {
-          SharedPreferences prefs = await SharedPreferences.getInstance();
-          bool currentStatus = prefs.getBool('analysis') ?? false;
-          await prefs.setBool('analysis', !currentStatus);
-          setState(() {
-            _isAnalysisEnabled = !currentStatus;
-          });
-          Fluttertoast.showToast(
-            msg: currentStatus ? 'Analysis disabled' : 'Analysis enabled',
-            toastLength: Toast.LENGTH_SHORT,
-          );
-        },
-      },
     ];
     return Scaffold(
       body: ListPage(
