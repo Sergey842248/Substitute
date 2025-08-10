@@ -4,6 +4,7 @@ import 'package:expandiware/models/LoadingProcess.dart';
 import 'package:expandiware/models/ProcessBar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
 
 import '../vplan/VPlanAPI.dart';
 
@@ -19,6 +20,9 @@ class _FindRoomState extends State<FindRoom> {
   bool getDataExecuted = false;
   String loadText = '';
 
+  int _selectedDay = 0; // 0 for today, 1 for tomorrow
+  bool _tomorrowPlanAvailable = false;
+
   int process = 0;
   int totalSteps = 10;
 
@@ -26,88 +30,71 @@ class _FindRoomState extends State<FindRoom> {
     return double.tryParse(s) != null;
   }
 
-  List<int> mergesort(List<int> list) {
-    if (list.length <= 1) {
-      return list;
-    }
-
-    int half = (list.length / 2).toInt();
-
-    List<int> leftList = [];
-    for (int i = 0; i < half; i++) {
-      leftList.add(list[i]);
-    }
-
-    List<int> rightList = [];
-    for (int i = 0; i < list.length - half; i++) {
-      int count = i + half;
-      rightList.add(list[count]);
-    }
-
-    leftList = mergesort(leftList);
-    rightList = mergesort(rightList);
-
-    return merge(leftList, rightList);
-  }
-
-  List<int> merge(List<int> leftList, List<int> rightList) {
-    List<int> newList = [];
-
-    while (leftList.isNotEmpty && rightList.isNotEmpty) {
-      if (leftList[0] <= rightList[0]) {
-        int value = leftList[0];
-
-        newList.add(leftList[0]);
-        leftList.remove(value);
-      } else {
-        int value = rightList[0];
-
-        newList.add(rightList[0]);
-        rightList.remove(value);
-      }
-    } // end of while
-
-    while (leftList.isNotEmpty) {
-      int value = leftList[0];
-
-      newList.add(leftList[0]);
-      leftList.remove(value);
-    }
-
-    while (rightList.isNotEmpty) {
-      int value = rightList[0];
-
-      newList.add(rightList[0]);
-      rightList.remove(value);
-    }
-
-    return newList;
-  }
-
   double toDouble(TimeOfDay myTime) => myTime.hour + myTime.minute / 60.0;
 
   void getData() async {
     getDataExecuted = true;
-    dynamic _data;
-    VPlanAPI vplanAPI = new VPlanAPI();
-
-    Uri url = Uri.parse(await vplanAPI.getDayURL());
-
-    _data = (await vplanAPI.getAllOfflineData()).toList();
-    if (_data.length == 0) {
-      _data = await vplanAPI.getVPlanJSON(url, DateTime.now());
+    if (mounted) {
+      setState(() {
+        data = [];
+        loadText = 'Lade Daten...';
+      });
     }
+
+    VPlanAPI vplanAPI = VPlanAPI();
+
+    // Check if tomorrow's plan is available
+    try {
+      final tomorrow = DateTime.now().add(const Duration(days: 1));
+      final tomorrowPlan = await vplanAPI.getVPlanJSON(
+        Uri.parse(await vplanAPI.getURL(tomorrow)),
+        tomorrow,
+      );
+      if (tomorrowPlan != null &&
+          tomorrowPlan['error'] == null &&
+          tomorrowPlan.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _tomorrowPlanAvailable = true;
+          });
+        }
+      }
+    } catch (e) {
+      // Tomorrow's plan not available
+    }
+
+    final dateToFetch = _selectedDay == 0
+        ? DateTime.now()
+        : DateTime.now().add(const Duration(days: 1));
+    Uri url = Uri.parse(await vplanAPI.getURL(dateToFetch));
+
+    if (mounted) setState(() => loadText = 'Lade Vertretungsplan...');
+    dynamic _vplanData = await vplanAPI.getVPlanJSON(url, dateToFetch);
+    if (mounted) setState(() => loadText = 'Vertretungsplan geladen...');
+
+    if (_vplanData == null ||
+        _vplanData.isEmpty ||
+        _vplanData['error'] != null ||
+        _vplanData['data'] == null ||
+        !vplanAPI.compareDate(dateToFetch, _vplanData['date'])) {
+      if (mounted) {
+        setState(() {
+          loadText = _selectedDay == 0
+              ? 'No Substitution plan available for today.'
+              : 'No Substitution plan available for tomorrow.';
+        });
+      }
+      return;
+    }
+
+    // --- Get all rooms ---
     List<int> rooms = [];
-    for (int a = 0; a < _data.length; a++) {
-      for (int i = 0;
-          i < _data.toList()[a]['data']['Klassen']['Kl'].length;
-          i++) {
-        dynamic lessons =
-            _data.toList()[a]['data']['Klassen']['Kl'][i]['Pl']['Std'];
-
-        for (int j = 0; j < lessons.length; j++) {
-          String? room = lessons[j]['Ra'];
-
+    if (_vplanData['data']['Klassen'] != null &&
+        _vplanData['data']['Klassen']['Kl'] != null) {
+      for (var klasse in _vplanData['data']['Klassen']['Kl']) {
+        if (klasse['Pl'] == null || klasse['Pl']['Std'] == null) continue;
+        for (var lesson in klasse['Pl']['Std']) {
+          String? room = lesson['Ra'];
           if (room != null && room != 'Gang') {
             String editRoom = room
                 .replaceAll('H1', '')
@@ -122,162 +109,132 @@ class _FindRoomState extends State<FindRoom> {
           }
         }
       }
-      _data = mergesort(rooms);
-      // ALL ROOMS GOT
+    }
+    rooms.sort();
+    // --- All rooms got ---
 
-      List<int> usedRooms = [];
+    List<int> usedRooms = [];
+    if (_selectedDay == 0 &&
+        _vplanData['data']['Klassen'] != null &&
+        _vplanData['data']['Klassen']['Kl'] != null) {
+      // Only check for currently used rooms for today
+      if (mounted) setState(() => loadText = 'Durchsuche Plan...');
+      totalSteps = _vplanData['data']['Klassen']['Kl'].length;
+      process = 0;
 
-      List<dynamic> allRooms = [];
-
-      setState(() => loadText = 'Loading Substitution plan...');
-      dynamic _vplanData = await vplanAPI.getVPlanJSON(url, DateTime.now());
-      setState(() => loadText = 'Substitution plan successfully loaded...');
-
-      totalSteps = _vplanData['data']['Classes']['Cl'].length;
-      loadText = 'scanning...';
-      for (int i = 0; i < _vplanData['data']['Classes']['Cl'].length; i++) {
-        setState(() {
-          process++;
-        });
-        dynamic lessons = _vplanData['data']['Classes']['Cl'][i]['Pl']['h'];
-        for (int j = 0; j < lessons.length; j++) {
+      for (var cl in _vplanData['data']['Klassen']['Kl']) {
+        if (mounted) setState(() => process++);
+        if (cl['Pl'] == null || cl['Pl']['Std'] == null) continue;
+        for (var lesson in cl['Pl']['Std']) {
           try {
-            dynamic lesson =
-                _vplanData['data']['Classes']['Cl'][i]['Pl']['h'][j];
-            int bhours = int.parse((lesson['Start'] as String).split(':')[0]);
-            int bminutes =
-                int.parse((lesson['Start'] as String).split(':')[1]);
+            if (lesson['Beginn'] == null || lesson['Ende'] == null) continue;
 
-            int ehours = int.parse((lesson['End'] as String).split(':')[0]);
-            int eminutes = int.parse((lesson['End'] as String).split(':')[1]);
+            int bhours = int.parse((lesson['Beginn'] as String).split(':')[0]);
+            int bminutes =
+            int.parse((lesson['Beginn'] as String).split(':')[1]);
+
+            int ehours = int.parse((lesson['Ende'] as String).split(':')[0]);
+            int eminutes = int.parse((lesson['Ende'] as String).split(':')[1]);
 
             TimeOfDay _begin = TimeOfDay(hour: bhours, minute: bminutes);
             TimeOfDay _end = TimeOfDay(hour: ehours, minute: eminutes);
-            TimeOfDay _now = TimeOfDay.now();
+            TimeOfDay _now = initTime; // Use selected time
 
-            // check if lesson is now
             if (toDouble(_now) >= toDouble(_begin) &&
                 toDouble(_now) <= toDouble(_end)) {
-              if (lesson['Ra'] != null) {
-                if (isNumeric(lesson['Ra'])) {
-                  int room = int.parse(lesson['Ra']);
-                  usedRooms.add(room);
+              String? room = lesson['Ra'];
+              if (room != null) {
+                String editRoom = room
+                    .replaceAll('H1', '')
+                    .replaceAll('H2', '')
+                    .replaceAll('H3', '')
+                    .replaceAll('E', '');
+                if (isNumeric(editRoom)) {
+                  int roomInt = int.parse(editRoom);
+                  if (!usedRooms.contains(roomInt)) {
+                    usedRooms.add(roomInt);
+                  }
                 }
               }
             }
           } catch (e) {}
         }
       }
+      usedRooms.sort();
+    }
 
-      rooms = mergesort(rooms);
-      usedRooms = mergesort(usedRooms);
-
-      setState(() => loadText = 'analyzing...');
-      totalSteps = rooms.length;
-      process = 0;
-      for (int i = 0; i < rooms.length; i++) {
-        process++;
-        setState(() => loadText = 'check room ${rooms[i]}...');
-
-        List<dynamic> roomLessons = await getRoomLessons(
-          rooms[i],
-          _vplanData,
-        );
-
-        if (roomLessons != []) {
-          allRooms.add({
-            'room': rooms[i],
-            'open': !usedRooms.contains(rooms[i]),
-            'used_this_day': roomLessons.isNotEmpty,
-            'room_lessons': roomLessons,
-          });
-        }
+    if (mounted) setState(() => loadText = 'Analysiere Räume...');
+    totalSteps = rooms.length;
+    process = 0;
+    List<dynamic> allRooms = [];
+    for (int i = 0; i < rooms.length; i++) {
+      if (mounted) {
+        setState(() {
+          process++;
+          loadText = 'Prüfe Raum ${rooms[i]}...';
+        });
       }
-      setState(() => loadText = 'Done!');
-      setState(() => data = allRooms);
-      setState(() => loadText = '');
+
+      List<dynamic> roomLessons = await getRoomLessons(
+        rooms[i],
+        _vplanData,
+      );
+
+      allRooms.add({
+        'room': rooms[i],
+        'open': !usedRooms.contains(rooms[i]),
+        'used_this_day': roomLessons.isNotEmpty,
+        'room_lessons': roomLessons,
+      });
+    }
+
+    if (mounted) {
+      setState(() {
+        data = allRooms;
+        loadText = '';
+      });
     }
   }
 
   Future<List<dynamic>> getRoomLessons(int _room, _data) async {
     List<dynamic> res = [];
+    if (_data == null ||
+        _data['data'] == null ||
+        _data['data']['Klassen'] == null ||
+        _data['data']['Klassen']['Kl'] == null) {
+      return res;
+    }
 
-    for (int i = 0; i < _data['data']['Classes']['Cl'].length; i++) {
-      var currentClass = _data['data']['Classes']['Cl'][i];
+    for (var currentClass in _data['data']['Klassen']['Kl']) {
+      if (currentClass['Pl'] == null || currentClass['Pl']['Std'] == null) {
+        continue;
+      }
 
-      for (int j = 0; j < currentClass['Pl']['h'].length; j++) {
-        var currentLesson = currentClass['Pl']['h'][j];
-
-        if (currentLesson['Ra'].toString() == _room.toString()) {
-          res.add({
-            'count': int.parse(currentLesson['St']),
-            'lesson': currentLesson['Fa'],
-            'class': currentClass['Kurz'],
-            'teacher': currentLesson['Le'],
-            'info': currentLesson['If'],
-          });
-        }
+      for (var currentLesson in currentClass['Pl']['Std']) {
+        try {
+          String? room = currentLesson['Ra'];
+          if (room != null) {
+            String editRoom = room
+                .replaceAll('H1', '')
+                .replaceAll('H2', '')
+                .replaceAll('H3', '')
+                .replaceAll('E', '');
+            if (int.tryParse(editRoom) != null &&
+                int.parse(editRoom) == _room) {
+              res.add({
+                'count': int.parse(currentLesson['St']),
+                'lesson': currentLesson['Fa'],
+                'class': currentClass['Kurz'],
+                'teacher': currentLesson['Le'],
+                'info': currentLesson['If'],
+              });
+            }
+          }
+        } catch (e) {}
       }
     }
-    return sort(res);
-  }
-
-  List<dynamic> sort(List<dynamic> list) {
-    if (list.length <= 1) {
-      return list;
-    }
-
-    int half = (list.length / 2).toInt();
-
-    List<dynamic> leftList = [];
-    for (int i = 0; i < half; i++) {
-      leftList.add(list[i]);
-    }
-
-    List<dynamic> rightList = [];
-    for (int i = 0; i < list.length - half; i++) {
-      int count = i + half;
-      rightList.add(list[count]);
-    }
-
-    leftList = sort(leftList);
-    rightList = sort(rightList);
-
-    return smerge(leftList, rightList);
-  }
-
-  List<dynamic> smerge(List<dynamic> leftList, List<dynamic> rightList) {
-    List<dynamic> newList = [];
-
-    while (leftList.isNotEmpty && rightList.isNotEmpty) {
-      if (leftList[0]['count'] <= rightList[0]['count']) {
-        var value = leftList[0];
-
-        newList.add(leftList[0]);
-        leftList.remove(value);
-      } else {
-        var value = rightList[0];
-
-        newList.add(rightList[0]);
-        rightList.remove(value);
-      }
-    } // end of while
-
-    while (leftList.isNotEmpty) {
-      var value = leftList[0];
-
-      newList.add(leftList[0]);
-      leftList.remove(value);
-    }
-
-    while (rightList.isNotEmpty) {
-      var value = rightList[0];
-
-      newList.add(rightList[0]);
-      rightList.remove(value);
-    }
-
-    return newList;
+    res.sort((a, b) => a['count'].compareTo(b['count']));
+    return res;
   }
 
   void roomInfo(context, roomData) {
@@ -331,7 +288,7 @@ class _FindRoomState extends State<FindRoom> {
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Scrollbar(
-                          isAlwaysShown: true,
+                          thumbVisibility: true,
                           radius: Radius.circular(100),
                           thickness: 2,
                           child: ListView(
@@ -341,12 +298,12 @@ class _FindRoomState extends State<FindRoom> {
                             children: [
                               roomData.isEmpty
                                   ? Text(
-                                      '...',
-                                      textAlign: TextAlign.center,
-                                    )
+                                '...',
+                                textAlign: TextAlign.center,
+                              )
                                   : SizedBox(),
                               ...roomData.map(
-                                (e) => ListItem(
+                                    (e) => ListItem(
                                   onClick: () {},
                                   color: e['info'] == null
                                       ? null
@@ -358,12 +315,12 @@ class _FindRoomState extends State<FindRoom> {
                                   title: Container(
                                     alignment: Alignment.centerLeft,
                                     width:
-                                        MediaQuery.of(context).size.width * 0.1,
+                                    MediaQuery.of(context).size.width * 0.1,
                                     child: Row(
                                       mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
+                                      MainAxisAlignment.spaceBetween,
                                       crossAxisAlignment:
-                                          CrossAxisAlignment.center,
+                                      CrossAxisAlignment.center,
                                       children: [
                                         Text(
                                           printValue(e['lesson']),
@@ -371,15 +328,11 @@ class _FindRoomState extends State<FindRoom> {
                                         ),
                                         Column(
                                           mainAxisAlignment:
-                                              MainAxisAlignment.center,
+                                          MainAxisAlignment.center,
                                           crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                          CrossAxisAlignment.start,
                                           children: [
                                             Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.start,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
                                               children: [
                                                 Icon(
                                                   Icons.group_rounded,
@@ -391,10 +344,6 @@ class _FindRoomState extends State<FindRoom> {
                                             ),
                                             SizedBox(height: 5),
                                             Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.start,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
                                               children: [
                                                 Icon(
                                                   Icons.person_rounded,
@@ -413,11 +362,11 @@ class _FindRoomState extends State<FindRoom> {
                                   subtitle: e['info'] == null
                                       ? null
                                       : Text(
-                                          '${e['info']}',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
+                                    '${e['info']}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               )
                             ],
@@ -443,17 +392,80 @@ class _FindRoomState extends State<FindRoom> {
   }
 
   setTime(BuildContext context) async {
-    TimeOfDay? newTime = await showTimePicker(
+    final newTime = await showDialog<TimeOfDay>(
       context: context,
-      initialTime: initTime,
-      cancelText: 'abbrechen',
-      confirmText: 'OK',
-      helpText: 'Neue Zeit auswählen',
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Text('Choose time and day'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_tomorrowPlanAvailable)
+                    ToggleButtons(
+                      borderRadius: BorderRadius.circular(20),
+                      isSelected: [_selectedDay == 0, _selectedDay == 1],
+                      onPressed: (index) {
+                        setState(() {
+                          _selectedDay = index;
+                        });
+                      },
+                      children: const [
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Text('Today'),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Text('Tomorrow'),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 10),
+                  TimePickerSpinner(
+                    time: DateTime(DateTime.now().year, DateTime.now().month,
+                        DateTime.now().day, initTime.hour, initTime.minute),
+                    is24HourMode: false,
+                    isShowSeconds: false,
+                    normalTextStyle: const TextStyle(fontSize: 18),
+                    highlightedTextStyle: TextStyle(
+                        fontSize: 24, color: Theme.of(context).primaryColor),
+                    spacing: 20,
+                    itemHeight: 60,
+                    isForce2Digits: true,
+                    onTimeChange: (DateTime newTime) {
+                      setState(() {
+                        initTime = TimeOfDay(
+                            hour: newTime.hour, minute: newTime.minute);
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  child: const Text('Cancel'),
+                  onPressed: () => Navigator.of(context).pop(null),
+                ),
+                TextButton(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.of(context).pop(initTime),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
+
     if (newTime != null) {
       initTime = newTime;
       getData();
-      setState(() {});
+      if (mounted) setState(() {});
     }
   }
 
@@ -466,92 +478,92 @@ class _FindRoomState extends State<FindRoom> {
     if (!getDataExecuted) getData();
     return Container(
       child: ListPage(
-        title: 'Freie Räume - $time',
+        title: 'Free rooms - $time',
         smallTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.update),
+            icon: const Icon(Icons.update),
             onPressed: () => setTime(context),
           ),
           IconButton(
             onPressed: () => getData(),
-            icon: Icon(Icons.sync_rounded),
+            icon: const Icon(Icons.sync_rounded),
           ),
         ],
         children: [
           loadText != ''
               ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      loadText,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 5),
-                    Text(
-                      'This process can take a few seconds!',
-                      style: TextStyle(fontSize: 11),
-                    ),
-                    SizedBox(height: 15),
-                    ProcessBar(
-                      slow: true,
-                      width: MediaQuery.of(context).size.width * 0.6,
-                      totalSteps: totalSteps,
-                      currentStep: process,
-                    )
-                  ],
-                )
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                loadText,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w400,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 5),
+              const Text(
+                'This process can take a few seconds!',
+                style: TextStyle(fontSize: 11),
+              ),
+              const SizedBox(height: 15),
+              ProcessBar(
+                slow: true,
+                width: MediaQuery.of(context).size.width * 0.6,
+                totalSteps: totalSteps,
+                currentStep: process,
+              )
+            ],
+          )
               : data == []
-                  ? SizedBox(
-                      width: 100,
-                      height: 200,
-                      child: Text('loading...'),
-                    )
-                  : GridView.count(
-                      crossAxisCount: 3,
-                      childAspectRatio: 3 / 2,
-                      shrinkWrap: true,
-                      physics: NeverScrollableScrollPhysics(),
-                      children: [
-                        ...(data as List).map(
-                          (e) => InkWell(
-                            onTap: () async => roomInfo(
-                              context,
-                              e['room_lessons'],
-                            ),
-                            child: Container(
-                              padding: EdgeInsets.all(8),
-                              margin: EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                color: Theme.of(context).backgroundColor,
-                                border: e['open']
-                                    ? Border.all(
-                                        color: Theme.of(context).primaryColor,
-                                      )
-                                    : null,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  e['used_this_day']
-                                      ? '${e['room']}'
-                                      : '(${e['room']})',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+              ? SizedBox(
+            width: 100,
+            height: 200,
+            child: Text('loading...'),
+          )
+              : GridView.count(
+            crossAxisCount: 3,
+            childAspectRatio: 3 / 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            children: [
+              ...(data as List).map(
+                    (e) => InkWell(
+                  onTap: () async => roomInfo(
+                    context,
+                    e['room_lessons'],
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Theme.of(context).backgroundColor,
+                      border: e['open']
+                          ? Border.all(
+                        color: Theme.of(context).primaryColor,
+                      )
+                          : null,
                     ),
+                    child: Center(
+                      child: Text(
+                        e['used_this_day']
+                            ? '${e['room']}'
+                            : '(${e['room']})',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

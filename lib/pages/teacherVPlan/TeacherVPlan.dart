@@ -84,7 +84,7 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
               PageTransition(
                 type: PageTransitionType.rightToLeft,
                 child: TeacherPlan(
-                  teacher: teacherShort,
+                  teacher: textFieldController.text,
                 ),
               ),
             ),
