@@ -329,8 +329,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   void eastereggIconChange() {
     if (eastereggIcon.key == ValueKey(1)) {
-      eastereggIcon = SvgPicture.asset(
-        'assets/img/bird.svg',
+      eastereggIcon = Image.asset(
+        'assets/img/logo.png',
         key: ValueKey(2),
         color: Theme.of(context).focusColor,
         width: 35,
@@ -354,8 +354,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     if (eastereggIcon.runtimeType == SizedBox)
-      eastereggIcon = SvgPicture.asset(
-        'assets/img/bird.svg',
+      eastereggIcon = Image.asset(
+        'assets/img/logo.png',
         width: 35,
         key: ValueKey(2),
         color: Theme.of(context).focusColor,

@@ -38,7 +38,7 @@ class _IntroductionState extends State<Introduction> {
     final indicatorColorLight = primaryColor;
 
     return MaterialApp(
-      title: 'expandiware',
+      title: 'Substitute',
       debugShowCheckedModeBanner: false,
       darkTheme: ThemeData(
         fontFamily: 'Poppins',

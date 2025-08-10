@@ -216,7 +216,7 @@ class ScanPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: ListPage(
-        title: 'Lehrernamen teilen',
+        title: 'Share teacher name',
         children: [
           Container(
             color: Colors.white,

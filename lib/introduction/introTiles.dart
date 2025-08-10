@@ -9,14 +9,14 @@ Widget title(BuildContext context) => Container(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SvgPicture.asset(
-            'assets/img/bird.svg',
+          Image.asset(
+            'assets/img/logo.png',
             width: MediaQuery.of(context).size.width * 0.2,
             color: Theme.of(context).focusColor,
           ),
           SizedBox(height: 15),
           Text(
-            'expandwiare',
+            'Substitute',
             style: TextStyle(
               fontFamily: 'Crackman',
               fontSize: 40,
@@ -59,14 +59,15 @@ Widget getStarded(BuildContext context) => Container(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SvgPicture.asset(
-                'assets/img/bird.svg',
+              Image.asset(
+                'assets/img/logo.png',
                 width: MediaQuery.of(context).size.width * 0.08,
                 color: Theme.of(context).focusColor,
               ),
               SizedBox(width: 15),
               Text(
                 'Substitute',
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Crackman',
                 ),
@@ -76,6 +77,7 @@ Widget getStarded(BuildContext context) => Container(
           SizedBox(height: 50),
           Text(
             'The Substitution schedule for students based on Indiware',
+            textAlign: TextAlign.center,
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 24,
