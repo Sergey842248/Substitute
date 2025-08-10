@@ -8,6 +8,7 @@ import 'package:animations/animations.dart';
 
 import './FindRoom.dart';
 import './Settings.dart';
+import '../vplan/Analytics.dart';
 
 class Dashboard extends StatelessWidget {
   double margin = 8;
@@ -23,6 +24,15 @@ class Dashboard extends StatelessWidget {
         'title': 'Find free room',
         'subtitle': 'Find a room which isn\'t occupied for a specific time',
         'link': FindRoom(),
+      },
+      {
+        'icon': Icon(
+          Icons.analytics_rounded,
+          color: Theme.of(context).focusColor,
+        ),
+        'title': 'Analysis',
+        'subtitle': 'Get an analysis of the substitution plan',
+        'link': Analytics(),
       },
       {
         'icon': Icon(
