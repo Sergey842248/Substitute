@@ -57,7 +57,7 @@ class Analysis {
         await vplanAPI.getDayURL(),
       ),
       DateTime.now(),
-    ))['data']['Klassen'];
+    ))['data']['Classes'];
 
     List<dynamic> teachers = [];
 
