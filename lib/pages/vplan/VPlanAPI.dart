@@ -268,6 +268,7 @@ class VPlanAPI {
 
         data.add({
           'date': jsonVPlan['VpMobil']['Kopf']['DatumPlan'],
+          'week': jsonVPlan['VpMobil']['Kopf']['Woche'],
           'data': jsonVPlan['VpMobil'],
           'info': ziZeilen.map((e) => e.innerText).toList(),
           'courses': courses,
@@ -343,6 +344,7 @@ class VPlanAPI {
     List<dynamic> lessons = await parseVPlanXML(jsonVPlan, classId);
     return {
       'date': pureVPlan['date'],
+      'week': pureVPlan['week'],
       'data': lessons,
       'info': pureVPlan['info'],
     };
@@ -439,6 +441,7 @@ class VPlanAPI {
     List<dynamic> lessons = await parseVPlanXML(jsonVPlan, classId);
     return {
       'date': pureVPlan['date'],
+      'week': pureVPlan['week'],
       'data': lessons,
       'info': pureVPlan['info'],
     };

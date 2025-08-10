@@ -3,6 +3,7 @@ import 'package:expandiware/models/Button.dart';
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:lottie/lottie.dart';
+import 'package:intl/intl.dart';
 
 import '../../models/ListItem.dart';
 import '../../models/ListPage.dart';
@@ -78,6 +79,11 @@ class _PlanState extends State<Plan> {
   void initState() {
     super.initState();
     getData();
+  }
+
+  int weekNumber(DateTime date) {
+    int dayOfYear = int.parse(DateFormat("D").format(date));
+    return ((dayOfYear - date.weekday + 10) / 7).floor();
   }
 
   @override
@@ -183,6 +189,29 @@ class _PlanState extends State<Plan> {
       displayDate = '${displayDateDateTime.day}.${displayDateDateTime.month}';
     }
     return ListPage(
+      onTitleClick: () {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('Week'),
+            content: Text(
+              weekNumber(VPlanAPI().parseStringDatatoDateTime(
+                          data['data']['date'].toString())) %
+                      2 !=
+                  0
+                  ? 'A'
+                  : 'B',
+              style: TextStyle(fontSize: 20),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Close'),
+              )
+            ],
+          ),
+        );
+      },
       title: '${widget.classId} - $displayDate',
       animate: true,
       smallTitle: true,

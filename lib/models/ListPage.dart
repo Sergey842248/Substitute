@@ -10,9 +10,11 @@ class ListPage extends StatefulWidget {
     this.animate,
     this.canclePage,
     this.onPop,
+    this.onTitleClick,
   }) : super(key: key);
 
   final String title;
+  final Function? onTitleClick;
   bool? smallTitle;
   bool? animate;
   bool? canclePage;
@@ -105,13 +107,20 @@ class _ListPageState extends State<ListPage> {
                               duration: Duration(
                                   milliseconds: topHeight == 0 ? 700 : 100),
                               opacity: topHeight == 0 ? 0 : 1,
-                              child: Container(
-                                child: Text(
-                                  widget.title,
-                                  style: TextStyle(
-                                    fontSize: widget.smallTitle! ? 22 : 30,
-                                    fontWeight: FontWeight.bold,
-                                    fontFamily: 'Questrial',
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (widget.onTitleClick != null) {
+                                    widget.onTitleClick!();
+                                  }
+                                },
+                                child: Container(
+                                  child: Text(
+                                    widget.title,
+                                    style: TextStyle(
+                                      fontSize: widget.smallTitle! ? 22 : 30,
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: 'Questrial',
+                                    ),
                                   ),
                                 ),
                               ),
@@ -158,12 +167,19 @@ class _ListPageState extends State<ListPage> {
                         ),
                       ),
                       SizedBox(width: 20),
-                      Text(
-                        widget.title,
-                        style: TextStyle(
-                          fontSize: 23,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: 'Questrial',
+                      GestureDetector(
+                        onTap: () {
+                          if (widget.onTitleClick != null) {
+                            widget.onTitleClick!();
+                          }
+                        },
+                        child: Text(
+                          widget.title,
+                          style: TextStyle(
+                            fontSize: 23,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Questrial',
+                          ),
                         ),
                       ),
                     ],
