@@ -147,9 +147,9 @@ class _NotificationsState extends State<Notifications> {
         child: ListPage(
           title: 'Notifications',
           children: [
-            heading('Allgemein'),
+            heading('General'),
             ListItem(
-              title: Text('Vertretungsplan automatisch laden'),
+              title: Text('Load Substitution plan automatically'),
               onClick: () => changeAutomaticLoad(),
               actionButton: Switch.adaptive(
                 value: _automaticLoad,
@@ -159,7 +159,7 @@ class _NotificationsState extends State<Notifications> {
             ),
             ListItem(
               title: Text(
-                'Intelligente Benachrichtigungen',
+                'Smart Notifications',
                 style: TextStyle(
                   color: !_automaticLoad ? Colors.grey.shade500 : null,
                 ),
@@ -174,7 +174,7 @@ class _NotificationsState extends State<Notifications> {
             ),
             ListItem(
               title: Text(
-                'Bevorzugte Klasse',
+                'Preferred Classes',
                 style: TextStyle(
                   color: !_automaticLoad ? Colors.grey.shade500 : null,
                 ),
@@ -265,10 +265,10 @@ class _NotificationsState extends State<Notifications> {
               ),
             ), */
             // ---------------------
-            heading('Sonstiges'),
+            heading('Other'),
             ListItem(
               title: Text(
-                'Aufrufsintervall',
+                'Call interval',
                 style: TextStyle(
                   color: !_automaticLoad ? Colors.grey.shade500 : null,
                 ),
@@ -279,7 +279,7 @@ class _NotificationsState extends State<Notifications> {
                 builder: (context) => SizedBox(
                   height: MediaQuery.of(context).size.height * 0.5,
                   child: AlertDialog(
-                    title: heading('Aufrufsintervall'),
+                    title: heading('Call interval'),
                     content: SizedBox(
                       height: MediaQuery.of(context).size.height * 0.1,
                       child: StatefulBuilder(
@@ -324,7 +324,7 @@ class _NotificationsState extends State<Notifications> {
             ),
             ListItem(
               title: Text(
-                'Nur bei Änderung erinnern',
+                'Only remind when lesson changes',
                 style: TextStyle(
                   color: !_automaticLoad ? Colors.grey.shade500 : null,
                 ),

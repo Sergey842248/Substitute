@@ -114,7 +114,7 @@ class _DeveloperOptionsState extends State<DeveloperOptions> {
         },
       },
       {
-        'title': _isAnalysisEnabled ? 'Disable Analysis' : 'Enable Analysis',
+        'title': 'Toggle Analysis',
         'actionText': _isAnalysisEnabled ? 'Disable' : 'Enable',
         'action': () async {
           SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -132,7 +132,7 @@ class _DeveloperOptionsState extends State<DeveloperOptions> {
     ];
     return Scaffold(
       body: ListPage(
-        title: 'developer options',
+        title: 'Developer options',
         children: [
           // ... other options
           ...options.map(

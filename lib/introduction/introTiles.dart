@@ -11,7 +11,7 @@ Widget title(BuildContext context) => Container(
         children: [
           Image.asset(
             'assets/img/logo.png',
-            width: MediaQuery.of(context).size.width * 0.2,
+            width: MediaQuery.of(context).size.width * 0.8,
             color: Theme.of(context).focusColor,
           ),
           SizedBox(height: 15),
@@ -19,7 +19,7 @@ Widget title(BuildContext context) => Container(
             'Substitute',
             style: TextStyle(
               fontFamily: 'Crackman',
-              fontSize: 40,
+              fontSize: 50,
             ),
           ),
           SizedBox(height: 50),
@@ -61,7 +61,7 @@ Widget getStarded(BuildContext context) => Container(
             children: [
               Image.asset(
                 'assets/img/logo.png',
-                width: MediaQuery.of(context).size.width * 0.08,
+                width: MediaQuery.of(context).size.width * 0.2,
                 color: Theme.of(context).focusColor,
               ),
               SizedBox(width: 15),
@@ -70,6 +70,7 @@ Widget getStarded(BuildContext context) => Container(
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Crackman',
+                  fontSize: 30,
                 ),
               ),
             ],
