@@ -10,4 +10,4 @@ An enhanced version of the vpMobil app based on Indiware<br />
 
 
 ### Credits
-Origingal Project: https://github.com/badbryany/expandiware
+Original Project: https://github.com/badbryany/expandiware

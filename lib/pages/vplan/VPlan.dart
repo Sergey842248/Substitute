@@ -356,7 +356,7 @@ class _ClassWidgetState extends State<ClassWidget> {
                           child: Column(
                             children: [
                               Text(
-                                'keine Stundenzeiten eingetragen',
+                                'No time-ranges set',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Theme.of(context)
@@ -373,7 +373,7 @@ class _ClassWidgetState extends State<ClassWidget> {
                                   ),
                                 ),
                                 child: Text(
-                                  'eintragen',
+                                  'Set time-ranges',
                                   style: TextStyle(
                                     color: Theme.of(context).primaryColor,
                                   ),
@@ -391,7 +391,7 @@ class _ClassWidgetState extends State<ClassWidget> {
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Text(
-                                  'nächste Stunde',
+                                  'next hour',
                                   style: TextStyle(
                                     color: Theme.of(context)
                                         .focusColor

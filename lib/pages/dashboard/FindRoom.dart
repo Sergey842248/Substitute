@@ -494,7 +494,7 @@ class _FindRoomState extends State<FindRoom> {
                     ),
                     SizedBox(height: 5),
                     Text(
-                      'Dieser Vorgang könnte eine Sekunden dauern!',
+                      'This process can take a few seconds!',
                       style: TextStyle(fontSize: 11),
                     ),
                     SizedBox(height: 15),

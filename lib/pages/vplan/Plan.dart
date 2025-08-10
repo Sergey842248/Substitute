@@ -92,7 +92,7 @@ class _PlanState extends State<Plan> {
       Widget extraWidget = SizedBox();
       switch (data['error']) {
         case '401':
-          errorText = 'Der Benutzername oder das Passwort ist falsch!';
+          errorText = 'Username or Password is wrong!';
           extraWidget = Lottie.asset(
             'assets/animations/lock.json',
             height: 120,
@@ -100,14 +100,14 @@ class _PlanState extends State<Plan> {
           break;
         case 'schoolnumber':
           errorText =
-              'Kein Vertretungsplan verfügbar!\n\n oder falsche Schulnummer';
+              'Wrong School number or no substitution plan available';
           extraWidget = Lottie.asset(
             'assets/animations/nodata.json',
             height: 120,
           );
           break;
         case 'no internet':
-          errorText = 'Keine Internetverbindung';
+          errorText = 'No Network connection';
           extraWidget = Lottie.asset(
             'assets/animations/wifi.json',
             height: 120,
@@ -116,7 +116,7 @@ class _PlanState extends State<Plan> {
         default:
           switch (data['data']['error']) {
             case '401':
-              errorText = 'Der Benutzername oder das Passwort ist falsch!';
+              errorText = 'Username or Password is wrong!';
               extraWidget = Lottie.asset(
                 'assets/animations/lock.json',
                 height: 120,
@@ -124,14 +124,14 @@ class _PlanState extends State<Plan> {
               break;
             case 'schoolnumber':
               errorText =
-                  'Kein Vertretungsplan verfügbar!\n\n oder falsche Schulnummer';
+                  'Wrong School number or no substitution plan available';
               extraWidget = Lottie.asset(
                 'assets/animations/nodata.json',
                 height: 120,
               );
               break;
             case 'no internet':
-              errorText = 'Keine Internetverbindung';
+              errorText = 'No Network connection';
               extraWidget = Lottie.asset(
                 'assets/animations/wifi.json',
                 height: 120,
@@ -339,7 +339,7 @@ class _PlanState extends State<Plan> {
                     onClick: () {},
                   )
                 : ListItem(
-                    title: Text('keine Zusatzinformationen'),
+                    title: Text('No additional information available'),
                     onClick: () {},
                   ))
             : SizedBox(),

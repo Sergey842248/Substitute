@@ -20,8 +20,8 @@ class Dashboard extends StatelessWidget {
           Icons.place_rounded,
           color: Theme.of(context).focusColor,
         ),
-        'title': 'Fin free room',
-        'subtitle': 'Find a room which isn\'t filled',
+        'title': 'Find free room',
+        'subtitle': 'Find a room which isn\'t occupied for a specific time',
         'link': FindRoom(),
       },
       {
