@@ -7,11 +7,31 @@ import '../../../models/ListPage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 
-class DeveloperOptions extends StatelessWidget {
+class DeveloperOptions extends StatefulWidget {
   void deleteOfflineData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     prefs.setStringList('offlineVPData', []);
+  }
+
+  @override
+  _DeveloperOptionsState createState() => _DeveloperOptionsState();
+}
+
+class _DeveloperOptionsState extends State<DeveloperOptions> {
+  bool _isAnalysisEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAnalysisStatus();
+  }
+
+  Future<void> _loadAnalysisStatus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isAnalysisEnabled = prefs.getBool('analysis') ?? false;
+    });
   }
 
   @override
@@ -27,7 +47,7 @@ class DeveloperOptions extends StatelessWidget {
       {
         'title': 'Delete offline substitution plan',
         'actionText': 'Delete',
-        'action': deleteOfflineData,
+        'action': widget.deleteOfflineData,
       },
       {
         'title': 'Stop Background service',
@@ -94,13 +114,17 @@ class DeveloperOptions extends StatelessWidget {
         },
       },
       {
-        'title': 'Disable Analysis',
-        'actionText': 'Disable',
+        'title': _isAnalysisEnabled ? 'Disable Analysis' : 'Enable Analysis',
+        'actionText': _isAnalysisEnabled ? 'Disable' : 'Enable',
         'action': () async {
           SharedPreferences prefs = await SharedPreferences.getInstance();
-          prefs.setBool('analysis', false);
+          bool currentStatus = prefs.getBool('analysis') ?? false;
+          await prefs.setBool('analysis', !currentStatus);
+          setState(() {
+            _isAnalysisEnabled = !currentStatus;
+          });
           Fluttertoast.showToast(
-            msg: 'Analysis disabled',
+            msg: currentStatus ? 'Analysis disabled' : 'Analysis enabled',
             toastLength: Toast.LENGTH_SHORT,
           );
         },
@@ -110,6 +134,7 @@ class DeveloperOptions extends StatelessWidget {
       body: ListPage(
         title: 'developer options',
         children: [
+          // ... other options
           ...options.map(
             (e) => Container(
               margin: const EdgeInsets.all(10),
