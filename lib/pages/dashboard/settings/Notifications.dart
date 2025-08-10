@@ -353,7 +353,7 @@ class _NotificationsState extends State<Notifications> {
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: Text('ok'),
+                        child: Text('OK'),
                       ),
                     ],
                     backgroundColor: Theme.of(context).backgroundColor,
@@ -376,6 +376,7 @@ class _NotificationsState extends State<Notifications> {
                   color: !_automaticLoad ? Colors.grey.shade500 : null,
                 ),
               ),
+              color: !_automaticLoad ? Color(0xff161616) : null,
               onClick: changeRemindOnlyChange,
               actionButton: Switch.adaptive(
                 value: _remindOnlyChange,
