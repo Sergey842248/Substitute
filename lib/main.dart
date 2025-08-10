@@ -249,6 +249,66 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     checkForUpdates(context);
   }
 
+  void checkForUpdates(BuildContext context) async {
+    if (version == 'loading...') return; // Don't check if version is not loaded yet
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.github.com/repos/Sergey842248/Substitute/releases/latest'),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        final latestVersion = jsonResponse['tag_name'].replaceAll('v', ''); // Assuming tags are like 'v1.2.3'
+
+        if (latestVersion.compareTo(version) > 0) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: Theme.of(context).backgroundColor,
+              title: Row(
+                children: [
+                  Icon(Icons.system_security_update_outlined),
+                  SizedBox(width: 10),
+                  Text('New version available'),
+                ],
+              ),
+              content: Text('A new version ($latestVersion) is available. Download now!'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Later',
+                    style: TextStyle(
+                      color: Theme.of(context).primaryColor,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                Button(
+                  text: 'Download',
+                  onPressed: () async {
+                    String url = jsonResponse['assets'][0]['browser_download_url']; // Assuming the first asset is the APK
+                    try {
+                      await launch(url);
+                    } catch (e) {
+                      print('failed to launch URL: $e');
+                    }
+                    Navigator.pop(context);
+                  },
+                ),
+              ],
+            ),
+          );
+        }
+      } else {
+        print('Failed to fetch latest release: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error checking for updates: $e');
+      return;
+    }
+  }
+
   void openVPLan(String _prefClass) {}
 
   void eastereggIconChange() {
@@ -280,7 +340,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (eastereggIcon.runtimeType == SizedBox)
       eastereggIcon = Image.asset(
         'assets/img/logo.png',
-        width: 70,
+        width: 100,
         key: ValueKey(2),
         color: Theme.of(context).focusColor,
       );
