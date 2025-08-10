@@ -264,15 +264,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             children: [
               Icon(Icons.system_security_update_outlined),
               SizedBox(width: 10),
-              Text('Neue Version'),
+              Text('New version available'),
             ],
           ),
-          content: Text('lade dir die neuste Version herunter!'),
+          content: Text('Download now!'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                'später',
+                'Later',
                 style: TextStyle(
                   color: Theme.of(context).primaryColor,
                   fontSize: 13,
@@ -280,15 +280,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
             ),
             Button(
-              text: 'herunterladen',
+              text: 'Download',
               onPressed: () async {
                 String url =
-                    'https://www.kellermann.team/expandiware/expandiware.apk';
+                    'https://github.com/Sergey842248/Substitute/releases/download/latest/Substitute.apk';
 
                 try {
                   await launch(url);
                 } catch (e) {
-                  print('faild');
+                  print('failed');
                 }
                 Navigator.pop(context);
               },

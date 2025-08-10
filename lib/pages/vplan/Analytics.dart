@@ -104,9 +104,9 @@ class Analysis {
               ),
               child: Column(
                 children: [
-                  Text('Lehrer ${e['name']}'),
+                  Text('Teacher ${e['name']}'),
                   ...e['lessons'].map(
-                      (e) => Text('Fach: ${e['lesson']}\nRaum: ${e['place']}')),
+                      (e) => Text('Subject: ${e['lesson']}\nRoom: ${e['place']}')),
                 ],
               ),
             ),

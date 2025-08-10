@@ -59,7 +59,7 @@ class QRScanner extends StatelessWidget {
                   top: MediaQuery.of(context).size.height * 0.1,
                 ),
                 child: Text(
-                  'Scanne den Code aus einer anderen App!',
+                  'Scan the QR-Code from another user',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 30,

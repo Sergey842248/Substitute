@@ -63,7 +63,7 @@ class _TeacherShortsState extends State<TeacherShorts> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: ListPage(
-        title: 'Lehrernamen',
+        title: 'Teacher names',
         /*actions: [
           IconButton(
             onPressed: () async {
@@ -144,7 +144,7 @@ class _TeacherShortsState extends State<TeacherShorts> {
                     width: MediaQuery.of(context).size.width * 0.6,
                     child: InputField(
                       controller: e['controller'],
-                      labelText: 'echter Nachname',
+                      labelText: 'Real name',
                     ),
                   ),
                   Container(
@@ -184,7 +184,7 @@ class _TeacherShortsState extends State<TeacherShorts> {
                         ),
                         child: Center(
                           child: Text(
-                            e['currently_added'] ? 'added' : 'add',
+                            e['currently_added'] ? 'Saved' : 'Save',
                             style: TextStyle(
                               fontWeight: FontWeight.w500,
                               fontSize: 14,

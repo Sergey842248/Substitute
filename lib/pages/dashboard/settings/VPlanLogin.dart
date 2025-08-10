@@ -87,17 +87,17 @@ class _VPlanLoginState extends State<VPlanLogin> {
   Widget build(BuildContext context) {
     List<dynamic> inputs = [
       {
-        'hintText': 'Schulnummer',
+        'hintText': 'School-number',
         'controller': schoolnumberController,
         'numeric': true,
       },
       {
-        'hintText': 'Benutzer',
+        'hintText': 'Username',
         'controller': usernameController,
         'numeric': false,
       },
       {
-        'hintText': 'Passwort',
+        'hintText': 'Password',
         'controller': passwordController,
         'numeric': false,
       },
@@ -281,8 +281,8 @@ class _VPlanLoginState extends State<VPlanLogin> {
                           ),
                           Text(
                             customUrlField
-                                ? 'oder Login verwenden'
-                                : 'oder eigene URL',
+                                ? 'or use login'
+                                : 'or use your own URL',
                             style: TextStyle(
                               color: Theme.of(context)
                                   .focusColor
@@ -303,7 +303,7 @@ class _VPlanLoginState extends State<VPlanLogin> {
                 // CUSTOM URL
 
                 Button(
-                  text: 'Speichern',
+                  text: 'Save',
                   onPressed: () async {
                     SharedPreferences prefs =
                         await SharedPreferences.getInstance();
@@ -328,7 +328,7 @@ class _VPlanLoginState extends State<VPlanLogin> {
                         customUrlController.text.toString(),
                       );
                     }
-                    Fluttertoast.showToast(msg: 'Anmeldedaten gespeichert');
+                    Fluttertoast.showToast(msg: 'Credentials saved!');
                     Navigator.pop(context);
                   },
                 ),

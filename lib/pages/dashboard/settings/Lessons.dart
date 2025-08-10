@@ -108,7 +108,7 @@ class _LessonsState extends State<Lessons> {
               Navigator.pop(context);
               setState(() {});
             },
-            'child': Text('nicht speichern'),
+            'child': Text('don\'t save' ),
           },
           content: Container(
             margin: EdgeInsets.only(
@@ -116,7 +116,7 @@ class _LessonsState extends State<Lessons> {
               right: MediaQuery.of(context).size.width * 0.2,
             ),
             child: Text(
-              'Wenn du nicht speicherst gehen deine Veränderungen verloren.',
+              'If you don\'t save, the changes will be lost.',
               textAlign: TextAlign.center,
             ),
           ),
@@ -141,7 +141,7 @@ class _LessonsState extends State<Lessons> {
     saved = true;
     setState(() {});
     Fluttertoast.cancel();
-    Fluttertoast.showToast(msg: 'Zeiten gespeichert');
+    Fluttertoast.showToast(msg: 'Times saved');
   }
 
   @override
@@ -154,7 +154,7 @@ class _LessonsState extends State<Lessons> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: ListPage(
-        title: 'Unterricht Zeiten',
+        title: 'lesson times',
         onPop: () => isSaved(context),
         actions: [
           /* IconButton(
@@ -192,7 +192,7 @@ class _LessonsState extends State<Lessons> {
                 child: ListItem(
                   title: Row(
                     children: [
-                      Text('von:'),
+                      Text('From:'),
                       SizedBox(width: spaceBetween),
                       GestureDetector(
                         onTap: () => setTime(index, ['start']),
@@ -205,7 +205,7 @@ class _LessonsState extends State<Lessons> {
                         ),
                       ),
                       SizedBox(width: spaceBetween * 5),
-                      Text('bis:'),
+                      Text('To:'),
                       SizedBox(width: spaceBetween),
                       GestureDetector(
                         onTap: () => setTime(index, ['ende']),
@@ -219,7 +219,7 @@ class _LessonsState extends State<Lessons> {
                       ),
                     ],
                   ),
-                  leading: Text('${lessons[index]['count']}. Stunde'),
+                  leading: Text('${lessons[index]['count']}. Lesson'),
                   onClick: () => setTime(index, ['start', 'ende']),
                   actionButton: IconButton(
                     icon: Icon(

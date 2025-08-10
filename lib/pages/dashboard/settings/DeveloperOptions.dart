@@ -19,56 +19,56 @@ class DeveloperOptions extends StatelessWidget {
   Widget build(BuildContext context) {
     List<dynamic> options = [
       {
-        'title': 'disable developer options',
-        'actionText': 'disable',
+        'title': 'Disable developer options',
+        'actionText': 'Disable',
         'action': () => SharedPreferences.getInstance().then(
               (instance) => instance.setBool('developerOptions', false),
             ),
       },
       {
         'title': 'Delete offline substitution plan',
-        'actionText': 'delete',
+        'actionText': 'Delete',
         'action': deleteOfflineData,
       },
       {
         'title': 'Stop Background service',
-        'actionText': 'stop',
+        'actionText': 'Stop',
         'action': () =>
             FlutterBackgroundService().sendData({'action': 'stopService'}),
       },
       {
         'title': 'Clear all SharedPreferences',
-        'actionText': 'clear',
+        'actionText': 'Clear',
         'action': () => SharedPreferences.getInstance()
             .then((instance) => instance.clear()),
       },
       {
-        'title': 'remove Teacher shorts',
-        'actionText': 'remove',
+        'title': 'Remove Teacher abbreviations',
+        'actionText': 'Remove',
         'action': () async {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           prefs.setString('teacherShorts', '');
         },
       },
       {
-        'title': 'clear notified dates',
-        'actionText': 'clear',
+        'title': 'Clear notified dates',
+        'actionText': 'Clear',
         'action': () async {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           prefs.setStringList('notified', []);
         },
       },
       {
-        'title': 'clear news feeds',
-        'actionText': 'clear',
+        'title': 'Clear news feeds',
+        'actionText': 'Clear',
         'action': () async {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           prefs.setString('newsfeeds', '[]');
         },
       },
       {
-        'title': 'toggle Material You',
-        'actionText': 'change',
+        'title': 'Toggle Material You',
+        'actionText': 'Toggle',
         'action': () async {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           prefs.setBool('materialyou', !prefs.getBool('materialyou')!);
@@ -79,8 +79,8 @@ class DeveloperOptions extends StatelessWidget {
         },
       },
       {
-        'title': 'delete lesson times',
-        'actionText': 'delete',
+        'title': 'Delete lesson times',
+        'actionText': 'Delete',
         'action': () async {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           prefs.setString('lesson times', '[]');
@@ -88,33 +88,33 @@ class DeveloperOptions extends StatelessWidget {
       },
       {
         'title': 'firstTime to true',
-        'actionText': 'set',
+        'actionText': 'Set',
         'action': () async {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           prefs.setBool('firstTime', true);
         },
       },
       {
-        'title': 'analysis code',
-        'actionText': 'enter',
+        'title': 'Analysis code',
+        'actionText': 'Enter',
         'action': () async {
           TextEditingController _controller = new TextEditingController();
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              title: Text('enter analysis code'),
+              title: Text('Enter analysis code'),
               content: Container(
                 alignment: Alignment.center,
                 height: 100,
                 child: InputField(
                   controller: _controller,
-                  labelText: 'analysis code',
+                  labelText: 'Analysis code',
                 ),
               ),
               actions: [
                 Button(
-                  text: 'enter',
+                  text: 'Enter',
                   onPressed: () async {
                     SharedPreferences prefs =
                         await SharedPreferences.getInstance();

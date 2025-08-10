@@ -318,8 +318,8 @@ class _FindRoomState extends State<FindRoom> {
                   children: [
                     Text(
                       roomData.isNotEmpty
-                          ? 'Unterricht in diesem Raum'
-                          : 'Heute kein Unterricht in diesem Raum',
+                          ? 'Lessons in this room'
+                          : 'Today no lessons in this room',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
