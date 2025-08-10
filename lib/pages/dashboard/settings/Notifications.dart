@@ -38,6 +38,7 @@ class _NotificationsState extends State<Notifications> {
   bool _remindDayBefore = true;
   int? _interval;
   bool _remindOnlyChange = true;
+  bool _isHours = false;
 
   List<String> _classes = [];
 
@@ -128,20 +129,26 @@ class _NotificationsState extends State<Notifications> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     _classes = await VPlanAPI().getClasses();
 
-    _automaticLoad = prefs.getBool('automaticLoad')!;
-    _intiligentNotification = prefs.getBool('intiligentNotification')!;
-    _prefClass = prefs.getString('prefClass')!;
-    _hour = int.parse(prefs.getString('hour')!);
-    _minute = int.parse(prefs.getString('minute')!);
-    _remindDayBefore = prefs.getBool('remindDayBefore')!;
-    _interval = prefs.getInt('interval')!;
+    _automaticLoad = prefs.getBool('automaticLoad') ?? false;
+    _intiligentNotification = prefs.getBool('intiligentNotification') ?? false;
+    _prefClass = prefs.getString('prefClass') ?? _classes[0];
+    _hour = int.parse(prefs.getString('hour') ?? '0');
+    _minute = int.parse(prefs.getString('minute') ?? '0');
+    _remindDayBefore = prefs.getBool('remindDayBefore') ?? true;
+    _interval = prefs.getInt('interval') ?? 300;
+    _remindOnlyChange = prefs.getBool('remindOnlyChange') ?? true;
 
     setState(() {});
   }
 
   @override
-  Widget build(BuildContext context) {
+  void initState() {
+    super.initState();
     getData();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: ListPage(
@@ -280,30 +287,68 @@ class _NotificationsState extends State<Notifications> {
                   height: MediaQuery.of(context).size.height * 0.5,
                   child: AlertDialog(
                     title: heading('Call interval'),
-                    content: SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.1,
-                      child: StatefulBuilder(
-                        builder: (BuildContext context, StateSetter setState) =>
-                            Slider(
-                          onChanged: (change) =>
-                              setState(() => _interval = change.toInt()),
-                          onChangeEnd: (change) =>
-                              SharedPreferences.getInstance().then(
-                            (instance) =>
-                                instance.setInt('interval', change.toInt()),
+                    content: StatefulBuilder(
+                      builder: (BuildContext context, StateSetter setState) {
+                        return SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.2,
+                          child: Column(
+                            children: [
+                              Slider(
+                                onChanged: (change) {
+                                  setState(() {
+                                    _interval = _isHours
+                                        ? change.toInt() * 3600
+                                        : change.toInt() * 60;
+                                  });
+                                },
+                                onChangeEnd: (change) {
+                                  SharedPreferences.getInstance().then(
+                                    (instance) => instance.setInt(
+                                        'interval',
+                                        _isHours
+                                            ? change.toInt() * 3600
+                                            : change.toInt() * 60),
+                                  );
+                                  restartBackgroundSevice();
+                                },
+                                value: _isHours
+                                    ? ((_interval ?? 3600) / 3600).toDouble()
+                                    : ((_interval ?? 300) / 60).toDouble(),
+                                max: _isHours ? 24 : 60,
+                                min: 1,
+                                label: _isHours
+                                    ? '${(_interval ?? 3600) ~/ 3600}h'
+                                    : '${(_interval ?? 300) ~/ 60}min',
+                                divisions: _isHours ? 24 : 60,
+                                activeColor: Theme.of(context)
+                                    .accentColor
+                                    .withOpacity(0.8),
+                                inactiveColor: Theme.of(context)
+                                    .accentColor
+                                    .withOpacity(0.1),
+                                thumbColor: Theme.of(context).accentColor,
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text('Minutes'),
+                                  Switch(
+                                    value: _isHours,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _isHours = value;
+                                      });
+                                    },
+                                    activeColor:
+                                        Theme.of(context).accentColor,
+                                  ),
+                                  Text('Hours'),
+                                ],
+                              )
+                            ],
                           ),
-                          value: _interval!.toDouble(),
-                          max: 3600,
-                          min: 10,
-                          label: '${_interval}s',
-                          divisions: 3600,
-                          activeColor:
-                              Theme.of(context).accentColor.withOpacity(0.8),
-                          inactiveColor:
-                              Theme.of(context).accentColor.withOpacity(0.1),
-                          thumbColor: Theme.of(context).accentColor,
-                        ),
-                      ),
+                        );
+                      },
                     ),
                     actions: [
                       TextButton(
@@ -316,7 +361,9 @@ class _NotificationsState extends State<Notifications> {
                 ),
               ),
               actionButton: Text(
-                '${_interval}s',
+                _isHours
+                    ? '${(_interval ?? 3600) ~/ 3600}h'
+                    : '${(_interval ?? 300) ~/ 60}min',
                 style: TextStyle(
                   color: !_automaticLoad ? Colors.grey.shade500 : null,
                 ),
