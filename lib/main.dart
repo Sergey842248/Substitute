@@ -242,19 +242,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  int developerClickCount = 0;
-  int maxDeveloperClickCount = 7;
-  void getDeveloper() async {
-    if (activeText != 'dashboard') return;
-    if (developerClickCount == maxDeveloperClickCount) {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      prefs.setBool('developerOptions', true);
-      Fluttertoast.cancel();
-      Fluttertoast.showToast(msg: 'Du bist jetzt Entwickler!');
-      print('Du bist jetzt Entwickler!');
-    }
-  }
-
   String version = '1.15';
   void checkForUpdates(BuildContext context) async {
     String _version = version;
@@ -417,7 +404,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           ),
                         ),
                         InkWell(
-                          onTap: getDeveloper,
+                          onTap: () async {
+                            // Implement developer mode logic here if needed in the future
+                          },
                           child: Container(
                             alignment: Alignment.centerRight,
                             height: 45,
