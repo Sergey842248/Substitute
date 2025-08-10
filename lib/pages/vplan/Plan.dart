@@ -193,15 +193,24 @@ class _PlanState extends State<Plan> {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(
+                Radius.circular(20.0),
+              ),
+            ),
             title: Text('Week'),
-            content: Text(
-              weekNumber(VPlanAPI().parseStringDatatoDateTime(
-                          data['data']['date'].toString())) %
-                      2 !=
-                  0
-                  ? 'A'
-                  : 'B',
-              style: TextStyle(fontSize: 20),
+            content: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                weekNumber(VPlanAPI().parseStringDatatoDateTime(
+                            data['data']['date'].toString())) %
+                        2 !=
+                    0
+                    ? 'A'
+                    : 'B',
+                style: TextStyle(fontSize: 20),
+                textAlign: TextAlign.center,
+              ),
             ),
             actions: [
               TextButton(
