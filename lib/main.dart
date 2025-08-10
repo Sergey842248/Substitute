@@ -189,7 +189,7 @@ class MyApp extends StatelessWidget {
             );
           },
           debugShowCheckedModeBanner: false,
-          title: 'expandiware',
+          title: 'Substitute',
           darkTheme: ThemeData(
             fontFamily: 'Poppins',
             brightness: Brightness.dark,
@@ -252,19 +252,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       Fluttertoast.cancel();
       Fluttertoast.showToast(msg: 'Du bist jetzt Entwickler!');
       print('Du bist jetzt Entwickler!');
-    }
-
-    developerClickCount++;
-    if (developerClickCount >= 3 &&
-        developerClickCount <= maxDeveloperClickCount) {
-      Fluttertoast.cancel();
-      Fluttertoast.showToast(
-        msg:
-            'In ${maxDeveloperClickCount - developerClickCount + 1} Schritte${(maxDeveloperClickCount - developerClickCount + 1) == 0 ? '' : 'n'} bist du Entwickler',
-      );
-      print(
-        'In ${maxDeveloperClickCount - developerClickCount + 1} Schritte${(maxDeveloperClickCount - developerClickCount + 1) == 0 ? '' : 'n'} bist du Entwickler',
-      );
     }
   }
 
@@ -333,7 +320,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'assets/img/logo.png',
         key: ValueKey(2),
         color: Theme.of(context).focusColor,
-        width: 35,
+        width: 70,
       );
     } else {
       eastereggIcon = LottieBuilder.asset(
@@ -356,7 +343,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (eastereggIcon.runtimeType == SizedBox)
       eastereggIcon = Image.asset(
         'assets/img/logo.png',
-        width: 35,
+        width: 70,
         key: ValueKey(2),
         color: Theme.of(context).focusColor,
       );
@@ -421,7 +408,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           alignment: Alignment.center,
                           height: 45,
                           child: Text(
-                            'expandiware',
+                            'Substitute',
                             style: TextStyle(
                               fontSize: 23,
                               color: Theme.of(context).focusColor,
