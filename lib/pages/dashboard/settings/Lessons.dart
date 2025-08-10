@@ -154,7 +154,7 @@ class _LessonsState extends State<Lessons> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: ListPage(
-        title: 'lesson times',
+        title: 'Lesson times',
         onPop: () => isSaved(context),
         actions: [
           /* IconButton(
