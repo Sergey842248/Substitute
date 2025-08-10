@@ -46,7 +46,7 @@ class _PlanState extends State<Plan> {
   }
 
   void getData() async {
-    setState(() => data = 'loading'); // show loadng animation
+    setState(() => data = 'loading'); // show loading animation
     VPlanAPI vplanAPI = new VPlanAPI();
 
     dynamic _lessons = await vplanAPI.getLessonsForToday(widget.classId);
@@ -91,7 +91,7 @@ class _PlanState extends State<Plan> {
     DateTime displayDateDateTime;
     String displayDate = '...';
     if (data == null) {
-      return Text('no vplan');
+      return Text('no substitution plan');
     }
     if (data.toString().contains('error')) {
       String errorText = '';
