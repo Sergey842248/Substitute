@@ -19,15 +19,15 @@ class DeveloperOptions extends StatelessWidget {
   Widget build(BuildContext context) {
     List<dynamic> options = [
       {
-        'title': 'Entwickleroptionen deaktivieren',
-        'actionText': 'deaktivieren',
+        'title': 'disable developer options',
+        'actionText': 'disable',
         'action': () => SharedPreferences.getInstance().then(
               (instance) => instance.setBool('developerOptions', false),
             ),
       },
       {
-        'title': 'Offline Vertretungsplan löschen',
-        'actionText': 'löschen',
+        'title': 'Delete offline substitution plan',
+        'actionText': 'delete',
         'action': deleteOfflineData,
       },
       {
@@ -79,11 +79,11 @@ class DeveloperOptions extends StatelessWidget {
         },
       },
       {
-        'title': 'delete lessontimes',
+        'title': 'delete lesson times',
         'actionText': 'delete',
         'action': () async {
           SharedPreferences prefs = await SharedPreferences.getInstance();
-          prefs.setString('lessontimes', '[]');
+          prefs.setString('lesson times', '[]');
         },
       },
       {
@@ -103,13 +103,13 @@ class DeveloperOptions extends StatelessWidget {
             context: context,
             builder: (context) => AlertDialog(
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              title: Text('enter analisis code'),
+              title: Text('enter analysis code'),
               content: Container(
                 alignment: Alignment.center,
                 height: 100,
                 child: InputField(
                   controller: _controller,
-                  labelText: 'analisis code',
+                  labelText: 'analysis code',
                 ),
               ),
               actions: [
@@ -119,8 +119,8 @@ class DeveloperOptions extends StatelessWidget {
                     SharedPreferences prefs =
                         await SharedPreferences.getInstance();
                     if (_controller.text == 'JuIGZxo0Na') {
-                      prefs.setBool('analisis', false);
-                      Fluttertoast.showToast(msg: 'no analisis anymore');
+                      prefs.setBool('analysis', false);
+                      Fluttertoast.showToast(msg: 'no analysis anymore');
                     } else {
                       Fluttertoast.showToast(msg: 'incorrect code');
                     }
@@ -135,7 +135,7 @@ class DeveloperOptions extends StatelessWidget {
     ];
     return Scaffold(
       body: ListPage(
-        title: 'Entwickleroptionen',
+        title: 'developer options',
         children: [
           ...options.map(
             (e) => Container(

@@ -359,7 +359,7 @@ class _ClassWidgetState extends State<ClassWidget> {
                           child: Column(
                             children: [
                               Text(
-                                'No time-ranges set',
+                                'No lesson times set',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Theme.of(context)
@@ -376,7 +376,7 @@ class _ClassWidgetState extends State<ClassWidget> {
                                   ),
                                 ),
                                 child: Text(
-                                  'Set time-ranges',
+                                  'Set lesson times',
                                   style: TextStyle(
                                     color: Theme.of(context).primaryColor,
                                   ),
