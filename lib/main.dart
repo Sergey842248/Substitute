@@ -257,7 +257,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'assets/img/logo.png',
         key: ValueKey(2),
         color: Theme.of(context).focusColor,
-        width: 70,
+        width: 100,
       );
     } else {
       eastereggIcon = LottieBuilder.asset(
