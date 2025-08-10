@@ -1,5 +1,4 @@
 import 'package:expandiware/models/Button.dart';
-import 'package:expandiware/models/InputField.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
@@ -95,40 +94,14 @@ class DeveloperOptions extends StatelessWidget {
         },
       },
       {
-        'title': 'Analysis code',
-        'actionText': 'Enter',
+        'title': 'Disable Analysis',
+        'actionText': 'Disable',
         'action': () async {
-          TextEditingController _controller = new TextEditingController();
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              title: Text('Enter analysis code'),
-              content: Container(
-                alignment: Alignment.center,
-                height: 100,
-                child: InputField(
-                  controller: _controller,
-                  labelText: 'Analysis code',
-                ),
-              ),
-              actions: [
-                Button(
-                  text: 'Enter',
-                  onPressed: () async {
-                    SharedPreferences prefs =
-                        await SharedPreferences.getInstance();
-                    if (_controller.text == 'JuIGZxo0Na') {
-                      prefs.setBool('analysis', false);
-                      Fluttertoast.showToast(msg: 'no analysis anymore');
-                    } else {
-                      Fluttertoast.showToast(msg: 'incorrect code');
-                    }
-                    Navigator.pop(context);
-                  },
-                ),
-              ],
-            ),
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          prefs.setBool('analysis', false);
+          Fluttertoast.showToast(
+            msg: 'Analysis disabled',
+            toastLength: Toast.LENGTH_SHORT,
           );
         },
       },
