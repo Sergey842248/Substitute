@@ -104,9 +104,9 @@ class _PlanState extends State<Plan> {
             height: 120,
           );
           break;
-        case 'schoolnumber':
+        case 'school-number':
           errorText =
-              'Wrong School number or no substitution plan available';
+              'Wrong school-number or no substitution plan available';
           extraWidget = Lottie.asset(
             'assets/animations/nodata.json',
             height: 120,
@@ -130,7 +130,7 @@ class _PlanState extends State<Plan> {
               break;
             case 'schoolnumber':
               errorText =
-                  'Wrong School number or no substitution plan available';
+                  'Wrong school-number or no substitution plan available';
               extraWidget = Lottie.asset(
                 'assets/animations/nodata.json',
                 height: 120,
