@@ -24,19 +24,13 @@ void onStart() async {
   });
 
   // bring to foreground
-  service.setForegroundMode(true);
+  service.setForegroundMode(false);
 
   SharedPreferences prefs = await SharedPreferences.getInstance();
   if (prefs.getInt('interval') == null) prefs.setInt('interval', 300);
   int? _interval = prefs.getInt('interval')!;
   print('start background service');
   Timer.periodic(Duration(seconds: _interval), vplanNotifications);
-
-  service.setNotificationInfo(
-    title:
-        'expandiware interval: ${_interval}s (${prefs.getString('prefClass')})',
-    content: '',
-  );
 }
 
 void vplanNotifications(Timer _timer) async {
