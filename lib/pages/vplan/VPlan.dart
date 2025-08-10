@@ -50,6 +50,9 @@ class _VPlanState extends State<VPlan> {
         context: context,
         builder: (context) {
           return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(25),
+            ),
             backgroundColor: Theme.of(context).backgroundColor,
             title: Text(
               'Add a new class',
