@@ -443,6 +443,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                           padding: EdgeInsets.all(8.0),
                                           child: Text(
                                             'Main-Developer: Sergey842248\n'
+                                            '\n'
                                             'Former Developer: Oskar',
                                             style: TextStyle(
                                               fontSize: 17,
