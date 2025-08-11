@@ -209,7 +209,12 @@ class VPlanAPI {
           return {'error': '401'};
         }
         //print(res.body);
-        String source = Utf8Decoder().convert(res.bodyBytes);
+        String source = utf8.decode(res.bodyBytes, allowMalformed: true);
+
+        // remove BOM
+        if (source.startsWith('\uFEFF')) {
+          source = source.substring(1);
+        }
         xml2json.parse(source);
         String stringVPlan = xml2json.toParker();
 
@@ -221,15 +226,7 @@ class VPlanAPI {
 
         /* NEW XML PARSER */
 
-        String cleanXml = res.body;
-
-        cleanXml = cleanXml
-            .toString()
-            .replaceFirst('ï', '')
-            .replaceFirst('»', '')
-            .replaceFirst('¿', '');
-
-        final XmlDocument xmlVPlan = XmlDocument.parse(cleanXml);
+        final XmlDocument xmlVPlan = XmlDocument.parse(source);
 
         Iterable<XmlElement>? ziZeilen;
         try {
@@ -266,11 +263,18 @@ class VPlanAPI {
 
         /* NEW XML PARSER */
 
+        var infoList = ziZeilen.map((e) => e.innerText).toList();
+        var lastNotEmpty =
+            infoList.lastIndexWhere((s) => s.trim().isNotEmpty);
+        if (lastNotEmpty != -1) {
+          infoList = infoList.sublist(0, lastNotEmpty + 1);
+        }
+
         data.add({
           'date': jsonVPlan['VpMobil']['Kopf']['DatumPlan'],
           'week': jsonVPlan['VpMobil']['Kopf']['Woche'],
           'data': jsonVPlan['VpMobil'],
-          'info': ziZeilen.map((e) => e.innerText).toList(),
+          'info': infoList,
           'courses': courses,
         });
         //-------------------------------------
