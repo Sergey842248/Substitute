@@ -419,7 +419,7 @@ class _ClassWidgetState extends State<ClassWidget> {
                               children: [
                                 Text(''),
                                 Text(
-                                  'Raum ' + nextLesson['place'],
+                                  'Room ' + nextLesson['place'],
                                   style: TextStyle(fontSize: 19),
                                 ),
                                 SizedBox(height: spaceBetween),

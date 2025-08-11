@@ -42,7 +42,7 @@ class _LessonsState extends State<Lessons> {
     for (int i = 0; i < string.length; i++) {
       TimeOfDay initTime = toTimeOfDay(lessons[index][string[i]]);
       if (index != 0) {
-        String foo = (i == 0 ? 'ende' : 'start');
+        String foo = (i == 0 ? 'end' : 'start');
         initTime = toTimeOfDay(lessons[index - 1][foo]);
       }
       if (string[i] == 'ende') {
@@ -52,12 +52,12 @@ class _LessonsState extends State<Lessons> {
       String newTime = (await showTimePicker(
         context: context,
         initialTime: initTime,
-        hourLabelText: 'Stunde',
+        hourLabelText: 'Hour',
         minuteLabelText: 'Minute',
-        cancelText: 'abbrechen',
+        cancelText: 'Cancel',
         confirmText: 'OK',
         helpText:
-            'Neue ${string[i].replaceFirst(string[i][0], string[i][0].toUpperCase())}-Zeit für ${lessons[index]['count']}.Stunde auswählen',
+            'Set ${string[i].replaceFirst(string[i][0], string[i][0].toUpperCase())} for ${lessons[index]['count']}.lesson',
       ))
           .toString();
 
@@ -93,9 +93,9 @@ class _LessonsState extends State<Lessons> {
         context: context,
         backgroundColor: Colors.transparent,
         builder: (context) => ModalBottomSheet(
-          title: 'Vergessen zu speichern?',
+          title: 'Forgot to save?',
           bigTitle: true,
-          submitButtonText: 'speichern',
+          submitButtonText: 'Save',
           onPop: () {
             save();
             Navigator.pop(context);
@@ -220,7 +220,7 @@ class _LessonsState extends State<Lessons> {
                     ],
                   ),
                   leading: Text('${lessons[index]['count']}. Lesson'),
-                  onClick: () => setTime(index, ['start', 'ende']),
+                  onClick: () => setTime(index, ['start', 'end']),
                   actionButton: IconButton(
                     icon: Icon(
                       Icons.delete,

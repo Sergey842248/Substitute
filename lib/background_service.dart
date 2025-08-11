@@ -112,14 +112,14 @@ void vplanNotifications(Timer _timer) async {
             id: i,
             title: _lessons[i]['lesson'],
             body:
-                '${_lessons[i]['place']} ${(_lessons[i]['teacher'] == null ? 'ohne Lehrer' : _lessons[i]['teacher'])}',
-            subtitle: 'expandiware',
+                '${_lessons[i]['place']} ${(_lessons[i]['teacher'] == null ? 'without teacher' : _lessons[i]['teacher'])}',
+            subtitle: 'Substitute',
           );
         } catch (e) {
           createNotification(
             title: 'exception',
             body: e.toString(),
-            subtitle: 'expandiware',
+            subtitle: 'Substitute',
             normal: true,
           );
         }
@@ -133,10 +133,10 @@ void vplanNotifications(Timer _timer) async {
               ? _lessons[i]['teacher']
               : 'ohne Lehrer';
           String place =
-              _lessons[i]['place'] != null ? _lessons[i]['place'] : 'kein Raum';
+              _lessons[i]['place'] != null ? _lessons[i]['place'] : 'No room';
           String info = _lessons[i]['info'] != null
               ? _lessons[i]['info']
-              : 'keine Zusatzinformationen';
+              : 'No additional information';
 
           if ((_lessons[i]['lesson'] == null ||
                   _lessons[i]['lesson'] == '---') &&
@@ -146,14 +146,14 @@ void vplanNotifications(Timer _timer) async {
               id: i,
               title: _lessons[i]['count'] + ' $info',
               body: '-',
-              subtitle: 'expandiware',
+              subtitle: 'Substitute',
             );
           } else {
             createNotification(
               id: i,
               title: '$lesson $teacher $place',
               body: info,
-              subtitle: 'expandiware',
+              subtitle: 'Substitute',
             );
           }
         }

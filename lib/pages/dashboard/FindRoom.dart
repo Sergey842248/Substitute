@@ -171,7 +171,7 @@ class _FindRoomState extends State<FindRoom> {
       if (mounted) {
         setState(() {
           process++;
-          loadText = 'Prüfe Raum ${rooms[i]}...';
+          loadText = 'Check room ${rooms[i]}...';
         });
       }
 
