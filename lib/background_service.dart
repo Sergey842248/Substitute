@@ -12,7 +12,7 @@ void onStart() async {
   final service = FlutterBackgroundService();
   service.onDataReceived.listen((event) {
     if (event!["action"] == "setAsForeground") {
-      service.setForegroundMode(true);
+      service.setForegroundMode(false);
       return;
     }
     if (event["action"] == "setAsBackground") {

@@ -127,8 +127,8 @@ void main() async {
   if (prefs.getBool('automaticLoad') == true ||
       prefs.getBool('automaticLoad') == null) {
     print('initialize background service');
-    WidgetsFlutterBinding.ensureInitialized();
-    FlutterBackgroundService.initialize(onStart);
+    // WidgetsFlutterBinding.ensureInitialized();
+    // FlutterBackgroundService.initialize(onStart);
   }
   if (!kDebugMode) sendAppOpenData();
 }
