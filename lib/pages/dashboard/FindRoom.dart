@@ -68,9 +68,9 @@ class _FindRoomState extends State<FindRoom> {
         : DateTime.now().add(const Duration(days: 1));
     Uri url = Uri.parse(await vplanAPI.getURL(dateToFetch));
 
-    if (mounted) setState(() => loadText = 'Lade Vertretungsplan...');
+    if (mounted) setState(() => loadText = 'Loading substitution plan...');
     dynamic _vplanData = await vplanAPI.getVPlanJSON(url, dateToFetch);
-    if (mounted) setState(() => loadText = 'Vertretungsplan geladen...');
+    if (mounted) setState(() => loadText = 'Substitution plan loaded');
 
     if (_vplanData == null ||
         _vplanData.isEmpty ||
@@ -89,12 +89,12 @@ class _FindRoomState extends State<FindRoom> {
 
     // --- Get all rooms ---
     List<int> rooms = [];
-    if (_vplanData['data']['Klassen'] != null &&
-        _vplanData['data']['Klassen']['Kl'] != null) {
-      for (var klasse in _vplanData['data']['Klassen']['Kl']) {
+    if (_vplanData['data']['Classes'] != null &&
+        _vplanData['data']['Classes']['Cl'] != null) {
+      for (var klasse in _vplanData['data']['Classes']['Cl']) {
         if (klasse['Pl'] == null || klasse['Pl']['Std'] == null) continue;
-        for (var lesson in klasse['Pl']['Std']) {
-          String? room = lesson['Ra'];
+        for (var lesson in klasse['Pl']['h']) {
+          String? room = lesson['Ro'];
           if (room != null && room != 'Gang') {
             String editRoom = room
                 .replaceAll('H1', '')
@@ -115,26 +115,26 @@ class _FindRoomState extends State<FindRoom> {
 
     List<int> usedRooms = [];
     if (_selectedDay == 0 &&
-        _vplanData['data']['Klassen'] != null &&
-        _vplanData['data']['Klassen']['Kl'] != null) {
+        _vplanData['data']['Classes'] != null &&
+        _vplanData['data']['Classes']['Kl'] != null) {
       // Only check for currently used rooms for today
-      if (mounted) setState(() => loadText = 'Durchsuche Plan...');
-      totalSteps = _vplanData['data']['Klassen']['Kl'].length;
+      if (mounted) setState(() => loadText = 'Browsing plan...');
+      totalSteps = _vplanData['data']['Classes']['Cl'].length;
       process = 0;
 
-      for (var cl in _vplanData['data']['Klassen']['Kl']) {
+      for (var cl in _vplanData['data']['Classes']['Cl']) {
         if (mounted) setState(() => process++);
         if (cl['Pl'] == null || cl['Pl']['Std'] == null) continue;
         for (var lesson in cl['Pl']['Std']) {
           try {
-            if (lesson['Beginn'] == null || lesson['Ende'] == null) continue;
+            if (lesson['Start'] == null || lesson['End'] == null) continue;
 
-            int bhours = int.parse((lesson['Beginn'] as String).split(':')[0]);
+            int bhours = int.parse((lesson['Start'] as String).split(':')[0]);
             int bminutes =
-            int.parse((lesson['Beginn'] as String).split(':')[1]);
+            int.parse((lesson['Start'] as String).split(':')[1]);
 
-            int ehours = int.parse((lesson['Ende'] as String).split(':')[0]);
-            int eminutes = int.parse((lesson['Ende'] as String).split(':')[1]);
+            int ehours = int.parse((lesson['End'] as String).split(':')[0]);
+            int eminutes = int.parse((lesson['End'] as String).split(':')[1]);
 
             TimeOfDay _begin = TimeOfDay(hour: bhours, minute: bminutes);
             TimeOfDay _end = TimeOfDay(hour: ehours, minute: eminutes);
@@ -142,7 +142,7 @@ class _FindRoomState extends State<FindRoom> {
 
             if (toDouble(_now) >= toDouble(_begin) &&
                 toDouble(_now) <= toDouble(_end)) {
-              String? room = lesson['Ra'];
+              String? room = lesson['Ro'];
               if (room != null) {
                 String editRoom = room
                     .replaceAll('H1', '')
@@ -163,7 +163,7 @@ class _FindRoomState extends State<FindRoom> {
       usedRooms.sort();
     }
 
-    if (mounted) setState(() => loadText = 'Analysiere Räume...');
+    if (mounted) setState(() => loadText = 'Analysing Rooms...');
     totalSteps = rooms.length;
     process = 0;
     List<dynamic> allRooms = [];
@@ -200,12 +200,12 @@ class _FindRoomState extends State<FindRoom> {
     List<dynamic> res = [];
     if (_data == null ||
         _data['data'] == null ||
-        _data['data']['Klassen'] == null ||
-        _data['data']['Klassen']['Kl'] == null) {
+        _data['data']['Classes'] == null ||
+        _data['data']['Classes']['Cl'] == null) {
       return res;
     }
 
-    for (var currentClass in _data['data']['Klassen']['Kl']) {
+    for (var currentClass in _data['data']['Classes']['Cl']) {
       if (currentClass['Pl'] == null || currentClass['Pl']['Std'] == null) {
         continue;
       }
