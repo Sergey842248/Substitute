@@ -198,25 +198,25 @@ class _PlanState extends State<Plan> {
                 Radius.circular(20.0),
               ),
             ),
-            title: Text('Week'),
-            content: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                weekNumber(VPlanAPI().parseStringDatatoDateTime(
-                            data['data']['date'].toString())) %
-                        2 !=
-                    0
-                    ? 'A'
-                    : 'B',
-                style: TextStyle(fontSize: 20),
-                textAlign: TextAlign.center,
-              ),
+            title: Center(child: Text('Week')),
+            titlePadding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+            contentPadding: const EdgeInsets.all(10),
+            actionsPadding: const EdgeInsets.all(0),
+            content: Text(
+              weekNumber(VPlanAPI().parseStringDatatoDateTime(
+                          data['data']['date'].toString())) %
+                      2 !=
+                  0
+                  ? 'A'
+                  : 'B',
+              style: TextStyle(fontSize: 18),
+              textAlign: TextAlign.center,
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: Text('Close'),
-              )
+              ),
             ],
           ),
         );
