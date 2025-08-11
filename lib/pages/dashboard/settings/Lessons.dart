@@ -45,7 +45,7 @@ class _LessonsState extends State<Lessons> {
         String foo = (i == 0 ? 'end' : 'start');
         initTime = toTimeOfDay(lessons[index - 1][foo]);
       }
-      if (string[i] == 'ende') {
+      if (string[i] == 'end') {
         initTime = toTimeOfDay(lessons[index]['start']);
       }
       print(initTime);
@@ -208,11 +208,11 @@ class _LessonsState extends State<Lessons> {
                       Text('To:'),
                       SizedBox(width: spaceBetween),
                       GestureDetector(
-                        onTap: () => setTime(index, ['ende']),
+                        onTap: () => setTime(index, ['end']),
                         child: Text(
                           printTime(
-                            toTimeOfDay(lessons[index]['ende']).hour,
-                            toTimeOfDay(lessons[index]['ende']).minute,
+                            toTimeOfDay(lessons[index]['end']).hour,
+                            toTimeOfDay(lessons[index]['end']).minute,
                           ),
                           style: textStyle,
                         ),
@@ -259,7 +259,7 @@ class _LessonsState extends State<Lessons> {
                 {
                   'count': lessons.length + 1,
                   'start': TimeOfDay.now().toString(),
-                  'ende': TimeOfDay.fromDateTime(
+                  'end': TimeOfDay.fromDateTime(
                     DateTime.now().add(Duration(minutes: 45)),
                   ).toString(),
                 },
