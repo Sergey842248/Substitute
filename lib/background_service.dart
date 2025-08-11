@@ -7,9 +7,18 @@ import 'package:flutter/material.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+Timer? _timer;
+
 void onStart() async {
   WidgetsFlutterBinding.ensureInitialized();
   final service = FlutterBackgroundService();
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+
+  if (prefs.getBool('automaticLoad') == false) {
+    service.stopBackgroundService();
+    return;
+  }
+
   service.onDataReceived.listen((event) {
     if (event!["action"] == "setAsForeground") {
       service.setForegroundMode(false);
@@ -19,23 +28,35 @@ void onStart() async {
       service.setForegroundMode(false);
     }
     if (event["action"] == "stopService") {
+      _timer?.cancel();
       service.stopBackgroundService();
+    }
+    if (event["action"] == "restartTimer") {
+      _timer?.cancel();
+      startTimer();
     }
   });
 
   // bring to foreground
   service.setForegroundMode(false);
 
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  if (prefs.getInt('interval') == null) prefs.setInt('interval', 300);
-  int? _interval = prefs.getInt('interval')!;
-  print('start background service');
-  Timer.periodic(Duration(seconds: _interval), vplanNotifications);
+  startTimer();
 }
 
-void vplanNotifications(Timer _timer) async {
+void startTimer() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  if (prefs.getInt('interval') == null) prefs.setInt('interval', 300);
+  int _interval = prefs.getInt('interval')!;
+  _timer = Timer.periodic(Duration(seconds: _interval), vplanNotifications);
+}
+
+void vplanNotifications(Timer timer) async {
   print('background process');
   SharedPreferences prefs = await SharedPreferences.getInstance();
+
+  if (prefs.getBool('automaticLoad') == false) {
+    return;
+  }
 
   if (prefs.getString('prefClass') == null)
     prefs.setString('prefClass', (await VPlanAPI().getClasses())[0].toString());

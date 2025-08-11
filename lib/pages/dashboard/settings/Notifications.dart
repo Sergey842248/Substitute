@@ -43,10 +43,7 @@ class _NotificationsState extends State<Notifications> {
   List<String> _classes = [];
 
   void restartBackgroundSevice() {
-    FlutterBackgroundService().sendData({'action': 'stopService'});
-
-    WidgetsFlutterBinding.ensureInitialized();
-    FlutterBackgroundService.initialize(onStart);
+    FlutterBackgroundService().sendData({'action': 'restartTimer'});
   }
 
   void changeAutomaticLoad() async {
@@ -56,7 +53,6 @@ class _NotificationsState extends State<Notifications> {
     setState(() {});
 
     if (_automaticLoad) {
-      WidgetsFlutterBinding.ensureInitialized();
       FlutterBackgroundService.initialize(onStart);
     } else {
       FlutterBackgroundService().sendData({'action': 'stopService'});

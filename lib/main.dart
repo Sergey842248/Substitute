@@ -112,25 +112,22 @@ void sendAppOpenData() async {
 }
 
 void main() async {
-  runApp(MyApp());
-  print('foo');
+  WidgetsFlutterBinding.ensureInitialized();
   SharedPreferences prefs = await SharedPreferences.getInstance();
 
-  print('foo');
   if (prefs.getBool('firstTime') == null ||
       prefs.getBool('firstTime') == true) {
     runApp(Introduction());
     return;
   }
-  runApp(MyApp());
 
   if (prefs.getBool('automaticLoad') == true ||
       prefs.getBool('automaticLoad') == null) {
     print('initialize background service');
-    // WidgetsFlutterBinding.ensureInitialized();
-    // FlutterBackgroundService.initialize(onStart);
+    FlutterBackgroundService.initialize(onStart);
   }
   if (!kDebugMode) sendAppOpenData();
+  runApp(MyApp());
 }
 
 Color darken(Color c, [int percent = 10]) {
