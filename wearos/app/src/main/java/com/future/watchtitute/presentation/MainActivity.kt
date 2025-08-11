@@ -227,7 +227,7 @@ fun ClassSelectionScreen(
 fun VPlanScreen(entries: List<VPlanEntry>, onLogout: () -> Unit) {
     val listState = rememberScalingLazyListState()
 
-    // Neu: Scrollt nach oben, wenn sich die Einträge ändern und nicht leer sind
+    // Scrolls up if the list is not empty
     LaunchedEffect(entries) {
         if (entries.isNotEmpty()) {
             listState.scrollToItem(index = 0, scrollOffset = 0)
@@ -245,10 +245,10 @@ fun VPlanScreen(entries: List<VPlanEntry>, onLogout: () -> Unit) {
             items(entries) { entry ->
                 Card(onClick = {}) {
                     Column(modifier = Modifier.padding(8.dp)) {
-                        Text("Stunde: ${entry.count ?: ""}", style = MaterialTheme.typography.title3)
-                        Text("Fach: ${entry.lesson ?: ""}", style = MaterialTheme.typography.body1)
-                        Text("Lehrer: ${entry.teacher ?: ""}", style = MaterialTheme.typography.body2)
-                        Text("Raum: ${entry.place ?: ""}", style = MaterialTheme.typography.body2)
+                        Text("Lesson: ${entry.count ?: ""}", style = MaterialTheme.typography.title3)
+                        Text("Subject: ${entry.lesson ?: ""}", style = MaterialTheme.typography.body1)
+                        Text("Teacher: ${entry.teacher ?: ""}", style = MaterialTheme.typography.body2)
+                        Text("Room: ${entry.place ?: ""}", style = MaterialTheme.typography.body2)
                         if (entry.info?.isNotEmpty() == true) {
                             Text("Info: ${entry.info}", style = MaterialTheme.typography.body2)
                         }
