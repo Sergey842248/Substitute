@@ -37,7 +37,7 @@ class _FindRoomState extends State<FindRoom> {
     if (mounted) {
       setState(() {
         data = [];
-        loadText = 'Lade Daten...';
+        loadText = 'Loading data...';
       });
     }
 
