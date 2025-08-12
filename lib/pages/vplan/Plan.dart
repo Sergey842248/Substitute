@@ -453,9 +453,9 @@ class _CoursesState extends State<Courses> {
       ],
       children: [
         GridView.count(
-          childAspectRatio: 3 / 2.3,
+          childAspectRatio: 3 / 1.5,
           shrinkWrap: true,
-          crossAxisCount: 3,
+          crossAxisCount: 2,
           crossAxisSpacing: 1,
           mainAxisSpacing: 1,
           physics: BouncingScrollPhysics(),
@@ -465,34 +465,70 @@ class _CoursesState extends State<Courses> {
                 color: e['show']
                     ? Theme.of(context).backgroundColor
                     : Theme.of(context).backgroundColor.withOpacity(0.4),
-                title: Center(
-                    child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      e['course'],
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        decoration:
-                            !e['show'] ? TextDecoration.lineThrough : null,
-                        color: !e['show'] ? Colors.grey : null,
-                        fontWeight: FontWeight.w600,
+                title: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              e['course'],
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                decoration: !e['show']
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                color: !e['show'] ? Colors.grey : null,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              '(${e['teacher']})',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                decoration: !e['show']
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                color: !e['show'] ? Colors.grey : null,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      '(${e['teacher']})',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        decoration:
-                            !e['show'] ? TextDecoration.lineThrough : null,
-                        color: !e['show'] ? Colors.grey : null,
-                        fontSize: 12,
+                      Container(
+                        alignment: Alignment.center,
+                        width: 17,
+                        child: AnimatedSwitcher(
+                          duration: Duration(milliseconds: 500),
+                          child: e['show']
+                              ? Icon(
+                                  Icons.visibility_outlined,
+                                  key: ValueKey(1),
+                                  size: 16,
+                                )
+                              : Icon(
+                                  Icons.visibility_off_outlined,
+                                  key: ValueKey(2),
+                                  size: 16,
+                                ),
+                          transitionBuilder: (
+                            Widget child,
+                            Animation<double> animation,
+                          ) =>
+                              SizeTransition(
+                            sizeFactor: animation,
+                            child: child,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
-                )),
+                    ],
+                  ),
+                ),
                 onClick: () {
                   setState(() {
                     e['show'] = !e['show'];
@@ -505,33 +541,6 @@ class _CoursesState extends State<Courses> {
                     print('add course');
                   }
                 },
-                actionButton: Container(
-                  alignment: Alignment.center,
-                  width: 17,
-                  margin: const EdgeInsets.only(bottom: 15),
-                  child: AnimatedSwitcher(
-                    duration: Duration(milliseconds: 500),
-                    child: e['show']
-                        ? Icon(
-                            Icons.visibility_outlined,
-                            key: ValueKey(1),
-                            size: 16,
-                          )
-                        : Icon(
-                            Icons.visibility_off_outlined,
-                            key: ValueKey(2),
-                            size: 16,
-                          ),
-                    transitionBuilder: (
-                      Widget child,
-                      Animation<double> animation,
-                    ) =>
-                        SizeTransition(
-                      sizeFactor: animation,
-                      child: child,
-                    ),
-                  ),
-                ),
               ),
             ),
           ],
