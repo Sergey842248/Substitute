@@ -403,14 +403,14 @@ class _ClassWidgetState extends State<ClassWidget> {
                                 ),
                                 SizedBox(height: spaceBetween),
                                 Text(
-                                  nextLesson['lesson'],
+                                  nextLesson['lesson'] ?? '',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 21,
                                   ),
                                 ),
                                 SizedBox(height: spaceBetween),
-                                Text(nextLesson['teacher']),
+                                Text(nextLesson['teacher'] ?? ''),
                               ],
                             ),
                             SizedBox(
@@ -419,12 +419,12 @@ class _ClassWidgetState extends State<ClassWidget> {
                               children: [
                                 Text(''),
                                 Text(
-                                  'Room ' + nextLesson['place'],
+                                  'Room ' + (nextLesson['place'] ?? ''),
                                   style: TextStyle(fontSize: 19),
                                 ),
                                 SizedBox(height: spaceBetween),
                                 Text(
-                                    '${printTime(toTimeOfDay(nextLesson['begin']).hour, toTimeOfDay(nextLesson['begin']).minute)} - ${printTime(toTimeOfDay(nextLesson['end']).hour, toTimeOfDay(nextLesson['end']).minute)}'),
+                                    '${nextLesson['begin'] != null ? printTime(toTimeOfDay(nextLesson['begin']).hour, toTimeOfDay(nextLesson['begin']).minute) : ''} - ${nextLesson['end'] != null ? printTime(toTimeOfDay(nextLesson['end']).hour, toTimeOfDay(nextLesson['end']).minute) : ''}'),
                               ],
                             ),
                           ],
