@@ -394,6 +394,8 @@ class VPlanAPI {
     }
 
 
+    _outpuLessons.sort((a, b) => a['count'].compareTo(b['count']));
+
     return _outpuLessons;
   }
 
