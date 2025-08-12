@@ -428,7 +428,7 @@ class _CoursesState extends State<Courses> {
   @override
   Widget build(BuildContext context) {
     return ListPage(
-      title: 'Kurse',
+      title: 'Courses',
       actions: [
         IconButton(
           icon: Icon(Icons.visibility_rounded),
