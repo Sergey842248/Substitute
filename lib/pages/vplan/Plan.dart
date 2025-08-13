@@ -308,6 +308,20 @@ class _PlanState extends State<Plan> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Icon(
+                                    Icons.access_time_rounded,
+                                    size: 16,
+                                  ),
+                                  SizedBox(width: 3),
+                                  Text(
+                                      '${printValue(e['begin'])} - ${printValue(e['end'])}'),
+                                ],
+                              ),
+                              SizedBox(height: 5),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(
                                     Icons.location_on_rounded,
                                     size: 16,
                                   ),
@@ -330,7 +344,6 @@ class _PlanState extends State<Plan> {
                               ),
                             ],
                           ),
-                          SizedBox(width: 50),
                         ],
                       ),
                     ),

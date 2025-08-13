@@ -1,4 +1,3 @@
-import 'package:expandiware/pages/dashboard/settings/Lessons.dart';
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 
@@ -33,12 +32,6 @@ class _SettingsState extends State<Settings> {
       'icon': Icons.people_alt_outlined,
       'subtitle': 'Replace teacher abbreviations with Real ones',
       'link': TeacherShorts(),
-    },
-    {
-      'title': 'Lessons',
-      'icon': Icons.list_alt,
-      'subtitle': 'Set time periods for lessons',
-      'link': Lessons(),
     },
     {
       'title': 'Developer options',

@@ -218,19 +218,6 @@ class ClassWidget extends StatefulWidget {
 class _ClassWidgetState extends State<ClassWidget> {
   Map<String, dynamic> nextLesson = {'': 'loading'};
   getData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (prefs.getString('lessontimes') == null) {
-      nextLesson = {};
-      setState(() {});
-      return;
-    }
-    if (prefs.getString('lessontimes') == '[]') {
-      nextLesson = {};
-      setState(() {});
-      return; // need a link t time settings
-    }
-    List<dynamic> times = jsonDecode(prefs.getString('lessontimes')!);
-
     List<dynamic> realVPlan = [];
     dynamic vplan = await VPlanAPI().getLessonsForToday(widget.classId);
     List<String> hiddenCourses = await VPlanAPI().getHiddenCourses();
@@ -244,13 +231,6 @@ class _ClassWidgetState extends State<ClassWidget> {
         }
       }
       if (add) {
-        for (var j = 0; j < times.length; j++) {
-          if (vplan['data'][i]['count'] == times[j]['count'].toString()) {
-            vplan['data'][i]['begin'] = times[j]['start'];
-            vplan['data'][i]['end'] = times[j]['ende'];
-          }
-        }
-
         realVPlan.add(vplan['data'][i]);
       }
     }
@@ -292,9 +272,6 @@ class _ClassWidgetState extends State<ClassWidget> {
   }
 
   TimeOfDay toTimeOfDay(String time) {
-    time = time.replaceAll('TimeOfDay(', '');
-    time = time.replaceAll(')', '');
-
     return TimeOfDay(
       hour: int.parse(time.split(':')[0]),
       minute: int.parse(time.split(':')[1]),
@@ -356,33 +333,14 @@ class _ClassWidgetState extends State<ClassWidget> {
                   ? Center(child: LoadingProcess())
                   : (nextLesson.toString() == '{}'
                       ? Center(
-                          child: Column(
-                            children: [
-                              Text(
-                                'No lesson times set',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Theme.of(context)
-                                      .focusColor
-                                      .withOpacity(0.5),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.push(
-                                  context,
-                                  PageTransition(
-                                    type: PageTransitionType.rightToLeft,
-                                    child: Lessons(),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Set lesson times',
-                                  style: TextStyle(
-                                    color: Theme.of(context).primaryColor,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            'No next lesson found',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .focusColor
+                                  .withOpacity(0.5),
+                            ),
                           ),
                         )
                       : Row(
