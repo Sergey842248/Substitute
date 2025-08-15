@@ -25,15 +25,22 @@
 
 You can download the latest version of Substitute directly from [GitHub Releases](https://github.com/Sergey842248/Substitute/releases).
 
+
+## ⚙️ Configuration
+
+**Disable Background Updates**
+
+By default, the app automatically updates the substitution plan in the background. If you want to disable this behavior, you can restrict battery usage for the app. To do this, navigate to your device settings under `Apps > Substitute > Battery` and set the option to `Restricted`.
+
 ## 🤝 Contributing
+
 
 Contributions are always welcome! If you have ideas for new features, find bugs, or want to improve the code, don't hesitate to create an issue or (better) send a pull request.
 
 
-
 ## 🙏 Acknowledgements
 
-*   **Original Project:** A big thank you to the original project [expandiware](https://github.com/badbryany/expandiware) by @badbryany, on which this app is based.
+**Original Project:** A big thank you to the original project [expandiware](https://github.com/badbryany/expandiware) by @badbryany, on which this app is based.
 
 ---
 
