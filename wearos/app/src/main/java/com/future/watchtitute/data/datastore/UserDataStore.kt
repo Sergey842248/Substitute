@@ -19,6 +19,7 @@ class UserDataStore(context: Context) {
         val USERNAME_KEY = stringPreferencesKey("username")
         val PASSWORD_KEY = stringPreferencesKey("password")
         val SCHOOL_NUMBER_KEY = stringPreferencesKey("school_number")
+        val DEFAULT_CLASS_KEY = stringPreferencesKey("default_class")
     }
 
     suspend fun saveCredentials(username: String, password: String, schoolNumber: String) {
@@ -26,6 +27,12 @@ class UserDataStore(context: Context) {
             preferences[USERNAME_KEY] = username
             preferences[PASSWORD_KEY] = password
             preferences[SCHOOL_NUMBER_KEY] = schoolNumber
+        }
+    }
+
+    suspend fun saveDefaultClass(defaultClass: String) {
+        dataStore.edit { preferences ->
+            preferences[DEFAULT_CLASS_KEY] = defaultClass
         }
     }
 
@@ -39,5 +46,9 @@ class UserDataStore(context: Context) {
 
     val schoolNumberFlow: Flow<String?> = dataStore.data.map { preferences ->
         preferences[SCHOOL_NUMBER_KEY]
+    }
+
+    val defaultClassFlow: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[DEFAULT_CLASS_KEY]
     }
 }

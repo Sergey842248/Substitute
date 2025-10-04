@@ -27,6 +27,7 @@ import com.future.watchtitute.data.VPlanApi
 import com.future.watchtitute.data.VPlanEntry
 import com.future.watchtitute.presentation.theme.WatchtituteTheme
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.Base64
 
@@ -52,6 +53,11 @@ fun VPlanApp(
 ) {
     val vplanState by viewModel.vplanState.collectAsState()
 
+    // Check for saved credentials on app start
+    LaunchedEffect(Unit) {
+        viewModel.checkSavedCredentials()
+    }
+
     when (vplanState.loginStep) {
         LoginStep.Login -> LoginScreen(
             onLoginClick = { school, user, pass ->
@@ -67,7 +73,12 @@ fun VPlanApp(
             },
             isLoading = vplanState.isLoading
         )
-        LoginStep.VPlan -> VPlanScreen(vplanState.entries) { viewModel.logout() }
+        LoginStep.VPlan -> VPlanScreen(
+            entries = vplanState.entries,
+            currentClass = vplanState.currentClass,
+            onLogout = { viewModel.logout() },
+            onSetDefaultClass = { viewModel.setDefaultClass(it) }
+        )
     }
 }
 
@@ -224,7 +235,12 @@ fun ClassSelectionScreen(
 }
 
 @Composable
-fun VPlanScreen(entries: List<VPlanEntry>, onLogout: () -> Unit) {
+fun VPlanScreen(
+    entries: List<VPlanEntry>,
+    currentClass: String,
+    onLogout: () -> Unit,
+    onSetDefaultClass: (String) -> Unit
+) {
     val listState = rememberScalingLazyListState()
 
     // Scrolls up if the list is not empty
@@ -260,6 +276,17 @@ fun VPlanScreen(entries: List<VPlanEntry>, onLogout: () -> Unit) {
                     Text("Logout")
                 }
             }
+            if (currentClass.isNotEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = { onSetDefaultClass(currentClass) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Set as Default")
+                    }
+                }
+            }
         }
     }
 }
@@ -276,16 +303,75 @@ class VPlanViewModel(private val userDataStore: UserDataStore) : ViewModel() {
 
     private val api = VPlanApi()
 
-    init {
+    fun checkSavedCredentials() {
         viewModelScope.launch {
-            userDataStore.usernameFlow.collect { username ->
-                userDataStore.passwordFlow.collect { password ->
-                    userDataStore.schoolNumberFlow.collect { schoolNumber ->
-                        if (username != null && password != null && schoolNumber != null) {
-                            login(schoolNumber, username, password)
+            try {
+                // Get current values from flows
+                val username = userDataStore.usernameFlow.first() as? String
+                val password = userDataStore.passwordFlow.first() as? String
+                val schoolNumber = userDataStore.schoolNumberFlow.first() as? String
+                val defaultClass = userDataStore.defaultClassFlow.first() as? String
+
+                if (username?.isNotEmpty() == true && password?.isNotEmpty() == true && schoolNumber?.isNotEmpty() == true) {
+                    // Attempt automatic login with saved credentials
+                    _vplanState.value = _vplanState.value.copy(isLoading = true, errorMessage = null)
+
+                    Log.d("VPlanViewModel", "Attempting auto-login with saved credentials")
+                    val authString = "$username:$password"
+                    val auth = Base64.getEncoder().encodeToString(authString.toByteArray())
+                    val classes = api.getClasses(schoolNumber, auth)
+
+                    Log.d("VPlanViewModel", "Auto-login successful, found ${classes.size} classes")
+
+                    if (classes.isNotEmpty()) {
+                        // Check if we have a default class and it exists in the available classes
+                        if (defaultClass?.isNotEmpty() == true && classes.contains(defaultClass)) {
+                            Log.d("VPlanViewModel", "Found default class: $defaultClass, loading plan automatically")
+                            // Load the default class plan directly
+                            try {
+                                val entries = api.getVPlan(defaultClass)
+                                _vplanState.value = _vplanState.value.copy(
+                                    loginStep = LoginStep.VPlan,
+                                    entries = entries,
+                                    isLoading = false
+                                )
+                            } catch (e: Exception) {
+                                Log.e("VPlanViewModel", "Failed to load default class plan", e)
+                                // Fall back to class selection
+                                _vplanState.value = _vplanState.value.copy(
+                                    loginStep = LoginStep.SelectClass,
+                                    classes = classes,
+                                    isLoading = false
+                                )
+                            }
+                        } else {
+                            // No default class or it doesn't exist, show class selection
+                            _vplanState.value = _vplanState.value.copy(
+                                loginStep = LoginStep.SelectClass,
+                                classes = classes,
+                                isLoading = false
+                            )
                         }
+                    } else {
+                        // No classes found, clear saved credentials and show login
+                        userDataStore.saveCredentials("", "", "")
+                        _vplanState.value = _vplanState.value.copy(
+                            isLoading = false,
+                            errorMessage = "No classes found for saved credentials."
+                        )
                     }
+                } else {
+                    // No saved credentials, stay on login screen
+                    Log.d("VPlanViewModel", "No saved credentials found")
                 }
+            } catch (e: Exception) {
+                Log.e("VPlanViewModel", "Auto-login failed", e)
+                // Clear potentially corrupted credentials
+                userDataStore.saveCredentials("", "", "")
+                _vplanState.value = _vplanState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Auto-login failed. Please login manually."
+                )
             }
         }
     }
@@ -324,7 +410,7 @@ class VPlanViewModel(private val userDataStore: UserDataStore) : ViewModel() {
 
     fun onClassSelected(className: String) {
         viewModelScope.launch {
-            _vplanState.value = _vplanState.value.copy(isLoading = true)
+            _vplanState.value = _vplanState.value.copy(isLoading = true, currentClass = className)
             try {
                 val entries = api.getVPlan(className)
                 _vplanState.value = _vplanState.value.copy(
@@ -345,6 +431,12 @@ class VPlanViewModel(private val userDataStore: UserDataStore) : ViewModel() {
             _vplanState.value = VPlanState()
         }
     }
+
+    fun setDefaultClass(className: String) {
+        viewModelScope.launch {
+            userDataStore.saveDefaultClass(className)
+        }
+    }
 }
 
 data class VPlanState(
@@ -352,6 +444,7 @@ data class VPlanState(
     val entries: List<VPlanEntry> = emptyList(),
     val isLoading: Boolean = false,
     val classes: List<String> = emptyList(),
+    val currentClass: String = "",
     val errorMessage: String? = null
 )
 
