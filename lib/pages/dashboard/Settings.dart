@@ -5,7 +5,6 @@ import 'settings/VPlanLogin.dart';
 import 'settings/DeveloperOptions.dart';
 import 'settings/Notifications.dart';
 import 'settings/TeacherShorts.dart';
-import 'settings/GradeSettings.dart';
 
 import '../../models/ListPage.dart';
 
@@ -16,12 +15,6 @@ class Settings extends StatefulWidget {
 
 class _SettingsState extends State<Settings> {
   List<dynamic> settingPages = [
-    {
-      'title': 'Grade Settings',
-      'icon': Icons.grade_outlined,
-      'subtitle': 'Configure grade system and points',
-      'link': GradeSettings(),
-    },
     {
       'title': 'Credentials',
       'icon': Icons.lock_outline_rounded,

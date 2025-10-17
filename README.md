@@ -20,7 +20,6 @@
 8.  🔔 **Notifications:** Receive push notifications for changes in the substitution plan.
 9.  ⏰ **Set Class Times:** Define individual times for your lessons.
 10. ⭐ **Multiple Favorite Classes:** Save multiple classes as favorites for quick access.
-11. 📊 **Grades:** Calculate your grades and averages.
 
 ## 🚀 Installation
 

@@ -29,10 +29,6 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'pages/vplan/VPlan.dart';
 import 'pages/teacherVPlan/TeacherVPlan.dart';
 import 'pages/dashboard/Dashboard.dart';
-import 'pages/dashboard/grades/GradesPage.dart';
-
-// Global ValueNotifier for grades tab state
-ValueNotifier<bool> gradesTabDisabledNotifier = ValueNotifier<bool>(false);
 
 Map<String, dynamic> _readAndroidBuildData(AndroidDeviceInfo build) {
   return <String, dynamic>{
@@ -223,14 +219,15 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   String activeText = 'vplan students';
 
-  void dispose() {
-    gradesTabDisabledNotifier.removeListener(_onGradesTabDisabled);
-    eastereggController.dispose();
-    super.dispose();
+  @override
+  void initState() {
+    super.initState();
+    eastereggController = AnimationController(vsync: this);
   }
 
-  void _onGradesTabDisabled() {
-    setState(() {});
+  void dispose() {
+    eastereggController.dispose();
+    super.dispose();
   }
 
   String version = 'loading...';
@@ -333,36 +330,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   late final AnimationController eastereggController;
-  bool _disableGradesTab = false;
   Widget eastereggIcon = SizedBox();
-
-  @override
-  void initState() {
-    super.initState();
-    gradesTabDisabledNotifier.addListener(_onGradesTabDisabled);
-    _loadGradesTabSetting();
-    eastereggController = AnimationController(vsync: this);
-  }
-
-  Future<void> _loadGradesTabSetting() async {
-    final prefs = await SharedPreferences.getInstance();
-    bool newDisableTab = prefs.getBool('disable_grades_tab') ?? false;
-
-    // Update the global notifier from saved preferences
-    gradesTabDisabledNotifier.value = newDisableTab;
-
-    // If grades tab is being disabled and it's currently active, switch to dashboard
-    if (_disableGradesTab != newDisableTab && newDisableTab && activeText == 'grades') {
-      setState(() {
-        _disableGradesTab = newDisableTab;
-        activeText = 'dashboard'; // Switch to a safe tab
-      });
-    } else {
-      setState(() {
-        _disableGradesTab = newDisableTab;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -373,8 +341,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         key: ValueKey(2),
         color: Theme.of(context).focusColor,
       );
-
-    // Rebuild the pages list every time the widget rebuilds to ensure it's always up to date
     List<Map<String, dynamic>> pages = [
       {
         'text': 'vplan students',
@@ -388,15 +354,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'icon': 'assets/img/person.svg',
         'widget': TeacherVPlan(),
       },
-      if (!gradesTabDisabledNotifier.value) {
-        'text': 'grades',
-        'index': 2,
-        'icon': 'assets/img/grade.svg',
-        'widget': GradesPage(onSettingChanged: _loadGradesTabSetting),
-      },
       {
         'text': 'dashboard',
-        'index': gradesTabDisabledNotifier.value ? 2 : 3,
+        'index': 2,
         'icon': 'assets/img/dashboard.svg',
         'widget': Dashboard(),
       },
