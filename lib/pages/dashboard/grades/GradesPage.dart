@@ -33,9 +33,32 @@ class Grade {
         date: DateTime.parse(json['date']),
         note: json['note'] ?? '',
       );
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Grade &&
+        subject == other.subject &&
+        grade == other.grade &&
+        weight == other.weight &&
+        date == other.date &&
+        note == other.note;
+  }
+
+  @override
+  int get hashCode =>
+      subject.hashCode ^
+      grade.hashCode ^
+      weight.hashCode ^
+      date.hashCode ^
+      note.hashCode;
 }
 
 class GradesPage extends StatefulWidget {
+  final Future<void> Function()? onSettingChanged;
+
+  GradesPage({this.onSettingChanged});
+
   @override
   _GradesPageState createState() => _GradesPageState();
 }
@@ -61,24 +84,71 @@ class _GradesPageState extends State<GradesPage> {
   Map<String, bool> _expandedSubjects = {};
 
   double _parseGermanGrade(String grade) {
+    if (_calculateWithoutTendencies && !_usePointsSystem) {
+      switch (grade) {
+        case '1+':
+        case '1':
+        case '1-':
+          return 1.0;
+        case '2+':
+        case '2':
+        case '2-':
+          return 2.0;
+        case '3+':
+        case '3':
+        case '3-':
+          return 3.0;
+        case '4+':
+        case '4':
+        case '4-':
+          return 4.0;
+        case '5+':
+        case '5':
+        case '5-':
+          return 5.0;
+        case '6':
+          return 6.0;
+        default:
+          return 1.0;
+      }
+    }
+
+    // Return with tendencies
     switch (grade) {
-      case '1+': return 0.7;
-      case '1': return 1.0;
-      case '1-': return 1.3;
-      case '2+': return 1.7;
-      case '2': return 2.0;
-      case '2-': return 2.3;
-      case '3+': return 2.7;
-      case '3': return 3.0;
-      case '3-': return 3.3;
-      case '4+': return 3.7;
-      case '4': return 4.0;
-      case '4-': return 4.3;
-      case '5+': return 4.7;
-      case '5': return 5.0;
-      case '5-': return 5.3;
-      case '6': return 6.0;
-      default: return 1.0;
+      case '1+':
+        return 0.7;
+      case '1':
+        return 1.0;
+      case '1-':
+        return 1.3;
+      case '2+':
+        return 1.7;
+      case '2':
+        return 2.0;
+      case '2-':
+        return 2.3;
+      case '3+':
+        return 2.7;
+      case '3':
+        return 3.0;
+      case '3-':
+        return 3.3;
+      case '4+':
+        return 3.7;
+      case '4':
+        return 4.0;
+      case '4-':
+        return 4.3;
+      case '5+':
+        return 4.7;
+      case '5':
+        return 5.0;
+      case '5-':
+        return 5.3;
+      case '6':
+        return 6.0;
+      default:
+        return 1.0;
     }
   }
 
@@ -104,6 +174,8 @@ class _GradesPageState extends State<GradesPage> {
   bool _usePointsSystem = false;
   double _maxPoints = 100.0;
   final TextEditingController _gradeController = TextEditingController();
+  bool _disableGradesTab = false;
+  bool _calculateWithoutTendencies = false;
 
   @override
   void initState() {
@@ -127,6 +199,8 @@ class _GradesPageState extends State<GradesPage> {
     setState(() {
       _usePointsSystem = prefs.getBool('use_points_system') ?? false;
       _maxPoints = double.tryParse(prefs.getString('max_points') ?? '100') ?? 100.0;
+      _disableGradesTab = prefs.getBool('disable_grades_tab') ?? false;
+      _calculateWithoutTendencies = prefs.getBool('calculate_without_tendencies') ?? false;
     });
   }
 
@@ -148,6 +222,44 @@ class _GradesPageState extends State<GradesPage> {
     final gradesJson = _grades.map<String>((grade) => jsonEncode(grade.toJson())).toList();
     await prefs.setStringList('grades', gradesJson);
     await prefs.setStringList('subjects', _subjects);
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Check if tendencies setting changed
+    bool tendenciesChanged = prefs.getBool('calculate_without_tendencies') != _calculateWithoutTendencies;
+
+    await prefs.setBool('disable_grades_tab', _disableGradesTab);
+    await prefs.setBool('calculate_without_tendencies', _calculateWithoutTendencies);
+
+    // If tendencies setting changed, recalculate all existing grades
+    if (tendenciesChanged) {
+      await _recalculateAllGrades();
+    }
+
+    if (widget.onSettingChanged != null) {
+      await widget.onSettingChanged!();
+    }
+  }
+
+  Future<void> _recalculateAllGrades() async {
+    List<Grade> updatedGrades = [];
+    for (var grade in _grades) {
+      String gradeString = _formatGermanGrade(grade.grade);
+      double newGrade = _parseGermanGrade(gradeString);
+      updatedGrades.add(Grade(
+        subject: grade.subject,
+        grade: newGrade,
+        weight: grade.weight,
+        date: grade.date,
+        note: grade.note,
+      ));
+    }
+    setState(() {
+      _grades = updatedGrades;
+    });
+    await _saveGrades();
   }
 
   Future<void> _addGrade() async {
@@ -576,6 +688,10 @@ class _GradesPageState extends State<GradesPage> {
                   value: 'add_subject',
                   child: Text('Fach erstellen'),
                 ),
+                PopupMenuItem(
+                  value: 'settings',
+                  child: Text('Einstellungen'),
+                ),
               ],
               onSelected: (value) {
                 if (value == 'add_grade') {
@@ -594,6 +710,8 @@ class _GradesPageState extends State<GradesPage> {
                   );
                 } else if (value == 'add_subject') {
                   _showAddSubjectDialog();
+                } else if (value == 'settings') {
+                  _showSettingsDialog();
                 }
               },
             ),
@@ -1299,5 +1417,65 @@ class _GradesPageState extends State<GradesPage> {
       // Dispose controller after dialog closes
       subjectController.dispose();
     });
+  }
+
+  void _showSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Noteneinstellungen'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SwitchListTile(
+                    title: Text('Tab deaktivieren'),
+                    subtitle: Text('Deaktiviert den Noten Tab (Noten bleiben erhalten)'),
+                    value: _disableGradesTab,
+                    onChanged: (value) {
+                      setState(() {
+                        _disableGradesTab = value;
+                      });
+                    },
+                  ),
+                  SwitchListTile(
+                    title: Text('Noten ohne Tendenzen berechnen'),
+                    subtitle: Text('3+ als 3,0 berechnen (nur bei deutschen Noten aktiv)'),
+                    value: _calculateWithoutTendencies,
+                    onChanged: _usePointsSystem ? null : (value) {
+                      setState(() {
+                        _calculateWithoutTendencies = value;
+                      });
+                      // Immediately update all grade calculations
+                      setState(() {});
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('ABBRECHEN'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    await _saveSettings();
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Einstellungen gespeichert')),
+                      );
+                    }
+                  },
+                  child: Text('SPEICHERN'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 }

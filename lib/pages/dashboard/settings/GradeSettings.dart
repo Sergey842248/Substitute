@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:expandiware/main.dart' as main;
 
 class GradeSettings extends StatefulWidget {
   @override
@@ -8,6 +9,8 @@ class GradeSettings extends StatefulWidget {
 
 class _GradeSettingsState extends State<GradeSettings> {
   late bool _usePointsSystem;
+  late bool _disableGradesTab;
+  late bool _calculateWithoutTendencies;
   final _maxPointsController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
@@ -21,6 +24,8 @@ class _GradeSettingsState extends State<GradeSettings> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _usePointsSystem = prefs.getBool('use_points_system') ?? false;
+      _disableGradesTab = prefs.getBool('disable_grades_tab') ?? false;
+      _calculateWithoutTendencies = prefs.getBool('calculate_without_tendencies') ?? false;
       _maxPointsController.text = prefs.getString('max_points') ?? '100';
     });
   }
@@ -28,8 +33,10 @@ class _GradeSettingsState extends State<GradeSettings> {
   Future<void> _saveSettings({bool showSnackBar = true}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('use_points_system', _usePointsSystem);
+    await prefs.setBool('disable_grades_tab', _disableGradesTab);
+    await prefs.setBool('calculate_without_tendencies', _calculateWithoutTendencies);
     await prefs.setString('max_points', _maxPointsController.text);
-    
+
     if (mounted && showSnackBar) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Einstellungen gespeichert')),
@@ -98,6 +105,35 @@ class _GradeSettingsState extends State<GradeSettings> {
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
+                  SwitchListTile(
+                    title: Text('Tab deaktivieren'),
+                    subtitle: Text('Deaktiviert den Noten Tab (Noten bleiben erhalten)'),
+                    value: _disableGradesTab,
+                    onChanged: (value) async {
+                      setState(() {
+                        _disableGradesTab = value;
+                        // Update the global notifier immediately
+                        main.gradesTabDisabledNotifier.value = value;
+                      });
+                      await _onSettingChanged();
+                      // Close settings screen immediately after change
+                      if (mounted) {
+                        Navigator.of(context).pop(); // Go back to previous screen
+                      }
+                    },
+                  ),
+            SwitchListTile(
+              title: Text('Noten ohne Tendenzen berechnen'),
+              subtitle: Text('3+ als 3,0 berechnen (nur bei deutschen Noten aktiv)'),
+              value: _calculateWithoutTendencies,
+              onChanged: _usePointsSystem ? null : (value) {
+                setState(() {
+                  _calculateWithoutTendencies = value;
+                });
+                _onSettingChanged();
+              },
+            ),
+            const Divider(),
             SwitchListTile(
               title: Text('Punktesystem verwenden'),
               subtitle: Text('Zwischen Noten- und Punktesystem wechseln'),
@@ -108,7 +144,7 @@ class _GradeSettingsState extends State<GradeSettings> {
                 }
               },
             ),
-            if (_usePointsSystem) ...[              
+            if (_usePointsSystem) ...[
               const SizedBox(height: 16),
               TextFormField(
                 controller: _maxPointsController,
@@ -134,6 +170,12 @@ class _GradeSettingsState extends State<GradeSettings> {
         ),
       ),
     );
+  }
+
+  Future<void> _onSettingChanged() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('disable_grades_tab', _disableGradesTab);
+    await prefs.setBool('calculate_without_tendencies', _calculateWithoutTendencies);
   }
 
   @override
