@@ -644,16 +644,27 @@ class _GradesPageState extends State<GradesPage> {
   double _calculateAverage(String subject) {
     final subjectGrades = _grades.where((g) => g.subject == subject).toList();
     if (subjectGrades.isEmpty) return 0.0;
-    
+
     double sum = 0;
     double totalWeight = 0;
-    
+
     for (var grade in subjectGrades) {
       sum += grade.grade * grade.weight;
       totalWeight += grade.weight;
     }
-    
+
     return totalWeight > 0 ? (sum / totalWeight) : 0.0;
+  }
+
+  void _updateGrade(Grade originalGrade, Grade editedGrade) {
+    final index = _grades.indexOf(originalGrade);
+    if (index != -1) {
+      setState(() {
+        _grades[index] = editedGrade;
+      });
+      // Force a complete rebuild to ensure all calculated values are updated
+      setState(() {});
+    }
   }
 
   @override
@@ -1244,13 +1255,8 @@ class _GradesPageState extends State<GradesPage> {
                         );
 
                         // Update the grade in the list
-                        final index = _grades.indexOf(gradeToEdit);
-                        if (index != -1) {
-                          setState(() {
-                            _grades[index] = editedGrade;
-                          });
-                          await _saveGrades();
-                        }
+                        _updateGrade(gradeToEdit, editedGrade);
+                        await _saveGrades();
 
                         if (mounted) {
                           Navigator.of(context).pop();
