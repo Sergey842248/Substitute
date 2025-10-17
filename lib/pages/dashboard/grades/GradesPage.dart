@@ -43,7 +43,7 @@ class GradesPage extends StatefulWidget {
 class _GradesPageState extends State<GradesPage> {
   List<Grade> _grades = [];
   final _formKey = GlobalKey<FormState>();
-  final _subjectController = TextEditingController();
+  late final TextEditingController _subjectController;
   final _weightController = TextEditingController(text: '1.0');
   final _noteController = TextEditingController();
   final List<String> _germanGrades = [
@@ -107,16 +107,17 @@ class _GradesPageState extends State<GradesPage> {
   @override
   void initState() {
     super.initState();
+    _subjectController = TextEditingController();
     _loadSettings();
     _loadGrades();
   }
 
   @override
   void dispose() {
-    _gradeController.dispose();
     _subjectController.dispose();
     _weightController.dispose();
     _noteController.dispose();
+    _gradeController.dispose();
     super.dispose();
   }
 
@@ -247,124 +248,277 @@ class _GradesPageState extends State<GradesPage> {
     }
   }
 
-  void _showAddGradeDialog() {
+  void _showAddGradeDialog({String? subject}) {
+    // Use a local variable for the selected subject
+    String? selectedSubject = subject;
+    // Create a new controller for the dialog
+    final subjectController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    final weightController = TextEditingController(text: '1.0');
+    final noteController = TextEditingController();
+    var selectedDate = DateTime.now();
+    String? selectedGrade;
+    
+    // Set up the dialog
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Add Grade'),
-        content: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_subjects.isNotEmpty) ...[
-                  DropdownButtonFormField<String>(
-                    value: _selectedSubject.isEmpty ? null : _selectedSubject,
-                    decoration: InputDecoration(
-                      labelText: 'Subject',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _subjects
-                        .map((subject) => DropdownMenuItem(
-                              value: subject,
-                              child: Text(subject),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedSubject = value ?? '';
-                      });
-                    },
-                    validator: (value) {
-                      if ((value == null || value.isEmpty) && _subjectController.text.isEmpty) {
-                        return 'Please select or enter a subject';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 16),
-                  Text('OR', textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).hintColor)),
-                  SizedBox(height: 16),
-                ],
-                TextFormField(
-                  controller: _subjectController,
-                  decoration: InputDecoration(
-                    labelText: 'New Subject',
-                    border: OutlineInputBorder(),
-                  ),
-                  enabled: _selectedSubject.isEmpty,
-                  validator: (value) {
-                    if ((value == null || value.isEmpty) && _selectedSubject.isEmpty) {
-                      return 'Please enter a subject';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-                _buildGradeInput(),
-                SizedBox(height: 16),
-                TextFormField(
-                  controller: _weightController,
-                  decoration: InputDecoration(
-                    labelText: 'Weight',
-                    border: OutlineInputBorder(),
-                    hintText: '1.0',
-                  ),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return null;
-                    final weight = double.tryParse(value.replaceAll(',', '.'));
-                    if (weight == null || weight <= 0) {
-                      return 'Please enter a valid weight';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-                InkWell(
-                  onTap: () => _selectDate(context),
-                  child: InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: 'Date',
-                      border: OutlineInputBorder(),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '${_selectedDate.day}.${_selectedDate.month}.${_selectedDate.year}',
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Note hinzufügen'),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_subjects.isNotEmpty) ...[
+                        DropdownButtonFormField<String>(
+                          value: selectedSubject,
+                          decoration: InputDecoration(
+                            labelText: 'Fach auswählen',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: [
+                            DropdownMenuItem(
+                              value: null,
+                              child: Text('Neues Fach eingeben', style: TextStyle(color: Colors.grey)),
+                            ),
+                            ..._subjects.map((subj) => DropdownMenuItem(
+                                  value: subj,
+                                  child: Text(subj),
+                                )),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              selectedSubject = value;
+                              if (value != null) {
+                                subjectController.clear();
+                              }
+                            });
+                          },
+                          validator: (value) {
+                            if ((value == null || value.isEmpty) && 
+                                (subjectController.text.trim().isEmpty)) {
+                              return 'Bitte wähle ein Fach aus oder gib ein neues ein';
+                            }
+                            return null;
+                          },
                         ),
-                        Icon(Icons.calendar_today),
+                        SizedBox(height: 16),
+                        if (selectedSubject == null) ...[
+                          TextFormField(
+                            controller: subjectController,
+                            decoration: InputDecoration(
+                              labelText: 'Neues Fach',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (value) {
+                              if ((value == null || value.trim().isEmpty) && 
+                                  (selectedSubject == null || selectedSubject!.isEmpty)) {
+                                return 'Bitte gib einen gültigen Fachnamen ein';
+                              }
+                              return null;
+                            },
+                          ),
+                          SizedBox(height: 16),
+                        ],
+                      ] else ...[
+                        TextFormField(
+                          controller: subjectController,
+                          decoration: InputDecoration(
+                            labelText: 'Fachname',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Bitte gib einen gültigen Fachnamen ein';
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: 16),
                       ],
-                    ),
+                      
+                      // Grade Input
+                      DropdownButtonFormField<String>(
+                        value: selectedGrade,
+                        decoration: InputDecoration(
+                          labelText: 'Note',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _germanGrades.map((grade) {
+                          return DropdownMenuItem(
+                            value: grade,
+                            child: Text(grade),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedGrade = value;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Bitte wähle eine Note aus';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 16),
+                      
+                      // Weight Input
+                      TextFormField(
+                        controller: weightController,
+                        decoration: InputDecoration(
+                          labelText: 'Gewichtung',
+                          border: OutlineInputBorder(),
+                          hintText: '1.0',
+                        ),
+                        keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return null;
+                          final weight = double.tryParse(value.replaceAll(',', '.'));
+                          if (weight == null || weight <= 0) {
+                            return 'Bitte eine gültige Gewichtung eingeben';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 16),
+                      
+                      // Date Picker
+                      InkWell(
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (date != null) {
+                            setState(() {
+                              selectedDate = date;
+                            });
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: 'Datum',
+                            border: OutlineInputBorder(),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${selectedDate.day}.${selectedDate.month}.${selectedDate.year}',
+                              ),
+                              Icon(Icons.calendar_today),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      
+                      // Note Input
+                      TextFormField(
+                        controller: noteController,
+                        decoration: InputDecoration(
+                          labelText: 'Notiz (optional)',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 3,
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(height: 16),
-                TextFormField(
-                  controller: _noteController,
-                  decoration: InputDecoration(
-                    labelText: 'Note (optional)',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('ABBRECHEN'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (formKey.currentState?.validate() ?? false) {
+                      final subjectName = selectedSubject ?? subjectController.text.trim();
+                      if (subjectName.isEmpty) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Bitte ein gültiges Fach eingeben')),
+                          );
+                        }
+                        return;
+                      }
+
+                      if (selectedGrade == null) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Bitte eine Note auswählen')),
+                          );
+                        }
+                        return;
+                      }
+                      
+                      try {
+                        final grade = Grade(
+                          subject: subjectName,
+                          grade: _parseGermanGrade(selectedGrade!),
+                          weight: double.tryParse(weightController.text.replaceAll(',', '.')) ?? 1.0,
+                          date: selectedDate,
+                          note: noteController.text,
+                        );
+
+                        // Update the parent widget's state
+                        if (mounted) {
+                          setState(() {
+                            _grades.add(grade);
+                            if (!_subjects.contains(subjectName)) {
+                              _subjects.add(subjectName);
+                              _subjects.sort();
+                            }
+                          });
+                        }
+                        
+                        await _saveGrades();
+                        
+                        if (mounted) {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Note wurde hinzugefügt'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Fehler beim Speichern: $e'),
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                      }
+                    }
+                  },
+                  child: const Text('HINZUFÜGEN'),
                 ),
               ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('CANCEL'),
-          ),
-          ElevatedButton(
-            onPressed: _addGrade,
-            child: Text('ADD'),
-          ),
-        ],
-      ),
-    );
+            );
+          },
+        );
+      },
+    ).then((_) {
+      // The dialog has been closed, dispose controllers
+      subjectController.dispose();
+      weightController.dispose();
+      noteController.dispose();
+    });
   }
 
   double _calculateAverage(String subject) {
@@ -384,7 +538,7 @@ class _GradesPageState extends State<GradesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final subjects = _grades.map((g) => g.subject).toSet().toList()..sort();
+    _subjects.sort();
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     
@@ -407,7 +561,7 @@ class _GradesPageState extends State<GradesPage> {
           backgroundColor: Colors.transparent,
           foregroundColor: theme.textTheme.titleLarge?.color,
           actions: [
-            IconButton(
+            PopupMenuButton<String>(
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
@@ -416,12 +570,28 @@ class _GradesPageState extends State<GradesPage> {
                 ),
                 child: Icon(Icons.add, color: colorScheme.primary, size: 22),
               ),
-              onPressed: _showAddGradeDialog,
+              itemBuilder: (BuildContext context) => [
+                PopupMenuItem(
+                  value: 'add_grade',
+                  child: Text('Note hinzufügen'),
+                ),
+                PopupMenuItem(
+                  value: 'add_subject',
+                  child: Text('Fach erstellen'),
+                ),
+              ],
+              onSelected: (value) {
+                if (value == 'add_grade') {
+                  _showAddGradeDialog();
+                } else if (value == 'add_subject') {
+                  _showAddSubjectDialog();
+                }
+              },
             ),
             const SizedBox(width: 8),
           ],
         ),
-        body: _grades.isEmpty
+        body: _subjects.isEmpty
             ? Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
@@ -431,13 +601,13 @@ class _GradesPageState extends State<GradesPage> {
                       Icon(Icons.grade_outlined, size: 64, color: colorScheme.primary.withOpacity(0.2)),
                       const SizedBox(height: 16),
                       Text(
-                        'Noch keine Noten',
+                        'Keine Fächer vorhanden',
                         style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Füge deine erste Note hinzu, um den Überblick zu behalten',
+                        'Füge dein erstes Fach hinzu, um Noten zu verwalten',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.textTheme.bodySmall?.color,
                         ),
@@ -445,9 +615,9 @@ class _GradesPageState extends State<GradesPage> {
                       ),
                       const SizedBox(height: 24),
                       ElevatedButton.icon(
-                        onPressed: _showAddGradeDialog,
+                        onPressed: _showAddSubjectDialog,
                         icon: Icon(Icons.add, size: 20),
-                        label: Text('Note hinzufügen'),
+                        label: Text('Fach erstellen'),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           shape: RoundedRectangleBorder(
@@ -467,9 +637,9 @@ class _GradesPageState extends State<GradesPage> {
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
-                          final subject = subjects[index];
+                          final subject = _subjects[index];
                           final subjectGrades = _grades.where((g) => g.subject == subject).toList();
-                          final average = _calculateAverage(subject);
+                          final average = subjectGrades.isNotEmpty ? _calculateAverage(subject) : 0.0;
                           
                           return _buildSubjectCard(
                             context,
@@ -479,12 +649,67 @@ class _GradesPageState extends State<GradesPage> {
                             colorScheme: colorScheme,
                           );
                         },
-                        childCount: subjects.length,
+                        childCount: _subjects.length,
                       ),
                     ),
                   ),
                 ],
               ),
+      ),
+    );
+  }
+
+  Future<void> _showAddSubjectDialog() async {
+    final subjectController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Neues Fach erstellen'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: subjectController,
+            decoration: InputDecoration(
+              labelText: 'Fachname',
+              border: OutlineInputBorder(),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Bitte gib einen Fachnamen ein';
+              }
+              if (_subjects.contains(value.trim())) {
+                return 'Dieses Fach existiert bereits';
+              }
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Abbrechen'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                final subject = subjectController.text.trim();
+                setState(() {
+                  _subjects.add(subject);
+                  _subjects.sort();
+                });
+                _saveGrades();
+                Navigator.pop(context);
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Fach "$subject" wurde erstellt')),
+                );
+              }
+            },
+            child: Text('Erstellen'),
+          ),
+        ],
       ),
     );
   }
@@ -530,34 +755,58 @@ class _GradesPageState extends State<GradesPage> {
     required List<Grade> grades,
     required ColorScheme colorScheme,
   }) {
-    final theme = Theme.of(context);
-    
-    return GestureDetector(
-      onLongPress: () => _confirmDeleteSubject(subject),
-      child: Card(
-        child: Theme(
-          data: theme.copyWith(
-            dividerColor: Colors.transparent,
-          ),
-          child: ExpansionTile(
-            title: Row(
+    // Check if the subject has any grades (used for empty check)
+    final hasEmptySubject = grades.isEmpty;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
                 Expanded(
                   child: Text(
                     subject,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                 ),
-                _buildAverageChip(average, colorScheme),
+                if (grades.isNotEmpty) _buildAverageChip(average, colorScheme),
               ],
             ),
-            children: [
-              Divider(height: 1, indent: 16, endIndent: 16),
+            const SizedBox(height: 16),
+            if (grades.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: Column(
+                  children: [
+                    Text(
+                      'Keine Noten vorhanden',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).textTheme.bodySmall?.color,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        _showAddGradeDialog(subject: subject);
+                      },
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('Note hinzufügen'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
               ...grades.map((grade) => _buildGradeTile(grade, colorScheme)),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -565,10 +814,10 @@ class _GradesPageState extends State<GradesPage> {
 
   Widget _buildGradeTile(Grade grade, ColorScheme colorScheme) {
     final theme = Theme.of(context);
-    final displayGrade = _usePointsSystem 
+    final displayGrade = _usePointsSystem
         ? '${grade.grade.toStringAsFixed(1)}/${_maxPoints.toStringAsFixed(0)}'
         : _formatGermanGrade(grade.grade);
-    
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       leading: Container(
@@ -659,12 +908,8 @@ class _GradesPageState extends State<GradesPage> {
     );
 
     if (shouldDelete == true) {
-      final subject = grade.subject;
       setState(() {
         _grades.remove(grade);
-        if (!_grades.any((g) => g.subject == subject)) {
-          _subjects.remove(subject);
-        }
       });
       await _saveGrades();
       
