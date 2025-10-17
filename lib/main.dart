@@ -29,6 +29,7 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'pages/vplan/VPlan.dart';
 import 'pages/teacherVPlan/TeacherVPlan.dart';
 import 'pages/dashboard/Dashboard.dart';
+import 'pages/dashboard/grades/GradesPage.dart';
 
 Map<String, dynamic> _readAndroidBuildData(AndroidDeviceInfo build) {
   return <String, dynamic>{
@@ -359,6 +360,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'index': 2,
         'icon': 'assets/img/dashboard.svg',
         'widget': Dashboard(),
+      },
+      {
+        'text': 'grades',
+        'index': 3,
+        'icon': 'assets/img/grade.svg',
+        'widget': GradesPage(),
       },
     ];
     SystemChrome.setSystemUIOverlayStyle(
