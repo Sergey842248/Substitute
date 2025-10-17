@@ -9,6 +9,7 @@ class Grade {
   final double weight;
   final DateTime date;
   final String note;
+  final String? gradeString;
 
   Grade({
     required this.subject,
@@ -16,6 +17,7 @@ class Grade {
     this.weight = 1.0,
     required this.date,
     this.note = '',
+    this.gradeString,
   });
 
   Map<String, dynamic> toJson() => {
@@ -24,6 +26,7 @@ class Grade {
         'weight': weight,
         'date': date.toIso8601String(),
         'note': note,
+        'gradeString': gradeString,
       };
 
   factory Grade.fromJson(Map<String, dynamic> json) => Grade(
@@ -32,6 +35,7 @@ class Grade {
         weight: json['weight']?.toDouble() ?? 1.0,
         date: DateTime.parse(json['date']),
         note: json['note'] ?? '',
+        gradeString: json['gradeString'],
       );
 
   @override
@@ -42,7 +46,8 @@ class Grade {
         grade == other.grade &&
         weight == other.weight &&
         date == other.date &&
-        note == other.note;
+        note == other.note &&
+        gradeString == other.gradeString;
   }
 
   @override
@@ -51,7 +56,8 @@ class Grade {
       grade.hashCode ^
       weight.hashCode ^
       date.hashCode ^
-      note.hashCode;
+      note.hashCode ^
+      gradeString.hashCode;
 }
 
 class GradesPage extends StatefulWidget {
@@ -246,7 +252,7 @@ class _GradesPageState extends State<GradesPage> {
   Future<void> _recalculateAllGrades() async {
     List<Grade> updatedGrades = [];
     for (var grade in _grades) {
-      String gradeString = _formatGermanGrade(grade.grade);
+      String gradeString = grade.gradeString ?? _formatGermanGrade(grade.grade);
       double newGrade = _parseGermanGrade(gradeString);
       updatedGrades.add(Grade(
         subject: grade.subject,
@@ -254,6 +260,7 @@ class _GradesPageState extends State<GradesPage> {
         weight: grade.weight,
         date: grade.date,
         note: grade.note,
+        gradeString: grade.gradeString,
       ));
     }
     setState(() {
@@ -263,17 +270,20 @@ class _GradesPageState extends State<GradesPage> {
   }
 
   Future<void> _addGrade() async {
-    if ((_formKey.currentState?.validate() ?? false) && 
+    if ((_formKey.currentState?.validate() ?? false) &&
         (_selectedGrade != null || _gradeController.text.isNotEmpty)) {
-      
+
+      final gradeValue = _usePointsSystem
+          ? double.parse(_gradeController.text.replaceAll(',', '.'))
+          : _parseGermanGrade(_selectedGrade!);
+
       final grade = Grade(
         subject: _selectedSubject.isEmpty ? _subjectController.text : _selectedSubject,
-        grade: _usePointsSystem 
-            ? double.parse(_gradeController.text.replaceAll(',', '.')) 
-            : _parseGermanGrade(_selectedGrade!),
+        grade: gradeValue,
         weight: double.tryParse(_weightController.text.replaceAll(',', '.')) ?? 1.0,
         date: _selectedDate,
         note: _noteController.text,
+        gradeString: !_usePointsSystem ? _selectedGrade : null,
       );
 
       setState(() {
@@ -588,6 +598,7 @@ class _GradesPageState extends State<GradesPage> {
                           weight: double.tryParse(weightController.text.replaceAll(',', '.')) ?? 1.0,
                           date: selectedDate,
                           note: noteController.text,
+                          gradeString: selectedGrade,
                         );
 
                         onGradeAdded(grade);
@@ -924,7 +935,7 @@ class _GradesPageState extends State<GradesPage> {
                       ],
                     ),
                   ),
-                  if (grades.isNotEmpty && isExpanded) _buildAverageChip(average, colorScheme),
+                  if (grades.isNotEmpty) _buildAverageChip(average, colorScheme),
                 ],
               ),
               const SizedBox(height: 16),
@@ -984,7 +995,7 @@ class _GradesPageState extends State<GradesPage> {
     final theme = Theme.of(context);
     final displayGrade = _usePointsSystem
         ? '${grade.grade.toStringAsFixed(1)}/${_maxPoints.toStringAsFixed(0)}'
-        : _formatGermanGrade(grade.grade);
+        : (grade.gradeString ?? _formatGermanGrade(grade.grade));
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -1095,7 +1106,7 @@ class _GradesPageState extends State<GradesPage> {
     final weightController = TextEditingController(text: gradeToEdit.weight.toString());
     final noteController = TextEditingController(text: gradeToEdit.note);
     var selectedDate = gradeToEdit.date;
-    String? selectedGrade = _formatGermanGrade(gradeToEdit.grade);
+    String? selectedGrade = gradeToEdit.gradeString ?? _formatGermanGrade(gradeToEdit.grade);
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -1229,6 +1240,7 @@ class _GradesPageState extends State<GradesPage> {
                           weight: double.tryParse(weightController.text.replaceAll(',', '.')) ?? gradeToEdit.weight,
                           date: selectedDate,
                           note: noteController.text,
+                          gradeString: selectedGrade,
                         );
 
                         // Update the grade in the list
@@ -1387,6 +1399,7 @@ class _GradesPageState extends State<GradesPage> {
                           weight: _grades[i].weight,
                           date: _grades[i].date,
                           note: _grades[i].note,
+                          gradeString: _grades[i].gradeString,
                         );
                       }
                     }
