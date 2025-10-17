@@ -356,16 +356,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'widget': TeacherVPlan(),
       },
       {
-        'text': 'dashboard',
-        'index': 2,
-        'icon': 'assets/img/dashboard.svg',
-        'widget': Dashboard(),
-      },
-      {
         'text': 'grades',
-        'index': 3,
+        'index': 2,
         'icon': 'assets/img/grade.svg',
         'widget': GradesPage(),
+      },
+      {
+        'text': 'dashboard',
+        'index': 3,
+        'icon': 'assets/img/dashboard.svg',
+        'widget': Dashboard(),
       },
     ];
     SystemChrome.setSystemUIOverlayStyle(
