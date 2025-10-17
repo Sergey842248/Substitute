@@ -58,6 +58,7 @@ class _GradesPageState extends State<GradesPage> {
   DateTime _selectedDate = DateTime.now();
   String _selectedSubject = '';
   List<String> _subjects = [];
+  Map<String, bool> _expandedSubjects = {};
 
   double _parseGermanGrade(String grade) {
     switch (grade) {
@@ -133,10 +134,12 @@ class _GradesPageState extends State<GradesPage> {
     final prefs = await SharedPreferences.getInstance();
     final gradesJson = prefs.getStringList('grades') ?? [];
     final subjects = prefs.getStringList('subjects') ?? [];
-    
+
     setState(() {
       _grades = gradesJson.map<Grade>((json) => Grade.fromJson(Map<String, dynamic>.from(jsonDecode(json)))).toList();
       _subjects = subjects;
+      // Initialize expanded state for all subjects - collapsed by default
+      _expandedSubjects = { for (var subject in _subjects) subject: false };
     });
   }
 
@@ -248,7 +251,10 @@ class _GradesPageState extends State<GradesPage> {
     }
   }
 
-  void _showAddGradeDialog({String? subject}) {
+  void _showAddGradeDialog({
+    String? subject,
+    required void Function(Grade grade) onGradeAdded,
+  }) {
     // Use a local variable for the selected subject
     String? selectedSubject = subject;
     // Create a new controller for the dialog
@@ -258,7 +264,7 @@ class _GradesPageState extends State<GradesPage> {
     final noteController = TextEditingController();
     var selectedDate = DateTime.now();
     String? selectedGrade;
-    
+
     // Set up the dialog
     showDialog(
       context: context,
@@ -299,7 +305,7 @@ class _GradesPageState extends State<GradesPage> {
                             });
                           },
                           validator: (value) {
-                            if ((value == null || value.isEmpty) && 
+                            if ((value == null || value.isEmpty) &&
                                 (subjectController.text.trim().isEmpty)) {
                               return 'Bitte wähle ein Fach aus oder gib ein neues ein';
                             }
@@ -315,7 +321,7 @@ class _GradesPageState extends State<GradesPage> {
                               border: OutlineInputBorder(),
                             ),
                             validator: (value) {
-                              if ((value == null || value.trim().isEmpty) && 
+                              if ((value == null || value.trim().isEmpty) &&
                                   (selectedSubject == null || selectedSubject!.isEmpty)) {
                                 return 'Bitte gib einen gültigen Fachnamen ein';
                               }
@@ -340,7 +346,7 @@ class _GradesPageState extends State<GradesPage> {
                         ),
                         SizedBox(height: 16),
                       ],
-                      
+
                       // Grade Input
                       DropdownButtonFormField<String>(
                         value: selectedGrade,
@@ -367,7 +373,7 @@ class _GradesPageState extends State<GradesPage> {
                         },
                       ),
                       SizedBox(height: 16),
-                      
+
                       // Weight Input
                       TextFormField(
                         controller: weightController,
@@ -387,7 +393,7 @@ class _GradesPageState extends State<GradesPage> {
                         },
                       ),
                       SizedBox(height: 16),
-                      
+
                       // Date Picker
                       InkWell(
                         onTap: () async {
@@ -420,7 +426,7 @@ class _GradesPageState extends State<GradesPage> {
                         ),
                       ),
                       SizedBox(height: 16),
-                      
+
                       // Note Input
                       TextFormField(
                         controller: noteController,
@@ -462,7 +468,7 @@ class _GradesPageState extends State<GradesPage> {
                         }
                         return;
                       }
-                      
+
                       try {
                         final grade = Grade(
                           subject: subjectName,
@@ -472,19 +478,10 @@ class _GradesPageState extends State<GradesPage> {
                           note: noteController.text,
                         );
 
-                        // Update the parent widget's state
-                        if (mounted) {
-                          setState(() {
-                            _grades.add(grade);
-                            if (!_subjects.contains(subjectName)) {
-                              _subjects.add(subjectName);
-                              _subjects.sort();
-                            }
-                          });
-                        }
-                        
+                        onGradeAdded(grade);
+
                         await _saveGrades();
-                        
+
                         if (mounted) {
                           Navigator.of(context).pop();
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -582,7 +579,19 @@ class _GradesPageState extends State<GradesPage> {
               ],
               onSelected: (value) {
                 if (value == 'add_grade') {
-                  _showAddGradeDialog();
+                  _showAddGradeDialog(
+                    onGradeAdded: (grade) {
+                      setState(() {
+                        _grades.add(grade);
+                        if (!_subjects.contains(grade.subject)) {
+                          _subjects.add(grade.subject);
+                          _subjects.sort();
+                          // Expand the subject immediately when a grade is added
+                          _expandedSubjects[grade.subject] = true;
+                        }
+                      });
+                    },
+                  );
                 } else if (value == 'add_subject') {
                   _showAddSubjectDialog();
                 }
@@ -698,10 +707,11 @@ class _GradesPageState extends State<GradesPage> {
                 setState(() {
                   _subjects.add(subject);
                   _subjects.sort();
+                  _expandedSubjects[subject] = true;
                 });
                 _saveGrades();
                 Navigator.pop(context);
-                
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Fach "$subject" wurde erstellt')),
                 );
@@ -755,58 +765,93 @@ class _GradesPageState extends State<GradesPage> {
     required List<Grade> grades,
     required ColorScheme colorScheme,
   }) {
-    // Check if the subject has any grades (used for empty check)
-    final hasEmptySubject = grades.isEmpty;
+    final isExpanded = _expandedSubjects[subject] ?? true;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    subject,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ),
-                if (grades.isNotEmpty) _buildAverageChip(average, colorScheme),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (grades.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Column(
-                  children: [
-                    Text(
-                      'Keine Noten vorhanden',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).textTheme.bodySmall?.color,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        _showAddGradeDialog(subject: subject);
+      child: InkWell(
+        onLongPress: () => _confirmDeleteSubject(subject),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          _expandedSubjects[subject] = !isExpanded;
+                        });
                       },
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text('Note hinzufügen'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isExpanded ? Icons.expand_less : Icons.expand_more,
+                            color: colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              subject,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              )
-            else
-              ...grades.map((grade) => _buildGradeTile(grade, colorScheme)),
-          ],
+                  ),
+                  if (grades.isNotEmpty && isExpanded) _buildAverageChip(average, colorScheme),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (isExpanded) ...[
+                if (grades.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Keine Noten vorhanden',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).textTheme.bodySmall?.color,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            _showAddGradeDialog(
+                              subject: subject,
+                              onGradeAdded: (grade) {
+                                setState(() {
+                                  _grades.add(grade);
+                                  if (!_subjects.contains(grade.subject)) {
+                                    _subjects.add(grade.subject);
+                                    _subjects.sort();
+                                    // Expand the subject immediately when a grade is added
+                                    _expandedSubjects[grade.subject] = true;
+                                  }
+                                });
+                              },
+                            );
+                          },
+                          icon: const Icon(Icons.add, size: 16),
+                          label: const Text('Note hinzufügen'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ...grades.map((grade) => _buildGradeTile(grade, colorScheme)),
+              ],
+            ],
+          ),
         ),
       ),
     );
