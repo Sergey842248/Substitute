@@ -574,22 +574,21 @@ class _GradesPageState extends State<GradesPage> {
                     if (formKey.currentState?.validate() ?? false) {
                       final subjectName = selectedSubject ?? subjectController.text.trim();
                       if (subjectName.isEmpty) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Bitte ein gültiges Fach eingeben')),
-                          );
-                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Bitte ein gültiges Fach eingeben')),
+                        );
                         return;
                       }
 
                       if (selectedGrade == null) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Bitte eine Note auswählen')),
-                          );
-                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Bitte eine Note auswählen')),
+                        );
                         return;
                       }
+
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(context);
 
                       try {
                         final grade = Grade(
@@ -606,8 +605,8 @@ class _GradesPageState extends State<GradesPage> {
                         await _saveGrades();
 
                         if (mounted) {
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          navigator.pop();
+                          messenger.showSnackBar(
                             const SnackBar(
                               content: Text('Note wurde hinzugefügt'),
                               duration: Duration(seconds: 2),
@@ -616,7 +615,7 @@ class _GradesPageState extends State<GradesPage> {
                         }
                       } catch (e) {
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             SnackBar(
                               content: Text('Fehler beim Speichern: $e'),
                               duration: Duration(seconds: 3),
@@ -662,8 +661,6 @@ class _GradesPageState extends State<GradesPage> {
       setState(() {
         _grades[index] = editedGrade;
       });
-      // Force a complete rebuild to ensure all calculated values are updated
-      setState(() {});
     }
   }
 
@@ -814,9 +811,9 @@ class _GradesPageState extends State<GradesPage> {
     final subjectController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
-    return showDialog(
+    showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text('Neues Fach erstellen'),
         content: Form(
           key: formKey,
@@ -839,34 +836,40 @@ class _GradesPageState extends State<GradesPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text('Abbrechen'),
           ),
           ElevatedButton(
             onPressed: () {
               if (formKey.currentState?.validate() ?? false) {
-                final subject = subjectController.text.trim();
-                setState(() {
-                  _subjects.add(subject);
-                  _subjects.sort();
-                  _expandedSubjects[subject] = true;
-                });
-                _saveGrades();
-                Navigator.pop(context);
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Fach "$subject" wurde erstellt')),
-                );
+                Navigator.pop(dialogContext, subjectController.text.trim());
               }
             },
             child: Text('Erstellen'),
           ),
         ],
       ),
-    );
+    ).then((subject) async {
+      if (subject != null && subject.isNotEmpty) {
+        final messenger = ScaffoldMessenger.of(context);
+        setState(() {
+          _subjects.add(subject);
+          _subjects.sort();
+          _expandedSubjects[subject] = true;
+        });
+        await _saveGrades();
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(content: Text('Fach "$subject" wurde erstellt')),
+          );
+        }
+      }
+      subjectController.dispose();
+    });
   }
 
   Future<void> _confirmDeleteSubject(String subject) async {
+    final messenger = ScaffoldMessenger.of(context);
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -891,9 +894,9 @@ class _GradesPageState extends State<GradesPage> {
         _subjects.remove(subject);
       });
       await _saveGrades();
-      
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text('Alle Noten für $subject wurden gelöscht')),
         );
       }
@@ -907,7 +910,7 @@ class _GradesPageState extends State<GradesPage> {
     required List<Grade> grades,
     required ColorScheme colorScheme,
     required Function(String) onEditSubject,
-    required Function(Grade) onEditGrade,
+            required void Function(Grade) onEditGrade,
   }) {
     final isExpanded = _expandedSubjects[subject] ?? true;
 
@@ -1079,6 +1082,7 @@ class _GradesPageState extends State<GradesPage> {
   }
 
   Future<void> _confirmDeleteGrade(Grade grade) async {
+    final messenger = ScaffoldMessenger.of(context);
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1104,14 +1108,14 @@ class _GradesPageState extends State<GradesPage> {
       await _saveGrades();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text('Note wurde gelöscht')),
         );
       }
     }
   }
 
-  void _showEditGradeDialog(Grade gradeToEdit) {
+  void _showEditGradeDialog(Grade gradeToEdit, {void Function(Grade)? onGradeEdited}) {
     // Initialize form fields with existing grade data
     final subjectController = TextEditingController(text: gradeToEdit.subject);
     final weightController = TextEditingController(text: gradeToEdit.weight.toString());
@@ -1236,13 +1240,14 @@ class _GradesPageState extends State<GradesPage> {
                   onPressed: () async {
                     if (formKey.currentState?.validate() ?? false) {
                       if (selectedGrade == null) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Bitte eine Note auswählen')),
-                          );
-                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Bitte eine Note auswählen')),
+                        );
                         return;
                       }
+
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(context);
 
                       try {
                         final editedGrade = Grade(
@@ -1256,11 +1261,12 @@ class _GradesPageState extends State<GradesPage> {
 
                         // Update the grade in the list
                         _updateGrade(gradeToEdit, editedGrade);
+                        onGradeEdited?.call(editedGrade);
                         await _saveGrades();
 
                         if (mounted) {
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          navigator.pop();
+                          messenger.showSnackBar(
                             const SnackBar(
                               content: Text('Note wurde aktualisiert'),
                               duration: Duration(seconds: 2),
@@ -1269,7 +1275,7 @@ class _GradesPageState extends State<GradesPage> {
                         }
                       } catch (e) {
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             SnackBar(
                               content: Text('Fehler beim Speichern: $e'),
                               duration: Duration(seconds: 3),
@@ -1362,9 +1368,9 @@ class _GradesPageState extends State<GradesPage> {
     final subjectController = TextEditingController(text: subjectToEdit);
     final formKey = GlobalKey<FormState>();
 
-    showDialog(
+    showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text('Fach bearbeiten'),
         content: Form(
           key: formKey,
@@ -1378,7 +1384,8 @@ class _GradesPageState extends State<GradesPage> {
               if (value == null || value.trim().isEmpty) {
                 return 'Bitte gib einen Fachnamen ein';
               }
-              if (value.trim() != subjectToEdit && _subjects.contains(value.trim())) {
+              if (value.trim() != subjectToEdit &&
+                  _subjects.contains(value.trim())) {
                 return 'Dieses Fach existiert bereits';
               }
               return null;
@@ -1387,53 +1394,55 @@ class _GradesPageState extends State<GradesPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text('Abbrechen'),
           ),
           ElevatedButton(
             onPressed: () {
               if (formKey.currentState?.validate() ?? false) {
-                final newSubjectName = subjectController.text.trim();
-                if (newSubjectName != subjectToEdit) {
-                  setState(() {
-                    // Update all grades with the old subject name
-                    for (var i = 0; i < _grades.length; i++) {
-                      if (_grades[i].subject == subjectToEdit) {
-                        _grades[i] = Grade(
-                          subject: newSubjectName,
-                          grade: _grades[i].grade,
-                          weight: _grades[i].weight,
-                          date: _grades[i].date,
-                          note: _grades[i].note,
-                          gradeString: _grades[i].gradeString,
-                        );
-                      }
-                    }
-                    // Update the subject list
-                    final subjectIndex = _subjects.indexOf(subjectToEdit);
-                    if (subjectIndex != -1) {
-                      _subjects[subjectIndex] = newSubjectName;
-                      _subjects.sort();
-                    }
-                    // Update the expanded subjects map
-                    _expandedSubjects[newSubjectName] = _expandedSubjects[subjectToEdit] ?? false;
-                    _expandedSubjects.remove(subjectToEdit);
-                  });
-                  _saveGrades();
-                }
-                Navigator.pop(context);
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Fach "$newSubjectName" wurde aktualisiert')),
-                );
+                Navigator.pop(dialogContext, subjectController.text.trim());
               }
             },
             child: Text('Speichern'),
           ),
         ],
       ),
-    ).then((_) {
-      // Dispose controller after dialog closes
+    ).then((newSubjectName) async {
+      if (newSubjectName != null && newSubjectName != subjectToEdit) {
+        final messenger = ScaffoldMessenger.of(context);
+        setState(() {
+          // Update all grades with the old subject name
+          for (var i = 0; i < _grades.length; i++) {
+            if (_grades[i].subject == subjectToEdit) {
+              _grades[i] = Grade(
+                subject: newSubjectName,
+                grade: _grades[i].grade,
+                weight: _grades[i].weight,
+                date: _grades[i].date,
+                note: _grades[i].note,
+                gradeString: _grades[i].gradeString,
+              );
+            }
+          }
+          // Update the subject list
+          final subjectIndex = _subjects.indexOf(subjectToEdit);
+          if (subjectIndex != -1) {
+            _subjects[subjectIndex] = newSubjectName;
+            _subjects.sort();
+          }
+          // Update the expanded subjects map
+          _expandedSubjects[newSubjectName] =
+              _expandedSubjects[subjectToEdit] ?? false;
+          _expandedSubjects.remove(subjectToEdit);
+        });
+        await _saveGrades();
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(
+                content: Text('Fach "$newSubjectName" wurde aktualisiert')),
+          );
+        }
+      }
       subjectController.dispose();
     });
   }
@@ -1480,10 +1489,13 @@ class _GradesPageState extends State<GradesPage> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
+                    final navigator = Navigator.of(context);
+                    final messenger = ScaffoldMessenger.of(context);
+
                     await _saveSettings();
                     if (mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      navigator.pop();
+                      messenger.showSnackBar(
                         SnackBar(content: Text('Einstellungen gespeichert')),
                       );
                     }
