@@ -101,6 +101,57 @@ class Grade {
       yearId.hashCode;
 }
 
+class ReportCardGrade {
+  final String subject;
+  final double grade;
+  final String? gradeString;
+  final String yearId;
+  final String termId; // z.B. "1. Halbjahr", "2. Halbjahr", "Gesamt"
+
+  ReportCardGrade({
+    required this.subject,
+    required this.grade,
+    this.gradeString,
+    required this.yearId,
+    required this.termId,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'subject': subject,
+        'grade': grade,
+        'gradeString': gradeString,
+        'yearId': yearId,
+        'termId': termId,
+      };
+
+  factory ReportCardGrade.fromJson(Map<String, dynamic> json) => ReportCardGrade(
+        subject: json['subject'],
+        grade: json['grade'].toDouble(),
+        gradeString: json['gradeString'],
+        yearId: json['yearId'] ?? '',
+        termId: json['termId'] ?? '',
+      );
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is ReportCardGrade &&
+        subject == other.subject &&
+        grade == other.grade &&
+        gradeString == other.gradeString &&
+        yearId == other.yearId &&
+        termId == other.termId;
+  }
+
+  @override
+  int get hashCode =>
+      subject.hashCode ^
+      grade.hashCode ^
+      gradeString.hashCode ^
+      yearId.hashCode ^
+      termId.hashCode;
+}
+
 class GradesPage extends StatefulWidget {
   final Future<void> Function()? onSettingChanged;
 
@@ -114,6 +165,7 @@ class _GradesPageState extends State<GradesPage> {
   List<AcademicYear> _academicYears = [];
   String? _selectedYearId;
   List<Grade> _grades = [];
+  List<ReportCardGrade> _reportCardGrades = [];
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _subjectController;
   final _weightController = TextEditingController(text: '1.0');
@@ -125,6 +177,11 @@ class _GradesPageState extends State<GradesPage> {
     '4+', '4', '4-',
     '5+', '5', '5-',
     '6'
+  ];
+  final List<String> _reportCardTerms = [
+    '1. Halbjahr',
+    '2. Halbjahr',
+    'Gesamt'
   ];
   String? _selectedGrade;
   DateTime _selectedDate = DateTime.now();
@@ -256,6 +313,7 @@ class _GradesPageState extends State<GradesPage> {
   Future<void> _loadGrades() async {
     final prefs = await SharedPreferences.getInstance();
     final gradesJson = prefs.getStringList('grades') ?? [];
+    final reportCardGradesJson = prefs.getStringList('report_card_grades') ?? [];
     final subjects = prefs.getStringList('subjects') ?? [];
     final academicYearsJson = prefs.getStringList('academic_years') ?? [];
 
@@ -263,6 +321,10 @@ class _GradesPageState extends State<GradesPage> {
       _grades = gradesJson
           .map<Grade>((json) =>
               Grade.fromJson(Map<String, dynamic>.from(jsonDecode(json))))
+          .toList();
+      _reportCardGrades = reportCardGradesJson
+          .map<ReportCardGrade>((json) =>
+              ReportCardGrade.fromJson(Map<String, dynamic>.from(jsonDecode(json))))
           .toList();
       _subjects = subjects;
       _academicYears = academicYearsJson
@@ -290,10 +352,13 @@ class _GradesPageState extends State<GradesPage> {
     final prefs = await SharedPreferences.getInstance();
     final gradesJson =
         _grades.map<String>((grade) => jsonEncode(grade.toJson())).toList();
+    final reportCardGradesJson =
+        _reportCardGrades.map<String>((grade) => jsonEncode(grade.toJson())).toList();
     final academicYearsJson = _academicYears
         .map<String>((year) => jsonEncode(year.toJson()))
         .toList();
     await prefs.setStringList('grades', gradesJson);
+    await prefs.setStringList('report_card_grades', reportCardGradesJson);
     await prefs.setStringList('subjects', _subjects);
     await prefs.setStringList('academic_years', academicYearsJson);
     if (_selectedYearId != null) {
@@ -740,9 +805,7 @@ class _GradesPageState extends State<GradesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final filteredSubjects = _subjects.where((subject) {
-      return _grades.any((grade) => grade.subject == subject && grade.yearId == _selectedYearId);
-    }).toList()..sort();
+    final filteredSubjects = _subjects.toList()..sort();
 
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -781,6 +844,10 @@ class _GradesPageState extends State<GradesPage> {
                   child: Text('Note hinzufügen'),
                 ),
                 PopupMenuItem(
+                  value: 'add_report_card_grade',
+                  child: Text('Zeugnissnote hinzufügen'),
+                ),
+                PopupMenuItem(
                   value: 'add_subject',
                   child: Text('Fach erstellen'),
                 ),
@@ -804,6 +871,8 @@ class _GradesPageState extends State<GradesPage> {
                       });
                     },
                   );
+                } else if (value == 'add_report_card_grade') {
+                  _showAddReportCardGradeDialog();
                 } else if (value == 'add_subject') {
                   _showAddSubjectDialog();
                 } else if (value == 'settings') {
@@ -817,6 +886,8 @@ class _GradesPageState extends State<GradesPage> {
         body: Column(
           children: [
             _buildYearSelector(),
+            // Report Card Grades Section
+            if (_reportCardGrades.isNotEmpty) _buildReportCardGradesSection(),
             Expanded(
               child: filteredSubjects.isEmpty
                   ? Center(
@@ -899,6 +970,168 @@ class _GradesPageState extends State<GradesPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildReportCardGradesSection() {
+    // Filter report card grades for current year
+    final currentYearReportGrades = _reportCardGrades
+        .where((grade) => grade.yearId == _selectedYearId)
+        .toList();
+
+    if (currentYearReportGrades.isEmpty) {
+      return Container();
+    }
+
+    // Group grades by term
+    final Map<String, List<ReportCardGrade>> gradesByTerm = {};
+    for (var grade in currentYearReportGrades) {
+      if (gradesByTerm[grade.termId] == null) {
+        gradesByTerm[grade.termId] = [];
+      }
+      gradesByTerm[grade.termId]!.add(grade);
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.1)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.school, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Zeugnissnoten',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ...gradesByTerm.entries.map((entry) {
+                final term = entry.key;
+                final termGrades = entry.value;
+                return _buildTermCard(term, termGrades);
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTermCard(String term, List<ReportCardGrade> grades) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              term,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            ...grades.map((grade) => _buildReportCardGradeTile(grade)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReportCardGradeTile(ReportCardGrade grade) {
+    final displayGrade = grade.gradeString ?? _formatGermanGrade(grade.grade);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              grade.subject,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: _getGradeColor(grade.grade, Theme.of(context).colorScheme).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              displayGrade,
+              style: TextStyle(
+                color: _getGradeColor(grade.grade, Theme.of(context).colorScheme),
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.delete_outline, size: 18, color: Theme.of(context).colorScheme.error),
+            onPressed: () => _confirmDeleteReportCardGrade(grade),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteReportCardGrade(ReportCardGrade grade) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Zeugnissnote löschen'),
+        content: Text('Möchtest du diese Zeugnissnote wirklich löschen?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Abbrechen'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Löschen', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      setState(() {
+        _reportCardGrades.remove(grade);
+      });
+      await _saveGrades();
+
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Zeugnissnote wurde gelöscht')),
+        );
+      }
+    }
   }
 
   Widget _buildYearSelector() {
@@ -1690,6 +1923,201 @@ class _GradesPageState extends State<GradesPage> {
       }
       subjectController.dispose();
     });
+  }
+
+  void _showAddReportCardGradeDialog() {
+    // Use a local variable for the selected subject
+    String? selectedSubject;
+    String? selectedTerm = _reportCardTerms.first;
+    String? selectedGrade;
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Zeugnissnote hinzufügen'),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Subject Selection
+                      if (_subjects.isNotEmpty) ...[
+                        DropdownButtonFormField<String>(
+                          value: selectedSubject,
+                          decoration: InputDecoration(
+                            labelText: 'Fach auswählen',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: [
+                            DropdownMenuItem(
+                              value: null,
+                              child: Text('Fach auswählen', style: TextStyle(color: Colors.grey)),
+                            ),
+                            ..._subjects.map((subj) => DropdownMenuItem(
+                                  value: subj,
+                                  child: Text(subj),
+                                )),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              selectedSubject = value;
+                            });
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Bitte wähle ein Fach aus';
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: 16),
+                      ] else ...[
+                        Text(
+                          'Keine Fächer vorhanden',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                        SizedBox(height: 16),
+                      ],
+
+                      // Term Selection
+                      DropdownButtonFormField<String>(
+                        value: selectedTerm,
+                        decoration: InputDecoration(
+                          labelText: 'Zeitraum',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _reportCardTerms.map((term) {
+                          return DropdownMenuItem(
+                            value: term,
+                            child: Text(term),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedTerm = value;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Bitte wähle einen Zeitraum aus';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 16),
+
+                      // Grade Input
+                      DropdownButtonFormField<String>(
+                        value: selectedGrade,
+                        decoration: InputDecoration(
+                          labelText: 'Note',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _germanGrades.map((grade) {
+                          return DropdownMenuItem(
+                            value: grade,
+                            child: Text(grade),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedGrade = value;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Bitte wähle eine Note aus';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('ABBRECHEN'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (formKey.currentState?.validate() ?? false) {
+                      if (selectedSubject == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Bitte ein Fach auswählen')),
+                        );
+                        return;
+                      }
+
+                      if (selectedTerm == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Bitte einen Zeitraum auswählen')),
+                        );
+                        return;
+                      }
+
+                      if (selectedGrade == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Bitte eine Note auswählen')),
+                        );
+                        return;
+                      }
+
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(context);
+
+                      try {
+                        final reportCardGrade = ReportCardGrade(
+                          subject: selectedSubject!,
+                          grade: _parseGermanGrade(selectedGrade!),
+                          gradeString: selectedGrade,
+                          yearId: _selectedYearId!,
+                          termId: selectedTerm!,
+                        );
+
+                        setState(() {
+                          _reportCardGrades.add(reportCardGrade);
+                        });
+
+                        await _saveGrades();
+
+                        if (mounted) {
+                          navigator.pop();
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('Zeugnissnote wurde hinzugefügt'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text('Fehler beim Speichern: $e'),
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                      }
+                    }
+                  },
+                  child: const Text('HINZUFÜGEN'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   void _showSettingsDialog() {
