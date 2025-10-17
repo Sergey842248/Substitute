@@ -3,6 +3,41 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+class AcademicYear {
+  final String id;
+  final String name;
+  final List<SchoolTerm> terms;
+
+  AcademicYear({required this.id, required this.name, this.terms = const []});
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'terms': terms.map((t) => t.toJson()).toList(),
+      };
+
+  factory AcademicYear.fromJson(Map<String, dynamic> json) => AcademicYear(
+        id: json['id'],
+        name: json['name'],
+        terms: (json['terms'] as List<dynamic>?)
+                ?.map((t) => SchoolTerm.fromJson(t))
+                .toList() ??
+            [],
+      );
+}
+
+class SchoolTerm {
+  final String id;
+  final String name;
+
+  SchoolTerm({required this.id, required this.name});
+
+  Map<String, dynamic> toJson() => {'id': id, 'name': name};
+
+  factory SchoolTerm.fromJson(Map<String, dynamic> json) =>
+      SchoolTerm(id: json['id'], name: json['name']);
+}
+
 class Grade {
   final String subject;
   final double grade;
@@ -10,6 +45,7 @@ class Grade {
   final DateTime date;
   final String note;
   final String? gradeString;
+  final String yearId;
 
   Grade({
     required this.subject,
@@ -18,6 +54,7 @@ class Grade {
     required this.date,
     this.note = '',
     this.gradeString,
+    required this.yearId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -27,6 +64,7 @@ class Grade {
         'date': date.toIso8601String(),
         'note': note,
         'gradeString': gradeString,
+        'yearId': yearId,
       };
 
   factory Grade.fromJson(Map<String, dynamic> json) => Grade(
@@ -36,6 +74,7 @@ class Grade {
         date: DateTime.parse(json['date']),
         note: json['note'] ?? '',
         gradeString: json['gradeString'],
+        yearId: json['yearId'] ?? '',
       );
 
   @override
@@ -47,7 +86,8 @@ class Grade {
         weight == other.weight &&
         date == other.date &&
         note == other.note &&
-        gradeString == other.gradeString;
+        gradeString == other.gradeString &&
+        yearId == other.yearId;
   }
 
   @override
@@ -57,7 +97,8 @@ class Grade {
       weight.hashCode ^
       date.hashCode ^
       note.hashCode ^
-      gradeString.hashCode;
+      gradeString.hashCode ^
+      yearId.hashCode;
 }
 
 class GradesPage extends StatefulWidget {
@@ -70,6 +111,8 @@ class GradesPage extends StatefulWidget {
 }
 
 class _GradesPageState extends State<GradesPage> {
+  List<AcademicYear> _academicYears = [];
+  String? _selectedYearId;
   List<Grade> _grades = [];
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _subjectController;
@@ -214,20 +257,48 @@ class _GradesPageState extends State<GradesPage> {
     final prefs = await SharedPreferences.getInstance();
     final gradesJson = prefs.getStringList('grades') ?? [];
     final subjects = prefs.getStringList('subjects') ?? [];
+    final academicYearsJson = prefs.getStringList('academic_years') ?? [];
 
     setState(() {
-      _grades = gradesJson.map<Grade>((json) => Grade.fromJson(Map<String, dynamic>.from(jsonDecode(json)))).toList();
+      _grades = gradesJson
+          .map<Grade>((json) =>
+              Grade.fromJson(Map<String, dynamic>.from(jsonDecode(json))))
+          .toList();
       _subjects = subjects;
-      // Initialize expanded state for all subjects - collapsed by default
-      _expandedSubjects = { for (var subject in _subjects) subject: false };
+      _academicYears = academicYearsJson
+          .map<AcademicYear>((json) => AcademicYear.fromJson(
+              Map<String, dynamic>.from(jsonDecode(json))))
+          .toList();
+
+      if (_academicYears.isNotEmpty) {
+        _selectedYearId = prefs.getString('selected_year_id') ?? _academicYears.first.id;
+      } else {
+        // Create a default academic year if none exist
+        final defaultYear = AcademicYear(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          name: '2023/2024', // Default name, can be changed by the user
+        );
+        _academicYears.add(defaultYear);
+        _selectedYearId = defaultYear.id;
+      }
+
+      _expandedSubjects = {for (var subject in _subjects) subject: false};
     });
   }
 
   Future<void> _saveGrades() async {
     final prefs = await SharedPreferences.getInstance();
-    final gradesJson = _grades.map<String>((grade) => jsonEncode(grade.toJson())).toList();
+    final gradesJson =
+        _grades.map<String>((grade) => jsonEncode(grade.toJson())).toList();
+    final academicYearsJson = _academicYears
+        .map<String>((year) => jsonEncode(year.toJson()))
+        .toList();
     await prefs.setStringList('grades', gradesJson);
     await prefs.setStringList('subjects', _subjects);
+    await prefs.setStringList('academic_years', academicYearsJson);
+    if (_selectedYearId != null) {
+      await prefs.setString('selected_year_id', _selectedYearId!);
+    }
   }
 
   Future<void> _saveSettings() async {
@@ -261,6 +332,7 @@ class _GradesPageState extends State<GradesPage> {
         date: grade.date,
         note: grade.note,
         gradeString: grade.gradeString,
+        yearId: grade.yearId,
       ));
     }
     setState(() {
@@ -284,6 +356,7 @@ class _GradesPageState extends State<GradesPage> {
         date: _selectedDate,
         note: _noteController.text,
         gradeString: !_usePointsSystem ? _selectedGrade : null,
+        yearId: _selectedYearId!,
       );
 
       setState(() {
@@ -598,6 +671,7 @@ class _GradesPageState extends State<GradesPage> {
                           date: selectedDate,
                           note: noteController.text,
                           gradeString: selectedGrade,
+                          yearId: _selectedYearId!,
                         );
 
                         onGradeAdded(grade);
@@ -641,7 +715,7 @@ class _GradesPageState extends State<GradesPage> {
   }
 
   double _calculateAverage(String subject) {
-    final subjectGrades = _grades.where((g) => g.subject == subject).toList();
+    final subjectGrades = _grades.where((g) => g.subject == subject && g.yearId == _selectedYearId).toList();
     if (subjectGrades.isEmpty) return 0.0;
 
     double sum = 0;
@@ -666,7 +740,10 @@ class _GradesPageState extends State<GradesPage> {
 
   @override
   Widget build(BuildContext context) {
-    _subjects.sort();
+    final filteredSubjects = _subjects.where((subject) {
+      return _grades.any((grade) => grade.subject == subject && grade.yearId == _selectedYearId);
+    }).toList()..sort();
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     
@@ -737,74 +814,240 @@ class _GradesPageState extends State<GradesPage> {
             const SizedBox(width: 8),
           ],
         ),
-        body: _subjects.isEmpty
-            ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.grade_outlined, size: 64, color: colorScheme.primary.withOpacity(0.2)),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Keine Fächer vorhanden',
-                        style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Füge dein erstes Fach hinzu, um Noten zu verwalten',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.textTheme.bodySmall?.color,
+        body: Column(
+          children: [
+            _buildYearSelector(),
+            Expanded(
+              child: filteredSubjects.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.grade_outlined,
+                                size: 64,
+                                color: colorScheme.primary.withOpacity(0.2)),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Keine Fächer in diesem Jahr',
+                              style: theme.textTheme.headlineSmall
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Füge dein erstes Fach hinzu, um Noten zu verwalten',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.textTheme.bodySmall?.color,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            ElevatedButton.icon(
+                              onPressed: _showAddSubjectDialog,
+                              icon: Icon(Icons.add, size: 20),
+                              label: Text('Fach erstellen'),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: _showAddSubjectDialog,
-                        icon: Icon(Icons.add, size: 20),
-                        label: Text('Fach erstellen'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                    )
+                  : CustomScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      slivers: [
+                        SliverPadding(
+                          padding: const EdgeInsets.all(16),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                final subject = filteredSubjects[index];
+                                final subjectGrades = _grades
+                                    .where((g) =>
+                                        g.subject == subject &&
+                                        g.yearId == _selectedYearId)
+                                    .toList();
+                                final average = subjectGrades.isNotEmpty
+                                    ? _calculateAverage(subject)
+                                    : 0.0;
+
+                                return _buildSubjectCard(
+                                  context,
+                                  subject: subject,
+                                  average: average,
+                                  grades: subjectGrades,
+                                  colorScheme: colorScheme,
+                                  onEditGrade: _showEditGradeDialog,
+                                  onEditSubject: _showEditSubjectDialog,
+                                );
+                              },
+                              childCount: filteredSubjects.length,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            : CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  SliverPadding(
-                    padding: const EdgeInsets.all(16),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final subject = _subjects[index];
-                          final subjectGrades = _grades.where((g) => g.subject == subject).toList();
-                          final average = subjectGrades.isNotEmpty ? _calculateAverage(subject) : 0.0;
-                          
-          return _buildSubjectCard(
-            context,
-            subject: subject,
-            average: average,
-            grades: subjectGrades,
-            colorScheme: colorScheme,
-            onEditGrade: _showEditGradeDialog,
-            onEditSubject: _showEditSubjectDialog,
-          );
-                        },
-                        childCount: _subjects.length,
-                      ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildYearSelector() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: DropdownButton<String>(
+              value: _selectedYearId,
+              isExpanded: true,
+              underline: Container(height: 0),
+              items: _academicYears.map((year) {
+                return DropdownMenuItem(
+                  value: year.id,
+                  child: Text(year.name, style: TextStyle(fontWeight: FontWeight.bold)),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedYearId = value;
+                });
+              },
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.add),
+            onPressed: _showAddYearDialog,
+          ),
+          IconButton(
+            icon: Icon(Icons.edit),
+            onPressed: _showEditYearDialog,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showAddYearDialog() async {
+    final yearController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final newYearName = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Neues Schuljahr erstellen'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: yearController,
+            decoration: InputDecoration(
+              labelText: 'Jahr (z.B. 2024/2025)',
+              border: OutlineInputBorder(),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Bitte gib einen Namen für das Schuljahr ein';
+              }
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('Abbrechen'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                Navigator.pop(dialogContext, yearController.text.trim());
+              }
+            },
+            child: Text('Erstellen'),
+          ),
+        ],
+      ),
+    );
+
+    if (newYearName != null) {
+      final newYear = AcademicYear(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: newYearName,
+      );
+      setState(() {
+        _academicYears.add(newYear);
+        _selectedYearId = newYear.id;
+      });
+      await _saveGrades();
+    }
+  }
+
+  Future<void> _showEditYearDialog() async {
+    if (_selectedYearId == null) return;
+
+    final selectedYear = _academicYears.firstWhere((y) => y.id == _selectedYearId);
+    final yearController = TextEditingController(text: selectedYear.name);
+    final formKey = GlobalKey<FormState>();
+
+    final updatedYearName = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Schuljahr bearbeiten'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: yearController,
+            decoration: InputDecoration(
+              labelText: 'Jahr (z.B. 2024/2025)',
+              border: OutlineInputBorder(),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Bitte gib einen Namen für das Schuljahr ein';
+              }
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('Abbrechen'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                Navigator.pop(dialogContext, yearController.text.trim());
+              }
+            },
+            child: Text('Speichern'),
+          ),
+        ],
+      ),
+    );
+
+    if (updatedYearName != null) {
+      final yearIndex = _academicYears.indexWhere((y) => y.id == _selectedYearId);
+      if (yearIndex != -1) {
+        setState(() {
+          _academicYears[yearIndex] = AcademicYear(
+            id: selectedYear.id,
+            name: updatedYearName,
+            terms: selectedYear.terms,
+          );
+        });
+        await _saveGrades();
+      }
+    }
   }
 
   Future<void> _showAddSubjectDialog() async {
@@ -890,7 +1133,7 @@ class _GradesPageState extends State<GradesPage> {
 
     if (shouldDelete == true) {
       setState(() {
-        _grades.removeWhere((g) => g.subject == subject);
+        _grades.removeWhere((g) => g.subject == subject && g.yearId == _selectedYearId);
         _subjects.remove(subject);
       });
       await _saveGrades();
@@ -910,7 +1153,7 @@ class _GradesPageState extends State<GradesPage> {
     required List<Grade> grades,
     required ColorScheme colorScheme,
     required Function(String) onEditSubject,
-            required void Function(Grade) onEditGrade,
+            required void Function(Grade, {void Function(Grade)? onGradeEdited}) onEditGrade,
   }) {
     final isExpanded = _expandedSubjects[subject] ?? true;
 
@@ -1257,6 +1500,7 @@ class _GradesPageState extends State<GradesPage> {
                           date: selectedDate,
                           note: noteController.text,
                           gradeString: selectedGrade,
+                          yearId: gradeToEdit.yearId,
                         );
 
                         // Update the grade in the list
@@ -1421,6 +1665,7 @@ class _GradesPageState extends State<GradesPage> {
                 date: _grades[i].date,
                 note: _grades[i].note,
                 gradeString: _grades[i].gradeString,
+                yearId: _grades[i].yearId,
               );
             }
           }
