@@ -3,6 +3,20 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+
+
+class SchoolTerm {
+  final String id;
+  final String name;
+
+  SchoolTerm({required this.id, required this.name});
+
+  Map<String, dynamic> toJson() => {'id': id, 'name': name};
+
+  factory SchoolTerm.fromJson(Map<String, dynamic> json) =>
+      SchoolTerm(id: json['id'], name: json['name']);
+}
+
 class AcademicYear {
   final String id;
   final String name;
@@ -26,32 +40,17 @@ class AcademicYear {
       );
 }
 
-class SchoolTerm {
-  final String id;
-  final String name;
-
-  SchoolTerm({required this.id, required this.name});
-
-  Map<String, dynamic> toJson() => {'id': id, 'name': name};
-
-  factory SchoolTerm.fromJson(Map<String, dynamic> json) =>
-      SchoolTerm(id: json['id'], name: json['name']);
-}
-
 class Subject {
   final String name;
-  final bool syncAcrossYears;
 
-  Subject({required this.name, this.syncAcrossYears = true});
+  Subject({required this.name});
 
   Map<String, dynamic> toJson() => {
         'name': name,
-        'syncAcrossYears': syncAcrossYears,
       };
 
   factory Subject.fromJson(Map<String, dynamic> json) => Subject(
         name: json['name'],
-        syncAcrossYears: json['syncAcrossYears'] ?? true,
       );
 
   @override
@@ -71,7 +70,7 @@ class Grade {
   final DateTime date;
   final String note;
   final String? gradeString;
-  final String yearId;
+  final String? yearId;
 
   Grade({
     required this.subject,
@@ -80,7 +79,7 @@ class Grade {
     required this.date,
     this.note = '',
     this.gradeString,
-    required this.yearId,
+    this.yearId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -131,31 +130,31 @@ class ReportCardGrade {
   final String subject;
   final double grade;
   final String? gradeString;
-  final String yearId;
   final String termId; // z.B. "1. Halbjahr", "2. Halbjahr", "Gesamt"
+  final String yearId;
 
   ReportCardGrade({
     required this.subject,
     required this.grade,
     this.gradeString,
-    required this.yearId,
     required this.termId,
+    required this.yearId,
   });
 
   Map<String, dynamic> toJson() => {
         'subject': subject,
         'grade': grade,
         'gradeString': gradeString,
-        'yearId': yearId,
         'termId': termId,
+        'yearId': yearId,
       };
 
   factory ReportCardGrade.fromJson(Map<String, dynamic> json) => ReportCardGrade(
         subject: json['subject'],
         grade: json['grade'].toDouble(),
         gradeString: json['gradeString'],
-        yearId: json['yearId'] ?? '',
         termId: json['termId'] ?? '',
+        yearId: json['yearId'] ?? '',
       );
 
   @override
@@ -165,8 +164,8 @@ class ReportCardGrade {
         subject == other.subject &&
         grade == other.grade &&
         gradeString == other.gradeString &&
-        yearId == other.yearId &&
-        termId == other.termId;
+        termId == other.termId &&
+        yearId == other.yearId;
   }
 
   @override
@@ -174,8 +173,8 @@ class ReportCardGrade {
       subject.hashCode ^
       grade.hashCode ^
       gradeString.hashCode ^
-      yearId.hashCode ^
-      termId.hashCode;
+      termId.hashCode ^
+      yearId.hashCode;
 }
 
 class GradesPage extends StatefulWidget {
@@ -188,8 +187,6 @@ class GradesPage extends StatefulWidget {
 }
 
 class _GradesPageState extends State<GradesPage> {
-  List<AcademicYear> _academicYears = [];
-  String? _selectedYearId;
   List<Grade> _grades = [];
   List<ReportCardGrade> _reportCardGrades = [];
   List<Subject> _subjects = [];
@@ -216,6 +213,8 @@ class _GradesPageState extends State<GradesPage> {
   String _selectedSubject = '';
   bool _showOverallAverage = true;
   bool _isReportCardGradesExpanded = true;
+  String? _selectedYearId;
+  List<AcademicYear> _academicYears = [];
 
   double _parseGermanGrade(String grade) {
     if (_calculateWithoutTendencies && !_usePointsSystem) {
@@ -343,7 +342,6 @@ class _GradesPageState extends State<GradesPage> {
     final gradesJson = prefs.getStringList('grades') ?? [];
     final reportCardGradesJson = prefs.getStringList('report_card_grades') ?? [];
     final subjectsJson = prefs.getStringList('subjects') ?? [];
-    final academicYearsJson = prefs.getStringList('academic_years') ?? [];
 
     setState(() {
       _grades = gradesJson
@@ -355,7 +353,7 @@ class _GradesPageState extends State<GradesPage> {
               ReportCardGrade.fromJson(Map<String, dynamic>.from(jsonDecode(json))))
           .toList();
 
-      // Load subjects with sync settings, fallback to simple strings for backward compatibility
+      // Load subjects - simple format now
       if (subjectsJson.isNotEmpty) {
         try {
           _subjects = subjectsJson
@@ -365,25 +363,8 @@ class _GradesPageState extends State<GradesPage> {
         } catch (e) {
           // Fallback for old format (simple strings)
           _subjects = subjectsJson.map<Subject>((subjectName) =>
-              Subject(name: subjectName, syncAcrossYears: true)).toList();
+              Subject(name: subjectName)).toList();
         }
-      }
-
-      _academicYears = academicYearsJson
-          .map<AcademicYear>((json) => AcademicYear.fromJson(
-              Map<String, dynamic>.from(jsonDecode(json))))
-          .toList();
-
-      if (_academicYears.isNotEmpty) {
-        _selectedYearId = prefs.getString('selected_year_id') ?? _academicYears.first.id;
-      } else {
-        // Create a default academic year if none exist
-        final defaultYear = AcademicYear(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          name: '2023/2024', // Default name, can be changed by the user
-        );
-        _academicYears.add(defaultYear);
-        _selectedYearId = defaultYear.id;
       }
 
       _expandedSubjects = {for (var subject in _subjects) subject.name: false};
@@ -399,16 +380,9 @@ class _GradesPageState extends State<GradesPage> {
     final subjectsJson = _subjects
         .map<String>((subject) => jsonEncode(subject.toJson()))
         .toList();
-    final academicYearsJson = _academicYears
-        .map<String>((year) => jsonEncode(year.toJson()))
-        .toList();
     await prefs.setStringList('grades', gradesJson);
     await prefs.setStringList('report_card_grades', reportCardGradesJson);
     await prefs.setStringList('subjects', subjectsJson);
-    await prefs.setStringList('academic_years', academicYearsJson);
-    if (_selectedYearId != null) {
-      await prefs.setString('selected_year_id', _selectedYearId!);
-    }
   }
 
   Future<void> _saveSettings() async {
@@ -466,14 +440,14 @@ class _GradesPageState extends State<GradesPage> {
         date: _selectedDate,
         note: _noteController.text,
         gradeString: !_usePointsSystem ? _selectedGrade : null,
-        yearId: _selectedYearId!,
+        yearId: null,
       );
 
       setState(() {
         _grades.add(grade);
         final subjectExists = _subjects.any((subject) => subject.name == grade.subject);
         if (!subjectExists) {
-          _subjects.add(Subject(name: grade.subject, syncAcrossYears: true));
+          _subjects.add(Subject(name: grade.subject));
           _subjects.sort((a, b) => a.name.compareTo(b.name));
           _expandedSubjects[grade.subject] = true;
         }
@@ -784,7 +758,7 @@ class _GradesPageState extends State<GradesPage> {
                           date: selectedDate,
                           note: noteController.text,
                           gradeString: selectedGrade,
-                          yearId: _selectedYearId!,
+                          yearId: null,
                         );
 
                         onGradeAdded(grade);
@@ -828,7 +802,7 @@ class _GradesPageState extends State<GradesPage> {
   }
 
   double _calculateAverage(Subject subject) {
-    final subjectGrades = _grades.where((g) => g.subject == subject && g.yearId == _selectedYearId).toList();
+    final subjectGrades = _grades.where((g) => g.subject == subject.name).toList();
     if (subjectGrades.isEmpty) return 0.0;
 
     double sum = 0;
@@ -843,13 +817,12 @@ class _GradesPageState extends State<GradesPage> {
   }
 
   double _calculateOverallAverage() {
-    final currentYearGrades = _grades.where((g) => g.yearId == _selectedYearId).toList();
-    if (currentYearGrades.isEmpty) return 0.0;
+    if (_grades.isEmpty) return 0.0;
 
     double sum = 0;
     double totalWeight = 0;
 
-    for (var grade in currentYearGrades) {
+    for (var grade in _grades) {
       sum += grade.grade * grade.weight;
       totalWeight += grade.weight;
     }
@@ -927,7 +900,7 @@ class _GradesPageState extends State<GradesPage> {
                         _grades.add(grade);
                         final subjectExists = _subjects.any((subject) => subject.name == grade.subject);
                         if (!subjectExists) {
-                          _subjects.add(Subject(name: grade.subject, syncAcrossYears: true));
+                          _subjects.add(Subject(name: grade.subject));
                           _subjects.sort((a, b) => a.name.compareTo(b.name));
                           // Expand the subject immediately when a grade is added
                           _expandedSubjects[grade.subject] = true;
@@ -949,15 +922,14 @@ class _GradesPageState extends State<GradesPage> {
         ),
         body: Column(
           children: [
-            _buildYearSelector(),
             // Overall Average Section - only show if there are subjects with grades
-            if (filteredSubjects.isNotEmpty && _grades.where((g) => g.yearId == _selectedYearId).isNotEmpty)
+            if (filteredSubjects.isNotEmpty && _grades.isNotEmpty)
               _buildOverallAverageSection(),
             // Main content area
             Expanded(
               child: filteredSubjects.isEmpty
                   ? // When no subjects exist, check if we have report card grades
-                  _reportCardGrades.any((grade) => grade.yearId == _selectedYearId)
+                  _reportCardGrades.isNotEmpty
                       ? // Show report card grades directly when no subjects but report card grades exist
                       SingleChildScrollView(
                           physics: const BouncingScrollPhysics(),
@@ -978,7 +950,7 @@ class _GradesPageState extends State<GradesPage> {
                                     color: colorScheme.primary.withOpacity(0.2)),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'Keine Fächer in diesem Jahr',
+                                  'Keine Fächer vorhanden',
                                   style: theme.textTheme.headlineSmall
                                       ?.copyWith(fontWeight: FontWeight.w600),
                                   textAlign: TextAlign.center,
@@ -1018,10 +990,9 @@ class _GradesPageState extends State<GradesPage> {
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
                                 final subject = filteredSubjects[index];
+
                                 final subjectGrades = _grades
-                                    .where((g) =>
-                                        g.subject == subject &&
-                                        g.yearId == _selectedYearId)
+                                    .where((g) => g.subject == subject.name)
                                     .toList();
                                 final average = subjectGrades.isNotEmpty
                                     ? _calculateAverage(subject)
@@ -1062,9 +1033,7 @@ class _GradesPageState extends State<GradesPage> {
 
   Widget _buildOverallAverageSection() {
     final overallAverage = _calculateOverallAverage();
-    final currentYearGrades = _grades.where((g) => g.yearId == _selectedYearId).toList();
-    final subjectCount = _subjects.where((subject) =>
-        currentYearGrades.any((grade) => grade.subject == subject)).length;
+    final subjectCount = _subjects.length;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -1139,18 +1108,13 @@ class _GradesPageState extends State<GradesPage> {
   }
 
   Widget _buildReportCardGradesSection() {
-    // Filter report card grades for current year
-    final currentYearReportGrades = _reportCardGrades
-        .where((grade) => grade.yearId == _selectedYearId)
-        .toList();
-
-    if (currentYearReportGrades.isEmpty) {
+    if (_reportCardGrades.isEmpty) {
       return Container();
     }
 
     // Group grades by term
     final Map<String, List<ReportCardGrade>> gradesByTerm = {};
-    for (var grade in currentYearReportGrades) {
+    for (var grade in _reportCardGrades) {
       if (gradesByTerm[grade.termId] == null) {
         gradesByTerm[grade.termId] = [];
       }
@@ -1209,7 +1173,7 @@ class _GradesPageState extends State<GradesPage> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
-                        '${currentYearReportGrades.length}',
+                        '${_reportCardGrades.length}',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.w600,
@@ -1510,83 +1474,58 @@ class _GradesPageState extends State<GradesPage> {
   Future<void> _showAddSubjectDialog() async {
     final subjectController = TextEditingController();
     final formKey = GlobalKey<FormState>();
-    bool syncAcrossYears = true; // Default value
 
-    showDialog<Map<String, dynamic>>(
+    showDialog<String>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text('Neues Fach erstellen'),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: subjectController,
-                  decoration: InputDecoration(
-                    labelText: 'Fachname',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Bitte gib einen Fachnamen ein';
-                    }
-                    final subjectExists = _subjects.any((subject) => subject.name == value.trim());
-                    if (subjectExists) {
-                      return 'Dieses Fach existiert bereits';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-                SwitchListTile(
-                  title: Text('Über Jahre synchronisieren'),
-                  subtitle: Text('Fach in allen Jahren verfügbar machen'),
-                  value: syncAcrossYears,
-                  onChanged: (value) {
-                    setState(() {
-                      syncAcrossYears = value;
-                    });
-                  },
-                ),
-              ],
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Neues Fach erstellen'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: subjectController,
+            decoration: InputDecoration(
+              labelText: 'Fachname',
+              border: OutlineInputBorder(),
             ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Bitte gib einen Fachnamen ein';
+              }
+              final subjectExists = _subjects.any((subject) => subject.name == value.trim());
+              if (subjectExists) {
+                return 'Dieses Fach existiert bereits';
+              }
+              return null;
+            },
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Abbrechen'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState?.validate() ?? false) {
-                  Navigator.pop(dialogContext, {
-                    'name': subjectController.text.trim(),
-                    'syncAcrossYears': syncAcrossYears,
-                  });
-                }
-              },
-              child: Text('Erstellen'),
-            ),
-          ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('Abbrechen'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                Navigator.pop(dialogContext, subjectController.text.trim());
+              }
+            },
+            child: Text('Erstellen'),
+          ),
+        ],
       ),
     ).then((result) async {
-      if (result != null && result is Map) {
-        final String subjectName = result['name'] as String;
-        final bool syncAcrossYearsValue = result['syncAcrossYears'] as bool;
-
+      if (result != null) {
         final messenger = ScaffoldMessenger.of(context);
         setState(() {
-          _subjects.add(Subject(name: subjectName, syncAcrossYears: syncAcrossYearsValue));
+          _subjects.add(Subject(name: result));
           _subjects.sort((a, b) => a.name.compareTo(b.name));
-          _expandedSubjects[subjectName] = true;
+          _expandedSubjects[result] = true;
         });
         await _saveGrades();
         if (mounted) {
           messenger.showSnackBar(
-            SnackBar(content: Text('Fach "$subjectName" wurde erstellt')),
+            SnackBar(content: Text('Fach "$result" wurde erstellt')),
           );
         }
       }
@@ -1616,7 +1555,7 @@ class _GradesPageState extends State<GradesPage> {
 
     if (shouldDelete == true) {
       setState(() {
-        _grades.removeWhere((g) => g.subject == subject && g.yearId == _selectedYearId);
+        _grades.removeWhere((g) => g.subject == subject);
         _subjects.removeWhere((subj) => subj.name == subject);
       });
       await _saveGrades();
@@ -1701,7 +1640,7 @@ class _GradesPageState extends State<GradesPage> {
                                   _grades.add(grade);
                                   final subjectExists = _subjects.any((subject) => subject.name == grade.subject);
                                   if (!subjectExists) {
-                                    _subjects.add(Subject(name: grade.subject, syncAcrossYears: true));
+                                    _subjects.add(Subject(name: grade.subject));
                                     _subjects.sort((a, b) => a.name.compareTo(b.name));
                                     // Expand the subject immediately when a grade is added
                                     _expandedSubjects[grade.subject] = true;
@@ -1984,7 +1923,7 @@ class _GradesPageState extends State<GradesPage> {
                           date: selectedDate,
                           note: noteController.text,
                           gradeString: selectedGrade,
-                          yearId: gradeToEdit.yearId,
+                          yearId: null,
                         );
 
                         // Update the grade in the list
@@ -2096,113 +2035,83 @@ class _GradesPageState extends State<GradesPage> {
     final subjectController = TextEditingController(text: subjectToEdit);
     final formKey = GlobalKey<FormState>();
 
-    // Find the current subject to get its sync setting
-    final currentSubject = _subjects.firstWhere((subject) => subject.name == subjectToEdit);
-    bool syncAcrossYears = currentSubject.syncAcrossYears;
-
-    showDialog<Map<String, dynamic>>(
+    showDialog<String>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text('Fach bearbeiten'),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: subjectController,
-                  decoration: InputDecoration(
-                    labelText: 'Fachname',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Bitte gib einen Fachnamen ein';
-                    }
-                    final subjectExists = _subjects.any((subject) =>
-                        subject.name == value.trim() && subject.name != subjectToEdit);
-                    if (subjectExists) {
-                      return 'Dieses Fach existiert bereits';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-                SwitchListTile(
-                  title: Text('Über Jahre synchronisieren'),
-                  subtitle: Text('Fach in allen Jahren verfügbar machen'),
-                  value: syncAcrossYears,
-                  onChanged: (value) {
-                    setState(() {
-                      syncAcrossYears = value;
-                    });
-                  },
-                ),
-              ],
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Fach bearbeiten'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: subjectController,
+            decoration: InputDecoration(
+              labelText: 'Fachname',
+              border: OutlineInputBorder(),
             ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Bitte gib einen Fachnamen ein';
+              }
+              final subjectExists = _subjects.any((subject) =>
+                  subject.name == value.trim() && subject.name != subjectToEdit);
+              if (subjectExists) {
+                return 'Dieses Fach existiert bereits';
+              }
+              return null;
+            },
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Abbrechen'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState?.validate() ?? false) {
-                  Navigator.pop(dialogContext, {
-                    'name': subjectController.text.trim(),
-                    'syncAcrossYears': syncAcrossYears,
-                  });
-                }
-              },
-              child: Text('Speichern'),
-            ),
-          ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('Abbrechen'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                Navigator.pop(dialogContext, subjectController.text.trim());
+              }
+            },
+            child: Text('Speichern'),
+          ),
+        ],
       ),
     ).then((result) async {
-      if (result != null && result is Map<String, dynamic>) {
-        final String newSubjectName = result['name'] as String;
-        final bool syncAcrossYears = result['syncAcrossYears'] as bool;
-
-        if (newSubjectName != subjectToEdit || syncAcrossYears != currentSubject.syncAcrossYears) {
-          final messenger = ScaffoldMessenger.of(context);
-          setState(() {
-            // Update all grades with the old subject name
-            for (var i = 0; i < _grades.length; i++) {
-              if (_grades[i].subject == subjectToEdit) {
-                _grades[i] = Grade(
-                  subject: newSubjectName,
-                  grade: _grades[i].grade,
-                  weight: _grades[i].weight,
-                  date: _grades[i].date,
-                  note: _grades[i].note,
-                  gradeString: _grades[i].gradeString,
-                  yearId: _grades[i].yearId,
-                );
-              }
+      if (result != null && result != subjectToEdit) {
+        final messenger = ScaffoldMessenger.of(context);
+        setState(() {
+          // Update all grades with the old subject name
+          for (var i = 0; i < _grades.length; i++) {
+            if (_grades[i].subject == subjectToEdit) {
+              _grades[i] = Grade(
+                subject: result,
+                grade: _grades[i].grade,
+                weight: _grades[i].weight,
+                date: _grades[i].date,
+                note: _grades[i].note,
+                gradeString: _grades[i].gradeString,
+                yearId: _grades[i].yearId,
+              );
             }
-
-            // Update the subject list
-            final subjectIndex = _subjects.indexWhere((subject) => subject.name == subjectToEdit);
-            if (subjectIndex != -1) {
-              _subjects[subjectIndex] = Subject(name: newSubjectName, syncAcrossYears: syncAcrossYears);
-              _subjects.sort((a, b) => a.name.compareTo(b.name));
-            }
-
-            // Update the expanded subjects map
-            _expandedSubjects[newSubjectName] =
-                _expandedSubjects[subjectToEdit] ?? false;
-            _expandedSubjects.remove(subjectToEdit);
-          });
-          await _saveGrades();
-          if (mounted) {
-            messenger.showSnackBar(
-              SnackBar(
-                  content: Text('Fach "$newSubjectName" wurde aktualisiert')),
-            );
           }
+
+          // Update the subject list
+          final subjectIndex = _subjects.indexWhere((subject) => subject.name == subjectToEdit);
+          if (subjectIndex != -1) {
+            _subjects[subjectIndex] = Subject(name: result);
+            _subjects.sort((a, b) => a.name.compareTo(b.name));
+          }
+
+          // Update the expanded subjects map
+          _expandedSubjects[result] =
+              _expandedSubjects[subjectToEdit] ?? false;
+          _expandedSubjects.remove(subjectToEdit);
+        });
+        await _saveGrades();
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(
+                content: Text('Fach "$result" wurde aktualisiert')),
+          );
         }
       }
       subjectController.dispose();
@@ -2363,7 +2272,7 @@ class _GradesPageState extends State<GradesPage> {
                           subject: selectedSubject!,
                           grade: _parseGermanGrade(selectedGrade!),
                           gradeString: selectedGrade,
-                          yearId: _selectedYearId!,
+                          yearId: '',
                           termId: selectedTerm!,
                         );
 
