@@ -770,6 +770,11 @@ class _GradesPageState extends State<GradesPage> {
     return Card(
       margin: const EdgeInsets.only(bottom: 8.0),
       child: InkWell(
+        onTap: () {
+          setState(() {
+            _expandedSubjects[subject] = !isExpanded;
+          });
+        },
         onLongPress: () => _confirmDeleteSubject(subject),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -779,29 +784,22 @@ class _GradesPageState extends State<GradesPage> {
               Row(
                 children: [
                   Expanded(
-                    child: InkWell(
-                      onTap: () {
-                        setState(() {
-                          _expandedSubjects[subject] = !isExpanded;
-                        });
-                      },
-                      child: Row(
-                        children: [
-                          Icon(
-                            isExpanded ? Icons.expand_less : Icons.expand_more,
-                            color: colorScheme.primary,
+                    child: Row(
+                      children: [
+                        Icon(
+                          isExpanded ? Icons.expand_less : Icons.expand_more,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            subject,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              subject,
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                   if (grades.isNotEmpty && isExpanded) _buildAverageChip(average, colorScheme),
