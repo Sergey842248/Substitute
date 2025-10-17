@@ -100,10 +100,32 @@ class _GradesPageState extends State<GradesPage> {
     return '6';
   }
 
+  bool _usePointsSystem = false;
+  double _maxPoints = 100.0;
+  final TextEditingController _gradeController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
+    _loadSettings();
     _loadGrades();
+  }
+
+  @override
+  void dispose() {
+    _gradeController.dispose();
+    _subjectController.dispose();
+    _weightController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _usePointsSystem = prefs.getBool('use_points_system') ?? false;
+      _maxPoints = double.tryParse(prefs.getString('max_points') ?? '100') ?? 100.0;
+    });
   }
 
   Future<void> _loadGrades() async {
@@ -125,10 +147,14 @@ class _GradesPageState extends State<GradesPage> {
   }
 
   Future<void> _addGrade() async {
-    if ((_formKey.currentState?.validate() ?? false) && _selectedGrade != null) {
+    if ((_formKey.currentState?.validate() ?? false) && 
+        (_selectedGrade != null || _gradeController.text.isNotEmpty)) {
+      
       final grade = Grade(
         subject: _selectedSubject.isEmpty ? _subjectController.text : _selectedSubject,
-        grade: _parseGermanGrade(_selectedGrade!),
+        grade: _usePointsSystem 
+            ? double.parse(_gradeController.text.replaceAll(',', '.')) 
+            : _parseGermanGrade(_selectedGrade!),
         weight: double.tryParse(_weightController.text.replaceAll(',', '.')) ?? 1.0,
         date: _selectedDate,
         note: _noteController.text,
@@ -172,11 +198,60 @@ class _GradesPageState extends State<GradesPage> {
     }
   }
 
+  Widget _buildGradeInput() {
+    if (_usePointsSystem) {
+      return TextFormField(
+        controller: _gradeController,
+        decoration: InputDecoration(
+          labelText: 'Points',
+          border: OutlineInputBorder(),
+          suffixText: 'max $_maxPoints',
+        ),
+        keyboardType: TextInputType.numberWithOptions(decimal: true),
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Please enter points';
+          }
+          final points = double.tryParse(value.replaceAll(',', '.'));
+          if (points == null || points < 0 || points > _maxPoints) {
+            return 'Please enter points between 0 and $_maxPoints';
+          }
+          return null;
+        },
+      );
+    } else {
+      return DropdownButtonFormField<String>(
+        value: _selectedGrade,
+        decoration: InputDecoration(
+          labelText: 'Grade',
+          border: OutlineInputBorder(),
+        ),
+        items: _germanGrades.map((grade) {
+          return DropdownMenuItem(
+            value: grade,
+            child: Text(grade),
+          );
+        }).toList(),
+        onChanged: (value) {
+          setState(() {
+            _selectedGrade = value;
+          });
+        },
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Please select a grade';
+          }
+          return null;
+        },
+      );
+    }
+  }
+
   void _showAddGradeDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Note hinzufügen'),
+        title: Text('Add Grade'),
         content: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -187,7 +262,7 @@ class _GradesPageState extends State<GradesPage> {
                   DropdownButtonFormField<String>(
                     value: _selectedSubject.isEmpty ? null : _selectedSubject,
                     decoration: InputDecoration(
-                      labelText: 'Fach',
+                      labelText: 'Subject',
                       border: OutlineInputBorder(),
                     ),
                     items: _subjects
@@ -203,54 +278,31 @@ class _GradesPageState extends State<GradesPage> {
                     },
                     validator: (value) {
                       if ((value == null || value.isEmpty) && _subjectController.text.isEmpty) {
-                        return 'Bitte wähle ein Fach aus oder gib ein neues ein';
+                        return 'Please select or enter a subject';
                       }
                       return null;
                     },
                   ),
                   SizedBox(height: 16),
-                  Text('ODER', textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).hintColor)),
+                  Text('OR', textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).hintColor)),
                   SizedBox(height: 16),
                 ],
                 TextFormField(
                   controller: _subjectController,
                   decoration: InputDecoration(
-                    labelText: 'Neues Fach',
+                    labelText: 'New Subject',
                     border: OutlineInputBorder(),
                   ),
                   enabled: _selectedSubject.isEmpty,
                   validator: (value) {
                     if ((value == null || value.isEmpty) && _selectedSubject.isEmpty) {
-                      return 'Bitte gib ein Fach ein';
+                      return 'Please enter a subject';
                     }
                     return null;
                   },
                 ),
                 SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: _selectedGrade,
-                  decoration: InputDecoration(
-                    labelText: 'Note',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: _germanGrades.map((grade) {
-                    return DropdownMenuItem(
-                      value: grade,
-                      child: Text(grade),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedGrade = value;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Bitte wähle eine Note aus';
-                    }
-                    return null;
-                  },
-                ),
+                _buildGradeInput(),
                 SizedBox(height: 16),
                 TextFormField(
                   controller: _weightController,
@@ -476,7 +528,9 @@ class _GradesPageState extends State<GradesPage> {
 
   Widget _buildGradeTile(Grade grade, ColorScheme colorScheme) {
     final theme = Theme.of(context);
-    final germanGrade = _formatGermanGrade(grade.grade);
+    final displayGrade = _usePointsSystem 
+        ? '${grade.grade.toStringAsFixed(1)}/${_maxPoints.toStringAsFixed(0)}'
+        : _formatGermanGrade(grade.grade);
     
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -489,7 +543,7 @@ class _GradesPageState extends State<GradesPage> {
           shape: BoxShape.circle,
         ),
         child: Text(
-          germanGrade,
+          displayGrade,
           style: theme.textTheme.titleMedium?.copyWith(
             color: _getGradeColor(grade.grade, colorScheme),
             fontWeight: FontWeight.bold,
@@ -497,7 +551,7 @@ class _GradesPageState extends State<GradesPage> {
         ),
       ),
       title: Text(
-        'Gewicht: ${grade.weight}x',
+        'Weight: ${grade.weight}x',
         style: theme.textTheme.bodyMedium,
       ),
       subtitle: Text(
