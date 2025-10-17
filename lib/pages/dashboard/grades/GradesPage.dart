@@ -604,11 +604,11 @@ class _GradesPageState extends State<GradesPage> {
 
   Color _getGradeColor(double grade, ColorScheme colorScheme) {
     if (_usePointsSystem) {
-      // Invert the logic for points system - higher is better
-      final normalizedGrade = (grade / _maxPoints) * 6.0; // Convert to 1-6 scale
-      if (normalizedGrade <= 2.0) return Colors.green;
-      if (normalizedGrade <= 3.0) return Colors.orange;
-      return colorScheme.error;
+      // For points system, higher is better
+      final percentage = (grade / _maxPoints) * 100;
+      if (percentage >= 80) return Colors.green; // 80-100% = green
+      if (percentage >= 50) return Colors.orange; // 50-79% = orange
+      return colorScheme.error; // 0-49% = red
     } else {
       // Standard grade system - lower is better
       if (grade <= 2.0) return Colors.green;
