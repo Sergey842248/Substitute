@@ -650,13 +650,15 @@ class _GradesPageState extends State<GradesPage> {
                           final subjectGrades = _grades.where((g) => g.subject == subject).toList();
                           final average = subjectGrades.isNotEmpty ? _calculateAverage(subject) : 0.0;
                           
-                          return _buildSubjectCard(
-                            context,
-                            subject: subject,
-                            average: average,
-                            grades: subjectGrades,
-                            colorScheme: colorScheme,
-                          );
+          return _buildSubjectCard(
+            context,
+            subject: subject,
+            average: average,
+            grades: subjectGrades,
+            colorScheme: colorScheme,
+            onEditGrade: _showEditGradeDialog,
+            onEditSubject: _showEditSubjectDialog,
+          );
                         },
                         childCount: _subjects.length,
                       ),
@@ -764,6 +766,8 @@ class _GradesPageState extends State<GradesPage> {
     required double average,
     required List<Grade> grades,
     required ColorScheme colorScheme,
+    required Function(String) onEditSubject,
+    required Function(Grade) onEditGrade,
   }) {
     final isExpanded = _expandedSubjects[subject] ?? true;
 
@@ -775,7 +779,7 @@ class _GradesPageState extends State<GradesPage> {
             _expandedSubjects[subject] = !isExpanded;
           });
         },
-        onLongPress: () => _confirmDeleteSubject(subject),
+        onLongPress: () => _showSubjectOptionsDialog(subject),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -846,7 +850,10 @@ class _GradesPageState extends State<GradesPage> {
                     ),
                   )
                 else
-                  ...grades.map((grade) => _buildGradeTile(grade, colorScheme)),
+                  ...grades.map((grade) => GestureDetector(
+                    onLongPress: () => _showGradeOptionsDialog(grade),
+                    child: _buildGradeTile(grade, colorScheme),
+                  )),
               ],
             ],
           ),
@@ -955,12 +962,342 @@ class _GradesPageState extends State<GradesPage> {
         _grades.remove(grade);
       });
       await _saveGrades();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Note wurde gelöscht')),
         );
       }
     }
+  }
+
+  void _showEditGradeDialog(Grade gradeToEdit) {
+    // Initialize form fields with existing grade data
+    final subjectController = TextEditingController(text: gradeToEdit.subject);
+    final weightController = TextEditingController(text: gradeToEdit.weight.toString());
+    final noteController = TextEditingController(text: gradeToEdit.note);
+    var selectedDate = gradeToEdit.date;
+    String? selectedGrade = _formatGermanGrade(gradeToEdit.grade);
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Note bearbeiten'),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      DropdownButtonFormField<String>(
+                        value: selectedGrade,
+                        decoration: InputDecoration(
+                          labelText: 'Note',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _germanGrades.map((grade) {
+                          return DropdownMenuItem(
+                            value: grade,
+                            child: Text(grade),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedGrade = value;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Bitte wähle eine Note aus';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 16),
+
+                      // Weight Input
+                      TextFormField(
+                        controller: weightController,
+                        decoration: InputDecoration(
+                          labelText: 'Gewichtung',
+                          border: OutlineInputBorder(),
+                          hintText: '1.0',
+                        ),
+                        keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return null;
+                          final weight = double.tryParse(value.replaceAll(',', '.'));
+                          if (weight == null || weight <= 0) {
+                            return 'Bitte eine gültige Gewichtung eingeben';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 16),
+
+                      // Date Picker
+                      InkWell(
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (date != null) {
+                            setState(() {
+                              selectedDate = date;
+                            });
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: 'Datum',
+                            border: OutlineInputBorder(),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${selectedDate.day}.${selectedDate.month}.${selectedDate.year}',
+                              ),
+                              Icon(Icons.calendar_today),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 16),
+
+                      // Note Input
+                      TextFormField(
+                        controller: noteController,
+                        decoration: InputDecoration(
+                          labelText: 'Notiz (optional)',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 3,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('ABBRECHEN'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (formKey.currentState?.validate() ?? false) {
+                      if (selectedGrade == null) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Bitte eine Note auswählen')),
+                          );
+                        }
+                        return;
+                      }
+
+                      try {
+                        final editedGrade = Grade(
+                          subject: gradeToEdit.subject,
+                          grade: _parseGermanGrade(selectedGrade!),
+                          weight: double.tryParse(weightController.text.replaceAll(',', '.')) ?? gradeToEdit.weight,
+                          date: selectedDate,
+                          note: noteController.text,
+                        );
+
+                        // Update the grade in the list
+                        final index = _grades.indexOf(gradeToEdit);
+                        if (index != -1) {
+                          setState(() {
+                            _grades[index] = editedGrade;
+                          });
+                          await _saveGrades();
+                        }
+
+                        if (mounted) {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Note wurde aktualisiert'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Fehler beim Speichern: $e'),
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                      }
+                    }
+                  },
+                  child: const Text('SPEICHERN'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    ).then((_) {
+      // Dispose controllers after dialog closes
+      subjectController.dispose();
+      weightController.dispose();
+      noteController.dispose();
+    });
+  }
+
+  void _showSubjectOptionsDialog(String subject) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.edit),
+                title: Text('Fach bearbeiten'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showEditSubjectDialog(subject);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.delete, color: Colors.red),
+                title: Text('Fach löschen', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmDeleteSubject(subject);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showGradeOptionsDialog(Grade grade) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.edit),
+                title: Text('Note bearbeiten'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showEditGradeDialog(grade);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.delete, color: Colors.red),
+                title: Text('Note löschen', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmDeleteGrade(grade);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showEditSubjectDialog(String subjectToEdit) {
+    final subjectController = TextEditingController(text: subjectToEdit);
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Fach bearbeiten'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: subjectController,
+            decoration: InputDecoration(
+              labelText: 'Fachname',
+              border: OutlineInputBorder(),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Bitte gib einen Fachnamen ein';
+              }
+              if (value.trim() != subjectToEdit && _subjects.contains(value.trim())) {
+                return 'Dieses Fach existiert bereits';
+              }
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Abbrechen'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                final newSubjectName = subjectController.text.trim();
+                if (newSubjectName != subjectToEdit) {
+                  setState(() {
+                    // Update all grades with the old subject name
+                    for (var i = 0; i < _grades.length; i++) {
+                      if (_grades[i].subject == subjectToEdit) {
+                        _grades[i] = Grade(
+                          subject: newSubjectName,
+                          grade: _grades[i].grade,
+                          weight: _grades[i].weight,
+                          date: _grades[i].date,
+                          note: _grades[i].note,
+                        );
+                      }
+                    }
+                    // Update the subject list
+                    final subjectIndex = _subjects.indexOf(subjectToEdit);
+                    if (subjectIndex != -1) {
+                      _subjects[subjectIndex] = newSubjectName;
+                      _subjects.sort();
+                    }
+                    // Update the expanded subjects map
+                    _expandedSubjects[newSubjectName] = _expandedSubjects[subjectToEdit] ?? false;
+                    _expandedSubjects.remove(subjectToEdit);
+                  });
+                  _saveGrades();
+                }
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Fach "$newSubjectName" wurde aktualisiert')),
+                );
+              }
+            },
+            child: Text('Speichern'),
+          ),
+        ],
+      ),
+    ).then((_) {
+      // Dispose controller after dialog closes
+      subjectController.dispose();
+    });
   }
 }
