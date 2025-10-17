@@ -489,6 +489,40 @@ class _GradesPageState extends State<GradesPage> {
     );
   }
 
+  Future<void> _confirmDeleteSubject(String subject) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Fach löschen'),
+        content: Text('Möchtest du wirklich alle Noten für "$subject" löschen?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Abbrechen'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Löschen', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      setState(() {
+        _grades.removeWhere((g) => g.subject == subject);
+        _subjects.remove(subject);
+      });
+      await _saveGrades();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Alle Noten für $subject wurden gelöscht')),
+        );
+      }
+    }
+  }
+
   Widget _buildSubjectCard(
     BuildContext context, {
     required String subject,
@@ -498,29 +532,32 @@ class _GradesPageState extends State<GradesPage> {
   }) {
     final theme = Theme.of(context);
     
-    return Card(
-      child: Theme(
-        data: theme.copyWith(
-          dividerColor: Colors.transparent,
-        ),
-        child: ExpansionTile(
-          title: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  subject,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+    return GestureDetector(
+      onLongPress: () => _confirmDeleteSubject(subject),
+      child: Card(
+        child: Theme(
+          data: theme.copyWith(
+            dividerColor: Colors.transparent,
+          ),
+          child: ExpansionTile(
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    subject,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-              _buildAverageChip(average, colorScheme),
+                _buildAverageChip(average, colorScheme),
+              ],
+            ),
+            children: [
+              Divider(height: 1, indent: 16, endIndent: 16),
+              ...grades.map((grade) => _buildGradeTile(grade, colorScheme)),
             ],
           ),
-          children: [
-            Divider(height: 1, indent: 16, endIndent: 16),
-            ...grades.map((grade) => _buildGradeTile(grade, colorScheme)),
-          ],
         ),
       ),
     );
@@ -566,9 +603,18 @@ class _GradesPageState extends State<GradesPage> {
   }
 
   Color _getGradeColor(double grade, ColorScheme colorScheme) {
-    if (grade <= 2.0) return Colors.green;
-    if (grade <= 3.0) return Colors.orange;
-    return colorScheme.error;
+    if (_usePointsSystem) {
+      // Invert the logic for points system - higher is better
+      final normalizedGrade = (grade / _maxPoints) * 6.0; // Convert to 1-6 scale
+      if (normalizedGrade <= 2.0) return Colors.green;
+      if (normalizedGrade <= 3.0) return Colors.orange;
+      return colorScheme.error;
+    } else {
+      // Standard grade system - lower is better
+      if (grade <= 2.0) return Colors.green;
+      if (grade <= 3.0) return Colors.orange;
+      return colorScheme.error;
+    }
   }
 
   Widget _buildAverageChip(double average, ColorScheme colorScheme) {
