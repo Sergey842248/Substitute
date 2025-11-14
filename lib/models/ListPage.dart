@@ -46,7 +46,7 @@ class _ListPageState extends State<ListPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (topHeight == -10) topHeight = MediaQuery.of(context).size.height * 0.23;
+    if (topHeight == -10) topHeight = MediaQuery.of(context).size.height * 0.1;
     widget.actions ??= [];
     widget.animate ??= false;
     widget.smallTitle ??= false;
