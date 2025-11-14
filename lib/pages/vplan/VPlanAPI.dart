@@ -596,29 +596,58 @@ class VPlanAPI {
   }
 
   Future<List<String>> getTeachers() async {
-    List<String> teachers = [];
-    dynamic data = (await getVPlanJSON(
-      Uri.parse(
-        await getDayURL(),
-      ),
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    // Get teachers from the courses data (all teachers who teach any course)
+    List<String> allTeachers = [];
+    dynamic vplanData = await getVPlanJSON(
+      Uri.parse(await getDayURL()),
       DateTime.now(),
-    ))['data'];
-    for (int i = 0; i < data['Klassen']['Kl'].length; i++) {
-      var currentClass = data['Klassen']['Kl'][i];
-      for (int j = 0; j < currentClass['Pl']['Std'].length; j++) {
-        var currentLesson = currentClass['Pl']['Std'][j];
-        if (currentLesson['Le'] != null) {
-          bool add = true;
-          for (int j = 0; j < teachers.length; j++) {
-            if (teachers[j] == currentLesson['Le']) {
-              add = false;
-            }
-          }
-          if (add) teachers.add(currentLesson['Le']);
+    );
+
+    if (vplanData != null && vplanData['courses'] != null) {
+      List<dynamic> courses = vplanData['courses'];
+      for (int i = 0; i < courses.length; i++) {
+        String teacher = courses[i]['teacher'];
+        if (teacher != null && teacher.isNotEmpty && !allTeachers.contains(teacher)) {
+          allTeachers.add(teacher);
         }
       }
     }
-    return teachers;
+
+    // Sort the teachers alphabetically
+    allTeachers.sort();
+
+    // Check if we have stored teacher data
+    if (prefs.getString('teacherShorts') != null &&
+        prefs.getString('teacherShorts') != '') {
+      List<dynamic> storedTeachers = jsonDecode(prefs.getString('teacherShorts')!);
+      List<String> storedShorts = storedTeachers.map((teacher) => teacher['short'] as String).toList();
+
+      // Add any new teachers from courses to stored data
+      bool hasNewTeachers = false;
+      for (String teacher in allTeachers) {
+        if (!storedShorts.contains(teacher)) {
+          storedTeachers.add({'short': teacher, 'realName': ''});
+          hasNewTeachers = true;
+        }
+      }
+
+      // Save updated list if new teachers were added
+      if (hasNewTeachers) {
+        prefs.setString('teacherShorts', jsonEncode(storedTeachers));
+      }
+
+      return storedTeachers.map((teacher) => teacher['short'] as String).toList();
+    } else {
+      // No stored data exists, store all teachers from courses
+      List<dynamic> newStoredTeachers = [];
+      for (String teacher in allTeachers) {
+        newStoredTeachers.add({'short': teacher, 'realName': ''});
+      }
+      prefs.setString('teacherShorts', jsonEncode(newStoredTeachers));
+      return allTeachers;
+    }
   }
 
   Future<String?> replaceTeacherShort(String? teacherShort) async {
