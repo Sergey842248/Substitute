@@ -51,6 +51,7 @@ class _TeacherShortsState extends State<TeacherShorts> {
         'currently_added': false,
       });
     }
+    teachers.sort((a, b) => a['short'].compareTo(b['short']));
     setState(() {});
   }
 
