@@ -218,7 +218,7 @@ class ScanPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: ListPage(
-        title: 'Share teacher name',
+        title: AppLocalizations.of(context)!.ShareTeacherName,
         children: [
           Container(
             color: Colors.white,

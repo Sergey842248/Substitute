@@ -177,5 +177,6 @@
     "interv": "Intervall",
     "minutes": "Minuten",
     "hours": "Stunden",
-    "onlyRemOnChange": "Nur bei Änderung benachrichtigen"
+    "onlyRemOnChange": "Nur bei Änderung benachrichtigen",
+    "ShareTeacherName": "Lehrernamen teilen"
 }
