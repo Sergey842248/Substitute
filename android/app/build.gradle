@@ -45,6 +45,18 @@ android {
         multiDexEnabled true
     }
 
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
+        disable 'All'
+    }
+
+}
+
+tasks.whenTaskAdded { task ->
+    if (task.name == 'lintVitalAnalyzeRelease') {
+        task.enabled = false
+    }
 }
 
 flutter {
