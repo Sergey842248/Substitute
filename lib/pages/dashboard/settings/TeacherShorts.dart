@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -63,7 +64,7 @@ class _TeacherShortsState extends State<TeacherShorts> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: ListPage(
-        title: 'Teacher names',
+        title: AppLocalizations.of(context)!.setTeacherAbbreviations,
         /*actions: [
           IconButton(
             onPressed: () async {
@@ -144,7 +145,7 @@ class _TeacherShortsState extends State<TeacherShorts> {
                     width: MediaQuery.of(context).size.width * 0.6,
                     child: InputField(
                       controller: e['controller'],
-                      labelText: 'Real name',
+                      labelText: AppLocalizations.of(context)!.realName,
                     ),
                   ),
                   Container(
@@ -184,7 +185,7 @@ class _TeacherShortsState extends State<TeacherShorts> {
                         ),
                         child: Center(
                           child: Text(
-                            e['currently_added'] ? 'Saved' : 'Save',
+                            e['currently_added'] ? AppLocalizations.of(context)!.saved : AppLocalizations.of(context)!.save,
                             style: TextStyle(
                               fontWeight: FontWeight.w500,
                               fontSize: 14,

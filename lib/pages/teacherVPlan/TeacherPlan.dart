@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../vplan/VPlanAPI.dart';
 import '../../models/ListItem.dart';
@@ -137,7 +138,7 @@ class _TeacherPlanState extends State<TeacherPlan> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: ListPage(
-        title: 'classes from $teacherName - $displayDate',
+        title: AppLocalizations.of(context)!.classesFromTeacher(teacherName, displayDate),
         smallTitle: true,
         children: res.length == 0
             ? [

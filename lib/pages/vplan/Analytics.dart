@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lottie/lottie.dart';
 
@@ -30,12 +31,12 @@ class _AnalyticsState extends State<Analytics> {
               Lottie.asset('assets/animations/nodata.json', height: 120),
               SizedBox(height: 20),
               Text(
-                'No favorite classes found.',
+                AppLocalizations.of(context)!.noFavoriteClassesFound,
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16),
               ),
               Text(
-                'Please add a class to your favorites to see the analysis.',
+                AppLocalizations.of(context)!.addClassToFavoritesForAnalysis,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey),
               ),
@@ -52,7 +53,7 @@ class _AnalyticsState extends State<Analytics> {
 
     if (vplanData['error'] != null) {
       setState(() {
-        content = Center(child: Text('Could not load VPlan data.'));
+        content = Center(child: Text(AppLocalizations.of(context)!.couldNotLoadVPlanData));
       });
       return;
     }
@@ -73,7 +74,7 @@ class _AnalyticsState extends State<Analytics> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Analysis'),
+        title: Text(AppLocalizations.of(context)!.analysis),
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         foregroundColor: Theme.of(context).focusColor,
@@ -93,7 +94,7 @@ class Analysis {
 
   Future<Widget> analyseDay(_data, context) async {
     if (_data == null || _data.isEmpty) {
-      return Center(child: Text('No data for analysis available.'));
+      return Center(child: Text(AppLocalizations.of(context)!.noDataForAnalysisAvailable));
     }
 
     List<dynamic> teachers = [];
@@ -137,7 +138,7 @@ class Analysis {
             padding: 15,
             color: Theme.of(context).backgroundColor,
             title: Text(
-              'Teacher: ${e['name']}',
+              AppLocalizations.of(context)!.teacherLabel(e['name']),
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             subtitle: Column(
@@ -148,7 +149,11 @@ class Analysis {
                   (lesson) => Padding(
                     padding: const EdgeInsets.only(bottom: 4.0),
                     child: Text(
-                        '${lesson['count']}. Hour: ${lesson['lesson']} in Room: ${lesson['place']}'),
+                        AppLocalizations.of(context)!.lessonDetails(
+                          lesson['count'].toString(),
+                          lesson['lesson'],
+                          lesson['place'],
+                        )),
                   ),
                 ),
               ],

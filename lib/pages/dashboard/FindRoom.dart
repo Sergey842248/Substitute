@@ -38,7 +38,7 @@ class _FindRoomState extends State<FindRoom> {
     if (mounted) {
       setState(() {
         data = [];
-        loadText = 'Loading data...';
+        loadText = AppLocalizations.of(context)!.loadingData;
       });
     }
 
@@ -69,9 +69,9 @@ class _FindRoomState extends State<FindRoom> {
         : DateTime.now().add(const Duration(days: 1));
     Uri url = Uri.parse(await vplanAPI.getURL(dateToFetch));
 
-    if (mounted) setState(() => loadText = 'Loading substitution plan...');
+    if (mounted) setState(() => loadText = AppLocalizations.of(context)!.loadingSubstitutionPlan);
     dynamic _vplanData = await vplanAPI.getVPlanJSON(url, dateToFetch);
-    if (mounted) setState(() => loadText = 'Substitution plan loaded');
+    if (mounted) setState(() => loadText = AppLocalizations.of(context)!.substitutionPlanLoaded);
 
     if (_vplanData == null ||
         _vplanData.isEmpty ||
@@ -81,8 +81,8 @@ class _FindRoomState extends State<FindRoom> {
       if (mounted) {
         setState(() {
           loadText = _selectedDay == 0
-              ? 'No Substitution plan available for today.'
-              : 'No Substitution plan available for tomorrow.';
+              ? AppLocalizations.of(context)!.noSubstitutionPlanToday
+              : AppLocalizations.of(context)!.noSubstitutionPlanTomorrow;
         });
       }
       return;
@@ -119,7 +119,7 @@ class _FindRoomState extends State<FindRoom> {
         _vplanData['data']['Klassen'] != null &&
         _vplanData['data']['Klassen']['Kl'] != null) {
       // Only check for currently used rooms for today
-      if (mounted) setState(() => loadText = 'Browsing plan...');
+      if (mounted) setState(() => loadText = AppLocalizations.of(context)!.browsingPlan);
       totalSteps = _vplanData['data']['Klassen']['Kl'].length;
       process = 0;
 
@@ -164,7 +164,7 @@ class _FindRoomState extends State<FindRoom> {
       usedRooms.sort();
     }
 
-    if (mounted) setState(() => loadText = 'Analysing Rooms...');
+    if (mounted) setState(() => loadText = AppLocalizations.of(context)!.analysingRooms);
     totalSteps = rooms.length;
     process = 0;
     List<dynamic> allRooms = [];
@@ -172,7 +172,7 @@ class _FindRoomState extends State<FindRoom> {
       if (mounted) {
         setState(() {
           process++;
-          loadText = 'Check room ${rooms[i]}...';
+          loadText = AppLocalizations.of(context)!.checkRoom(rooms[i].toString());
         });
       }
 
@@ -276,8 +276,8 @@ class _FindRoomState extends State<FindRoom> {
                   children: [
                     Text(
                       roomData.isNotEmpty
-                          ? 'Lessons in this room'
-                          : 'Today no lessons in this room',
+                          ? AppLocalizations.of(context)!.lessonsInThisRoom
+                          : AppLocalizations.of(context)!.todayNoLessonsInThisRoom,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
@@ -402,7 +402,7 @@ class _FindRoomState extends State<FindRoom> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              title: const Text('Choose time and day'),
+              title: Text(AppLocalizations.of(context)!.chooseTimeAndDay),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -415,14 +415,14 @@ class _FindRoomState extends State<FindRoom> {
                           _selectedDay = index;
                         });
                       },
-                      children: const [
+                      children: [
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Text('Today'),
+                          child: Text(AppLocalizations.of(context)!.today),
                         ),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Text('Tomorrow'),
+                          child: Text(AppLocalizations.of(context)!.tomorrow),
                         ),
                       ],
                     ),
@@ -449,11 +449,11 @@ class _FindRoomState extends State<FindRoom> {
               ),
               actions: [
                 TextButton(
-                  child: const Text('Cancel'),
+                  child: Text(AppLocalizations.of(context)!.cancel),
                   onPressed: () => Navigator.of(context).pop(null),
                 ),
                 TextButton(
-                  child: const Text('OK'),
+                  child: Text(AppLocalizations.of(context)!.ok),
                   onPressed: () => Navigator.of(context).pop(initTime),
                 ),
               ],
@@ -506,8 +506,8 @@ class _FindRoomState extends State<FindRoom> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 5),
-              const Text(
-                'This process can take a few seconds!',
+              Text(
+                AppLocalizations.of(context)!.processCanTakeSeconds,
                 style: TextStyle(fontSize: 11),
               ),
               const SizedBox(height: 15),
@@ -523,7 +523,7 @@ class _FindRoomState extends State<FindRoom> {
               ? SizedBox(
             width: 100,
             height: 200,
-            child: Text('loading...'),
+            child: Text(AppLocalizations.of(context)!.loading),
           )
               : GridView.count(
             crossAxisCount: 3,

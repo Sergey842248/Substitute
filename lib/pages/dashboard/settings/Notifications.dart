@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../models/ListItem.dart';
 import '../../../models/ListPage.dart';
@@ -148,11 +149,11 @@ class _NotificationsState extends State<Notifications> {
     return Scaffold(
       body: SafeArea(
         child: ListPage(
-          title: 'Notifications',
+          title: AppLocalizations.of(context)!.settingsNotifications,
           children: [
-            heading('General'),
+            heading(AppLocalizations.of(context)!.general),
             ListItem(
-              title: Text('Load Substitution plan automatically'),
+              title: Text(AppLocalizations.of(context)!.loadPlanAuto),
               onClick: () => changeAutomaticLoad(),
               actionButton: Switch.adaptive(
                 value: _automaticLoad,
@@ -162,7 +163,7 @@ class _NotificationsState extends State<Notifications> {
             ),
             ListItem(
               title: Text(
-                'Smart Notifications',
+                AppLocalizations.of(context)!.smartNotifs,
                 style: TextStyle(
                   color: !_automaticLoad ? Colors.grey.shade500 : null,
                 ),
@@ -177,7 +178,7 @@ class _NotificationsState extends State<Notifications> {
             ),
             ListItem(
               title: Text(
-                'Preferred Classes',
+                AppLocalizations.of(context)!.prefClasses,
                 style: TextStyle(
                   color: !_automaticLoad ? Colors.grey.shade500 : null,
                 ),
@@ -268,10 +269,10 @@ class _NotificationsState extends State<Notifications> {
               ),
             ), */
             // ---------------------
-            heading('Other'),
+            heading(AppLocalizations.of(context)!.other),
             ListItem(
               title: Text(
-                'Call interval',
+                AppLocalizations.of(context)!.callInterv,
                 style: TextStyle(
                   color: !_automaticLoad ? Colors.grey.shade500 : null,
                 ),
@@ -282,7 +283,7 @@ class _NotificationsState extends State<Notifications> {
                 builder: (context) => SizedBox(
                   height: MediaQuery.of(context).size.height * 0.5,
                   child: AlertDialog(
-                    title: heading('Call interval'),
+                    title: heading(AppLocalizations.of(context)!.callInterv),
                     content: StatefulBuilder(
                       builder: (BuildContext context, StateSetter setState) {
                         return SizedBox(
@@ -300,7 +301,7 @@ class _NotificationsState extends State<Notifications> {
                                 onChangeEnd: (change) {
                                   SharedPreferences.getInstance().then(
                                     (instance) => instance.setInt(
-                                        'interval',
+                                        AppLocalizations.of(context)!.interv,
                                         _isHours
                                             ? change.toInt() * 3600
                                             : change.toInt() * 60),
@@ -327,7 +328,7 @@ class _NotificationsState extends State<Notifications> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text('Minutes'),
+                                  Text(AppLocalizations.of(context)!.minutes),
                                   Switch(
                                     value: _isHours,
                                     onChanged: (value) {
@@ -338,7 +339,7 @@ class _NotificationsState extends State<Notifications> {
                                     activeColor:
                                         Theme.of(context).accentColor,
                                   ),
-                                  Text('Hours'),
+                                  Text(AppLocalizations.of(context)!.hours),
                                 ],
                               )
                             ],
@@ -367,7 +368,7 @@ class _NotificationsState extends State<Notifications> {
             ),
             ListItem(
               title: Text(
-                'Only remind when lesson changes',
+                AppLocalizations.of(context)!.onlyRemOnChange,
                 style: TextStyle(
                   color: !_automaticLoad ? Colors.grey.shade500 : null,
                 ),

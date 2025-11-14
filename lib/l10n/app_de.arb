@@ -72,5 +72,110 @@
     "week": "Woche",
     "close": "Schließen",
     "courses": "Kurse",
-    "noAdditionalInformation": "Keine zusätzlichen Informationen verfügbar"
+    "noAdditionalInformation": "Keine zusätzlichen Informationen verfügbar",
+    "searchTeachers": "Lehrer suchen",
+    "teacherAbbreviationHint": "Lehrerkürzel (z.B. \"AB\")",
+    "selectedDate": "Ausgewähltes Datum: {day}.{month}.{year}",
+    "@selectedDate": {
+        "placeholders": {
+            "day": {
+                "type": "String"
+            },
+            "month": {
+                "type": "String"
+            },
+            "year": {
+                "type": "String"
+            }
+        }
+    },
+    "see": "Ansehen",
+    "scanningTeacherAbbreviations": "Scanne alle Lehrerkürzel...",
+    "noTeachersFound": "Keine Lehrer gefunden",
+    "noFavoriteClassesFound": "Keine Lieblingsklassen gefunden.",
+    "addClassToFavoritesForAnalysis": "Bitte füge eine Klasse zu deinen Favoriten hinzu, um die Analyse zu sehen.",
+    "couldNotLoadVPlanData": "VPlan-Daten konnten nicht geladen werden.",
+    "noDataForAnalysisAvailable": "Keine Daten für Analyse verfügbar.",
+    "teacherLabel": "Lehrer: {name}",
+    "@teacherLabel": {
+        "placeholders": {
+            "name": {
+                "type": "String"
+            }
+        }
+    },
+    "lessonDetails": "{count}. Stunde: {lesson} im Raum: {place}",
+    "@lessonDetails": {
+        "placeholders": {
+            "count": {
+                "type": "String"
+            },
+            "lesson": {
+                "type": "String"
+            },
+            "place": {
+                "type": "String"
+            }
+        }
+    },
+    "loadingData": "Lade Daten...",
+    "loadingSubstitutionPlan": "Lade Vertretungsplan...",
+    "substitutionPlanLoaded": "Vertretungsplan geladen",
+    "noSubstitutionPlanToday": "Kein Vertretungsplan für heute verfügbar.",
+    "noSubstitutionPlanTomorrow": "Kein Vertretungsplan für morgen verfügbar.",
+    "browsingPlan": "Durchsuche Plan...",
+    "analysingRooms": "Analysiere Räume...",
+    "checkRoom": "Überprüfe Raum {room}...",
+    "@checkRoom": {
+        "placeholders": {
+            "room": {
+                "type": "String"
+            }
+        }
+    },
+    "lessonsInThisRoom": "Stunden in diesem Raum",
+    "todayNoLessonsInThisRoom": "Heute keine Stunden in diesem Raum",
+    "chooseTimeAndDay": "Zeit und Tag wählen",
+    "today": "Heute",
+    "tomorrow": "Morgen",
+    "cancel": "Abbrechen",
+    "ok": "OK",
+    "processCanTakeSeconds": "Dieser Vorgang kann einige Sekunden dauern!",
+    "loading": "lade...",
+    "classesFromTeacher": "Klassen von {teacherName} - {displayDate}",
+    "@classesFromTeacher": {
+        "placeholders": {
+            "teacherName": {
+                "type": "String"
+            },
+            "displayDate": {
+                "type": "String"
+            }
+        }
+    },
+    "settingsCredentials": "Anmeldeinformationen",
+    "settingsNotifications": "Benachrichtigungen",
+    "settingsSetTeacherAbbreviations": "Lehrerkürzel festlegen",
+    "realName": "Echter Name",
+    "saved": "Fertig!",
+    "save": "Speichern",
+    "schoolNumber": "Schulnummer",
+    "username": "Benutzername",
+    "password": "Passwort",
+    "selfHost": "Eigene URL",
+    "useSelfHost": "oder nutze deine eigene URL",
+    "useLogin": "oder nutze den offiziellen Login",
+    "shareCreds": "Zugangsdaten teilen",
+    "credsSaved": "Zugangsdaten gespeichert!",
+
+    "loadPlanAuto": "Vertretungsplan im Hintergrund laden",
+    "general": "Allgemein",
+    "smartNotifs": "Intelligente Benachrichtigungen",
+    "prefClasses": "Bevorzugte Klassen",
+    "other": "Andere",
+    "callInterv": "Abrufintervall",
+    "interv": "Intervall",
+    "minutes": "Minuten",
+    "hours": "Stunden",
+    "onlyRemOnChange": "Nur bei Änderung benachrichtigen"
 }

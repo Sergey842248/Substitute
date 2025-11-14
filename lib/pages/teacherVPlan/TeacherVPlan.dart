@@ -1,5 +1,6 @@
 import 'package:expandiware/models/InputField.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:page_transition/page_transition.dart';
 
@@ -66,7 +67,7 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
-            'Search Teachers',
+            AppLocalizations.of(context)!.searchTeachers,
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 20,
@@ -75,7 +76,7 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
           SizedBox(height: spaceBetween * 0.3),
           InputField(
             controller: textFieldController,
-            labelText: 'Teacher abbreviation (like "AB")',
+            labelText: AppLocalizations.of(context)!.teacherAbbreviationHint,
           ),
           SizedBox(height: spaceBetween * 0.3),
           Container(
@@ -111,7 +112,11 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
                   ),
                   SizedBox(width: 10),
                   Text(
-                    'Selected Date: ${selectedDate.day}.${selectedDate.month}.${selectedDate.year}',
+                    AppLocalizations.of(context)!.selectedDate(
+                      selectedDate.day.toString(),
+                      selectedDate.month.toString(),
+                      selectedDate.year.toString(),
+                    ),
                     style: TextStyle(
                       color: Theme.of(context).primaryColor,
                       fontSize: 16,
@@ -123,7 +128,7 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
           ),
           SizedBox(height: spaceBetween * 0.3),
           Button(
-            text: 'See',
+            text: AppLocalizations.of(context)!.see,
             onPressed: () => Navigator.push(
               context,
               PageTransition(
@@ -157,7 +162,7 @@ class TeacherList extends StatefulWidget {
 }
 
 class _TeacherListState extends State<TeacherList> {
-  List<dynamic> teachers = ['Scanning all Teacher abbreviations...'];
+  List<dynamic> teachers = [];
 
   Future<void> getTeachers() async {
     VPlanAPI vplanAPI = new VPlanAPI();
@@ -184,7 +189,7 @@ class _TeacherListState extends State<TeacherList> {
     // Create a filtered list for display without modifying the original
     List<dynamic> displayTeachers = List.from(teachers);
 
-    if (widget.searchText != '' && displayTeachers.isNotEmpty && displayTeachers[0] != 'Scanning all Teacher abbreviations...') {
+    if (widget.searchText != '' && displayTeachers.isNotEmpty && displayTeachers[0] != AppLocalizations.of(context)!.scanningTeacherAbbreviations) {
       List<dynamic> filteredList = [];
       try {
         RegExp exp = new RegExp(
@@ -203,7 +208,7 @@ class _TeacherListState extends State<TeacherList> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.35,
-      child: displayTeachers.isEmpty || displayTeachers[0] == 'Scanning all Teacher abbreviations...'
+      child: displayTeachers.isEmpty || displayTeachers[0] == AppLocalizations.of(context)!.scanningTeacherAbbreviations
           ? Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -216,7 +221,7 @@ class _TeacherListState extends State<TeacherList> {
                       ),
                       SizedBox(height: 16),
                       Text(
-                        'No teachers found',
+                        AppLocalizations.of(context)!.noTeachersFound,
                         style: TextStyle(
                           fontSize: 16,
                           color: Theme.of(context).focusColor.withOpacity(0.7),

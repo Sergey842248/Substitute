@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:expandiware/models/Button.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -87,17 +88,17 @@ class _VPlanLoginState extends State<VPlanLogin> {
   Widget build(BuildContext context) {
     List<dynamic> inputs = [
       {
-        'hintText': 'School-number',
+        'hintText': AppLocalizations.of(context)!.schoolNumber,
         'controller': schoolnumberController,
         'numeric': true,
       },
       {
-        'hintText': 'Username',
+        'hintText': AppLocalizations.of(context)!.username,
         'controller': usernameController,
         'numeric': false,
       },
       {
-        'hintText': 'Password',
+        'hintText': AppLocalizations.of(context)!.password,
         'controller': passwordController,
         'numeric': false,
       },
@@ -117,12 +118,12 @@ class _VPlanLoginState extends State<VPlanLogin> {
 
     if (customUrlField) {
       _inputs =
-          InputField(controller: customUrlController, labelText: 'Your own URL');
+          InputField(controller: customUrlController, labelText: AppLocalizations.of(context)!.selfHost);
     }
 
     return Scaffold(
       body: ListPage(
-        title: 'Credentials',
+        title: AppLocalizations.of(context)!.settingsCredentials,
         actions: [
           IconButton(
             onPressed: () async {
@@ -176,7 +177,7 @@ class _VPlanLoginState extends State<VPlanLogin> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                'Share credentials',
+                                AppLocalizations.of(context)!.shareCreds,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 20,
@@ -212,7 +213,7 @@ class _VPlanLoginState extends State<VPlanLogin> {
                                   ),
                                   child: Center(
                                     child: Text(
-                                      'Save',
+                                      AppLocalizations.of(context)!.save,
                                       style: TextStyle(
                                         fontSize: 18,
                                         color: Colors.black,
@@ -281,8 +282,8 @@ class _VPlanLoginState extends State<VPlanLogin> {
                           ),
                           Text(
                             customUrlField
-                                ? 'or use login'
-                                : 'or use your own URL',
+                                ? AppLocalizations.of(context)!.useLogin
+                                : AppLocalizations.of(context)!.useSelfHost,
                             style: TextStyle(
                               color: Theme.of(context)
                                   .focusColor
@@ -303,7 +304,7 @@ class _VPlanLoginState extends State<VPlanLogin> {
                 // CUSTOM URL
 
                 Button(
-                  text: 'Save',
+                  text: AppLocalizations.of(context)!.save,
                   onPressed: () async {
                     SharedPreferences prefs =
                         await SharedPreferences.getInstance();
@@ -328,7 +329,7 @@ class _VPlanLoginState extends State<VPlanLogin> {
                         customUrlController.text.toString(),
                       );
                     }
-                    Fluttertoast.showToast(msg: 'Credentials saved!');
+                    Fluttertoast.showToast(msg: AppLocalizations.of(context)!.credsSaved);
                     Navigator.pop(context);
                   },
                 ),

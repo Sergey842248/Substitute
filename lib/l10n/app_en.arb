@@ -72,5 +72,110 @@
     "week": "Week",
     "close": "Close",
     "courses": "Courses",
-    "noAdditionalInformation": "No additional information available"
+    "noAdditionalInformation": "No additional information available",
+    "searchTeachers": "Search Teachers",
+    "teacherAbbreviationHint": "Teacher abbreviation (like \"AB\")",
+    "selectedDate": "Selected Date: {day}.{month}.{year}",
+    "@selectedDate": {
+        "placeholders": {
+            "day": {
+                "type": "String"
+            },
+            "month": {
+                "type": "String"
+            },
+            "year": {
+                "type": "String"
+            }
+        }
+    },
+    "see": "See",
+    "scanningTeacherAbbreviations": "Scanning all Teacher abbreviations...",
+    "noTeachersFound": "No teachers found",
+    "noFavoriteClassesFound": "No favorite classes found.",
+    "addClassToFavoritesForAnalysis": "Please add a class to your favorites to see the analysis.",
+    "couldNotLoadVPlanData": "Could not load VPlan data.",
+    "noDataForAnalysisAvailable": "No data for analysis available.",
+    "teacherLabel": "Teacher: {name}",
+    "@teacherLabel": {
+        "placeholders": {
+            "name": {
+                "type": "String"
+            }
+        }
+    },
+    "lessonDetails": "{count}. Hour: {lesson} in Room: {place}",
+    "@lessonDetails": {
+        "placeholders": {
+            "count": {
+                "type": "String"
+            },
+            "lesson": {
+                "type": "String"
+            },
+            "place": {
+                "type": "String"
+            }
+        }
+    },
+    "loadingData": "Loading data...",
+    "loadingSubstitutionPlan": "Loading substitution plan...",
+    "substitutionPlanLoaded": "Substitution plan loaded",
+    "noSubstitutionPlanToday": "No Substitution plan available for today.",
+    "noSubstitutionPlanTomorrow": "No Substitution plan available for tomorrow.",
+    "browsingPlan": "Browsing plan...",
+    "analysingRooms": "Analysing Rooms...",
+    "checkRoom": "Check room {room}...",
+    "@checkRoom": {
+        "placeholders": {
+            "room": {
+                "type": "String"
+            }
+        }
+    },
+    "lessonsInThisRoom": "Lessons in this room",
+    "todayNoLessonsInThisRoom": "Today no lessons in this room",
+    "chooseTimeAndDay": "Choose time and day",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "cancel": "Cancel",
+    "ok": "OK",
+    "processCanTakeSeconds": "This process can take a few seconds!",
+    "loading": "loading...",
+    "classesFromTeacher": "Classes from {teacherName} - {displayDate}",
+    "@classesFromTeacher": {
+        "placeholders": {
+            "teacherName": {
+                "type": "String"
+            },
+            "displayDate": {
+                "type": "String"
+            }
+        }
+    },
+    "settingsCredentials": "Credentials",
+    "settingsNotifications": "Notifications",
+    "settingsSetTeacherAbbreviations": "Set Teacher abbreviations",
+    "realName": "Real name",
+    "saved": "Saved!",
+    "save": "Save",
+    "schoolNumber": "School-number",
+    "username": "Username",
+    "password": "Password",
+    "selfHost": "Your own URL",
+    "useSelfHost": "or use your own URL",
+    "useLogin": "or use official Login",
+    "shareCreds": "Share credentials",
+    "credsSaved": "Credentials saved!",
+
+    "loadPlanAuto": "Load Substitution plan automatically",
+    "general": "General",
+    "smartNotifs": "Smart notifications",
+    "prefClasses": "Preferred classes",
+    "other": "Other",
+    "callInterv": "Call interval",
+    "interv": "Interval",
+    "minutes": "Minutes",
+    "hours": "Hours",
+    "onlyRemOnChange": "Only remind when lesson changes"
 }
