@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:page_transition/page_transition.dart';
 
+import 'settings/Language.dart';
 import 'settings/VPlanLogin.dart';
 import 'settings/DeveloperOptions.dart';
 import 'settings/Notifications.dart';
@@ -14,41 +16,48 @@ class Settings extends StatefulWidget {
 }
 
 class _SettingsState extends State<Settings> {
-  List<dynamic> settingPages = [
-    {
-      'title': 'Credentials',
-      'icon': Icons.lock_outline_rounded,
-      'subtitle': 'stundenplan24 credentials',
-      'link': VPlanLogin(),
-    },
-    {
-      'title': 'Notifications',
-      'icon': Icons.notifications_none_rounded,
-      'subtitle': 'Notifications for substitution plan',
-      'link': Notifications(),
-    },
-    {
-      'title': 'Set Teacher abbreviations',
-      'icon': Icons.people_alt_outlined,
-      'subtitle': 'Replace teacher abbreviations with Real ones',
-      'link': TeacherShorts(),
-    },
-    {
-      'title': 'Developer options',
-      'icon': Icons.developer_mode_rounded,
-      'subtitle': 'Change Settings meant for developers',
-      'link': DeveloperOptions(),
-    },
-  ];
-
+  @override
   void initState() {
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    List<dynamic> settingPages = [
+      {
+        'title': AppLocalizations.of(context)!.credentials,
+        'icon': Icons.lock_outline_rounded,
+        'subtitle': AppLocalizations.of(context)!.credentialsSubtitle,
+        'link': VPlanLogin(),
+      },
+      {
+        'title': AppLocalizations.of(context)!.notifications,
+        'icon': Icons.notifications_none_rounded,
+        'subtitle': AppLocalizations.of(context)!.notificationsSubtitle,
+        'link': Notifications(),
+      },
+      {
+        'title': AppLocalizations.of(context)!.setTeacherAbbreviations,
+        'icon': Icons.people_alt_outlined,
+        'subtitle':
+            AppLocalizations.of(context)!.setTeacherAbbreviationsSubtitle,
+        'link': TeacherShorts(),
+      },
+      {
+        'title': AppLocalizations.of(context)!.language,
+        'icon': Icons.language_rounded,
+        'subtitle': AppLocalizations.of(context)!.languageSubtitle,
+        'link': Language(),
+      },
+      {
+        'title': AppLocalizations.of(context)!.developerOptions,
+        'icon': Icons.developer_mode_rounded,
+        'subtitle': AppLocalizations.of(context)!.developerOptionsSubtitle,
+        'link': DeveloperOptions(),
+      },
+    ];
     return ListPage(
-      title: 'Settings',
+      title: AppLocalizations.of(context)!.settings,
       children: settingPages
           .map(
             (e) => Container(

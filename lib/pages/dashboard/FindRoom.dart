@@ -4,6 +4,7 @@ import 'package:expandiware/models/LoadingProcess.dart';
 import 'package:expandiware/models/ProcessBar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
 
 import '../vplan/VPlanAPI.dart';
@@ -478,7 +479,7 @@ class _FindRoomState extends State<FindRoom> {
     if (!getDataExecuted) getData();
     return Container(
       child: ListPage(
-        title: 'Free rooms - $time',
+        title: AppLocalizations.of(context)!.freeRoomsTitle(time),
         smallTitle: true,
         actions: [
           IconButton(

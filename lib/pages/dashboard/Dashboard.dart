@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../models/ListItem.dart';
 import 'package:expandiware/models/ListPage.dart';
@@ -21,8 +22,8 @@ class Dashboard extends StatelessWidget {
           Icons.place_rounded,
           color: Theme.of(context).focusColor,
         ),
-        'title': 'Find free room',
-        'subtitle': 'Find a room which isn\'t occupied for a specific time',
+        'title': AppLocalizations.of(context)!.findFreeRoom,
+        'subtitle': AppLocalizations.of(context)!.findFreeRoomSubtitle,
         'link': FindRoom(),
       },
       {
@@ -30,8 +31,8 @@ class Dashboard extends StatelessWidget {
           Icons.analytics_rounded,
           color: Theme.of(context).focusColor,
         ),
-        'title': 'Analysis',
-        'subtitle': 'Get an analysis of the substitution plan',
+        'title': AppLocalizations.of(context)!.analysis,
+        'subtitle': AppLocalizations.of(context)!.analysisSubtitle,
         'link': Analytics(),
       },
       {
@@ -39,8 +40,8 @@ class Dashboard extends StatelessWidget {
           Icons.settings_rounded,
           color: Theme.of(context).focusColor,
         ),
-        'title': 'Settings',
-        'subtitle': 'More Settings to personalize your experience',
+        'title': AppLocalizations.of(context)!.settingsTitle,
+        'subtitle': AppLocalizations.of(context)!.settingsSubtitle,
         'link': Settings(),
       },
     ];

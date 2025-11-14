@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/gestures.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:expandiware/introduction/introscreen.dart';
@@ -138,8 +139,38 @@ Color darken(Color c, [int percent = 10]) {
       (c.blue * f).round());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
+
+  static void setLocale(BuildContext context, Locale newLocale) {
+    _MyAppState? state = context.findAncestorStateOfType<_MyAppState>();
+    state?.setLocale(newLocale);
+  }
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  Locale? _locale;
+
+  setLocale(Locale locale) {
+    setState(() {
+      _locale = locale;
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _getLocale().then(setLocale);
+  }
+
+  Future<Locale> _getLocale() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String languageCode = prefs.getString('languageCode') ?? 'en';
+    return Locale(languageCode, '');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -168,6 +199,9 @@ class MyApp extends StatelessWidget {
             snapshot.data?.accent1.shade100 ?? primaryColor;
 
         return MaterialApp(
+          locale: _locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           builder: (BuildContext context, Widget? child) {
             final MediaQueryData data = MediaQuery.of(context);
             return MediaQuery(
@@ -218,7 +252,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
-  String activeText = 'vplan students';
+  String activeText = 'vplanStudents';
 
   @override
   void initState() {
@@ -267,15 +301,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 children: [
                   Icon(Icons.system_security_update_outlined),
                   SizedBox(width: 10),
-                  Text('New version available'),
+                  Text(AppLocalizations.of(context)!.newVersionAvailable),
                 ],
               ),
-              content: Text('A new version ($latestVersion) is available. Download now!'),
+              content: Text(AppLocalizations.of(context)!.newVersionMessage(latestVersion)),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text(
-                    'Later',
+                    AppLocalizations.of(context)!.later,
                     style: TextStyle(
                       color: Theme.of(context).primaryColor,
                       fontSize: 13,
@@ -283,7 +317,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   ),
                 ),
                 Button(
-                  text: 'Download',
+                  text: AppLocalizations.of(context)!.download,
                   onPressed: () async {
                     String url = jsonResponse['assets'][0]['browser_download_url']; // Assuming the first asset is the APK
                     try {
@@ -344,19 +378,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       );
     List<Map<String, dynamic>> pages = [
       {
-        'text': 'vplan students',
+        'key': 'vplanStudents',
+        'text': AppLocalizations.of(context)!.vplanStudents,
         'index': 0,
         'icon': 'assets/img/home.svg',
         'widget': VPlan(),
       },
       {
-        'text': 'vplan teachers',
+        'key': 'vplanTeachers',
+        'text': AppLocalizations.of(context)!.vplanTeachers,
         'index': 1,
         'icon': 'assets/img/person.svg',
         'widget': TeacherVPlan(),
       },
       {
-        'text': 'dashboard',
+        'key': 'dashboard',
+        'text': AppLocalizations.of(context)!.dashboard,
         'index': 2,
         'icon': 'assets/img/dashboard.svg',
         'widget': Dashboard(),
@@ -371,7 +408,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     Widget activeWidget = Text('loading...');
     for (int i = 0; i < pages.length; i++) {
-      if (pages[i]['text'] == activeText) {
+      if (pages[i]['key'] == activeText) {
         activeWidget = pages[i]['widget'];
       }
     }
@@ -429,7 +466,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                   context: context,
                                   backgroundColor: Colors.transparent,
                                   builder: (context) => ModalBottomSheet(
-                                    title: 'App Info',
+                                    title: AppLocalizations.of(context)!.appInfo,
                                     bigTitle: true,
                                     extraButton: {
                                       'onTap': () {
@@ -455,9 +492,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                 color: Colors.white, // Assuming default text color, adjust if needed
                                               ),
                                               children: [
-                                                const TextSpan(text: 'Main-Developer: '),
+                                                TextSpan(text: AppLocalizations.of(context)!.mainDeveloper),
                                                 TextSpan(
-                                                  text: 'Sergey842248',
+                                                  text: AppLocalizations.of(context)!.developerName,
                                                   style: TextStyle(
                                                     decoration: TextDecoration.underline,
                                                     decorationColor: Theme.of(context).focusColor,
@@ -465,9 +502,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                   recognizer: TapGestureRecognizer()
                                                     ..onTap = () => launch('https://github.com/Sergey842248'),
                                                 ),
-                                                const TextSpan(text: '\n\nFormer Developer: '),
+                                                TextSpan(text: '\n\n${AppLocalizations.of(context)!.formerDeveloper}'),
                                                 TextSpan(
-                                                  text: 'Oskar',
+                                                  text: AppLocalizations.of(context)!.formerDeveloperName,
                                                   style: TextStyle(
                                                     decoration: TextDecoration.underline,
                                                     decorationColor: Theme.of(context).focusColor,
@@ -481,12 +518,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                         ),
                                         ...[
                                           {
-                                            'name': 'Open Issue',
+                                            'name': AppLocalizations.of(context)!.openIssue,
                                             'link':
                                                 'https://www.github.com/Sergey842248/Substitute/issues/new?template=bug_report.yml',
                                           },
                                           {
-                                            'name': 'GitHub',
+                                            'name': AppLocalizations.of(context)!.github,
                                             'link':
                                                 'https://www.github.com/Sergey842248/Substitute',
                                           }
@@ -512,7 +549,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                         Padding(
                                           padding: const EdgeInsets.all(8.0),
                                           child: Text(
-                                            'version: $version',
+                                            AppLocalizations.of(context)!.version(version),
                                             style: const TextStyle(
                                               fontSize: 17,
                                               fontWeight: FontWeight.bold,
@@ -606,14 +643,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               children: [
                                 InkWell(
                                   onTap: () {
-                                    activeText = e['text'];
+                                    activeText = e['key'];
                                     setState(() {});
                                   },
                                   child: Container(
                                     padding: EdgeInsets.all(7),
                                     child: SvgPicture.asset(
                                       e['icon'],
-                                      color: activeText == e['text']
+                                      color: activeText == e['key']
                                           ? Theme.of(context).primaryColor
                                           : Theme.of(context).focusColor,
                                       width: 28,
@@ -623,7 +660,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 SvgPicture.asset(
                                   'assets/img/active.svg',
                                   width: 13,
-                                  color: e['text'] == activeText
+                                  color: e['key'] == activeText
                                       ? Theme.of(context).primaryColor
                                       : Colors.transparent,
                                 ),

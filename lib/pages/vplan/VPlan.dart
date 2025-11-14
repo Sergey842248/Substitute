@@ -3,6 +3,7 @@ import 'package:expandiware/models/ListPage.dart';
 import 'package:expandiware/pages/dashboard/settings/Lessons.dart';
 import 'package:expandiware/pages/vplan/VPlanAPI.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'dart:convert';
 
 import 'package:animations/animations.dart';
@@ -55,21 +56,21 @@ class _VPlanState extends State<VPlan> {
             ),
             backgroundColor: Theme.of(context).backgroundColor,
             title: Text(
-              'Add a new class',
+              AppLocalizations.of(context)!.addNewClass,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 19),
             ),
             content: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('Don\'t forget your credentials!'),
+                Text(AppLocalizations.of(context)!.dontForgetCredentials),
               ],
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: Text(
-                  'Later',
+                  AppLocalizations.of(context)!.later,
                   style: TextStyle(
                     color: Theme.of(context).primaryColor,
                   ),
@@ -87,7 +88,7 @@ class _VPlanState extends State<VPlan> {
                   );
                 },
                 child: Text(
-                  'Add',
+                  AppLocalizations.of(context)!.add,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).primaryColor,
@@ -121,7 +122,7 @@ class _VPlanState extends State<VPlan> {
             closedElevation: 0,
             closedBuilder: (context, openContainer) => ListItem(
               title: Text(
-                'Select a class ',
+                AppLocalizations.of(context)!.selectClass,
                 style: TextStyle(
                   fontSize: 19,
                 ),
@@ -334,7 +335,7 @@ class _ClassWidgetState extends State<ClassWidget> {
                   : (nextLesson.toString() == '{}'
                       ? Center(
                           child: Text(
-                            'No next lesson found',
+                            AppLocalizations.of(context)!.noNextLessonFound,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Theme.of(context)
@@ -352,7 +353,7 @@ class _ClassWidgetState extends State<ClassWidget> {
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Text(
-                                  'next hour',
+                                  AppLocalizations.of(context)!.nextHour,
                                   style: TextStyle(
                                     color: Theme.of(context)
                                         .focusColor
@@ -377,7 +378,7 @@ class _ClassWidgetState extends State<ClassWidget> {
                               children: [
                                 Text(''),
                                 Text(
-                                  'Room ' + (nextLesson['place'] ?? ''),
+                                  AppLocalizations.of(context)!.room(nextLesson['place'] ?? ''),
                                   style: TextStyle(fontSize: 19),
                                 ),
                                 SizedBox(height: spaceBetween),
@@ -500,7 +501,7 @@ class _SelectClassState extends State<SelectClass> {
           }
       }
       return ListPage(
-        title: 'Class selection',
+        title: AppLocalizations.of(context)!.classSelection,
         animate: true,
         actions: [
           IconButton(
@@ -525,7 +526,7 @@ class _SelectClassState extends State<SelectClass> {
           ),
           SizedBox(height: 30),
           Button(
-            text: 'Credentials',
+            text: AppLocalizations.of(context)!.credentials,
             onPressed: () => Navigator.push(
               context,
               PageTransition(
@@ -538,7 +539,7 @@ class _SelectClassState extends State<SelectClass> {
       );
     }
     return ListPage(
-      title: 'Select class',
+      title: AppLocalizations.of(context)!.selectClassTitle,
       animate: true,
       children: [
         classes.length == 0

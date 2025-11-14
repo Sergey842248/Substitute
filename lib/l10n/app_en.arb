@@ -1,0 +1,76 @@
+{
+    "settings": "Settings",
+    "credentials": "Credentials",
+    "credentialsSubtitle": "stundenplan24 credentials",
+    "notifications": "Notifications",
+    "notificationsSubtitle": "Notifications for substitution plan",
+    "setTeacherAbbreviations": "Set Teacher abbreviations",
+    "setTeacherAbbreviationsSubtitle": "Replace teacher abbreviations with Real ones",
+    "developerOptions": "Developer options",
+    "developerOptionsSubtitle": "Change Settings meant for developers",
+    "language": "Language",
+    "languageSubtitle": "Change the language of the app",
+    "freeRoomsTitle": "Free rooms - {time}",
+    "vplanStudents": "vplan students",
+    "vplanTeachers": "vplan teachers",
+    "dashboard": "dashboard",
+    "appTitle": "Substitute",
+    "newVersionAvailable": "New version available",
+    "newVersionMessage": "A new version ({version}) is available. Download now!",
+    "@newVersionMessage": {
+        "placeholders": {
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "later": "Later",
+    "download": "Download",
+    "appInfo": "App Info",
+    "mainDeveloper": "Main-Developer: ",
+    "developerName": "Sergey842248",
+    "formerDeveloper": "Former Developer: ",
+    "formerDeveloperName": "Oskar",
+    "openIssue": "Open Issue",
+    "github": "GitHub",
+    "version": "version: {version}",
+    "@version": {
+        "placeholders": {
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "findFreeRoom": "Find free room",
+    "findFreeRoomSubtitle": "Find a room which isn't occupied for a specific time",
+    "analysis": "Analysis",
+    "analysisSubtitle": "Get an analysis of the substitution plan",
+    "settingsTitle": "Settings",
+    "settingsSubtitle": "More Settings to personalize your experience",
+    "addNewClass": "Add a new class",
+    "dontForgetCredentials": "Don't forget your credentials!",
+    "add": "Add",
+    "selectClass": "Select a class",
+    "noNextLessonFound": "No next lesson found",
+    "nextHour": "next hour",
+    "room": "Room {room}",
+    "@room": {
+        "placeholders": {
+            "room": {
+                "type": "String"
+            }
+        }
+    },
+    "classSelection": "Class selection",
+    "selectClassTitle": "Select class",
+    "usernamePasswordWrong": "Username or password incorrect!",
+    "wrongSchoolNumber": "Wrong schoolnumber!\n\nor no substitution plan available!",
+    "noInternetConnection": "No internet connection",
+    "noSubstitutionPlan": "no substitution plan",
+    "wrongSchoolNumberAlt": "Wrong school-number or no substitution plan available",
+    "noNetworkConnection": "No Network connection",
+    "week": "Week",
+    "close": "Close",
+    "courses": "Courses",
+    "noAdditionalInformation": "No additional information available"
+}

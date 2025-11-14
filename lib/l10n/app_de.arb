@@ -1,0 +1,76 @@
+{
+    "settings": "Einstellungen",
+    "credentials": "Anmeldeinformationen",
+    "credentialsSubtitle": "stundenplan24 Anmeldeinformationen",
+    "notifications": "Benachrichtigungen",
+    "notificationsSubtitle": "Benachrichtigungen für den Vertretungsplan",
+    "setTeacherAbbreviations": "Lehrerkürzel festlegen",
+    "setTeacherAbbreviationsSubtitle": "Lehrerkürzel durch echte Namen ersetzen",
+    "developerOptions": "Entwickleroptionen",
+    "developerOptionsSubtitle": "Einstellungen für Entwickler ändern",
+    "language": "Sprache",
+    "languageSubtitle": "Sprache der App ändern",
+    "freeRoomsTitle": "Freie Räume - {time}",
+    "vplanStudents": "Vertretungsplan Schüler",
+    "vplanTeachers": "Vertretungsplan Lehrer",
+    "dashboard": "Dashboard",
+    "appTitle": "Substitute",
+    "newVersionAvailable": "Neue Version verfügbar",
+    "newVersionMessage": "Eine neue Version ({version}) ist verfügbar. Jetzt herunterladen!",
+    "@newVersionMessage": {
+        "placeholders": {
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "later": "Später",
+    "download": "Herunterladen",
+    "appInfo": "App Info",
+    "mainDeveloper": "Hauptentwickler: ",
+    "developerName": "Sergey842248",
+    "formerDeveloper": "Ehemaliger Entwickler: ",
+    "formerDeveloperName": "Oskar",
+    "openIssue": "Issue öffnen",
+    "github": "GitHub",
+    "version": "Version: {version}",
+    "@version": {
+        "placeholders": {
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "findFreeRoom": "Freien Raum finden",
+    "findFreeRoomSubtitle": "Einen Raum finden, der zu einer bestimmten Zeit nicht belegt ist",
+    "analysis": "Analyse",
+    "analysisSubtitle": "Eine Analyse des Vertretungsplans erhalten",
+    "settingsTitle": "Einstellungen",
+    "settingsSubtitle": "Weitere Einstellungen zur Personalisierung Ihrer Erfahrung",
+    "addNewClass": "Neue Klasse hinzufügen",
+    "dontForgetCredentials": "Vergiss deine Anmeldedaten nicht!",
+    "add": "Hinzufügen",
+    "selectClass": "Klasse auswählen",
+    "noNextLessonFound": "Keine nächste Stunde gefunden",
+    "nextHour": "nächste Stunde",
+    "room": "Raum {room}",
+    "@room": {
+        "placeholders": {
+            "room": {
+                "type": "String"
+            }
+        }
+    },
+    "classSelection": "Klassenauswahl",
+    "selectClassTitle": "Klasse auswählen",
+    "usernamePasswordWrong": "Benutzername oder Passwort falsch!",
+    "wrongSchoolNumber": "Falsche Schulnummer!\n\noder kein Vertretungsplan verfügbar!",
+    "noInternetConnection": "Keine Internetverbindung",
+    "noSubstitutionPlan": "kein Vertretungsplan",
+    "wrongSchoolNumberAlt": "Falsche Schulnummer oder kein Vertretungsplan verfügbar",
+    "noNetworkConnection": "Keine Netzwerkverbindung",
+    "week": "Woche",
+    "close": "Schließen",
+    "courses": "Kurse",
+    "noAdditionalInformation": "Keine zusätzlichen Informationen verfügbar"
+}
