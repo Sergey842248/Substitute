@@ -137,7 +137,7 @@ class _TeacherPlanState extends State<TeacherPlan> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: ListPage(
-        title: 'Stunden von $teacherName- $displayDate',
+        title: 'classes from $teacherName - $displayDate',
         smallTitle: true,
         children: res.length == 0
             ? [
@@ -154,7 +154,7 @@ class _TeacherPlanState extends State<TeacherPlan> {
                       ),
                       SizedBox(height: 16),
                       Text(
-                        'Keine Stunden gefunden',
+                        'No classes found',
                         style: TextStyle(
                           fontSize: 18,
                           color: Theme.of(context).focusColor.withOpacity(0.7),
@@ -162,7 +162,7 @@ class _TeacherPlanState extends State<TeacherPlan> {
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'Für das ausgewählte Datum sind keine Stunden verfügbar.',
+                        'No hours available for the selected Date.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,

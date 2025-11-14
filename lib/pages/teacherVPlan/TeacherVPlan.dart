@@ -216,7 +216,7 @@ class _TeacherListState extends State<TeacherList> {
                       ),
                       SizedBox(height: 16),
                       Text(
-                        'Keine Lehrer gefunden',
+                        'No teachers found',
                         style: TextStyle(
                           fontSize: 16,
                           color: Theme.of(context).focusColor.withOpacity(0.7),

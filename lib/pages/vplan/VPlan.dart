@@ -467,7 +467,7 @@ class _SelectClassState extends State<SelectClass> {
           );
           break;
         case 'no internet':
-          errorText = 'Keine Internetverbindung';
+          errorText = 'No internet connection';
           extraWidget = Lottie.asset(
             'assets/animations/wifi.json',
             height: 120,
@@ -476,7 +476,7 @@ class _SelectClassState extends State<SelectClass> {
         default:
           switch (classes['data']['error']) {
             case '401':
-              errorText = 'Der Benutzername oder das Passwort ist falsch!';
+              errorText = 'Username or password incorrect!';
               extraWidget = Lottie.asset(
                 'assets/animations/lock.json',
                 height: 120,
@@ -484,14 +484,14 @@ class _SelectClassState extends State<SelectClass> {
               break;
             case 'schoolnumber':
               errorText =
-                  'Falsche Schulnummer!\n\noder Vertretungsplan verfügbar';
+                  'Wrong schoolnumber!\n\nor no substitution plan available!';
               extraWidget = Lottie.asset(
                 'assets/animations/attention.json',
                 height: 120,
               );
               break;
             case 'no internet':
-              errorText = 'Keine Internetverbindung';
+              errorText = 'No internet connection';
               extraWidget = Lottie.asset(
                 'assets/animations/wifi.json',
                 height: 120,
@@ -500,7 +500,7 @@ class _SelectClassState extends State<SelectClass> {
           }
       }
       return ListPage(
-        title: 'Klassenauswahl',
+        title: 'Class selection',
         animate: true,
         actions: [
           IconButton(
