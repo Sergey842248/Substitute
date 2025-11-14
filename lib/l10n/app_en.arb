@@ -178,5 +178,5 @@
     "minutes": "Minutes",
     "hours": "Hours",
     "onlyRemOnChange": "Only remind when lesson changes",
-    "ShareTeacherName": "Share teacher name"
+    "shareTeacherName": "Share teacher name"
 }
