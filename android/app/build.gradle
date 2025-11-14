@@ -13,12 +13,12 @@ if (flutterRoot == null) {
 
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
 if (flutterVersionCode == null) {
-    flutterVersionCode = '350'
+    flutterVersionCode = '330'
 }
 
 def flutterVersionName = localProperties.getProperty('flutter.versionName')
 if (flutterVersionName == null) {
-    flutterVersionName = '3.5.0'
+    flutterVersionName = '3.3.0'
 }
 
 apply plugin: 'com.android.application'
@@ -29,7 +29,7 @@ apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 
 android {
-    namespace "com.future.Substitute"
+    namespace "com.example.expandiware"
     compileSdkVersion 34
 
     sourceSets {
