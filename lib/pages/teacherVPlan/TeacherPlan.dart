@@ -9,9 +9,11 @@ class TeacherPlan extends StatefulWidget {
   const TeacherPlan({
     Key? key,
     required this.teacher,
+    required this.selectedDate,
   }) : super(key: key);
 
   final String teacher;
+  final DateTime selectedDate;
 
   @override
   _TeacherPlanState createState() => _TeacherPlanState();
@@ -24,14 +26,17 @@ class _TeacherPlanState extends State<TeacherPlan> {
 
   void getData() async {
     VPlanAPI vplanAPI = new VPlanAPI();
+    await vplanAPI.login();
 
     teacherName = (await vplanAPI.replaceTeacherShort(widget.teacher))!;
 
+    // Construct URL for selected date
+    String dateString = vplanAPI.parseDate(widget.selectedDate);
+    String url = 'https://www.stundenplan24.de/${vplanAPI.schoolnumber}/mobil/mobdaten/PlanKl$dateString.xml';
+
     var data = (await vplanAPI.getVPlanJSON(
-      Uri.parse(
-        await vplanAPI.getDayURL(),
-      ),
-      DateTime.now(),
+      Uri.parse(url),
+      widget.selectedDate,
     ))['data'];
     setState(() {
       date = data['Kopf']['DatumPlan'];
@@ -61,7 +66,7 @@ class _TeacherPlanState extends State<TeacherPlan> {
       return list;
     }
 
-    int half = (list.length / 2).toInt();
+    int half = list.length ~/ 2;
 
     List<dynamic> leftList = [];
     for (int i = 0; i < half; i++) {
@@ -138,8 +143,34 @@ class _TeacherPlanState extends State<TeacherPlan> {
             ? [
                 Container(
                   alignment: Alignment.center,
-                  width: MediaQuery.of(context).size.width * 0.2,
-                  child: LoadingProcess(),
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.event_busy,
+                        size: 48,
+                        color: Theme.of(context).focusColor.withOpacity(0.5),
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'Keine Stunden gefunden',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Theme.of(context).focusColor.withOpacity(0.7),
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Für das ausgewählte Datum sind keine Stunden verfügbar.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).focusColor.withOpacity(0.5),
+                        ),
+                      ),
+                    ],
+                  ),
                 )
               ]
             : res
