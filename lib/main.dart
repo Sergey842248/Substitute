@@ -463,7 +463,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                 'https://www.github.com/Sergey842248/Substitute/issues/new?template=bug_report.yml',
                                           },
                                           {
-                                            'name': 'Github',
+                                            'name': 'GitHub',
                                             'link':
                                                 'https://www.github.com/Sergey842248/Substitute',
                                           }
@@ -473,7 +473,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                             child: InkWell(
                                               onTap: () => launch(e['link']!),
                                               child: Text(
-                                                '${e['name']}: www.${e['link']!.substring(12, 22)}...',
+                                                '${e['name']}',
                                                 style: TextStyle(
                                                   decoration:
                                                       TextDecoration.underline,
