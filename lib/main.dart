@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:expandiware/introduction/introscreen.dart';
 
@@ -445,14 +446,36 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Padding(
-                                          padding: EdgeInsets.all(8.0),
-                                          child: Text(
-                                            'Main-Developer: Sergey842248\n'
-                                            '\n'
-                                            'Former Developer: Oskar',
-                                            style: TextStyle(
-                                              fontSize: 17,
+                                        Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: RichText(
+                                            text: TextSpan(
+                                              style: const TextStyle(
+                                                fontSize: 17,
+                                                color: Colors.white, // Assuming default text color, adjust if needed
+                                              ),
+                                              children: [
+                                                const TextSpan(text: 'Main-Developer: '),
+                                                TextSpan(
+                                                  text: 'Sergey842248',
+                                                  style: TextStyle(
+                                                    decoration: TextDecoration.underline,
+                                                    decorationColor: Theme.of(context).focusColor,
+                                                  ),
+                                                  recognizer: TapGestureRecognizer()
+                                                    ..onTap = () => launch('https://github.com/Sergey842248'),
+                                                ),
+                                                const TextSpan(text: '\n\nFormer Developer: '),
+                                                TextSpan(
+                                                  text: 'Oskar',
+                                                  style: TextStyle(
+                                                    decoration: TextDecoration.underline,
+                                                    decorationColor: Theme.of(context).focusColor,
+                                                  ),
+                                                  recognizer: TapGestureRecognizer()
+                                                    ..onTap = () => launch('https://github.com/badbryany'),
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ),
