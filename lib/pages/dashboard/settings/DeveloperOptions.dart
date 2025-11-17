@@ -53,7 +53,7 @@ class _DeveloperOptionsState extends State<DeveloperOptions> {
         'title': 'Stop Background service',
         'actionText': 'Stop',
         'action': () =>
-            FlutterBackgroundService().sendData({'action': 'stopService'}),
+            FlutterBackgroundService().invoke("stopService"),
       },
       {
         'title': 'Clear all SharedPreferences',

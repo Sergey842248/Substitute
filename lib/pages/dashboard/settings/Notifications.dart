@@ -44,7 +44,7 @@ class _NotificationsState extends State<Notifications> {
   List<String> _classes = [];
 
   void restartBackgroundSevice() {
-    FlutterBackgroundService().sendData({'action': 'restartTimer'});
+    FlutterBackgroundService().invoke("restartTimer");
   }
 
   void changeAutomaticLoad() async {
@@ -54,9 +54,9 @@ class _NotificationsState extends State<Notifications> {
     setState(() {});
 
     if (_automaticLoad) {
-      FlutterBackgroundService.initialize(onStart);
+      await initializeService();
     } else {
-      FlutterBackgroundService().sendData({'action': 'stopService'});
+      FlutterBackgroundService().invoke("stopService");
     }
 
     // peset if all is null

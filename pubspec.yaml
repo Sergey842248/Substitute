@@ -25,7 +25,8 @@ dependencies:
   pretty_qr_code: ^2.0.2
   qr_code_scanner: ^1.0.1
   url_launcher: ^6.0.10
-  flutter_background_service: ^0.1.5
+  flutter_background_service: ^5.0.5
+  flutter_background_service_android: ^5.0.5
   awesome_notifications: ^0.6.16
   lottie: ^1.2.1
   fluttertoast: ^8.0.8

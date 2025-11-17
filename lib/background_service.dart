@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_background_service_android/flutter_background_service_android.dart';
 import 'package:expandiware/pages/vplan/VPlanAPI.dart';
 import 'package:flutter/material.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
@@ -9,36 +10,57 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 Timer? _timer;
 
-void onStart() async {
-  WidgetsFlutterBinding.ensureInitialized();
+@pragma('vm:entry-point')
+Future<bool> initializeService() async {
   final service = FlutterBackgroundService();
+
+  await service.configure(
+    androidConfiguration: AndroidConfiguration(
+      onStart: onStart,
+      autoStart: false,
+      isForegroundMode: false,
+      notificationChannelId: 'my-foreground',
+      initialNotificationTitle: 'Expandiware Service',
+      initialNotificationContent: 'Initializing',
+      foregroundServiceNotificationId: 888,
+    ),
+    iosConfiguration: IosConfiguration(
+      autoStart: false,
+      onForeground: onStart,
+    )
+  );
+
+  return service.startService();
+}
+
+@pragma('vm:entry-point')
+void onStart(ServiceInstance service) async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
 
   if (prefs.getBool('automaticLoad') == false) {
-    service.stopBackgroundService();
+    service.stopSelf();
     return;
   }
 
-  service.onDataReceived.listen((event) {
-    if (event!["action"] == "setAsForeground") {
-      service.setForegroundMode(false);
-      return;
-    }
-    if (event["action"] == "setAsBackground") {
-      service.setForegroundMode(false);
-    }
-    if (event["action"] == "stopService") {
+  if (service is AndroidServiceInstance) {
+    service.on('setAsForeground').listen((event) {
+      service.setAsForegroundService();
+    });
+
+    service.on('setAsBackground').listen((event) {
+      service.setAsBackgroundService();
+    });
+
+    service.on('stopService').listen((event) {
       _timer?.cancel();
-      service.stopBackgroundService();
-    }
-    if (event["action"] == "restartTimer") {
+      service.stopSelf();
+    });
+
+    service.on('restartTimer').listen((event) {
       _timer?.cancel();
       startTimer();
-    }
-  });
-
-  // bring to foreground
-  service.setForegroundMode(false);
+    });
+  }
 
   startTimer();
 }

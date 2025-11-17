@@ -113,6 +113,8 @@ void sendAppOpenData() async {
   }
 }
 
+
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -126,7 +128,7 @@ void main() async {
   if (prefs.getBool('automaticLoad') == true ||
       prefs.getBool('automaticLoad') == null) {
     print('initialize background service');
-    FlutterBackgroundService.initialize(onStart);
+    await initializeService();
   }
   if (!kDebugMode) sendAppOpenData();
   runApp(MyApp());
