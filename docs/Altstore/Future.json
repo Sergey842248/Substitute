@@ -4,7 +4,6 @@
   "description": "All my Apps for iOS from GitHub. No pricings, no purchases, just Open-Source iOS Apps.",
   "iconURL": "https://i.imgur.com/ypkaxFg.png",
   "website": "https://github.com/Sergey842248",
-  "patreonURL": "https://www.patreon.com/cw/Sergey842248",
   "tintColor": "#6156e2",
   "featuredApps": [
     "com.future.substitute"
@@ -35,8 +34,7 @@
       "appPermissions": {
         "entitlements": [],
         "privacy": {}
-      },
-      "patreon": {}
+      }
     }
   ],
   "news": []
