@@ -13,7 +13,7 @@
     {
       "name": "Substitute",
       "bundleIdentifier": "com.future.substitute",
-      "marketplaceID": "",
+      "marketplaceID": "12345678",
       "developerName": "Parsa",
       "subtitle": "A substitution plan based on VPlan24 with many features",
       "localizedDescription": "This is a substitution plan app based on the API of Vertretungsplan 24 with many extra features and options. ",
@@ -27,7 +27,7 @@
           "size": 26400000,
           "version": "3.5.1",
           "buildVersion": null,
-          "date": "2025-11-29T15:50:00+01:00",
+          "date": "2025-11-29T14:50:00+01:00",
           "localizedDescription": "Initial Release for iOS. For the Repo head to https://github.com/Sergey842248/Substitute",
           "minOSVersion": null
         }
