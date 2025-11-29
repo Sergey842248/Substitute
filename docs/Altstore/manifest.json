@@ -1,0 +1,13 @@
+{
+  "name": "Substitute",
+  "bundleIdentifier": "com.future.substitute",
+  "developerName": "Parsa",
+  "subtitle": "Beschreibung",
+  "version": "3.5.1",
+  "versionDate": "2025-11-29T18:45:00Z",
+  "versionDescription": "Initial release",
+  "downloadURL": "https://github.com/Sergey842248/Substitute/releases/download/3.5.1/Substitute-iOS.ipa",
+  "iconURL": "https://i.imgur.com/d2AkE2C.png",
+  "tintColor": "018084",
+  "size": 12345678
+}
