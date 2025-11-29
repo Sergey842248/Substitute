@@ -26,8 +26,8 @@
           "downloadURL": "https://github.com/Sergey842248/Substitute/releases/download/3.5.1/Substitute-iOS.ipa",
           "size": 26400000,
           "version": "3.5.1",
-          "buildVersion": null,
-          "date": "2025-11-29T14:50:00+01:00",
+          "buildVersion": "351",
+          "date": "2025-11-29T13:50:00+01:00",
           "localizedDescription": "Initial Release for iOS. For the Repo head to https://github.com/Sergey842248/Substitute",
           "minOSVersion": null
         }
