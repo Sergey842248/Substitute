@@ -1,41 +1,16 @@
 {
   "name": "Future",
-  "subtitle": "Apps from Sergey842248",
-  "description": "All my Apps for iOS from GitHub. No pricings, no purchases, just Open-Source iOS Apps.",
-  "iconURL": "https://i.imgur.com/ypkaxFg.png",
-  "website": "https://github.com/Sergey842248",
-  "tintColor": "#6156e2",
-  "featuredApps": [
-    "com.future.substitute"
-  ],
+  "identifier": "sergey842248.future.future",
   "apps": [
     {
       "name": "Substitute",
       "bundleIdentifier": "com.future.substitute",
-      "marketplaceID": "12345678",
       "developerName": "Parsa",
       "subtitle": "A substitution plan based on VPlan24 with many features",
-      "localizedDescription": "This is a substitution plan app based on the API of Vertretungsplan 24 with many extra features and options. ",
-      "iconURL": "https://i.imgur.com/d2AkE2C.png",
-      "tintColor": "#6156e2",
-      "category": "utilities",
-      "screenshots": [],
-      "versions": [
-        {
-          "downloadURL": "https://github.com/Sergey842248/Substitute/releases/download/3.5.1",
-          "size": 26400000,
-          "version": "3.5.1",
-          "buildVersion": "351",
-          "date": "2025-11-29T13:50:00+01:00",
-          "localizedDescription": "Initial Release for iOS. For the Repo head to https://github.com/Sergey842248/Substitute",
-          "minOSVersion": null
-        }
-      ],
-      "appPermissions": {
-        "entitlements": [],
-        "privacy": {}
-      }
+      "version": "3.5.1",
+      "versionDate": "2025-11-29T18:45:00Z",
+      "downloadURL": "https://github.com/Sergey842248/Substitute/releases/download/3.5.1/manifest.json",
+      "iconURL": "https://i.imgur.com/d2AkE2C.png"
     }
-  ],
-  "news": []
+  ]
 }
