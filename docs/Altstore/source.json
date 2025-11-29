@@ -29,9 +29,10 @@
                 {
           "version": "3.5.1",
           "date": "2025-11-29T18:45:00.0000000Z",
-          "localizedDescription": "",
+          "localizedDescription": "Init Release",
           "downloadURL": "https://sergey842248.github.io/Substitute/Altstore",
           "minOSVersion": "17.6",
+          "size": 26400000,
           "buildVersion": "3.5.1"
         }
       ],
