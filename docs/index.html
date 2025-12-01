@@ -117,6 +117,25 @@
             font-size: 16px;
         }
 
+        @media screen and (max-width: 480px) {
+            input[type="date"], input[type="time"] {
+                width: 48%;
+                float: left;
+                margin-right: 4%;
+            }
+
+            input[type="time"] {
+                float: right;
+                margin-right: 0;
+            }
+
+            .form-container::after {
+                content: "";
+                display: table;
+                clear: both;
+            }
+        }
+
         input:focus {
             outline: none;
             border-color: #AF69EE;
