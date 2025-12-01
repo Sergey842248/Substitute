@@ -127,7 +127,7 @@
 
             input[type="date"], input[type="time"] {
                 width: 100%;
-                float: center;
+                float: left;
                 margin-right: 4%;
             }
 
@@ -349,7 +349,7 @@
                 cachedXmlData = xmlText; // Cache the data
 
                 const { lessons, planDate } = parseLessons(cachedXmlData, className);
-                displayLessons(lessons, planDate); 
+                displayLessons(lessons, formatDateForDisplay(currentDate), className);
                 
                 document.getElementById('class-list-container').style.display = 'block';
                 document.getElementById('login-form').style.display = 'none';
@@ -490,24 +490,19 @@
             }
             currentView = { type: 'class', name: className };
             
-            // For today, use the cached main XML if available. For other days, always fetch.
-            if (isToday(currentDate) && cachedXmlData) {
-                const { lessons, planDate } = parseLessons(cachedXmlData, className);
-                displayLessons(lessons, planDate || formatDateForDisplay(currentDate));
-                return;
-            }
+            
 
             try {
                 const xmlText = await fetchPlanForDate(currentDate);
                 if (xmlText) {
                     const { lessons, planDate } = parseLessons(xmlText, className);
-                    displayLessons(lessons, planDate || formatDateForDisplay(currentDate));
+                    displayLessons(lessons, formatDateForDisplay(currentDate), currentView.name);
                 } else {
-                    displayLessons([], formatDateForDisplay(currentDate)); // Show empty plan if no data
+                    displayLessons([], formatDateForDisplay(currentDate), currentView.name); // Show empty plan if no data
                 }
             } catch (error) {
                 console.error('Fehler beim Laden der Plandaten für dieses Datum: ', error);
-                displayLessons([], formatDateForDisplay(currentDate)); // Show empty plan on error
+                displayLessons([], formatDateForDisplay(currentDate), currentView.name); // Show empty plan on error
             }
         }
 
@@ -567,9 +562,9 @@
             const container = document.getElementById('class-list-container');
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
-                    <button onclick="changeDay(-1)" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;"><</button>
+                    <button onclick="changeDay(-1, '${className}')" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;"><</button>
                     <h3 style="margin: 0; text-align: center;">${dateString}</h3>
-                    <button onclick="changeDay(1)" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;">></button>
+                    <button onclick="changeDay(1, '${className}')" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;">></button>
                 </div>
                 <div id="lessons"></div>
                 <button onclick="backToClasses()">Zurück zur Klassenübersicht</button>
@@ -745,13 +740,8 @@
             }
             currentView = { type: 'teacher', name: teacherName };
 
-            if (isToday(currentDate) && !cachedXmlData) {
-                alert('Bitte zuerst auf dem VPlan-Tab die Klassen laden, um die heutigen Daten zu erhalten.');
-                return;
-            }
-
             try {
-                const xmlText = isToday(currentDate) ? cachedXmlData : await fetchPlanForDate(currentDate);
+                const xmlText = await fetchPlanForDate(currentDate);
                 if (xmlText) {
                     const lessons = parseTeacherLessons(xmlText, teacherName);
                     displayTeacherLessons(teacherName, lessons, formatDateForDisplay(currentDate));
@@ -805,12 +795,12 @@
         }
 
         function displayTeacherLessons(teacherName, lessons, dateString) {
-            const container = document.getElementById('teacher-list').parentElement;
+            const container = document.querySelector('#tab-teacher .form-container');
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
-                    <button onclick="changeDay(-1)" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;"><</button>
+                    <button onclick="changeDay(-1, '${teacherName}')" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;"><</button>
                     <h3 style="margin: 0; text-align: center;">Plan für ${teacherName}<br><small>${dateString}</small></h3>
-                    <button onclick="changeDay(1)" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;">></button>
+                    <button onclick="changeDay(1, '${teacherName}')" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;">></button>
                 </div>
                 <div id="teacher-lessons"></div>
                 <button onclick="backToTeachers()">Zurück zur Lehrerliste</button>
@@ -875,7 +865,7 @@
             return date.toLocaleDateString('de-DE', { weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit' });
         }
 
-        function changeDay(offset) {
+        function changeDay(offset, name) {
             currentDate.setDate(currentDate.getDate() + offset);
             
             if (offset > 0 && currentDate.getDay() === 6) currentDate.setDate(currentDate.getDate() + 2);
@@ -884,9 +874,9 @@
             if (offset < 0 && currentDate.getDay() === 6) currentDate.setDate(currentDate.getDate() - 1);
 
             if (currentView.type === 'class') {
-                loadClassDetails(currentView.name, true);
+                loadClassDetails(name, true);
             } else if (currentView.type === 'teacher') {
-                loadTeacherDetails(currentView.name, true);
+                loadTeacherDetails(name, true);
             }
         }
 
