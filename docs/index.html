@@ -222,7 +222,6 @@
             <div class="form-container">
                 <h2>Lehrerverwaltung</h2>
                 <p>Hier können Lehrerkürzel verwaltet werden</p>
-                <button onclick="loadTeachers()">Lehrer laden</button>
                 <div id="teacher-list" class="class-list"></div>
             </div>
         </div>
@@ -618,12 +617,7 @@
 
             // Pre-fill date and time and auto-load teachers/freerooms when switching tabs
             if (tabIndex === 1) {
-                const cachedTeachers = localStorage.getItem('cachedTeachers');
-                if (cachedTeachers) {
-                    const teacherList = JSON.parse(cachedTeachers);
-                    cachedTeacherList = teacherList;
-                    displayTeachers(teacherList);
-                }
+                loadTeachers();
             }
             if (tabIndex === 3) {
                 const now = new Date();
@@ -837,7 +831,6 @@
             container.innerHTML = `
                 <h2>Lehrerverwaltung</h2>
                 <p>Hier können Lehrerkürzel verwaltet werden</p>
-                <button onclick="loadTeachers()">Lehrer laden</button>
                 <div id="teacher-list" class="class-list"></div>
             `;
             displayTeachers(cachedTeacherList);
