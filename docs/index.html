@@ -120,14 +120,14 @@
         @media screen and (max-width: 480px) {
             #tab-freerooms input[type="date"],
             #tab-freerooms input[type="time"] {
-                width: 80%;
+                width: 100%;
                 float: none;
                 margin: 10px 0;
             }
 
             input[type="date"], input[type="time"] {
                 width: 100%;
-                float: left;
+                float: center;
                 margin-right: 4%;
             }
 
@@ -567,9 +567,9 @@
             const container = document.getElementById('class-list-container');
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
-                    <button onclick="changeDay(-1, '${className}')" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;"><</button>
+                    <button onclick="changeDay(-1)" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;"><</button>
                     <h3 style="margin: 0; text-align: center;">${dateString}</h3>
-                    <button onclick="changeDay(1, '${className}')" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;">></button>
+                    <button onclick="changeDay(1)" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;">></button>
                 </div>
                 <div id="lessons"></div>
                 <button onclick="backToClasses()">Zurück zur Klassenübersicht</button>
@@ -808,9 +808,9 @@
             const container = document.getElementById('teacher-list').parentElement;
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
-                    <button onclick="changeDay(-1, '${teacherName}')" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;"><</button>
+                    <button onclick="changeDay(-1)" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;"><</button>
                     <h3 style="margin: 0; text-align: center;">Plan für ${teacherName}<br><small>${dateString}</small></h3>
-                    <button onclick="changeDay(1, '${teacherName}')" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;">></button>
+                    <button onclick="changeDay(1)" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;">></button>
                 </div>
                 <div id="teacher-lessons"></div>
                 <button onclick="backToTeachers()">Zurück zur Lehrerliste</button>
@@ -875,7 +875,7 @@
             return date.toLocaleDateString('de-DE', { weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit' });
         }
 
-        function changeDay(offset, name) {
+        function changeDay(offset) {
             currentDate.setDate(currentDate.getDate() + offset);
             
             if (offset > 0 && currentDate.getDay() === 6) currentDate.setDate(currentDate.getDate() + 2);
@@ -884,9 +884,9 @@
             if (offset < 0 && currentDate.getDay() === 6) currentDate.setDate(currentDate.getDate() - 1);
 
             if (currentView.type === 'class') {
-                loadClassDetails(name, true);
+                loadClassDetails(currentView.name, true);
             } else if (currentView.type === 'teacher') {
-                loadTeacherDetails(name, true);
+                loadTeacherDetails(currentView.name, true);
             }
         }
 
