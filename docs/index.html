@@ -233,14 +233,14 @@
             </div>
         </div>
 
-        <div id="tab-dashboard" class="tab-content" style="display: none;">
+        <div id="tab-settings" class="tab-content" style="display: none;">
             <div class="form-container">
-                <h2>Dashboard</h2>
+                <h2>Einstellungen</h2>
                 <button onclick="showSettings()">Zugangsdaten ändern</button>
                 <button onclick="showAnalytics()">Analysen anzeigen</button>
                 <button onclick="forceRefreshData()">Force Refresh Data</button>
                 <button onclick="clearData()">Daten löschen</button>
-                <div id="dashboard-info"></div>
+                <div id="settings-info"></div>
             </div>
         </div>
     </div>
@@ -262,7 +262,7 @@
         </div>
         <div class="nav-item" onclick="setTab(3)">
             <div class="nav-icon">&#xE871;</div>
-            <div>Dashboard</div>
+            <div>Einstellungen</div>
         </div>
     </div>
 
@@ -594,7 +594,7 @@
             navItems.forEach(item => item.classList.remove('active'));
             navItems[tabIndex].classList.add('active');
 
-            const tabIds = ['tab-vplan', 'tab-teacher', 'tab-freerooms', 'tab-dashboard'];
+            const tabIds = ['tab-vplan', 'tab-teacher', 'tab-freerooms', 'tab-settings'];
             document.getElementById(tabIds[tabIndex]).style.display = 'block';
 
             // Pre-fill date and time and auto-load teachers/freerooms when switching tabs
@@ -903,11 +903,11 @@
         }
 
         function showAnalytics() {
-            const info = document.getElementById('dashboard-info');
+            const info = document.getElementById('settings-info');
             const savedSchool = localStorage.getItem('vplanSchoolnumber');
             info.innerHTML = `
                 <div class="class-item">
-                    <strong>Analytics Dashboard</strong>
+                    <strong>Analytics Settings</strong>
                     <div>Gespeicherte Schulnummer: ${savedSchool || 'Keine'}</div>
                     <div>Zuletzt verwendet: ${new Date().toLocaleDateString()}</div>
                     <div>API-Status: ${savedSchool ? 'Bereit' : 'Nicht konfiguriert'}</div>
