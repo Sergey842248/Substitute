@@ -27,24 +27,20 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 15vh;
+            height: 8vh;
             background-color: #2a2a3c;
             display: flex;
             align-items: center;
             padding: 10px;
             z-index: 10;
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
         }
 
         .app-bar .logo {
-            width: 60px;
-            height: 60px;
-            background-color: #AF69EE;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            margin-left: 10px;
+            width: 40px;
+            height: 40px;
+            margin-left: 15px;
         }
 
         .app-bar .title {
@@ -63,7 +59,7 @@
         }
 
         .content {
-            margin: 15vh 0 10vh 0;
+            margin: 8vh 0 10vh 0;
             background-color: #1e1e2e;
             border-radius: 45px 45px 0 0;
             padding: 20px;
@@ -200,7 +196,7 @@
 <body>
     <!-- App Bar -->
     <div class="app-bar">
-        <div class="logo">S</div>
+        <img src="icons/Icon-192.png" alt="Logo" class="logo">
         <div class="title">Substitute</div>
         <div class="menu-btn" onclick="showInfo()">&#x22EE;</div>
     </div>
