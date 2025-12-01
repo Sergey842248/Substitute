@@ -578,6 +578,9 @@
             lessons.forEach(lesson => {
                 const lessonItem = document.createElement('div');
                 lessonItem.className = 'class-item';
+                if (lesson.regel && lesson.regel.trim() !== '') {
+                    lessonItem.style.backgroundColor = 'rgba(139, 0, 0, 0.6)';
+                }
         lessonItem.innerHTML = `
             <strong>Stunde ${lesson.stunde}: ${lesson.fach}</strong>
             <div>Lehrer: ${lesson.lehrer}</div>
@@ -816,6 +819,9 @@
             lessons.forEach(lesson => {
                 const lessonItem = document.createElement('div');
                 lessonItem.className = 'class-item';
+                if (lesson.regel && lesson.regel.trim() !== '') {
+                    lessonItem.style.backgroundColor = 'rgba(139, 0, 0, 0.6)';
+                }
                 lessonItem.innerHTML = `
                     <strong>Klasse ${lesson.klasse}, Stunde ${lesson.stunde}: ${lesson.fach}</strong>
                     <div>Raum: ${lesson.raum}</div>
