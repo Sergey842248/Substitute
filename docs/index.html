@@ -323,31 +323,16 @@
             const customUrl = localStorage.getItem('customUrl');
 
             try {
-                const proxy = 'https://corsproxy.io/?';
-                let url;
-                let headers = {};
-
-                if (customUrl) {
-                    url = `${proxy}${customUrl}Klassen.xml`;
+                const xmlText = await fetchPlanForDate(currentDate);
+                if (xmlText) {
+                    cachedXmlData = xmlText; // Cache the data
+                    const { lessons, planDate } = parseLessons(xmlText, className);
+                    displayLessons(lessons, formatDateForDisplay(currentDate), className, xmlText);
                 } else {
-                    url = `${proxy}https://www.stundenplan24.de/${schoolnumber}/mobil/mobdaten/Klassen.xml`;
-                    const credentials = btoa(`${username}:${password}`);
-                    headers['Authorization'] = `Basic ${credentials}`;
+                    displayLessons([], formatDateForDisplay(currentDate), className, null);
                 }
+                currentView = { type: 'class', name: className };
 
-                const response = await fetch(url, { method: 'GET', headers: headers });
-
-                if (!response.ok) {
-                    document.getElementById('login-form').style.display = 'block';
-                    return;
-                }
-
-                const xmlText = await response.text();
-                cachedXmlData = xmlText; // Cache the data
-
-                const { lessons, planDate } = parseLessons(cachedXmlData, className);
-                displayLessons(lessons, formatDateForDisplay(currentDate), className, cachedXmlData);
-                
                 document.getElementById('class-list-container').style.display = 'block';
                 document.getElementById('login-form').style.display = 'none';
 
