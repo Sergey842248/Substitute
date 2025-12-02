@@ -234,7 +234,7 @@
 
         <div id="tab-freerooms" class="tab-content" style="display: none;">
             <div class="form-container">
-                <h2>Freie Räume</h2>
+                <h2>Räume</h2>
                 <p>Wähle einen Tag und eine Zeit, um freie Räume zu finden.</p>
                 <input type="date" id="freerooms-date">
                 <input type="time" id="freerooms-time">
@@ -280,7 +280,7 @@
 
         <div class="nav-item" onclick="setTab(2)">
             <div class="nav-icon">&#xE572;</div>
-            <div>Freie Räume</div>
+            <div>Räume</div>
         </div>
         <div class="nav-item" onclick="setTab(3)">
             <div class="nav-icon">&#xE8B8;</div>
@@ -1093,7 +1093,7 @@
             freeRoomsList.innerHTML = '';
 
             if (freeRooms.length > 0) {
-                freeRoomsList.innerHTML += '<h3>Freie Räume</h3>';
+                freeRoomsList.innerHTML += '<h3>Räume</h3>';
                 freeRooms.forEach(room => {
                     const roomItem = document.createElement('div');
                     roomItem.className = 'class-item';
