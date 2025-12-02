@@ -10,7 +10,7 @@ icon: readme
 
 ### Substitute
 
-### Substitute
+
 
 **Substitute** is an improved version of the vpMobil app, based on Indiware. Developed to make school life easier for students, Substitute offers a modern and user-friendly interface as well as a variety of useful features.
 
