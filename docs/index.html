@@ -206,16 +206,15 @@
     <!-- Content -->
     <div class="content">
         <div id="tab-vplan" class="tab-content">
-            <div id="login-form" class="form-container">
-                <h2>VPlan Anmeldedaten</h2>
-                <input type="number" id="schoolnumber" placeholder="Schulnummer">
-                <input type="text" id="username" placeholder="Benutzername">
-                <input type="password" id="password" placeholder="Passwort">
-                <input type="url" id="customUrl" placeholder="Benutzerdefinierte URL (optional)" style="display: none;">
-                <button onclick="toggleCustomUrl()">Benutzerdefinierte URL verwenden</button>
-                <button onclick="saveCredentials()">Speichern</button>
-                <button onclick="loadClasses()">Klassen laden</button>
-            </div>
+        <div id="login-form" class="form-container">
+            <h2>VPlan Anmeldedaten</h2>
+            <input type="number" id="schoolnumber" placeholder="Schulnummer" oninput="autoSaveCredentials()">
+            <input type="text" id="username" placeholder="Benutzername" oninput="autoSaveCredentials()">
+            <input type="password" id="password" placeholder="Passwort" oninput="autoSaveCredentials()">
+            <input type="url" id="customUrl" placeholder="Benutzerdefinierte URL (optional)" style="display: none;" oninput="autoSaveCredentials()">
+            <button onclick="toggleCustomUrl()">Benutzerdefinierte URL verwenden</button>
+            <button onclick="loadClasses()">Klassen laden</button>
+        </div>
 
             <div id="class-list-container" class="class-list">
                 <h2>Wähle eine Klasse</h2>
@@ -368,6 +367,18 @@
             if (username) document.getElementById('username').value = username;
             if (password) document.getElementById('password').value = password;
             if (customUrl) document.getElementById('customUrl').value = customUrl;
+        }
+
+        function autoSaveCredentials() {
+            const schoolnumber = document.getElementById('schoolnumber').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const customUrl = document.getElementById('customUrl').value;
+
+            localStorage.setItem('vplanSchoolnumber', schoolnumber);
+            localStorage.setItem('vplanUsername', username);
+            localStorage.setItem('vplanPassword', password);
+            localStorage.setItem('customUrl', customUrl);
         }
 
         function saveCredentials() {
@@ -603,6 +614,15 @@
                 // Fallback if cache is empty for some reason
                 document.getElementById('login-form').style.display = 'block';
                 document.getElementById('class-list-container').style.display = 'none';
+            }
+            // Remove manual save button when leaving settings view
+            removeManualSaveButton();
+        }
+
+        function removeManualSaveButton() {
+            const manualSaveButton = document.getElementById('manual-save-button');
+            if (manualSaveButton) {
+                manualSaveButton.remove();
             }
         }
 
@@ -840,6 +860,18 @@
             setTab(0);
             document.getElementById('login-form').style.display = 'block';
             document.getElementById('class-list-container').style.display = 'none';
+
+            // Add save button for manual credential changes
+            const loginForm = document.getElementById('login-form');
+            const existingSaveButton = document.getElementById('manual-save-button');
+            if (!existingSaveButton) {
+                const saveButton = document.createElement('button');
+                saveButton.id = 'manual-save-button';
+                saveButton.textContent = 'Speichern';
+                saveButton.onclick = saveCredentials;
+                saveButton.style.marginTop = '10px';
+                loginForm.appendChild(saveButton);
+            }
         }
 
         // --- Date Navigation Helper Functions ---
