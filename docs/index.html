@@ -346,7 +346,7 @@
                 cachedXmlData = xmlText; // Cache the data
 
                 const { lessons, planDate } = parseLessons(cachedXmlData, className);
-                displayLessons(lessons, formatDateForDisplay(currentDate), className);
+                displayLessons(lessons, formatDateForDisplay(currentDate), className, cachedXmlData);
                 
                 document.getElementById('class-list-container').style.display = 'block';
                 document.getElementById('login-form').style.display = 'none';
@@ -502,15 +502,15 @@
 
             try {
                 const xmlText = await fetchPlanForDate(currentDate);
-                if (xmlText) {
-                    const { lessons, planDate } = parseLessons(xmlText, className);
-                    displayLessons(lessons, formatDateForDisplay(currentDate), currentView.name);
-                } else {
-                    displayLessons([], formatDateForDisplay(currentDate), currentView.name); // Show empty plan if no data
-                }
+            if (xmlText) {
+                const { lessons, planDate } = parseLessons(xmlText, className);
+                displayLessons(lessons, formatDateForDisplay(currentDate), currentView.name, xmlText);
+            } else {
+                displayLessons([], formatDateForDisplay(currentDate), currentView.name, null); // Show empty plan if no data
+            }
             } catch (error) {
                 console.error('Fehler beim Laden der Plandaten für dieses Datum: ', error);
-                displayLessons([], formatDateForDisplay(currentDate), currentView.name); // Show empty plan on error
+                displayLessons([], formatDateForDisplay(currentDate), currentView.name, null); // Show empty plan on error
             }
         }
 
@@ -566,7 +566,33 @@
             return { lessons: [], planDate: planDate };
         }
 
-        function displayLessons(lessons, dateString, className) {
+        function parseGeneralInfo(xmlText) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+
+            // Parse ZusatzInfo > ZiZeile elements (same as the app)
+            const generalInfo = [];
+
+            const zusatzInfo = xmlDoc.querySelector('ZusatzInfo');
+            if (zusatzInfo) {
+                const ziZeilen = zusatzInfo.querySelectorAll('ZiZeile');
+                ziZeilen.forEach(element => {
+                    const text = element.textContent?.trim();
+                    if (text) {
+                        generalInfo.push(text);
+                    }
+                });
+
+                // Remove trailing empty entries (same logic as app)
+                while (generalInfo.length > 0 && generalInfo[generalInfo.length - 1].trim() === '') {
+                    generalInfo.pop();
+                }
+            }
+
+            return generalInfo;
+        }
+
+        function displayLessons(lessons, dateString, className, xmlText) {
             const container = document.getElementById('class-list-container');
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
@@ -575,6 +601,7 @@
                     <button onclick="changeDay(1, '${className}')" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;">></button>
                 </div>
                 <div id="lessons"></div>
+                <div id="general-info"></div>
                 <button onclick="backToClasses()">Zurück zur Klassenübersicht</button>
             `;
 
@@ -582,24 +609,43 @@
 
             if (lessons.length === 0) {
                 lessonsElement.innerHTML = '<p>Für diesen Tag sind keine Informationen verfügbar</p>';
-                return;
+            } else {
+                lessons.forEach(lesson => {
+                    const lessonItem = document.createElement('div');
+                    lessonItem.className = 'class-item';
+                    if (lesson.regel && lesson.regel.trim() !== '') {
+                        lessonItem.style.backgroundColor = 'rgba(139, 0, 0, 0.6)';
+                    }
+            lessonItem.innerHTML = `
+                <strong>Stunde ${lesson.stunde}: ${lesson.fach}</strong>
+                <div>Lehrer: ${lesson.lehrer}</div>
+                <div>Raum: ${lesson.raum}</div>
+                <div>Zeit: ${lesson.beginn} - ${lesson.ende}</div>
+                <div>${lesson.regel ? 'Info: ' + lesson.regel : ''}</div>
+            `;
+                    lessonsElement.appendChild(lessonItem);
+                });
             }
 
-            lessons.forEach(lesson => {
-                const lessonItem = document.createElement('div');
-                lessonItem.className = 'class-item';
-                if (lesson.regel && lesson.regel.trim() !== '') {
-                    lessonItem.style.backgroundColor = 'rgba(139, 0, 0, 0.6)';
+            // Display general information at the bottom if available
+            if (xmlText) {
+                const generalInfo = parseGeneralInfo(xmlText);
+                const generalInfoElement = document.getElementById('general-info');
+
+                if (generalInfo.length > 0) {
+                    generalInfoElement.innerHTML = '<h4 style="margin-top: 20px; color: #AF69EE;">Allgemeine Informationen</h4>';
+
+                    generalInfo.forEach(info => {
+                        const infoItem = document.createElement('div');
+                        infoItem.className = 'class-item';
+                        infoItem.style.backgroundColor = '#2a2a3c';
+                        infoItem.style.borderColor = '#AF69EE';
+                        infoItem.style.borderWidth = '2px';
+                        infoItem.innerHTML = `<strong>Info:</strong> ${info}`;
+                        generalInfoElement.appendChild(infoItem);
+                    });
                 }
-        lessonItem.innerHTML = `
-            <strong>Stunde ${lesson.stunde}: ${lesson.fach}</strong>
-            <div>Lehrer: ${lesson.lehrer}</div>
-            <div>Raum: ${lesson.raum}</div>
-            <div>Zeit: ${lesson.beginn} - ${lesson.ende}</div>
-            <div>${lesson.regel ? 'Info: ' + lesson.regel : ''}</div>
-        `;
-                lessonsElement.appendChild(lessonItem);
-            });
+            }
         }
 
         function backToClasses() {
