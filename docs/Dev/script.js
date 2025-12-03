@@ -179,6 +179,28 @@ let cachedTeacherList = []; // Cache for the teacher list
 let currentDate = new Date();
 let currentView = { type: null, name: null }; // Tracks what is being viewed, e.g., { type: 'class', name: '10A' }
 
+// Function to find the latest available date with a substitute plan
+async function findLatestDate() {
+    let checkDate = new Date(); // Start from today
+    let maxDays = 7; // Check up to 7 days ahead
+    let latest = null;
+
+    for (let i = 0; i <= maxDays; i++) {
+        try {
+            const xmlText = await fetchPlanForDate(checkDate);
+            if (xmlText !== null) {
+                latest = new Date(checkDate);
+            }
+        } catch (error) {
+            // If there's an error (other than 404), skip this day
+            console.error(`Error checking plan for ${formatDateForDisplay(checkDate)}:`, error);
+        }
+        checkDate.setDate(checkDate.getDate() + 1);
+    }
+
+    return latest || new Date(); // Return latest found, or today if none
+}
+
 // Load saved credentials on page load
 window.onload = async function() {
     loadCredentials();
@@ -196,6 +218,9 @@ async function loadPlanForFavoriteClass(className) {
     const username = localStorage.getItem('vplanUsername');
     const password = localStorage.getItem('vplanPassword');
     const customUrl = localStorage.getItem('customUrl');
+
+    // Find the latest available date with a substitute plan
+    currentDate = await findLatestDate();
 
     try {
         const xmlText = await fetchPlanForDate(currentDate);
@@ -354,7 +379,8 @@ async function loadClassDetails(className, fromDateChange = false) {
     localStorage.setItem('favoriteClass', className);
 
     if (!fromDateChange) {
-        currentDate = new Date(); // Reset to today when a new class is selected
+        currentDate = new Date(); // Reset to today
+        currentDate = await findLatestDate(); // Then find the latest available date
     }
     currentView = { type: 'class', name: className };
     
@@ -659,6 +685,7 @@ function displayTeachers(teacherList) {
 async function loadTeacherDetails(teacherName, fromDateChange = false) {
     if (!fromDateChange) {
         currentDate = new Date(); // Reset to today
+        currentDate = await findLatestDate(); // Then find the latest available date
     }
     currentView = { type: 'teacher', name: teacherName };
 
