@@ -817,13 +817,13 @@
                 </div>
                 <div id="lessons"></div>
                 <div id="general-info"></div>
-                <button onclick="backToClasses()">Zurück zur Klassenübersicht</button>
+                <button onclick="backToClasses()">${_('backToClassOverview')}</button>
             `;
 
             const lessonsElement = document.getElementById('lessons');
 
             if (lessons.length === 0) {
-                lessonsElement.innerHTML = '<p>Für diesen Tag sind keine Informationen verfügbar</p>';
+                lessonsElement.innerHTML = `<p>${_('noInfoAvailable')}</p>`;
             } else {
                 lessons.forEach(lesson => {
                     const lessonItem = document.createElement('div');
@@ -832,11 +832,11 @@
                         lessonItem.style.backgroundColor = 'rgba(139, 0, 0, 0.6)';
                     }
             lessonItem.innerHTML = `
-                <strong>Stunde ${lesson.stunde}: ${lesson.fach}</strong>
-                <div>Lehrer: ${lesson.lehrer}</div>
-                <div>Raum: ${lesson.raum}</div>
-                <div>Zeit: ${lesson.beginn} - ${lesson.ende}</div>
-                <div>${lesson.regel ? 'Info: ' + lesson.regel : ''}</div>
+                <strong>${_('lessonNum')} ${lesson.stunde}: ${lesson.fach}</strong>
+                <div>${_('teacherColon')} ${lesson.lehrer}</div>
+                <div>${_('spaceColon')} ${lesson.raum}</div>
+                <div>${_('timeColon')} ${lesson.beginn} - ${lesson.ende}</div>
+                <div>${lesson.regel ? _('infoColon') + lesson.regel : ''}</div>
             `;
                     lessonsElement.appendChild(lessonItem);
                 });
@@ -848,7 +848,7 @@
                 const generalInfoElement = document.getElementById('general-info');
 
                 if (generalInfo.length > 0) {
-                    generalInfoElement.innerHTML = '<h4 style="margin-top: 20px; color: #AF69EE;">Allgemeine Informationen</h4>';
+                    generalInfoElement.innerHTML = `<h4 style="margin-top: 20px; color: #AF69EE;">${_('generalInfo')}</h4>`;
 
                     generalInfo.forEach(info => {
                         const infoItem = document.createElement('div');
@@ -856,7 +856,7 @@
                         infoItem.style.backgroundColor = '#2a2a3c';
                         infoItem.style.borderColor = '#AF69EE';
                         infoItem.style.borderWidth = '2px';
-                        infoItem.innerHTML = `<strong>Info:</strong> ${info}`;
+                        infoItem.innerHTML = `<strong>${_('info')}:</strong> ${info}`;
                         generalInfoElement.appendChild(infoItem);
                     });
                 }
@@ -865,7 +865,7 @@
 
         function backToClasses() {
             document.getElementById('class-list-container').innerHTML = `
-                <h2>Wähle eine Klasse</h2>
+                <h2>${_('selectClass')}</h2>
                 <div id="class-list"></div>
             `;
             if (cachedXmlData) {
@@ -1077,17 +1077,17 @@
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
                     <button onclick="changeDay(-1, '${teacherName}')" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;"><</button>
-                    <h3 style="margin: 0; text-align: center;">Plan für ${teacherName}<br><small>${dateString}</small></h3>
+                    <h3 style="margin: 0; text-align: center;">${_('planFor')} ${teacherName}<br><small>${dateString}</small></h3>
                     <button onclick="changeDay(1, '${teacherName}')" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;">></button>
                 </div>
                 <div id="teacher-lessons"></div>
-                <button onclick="backToTeachers()">Zurück zur Lehrerliste</button>
+                <button onclick="backToTeachers()">${_('backToTeacherList')}</button>
             `;
 
             const lessonsElement = document.getElementById('teacher-lessons');
 
             if (lessons.length === 0) {
-                lessonsElement.innerHTML = '<p>Für diesen Tag sind keine Informationen verfügbar</p>';
+                lessonsElement.innerHTML = `<p>${_('noInfoAvailable')}</p>`;
                 return;
             }
 
@@ -1098,10 +1098,10 @@
                     lessonItem.style.backgroundColor = 'rgba(139, 0, 0, 0.6)';
                 }
                 lessonItem.innerHTML = `
-                    <strong>Klasse ${lesson.klasse}, Stunde ${lesson.stunde}: ${lesson.fach}</strong>
-                    <div>Raum: ${lesson.raum}</div>
-                    <div>Zeit: ${lesson.beginn} - ${lesson.ende}</div>
-                    <div>${lesson.regel ? 'Info: ' + lesson.regel : ''}</div>
+                    <strong>${_('classCol')} ${lesson.klasse}, ${_('lessonNum')} ${lesson.stunde}: ${lesson.fach}</strong>
+                    <div>${_('spaceColon')} ${lesson.raum}</div>
+                    <div>${_('timeColon')} ${lesson.beginn} - ${lesson.ende}</div>
+                    <div>${lesson.regel ? _('infoColon') + lesson.regel : ''}</div>
                 `;
                 lessonsElement.appendChild(lessonItem);
             });
@@ -1110,8 +1110,8 @@
         function backToTeachers() {
             const container = document.getElementById('tab-teacher').querySelector('.form-container');
             container.innerHTML = `
-                <h2>Lehrerverwaltung</h2>
-                <p>Hier können Lehrerkürzel verwaltet werden</p>
+                <h2>${_('teacherManagement')}</h2>
+                <p>${_('manageTeacherAbbreviations')}</p>
                 <div id="teacher-list" class="class-list"></div>
             `;
             displayTeachers(cachedTeacherList);
@@ -1152,7 +1152,8 @@
         }
 
         function formatDateForDisplay(date) {
-            return date.toLocaleDateString('de-DE', { weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit' });
+            const locale = currentLang === 'de' ? 'de-DE' : 'en-GB';
+            return date.toLocaleDateString(locale, { weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit' });
         }
 
         function changeDay(offset, name) {
@@ -1212,10 +1213,10 @@
             const savedSchool = localStorage.getItem('vplanSchoolnumber');
             info.innerHTML = `
                 <div class="class-item">
-                    <strong>Analytics Settings</strong>
-                    <div>Gespeicherte Schulnummer: ${savedSchool || 'Keine'}</div>
-                    <div>Zuletzt verwendet: ${new Date().toLocaleDateString()}</div>
-                    <div>API-Status: ${savedSchool ? 'Bereit' : 'Nicht konfiguriert'}</div>
+                    <strong>${_('analyticsSettings')}</strong>
+                    <div>${_('savedSchoolNumber')}: ${savedSchool || _('notConfigured')}</div>
+                    <div>${_('lastUsed')}: ${new Date().toLocaleDateString(currentLang === 'de' ? 'de-DE' : 'en-GB', { year: 'numeric', month: '2-digit', day: '2-digit' })}</div>
+                    <div>${_('apiStatus')}: ${savedSchool ? _('ready') : _('notConfigured')}</div>
                 </div>
             `;
         }
@@ -1381,7 +1382,7 @@
             freeRoomsList.innerHTML = '';
 
             if (freeRooms.length > 0) {
-                freeRoomsList.innerHTML += '<h3>Räume</h3>';
+                freeRoomsList.innerHTML += `<h3>${_('spaces')}</h3>`;
                 freeRooms.forEach(room => {
                     const roomItem = document.createElement('div');
                     roomItem.className = 'class-item';
@@ -1393,11 +1394,11 @@
                     freeRoomsList.appendChild(roomItem);
                 });
             } else {
-                freeRoomsList.innerHTML += '<h3>Keine freien Räume verfügbar</h3>';
+                freeRoomsList.innerHTML += `<h3>${_('noFreeSpaces')}</h3>`;
             }
 
             if (occupiedRooms.length > 0) {
-                freeRoomsList.innerHTML += '<h3>Besetzte Räume</h3>';
+                freeRoomsList.innerHTML += `<h3>${_('occupiedSpaces')}</h3>`;
                 occupiedRooms.forEach(room => {
                     const roomItem = document.createElement('div');
                     roomItem.className = 'class-item';
