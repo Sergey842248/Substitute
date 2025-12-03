@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -168,6 +168,22 @@
             background-color: #9a5ad6;
         }
 
+        #language-select {
+            width: 100%;
+            padding: 15px;
+            background-color: #AF69EE;
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 16px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        #language-select:hover {
+            background-color: #9a5ad6;
+        }
+
         .class-list {
             display: none;
         }
@@ -263,11 +279,16 @@
 
         <div id="tab-settings" class="tab-content" style="display: none;">
             <div class="form-container">
-                <h2>Einstellungen</h2>
-                <button onclick="showSettings()">Zugangsdaten ändern</button>
-                <button onclick="showAnalytics()">Analysen anzeigen</button>
+                <h2>Settings</h2>
+                <button onclick="showSettings()">Change Access Data</button>
+                <button onclick="showAnalytics()">Show Analytics</button>
                 <button onclick="forceRefreshData()">Force Refresh Data</button>
-                <button onclick="clearData()">Daten löschen</button>
+                <button onclick="clearData()">Delete Data</button>
+                <p><strong>Language:</strong></p>
+                <select id="language-select" onchange="changeLanguage(this.value)">
+                    <option value="en">English</option>
+                    <option value="de">Deutsch</option>
+                </select>
                 <div id="settings-info"></div>
             </div>
         </div>
@@ -277,20 +298,20 @@
     <div class="bottom-nav">
         <div class="nav-item active" onclick="setTab(0)">
             <div class="nav-icon">&#xE878;</div>
-            <div>VPlan</div>
-        </div>
-        <div class="nav-item" onclick="setTab(1)">
-            <div class="nav-icon">&#xE7EF;</div>
-            <div>Lehrer</div>
-        </div>
+                <div>VPlan</div>
+            </div>
+            <div class="nav-item" onclick="setTab(1)">
+                <div class="nav-icon">&#xE7EF;</div>
+                <div>Teachers</div>
+            </div>
 
-        <div class="nav-item" onclick="setTab(2)">
-            <div class="nav-icon">&#xE572;</div>
-            <div>Räume</div>
-        </div>
-        <div class="nav-item" onclick="setTab(3)">
-            <div class="nav-icon">&#xE8B8;</div>
-            <div>Einstellungen</div>
+            <div class="nav-item" onclick="setTab(2)">
+                <div class="nav-icon">&#xE572;</div>
+                <div>Spaces</div>
+            </div>
+            <div class="nav-item" onclick="setTab(3)">
+                <div class="nav-icon">&#xE8B8;</div>
+                <div>Settings</div>
         </div>
     </div>
 
@@ -330,6 +351,182 @@
     </div>
 
     <script>
+        let translations = {};
+
+        let currentLang = localStorage.getItem('language') || 'en';
+
+        function _(key) { return translations[currentLang][key] || key; }
+
+        async function loadTranslations() {
+            const allTranslations = {};
+            try {
+                const [enResponse, deResponse] = await Promise.all([
+                    fetch('translations_en.json'),
+                    fetch('translations_de.json')
+                ]);
+                allTranslations.en = await enResponse.json();
+                allTranslations.de = await deResponse.json();
+                translations = allTranslations;
+            } catch (error) {
+                console.error('Error loading translations:', error);
+                // Fallback translations
+                translations = {
+                    en: {
+                        schoolNumber: 'School Number',
+                        username: 'Username',
+                        password: 'Password',
+                        customUrlOptional: 'Custom URL (optional)',
+                        useCustomUrl: 'Use Custom URL',
+                        loadClasses: 'Load Classes',
+                        selectClass: 'Select a Class',
+                        teacherManagement: 'Teacher Management',
+                        manageTeacherAbbreviations: 'Here you can manage teacher abbreviations',
+                        spaces: 'Spaces',
+                        selectDayTimeFindFreeSpaces: 'Select a day and time to find free spaces.',
+                        search: 'Search',
+                        spaceDetails: 'Space Details',
+                        close: 'Close',
+                        backToClassOverview: 'Back to Class Overview',
+                        noInfoAvailable: 'No information available for this day',
+                        lessonNum: 'Lesson',
+                        teacherColon: 'Teacher:',
+                        spaceColon: 'Space:',
+                        timeColon: 'Time:',
+                        infoColon: 'Info:',
+                        generalInfo: 'General Information',
+                        info: 'Info:',
+                        selectTeacher: 'Select Teacher',
+                        planFor: 'Plan for',
+                        backToTeacherList: 'Back to Teacher List',
+                        spaceBold: 'Space',
+                        noFreeSpaces: 'No free spaces available',
+                        occupiedSpaces: 'Occupied Spaces',
+                        detailsWillTakePlace: 'Following lessons take place:',
+                        lessonCol: 'Lesson',
+                        spaceCol: 'Space',
+                        timeCol: 'Time',
+                        classCol: 'Class',
+                        teacherCol: 'Teacher',
+                        vplanCredentials: 'VPlan Credentials',
+                        settings: 'Settings',
+                        changeAccessData: 'Change Access Data',
+                        showAnalytics: 'Show Analytics',
+                        deleteData: 'Delete Data',
+                        language: 'Language',
+                        english: 'English',
+                        german: 'Deutsch',
+                        appInfo: 'App Info',
+                        substituteOrganizer: 'Substitute - Organizer App',
+                        reportBug: 'Report a Bug',
+                        requestFeature: 'Request a Feature',
+                        changelog: 'Changelog',
+                        tabVPlan: 'VPlan',
+                        tabTeachers: 'Teachers',
+                        tabSpaces: 'Spaces',
+                        tabSettings: 'Settings',
+                        fillCredentials: 'Please fill in the credentials!',
+                        errorLoadingClasses: 'Error loading classes: ',
+                        credentialsSaved: 'Credentials saved!',
+                        save: 'Save',
+                        ok: 'OK',
+                        yes: 'Yes',
+                        no: 'No',
+                        deleteAllData: 'Delete all saved data?',
+                        errorLoadingTeachers: 'Error loading teachers: ',
+                        errorLoadingTeacherPlan: 'Error loading teacher plan: ',
+                        errorLoadingSpaceDetails: 'Error loading space details.',
+                        noPlanForDate: 'No plan available for the selected date.',
+                        noLessonInSpaceAtTime: 'No lesson taking place in this space at this time.',
+                        selectDateTime: 'Please select a date and time.',
+                        cacheClearedReload: 'Cache cleared. Please reload the data.',
+                        analyticsSettings: 'Analytics Settings',
+                        savedSchoolNumber: 'Saved School Number',
+                        lastUsed: 'Last Used',
+                        apiStatus: 'API Status',
+                        ready: 'Ready',
+                        notConfigured: 'Not configured'
+                    },
+                    de: {
+                        schoolNumber: 'Schulnummer',
+                        username: 'Benutzername',
+                        password: 'Passwort',
+                        customUrlOptional: 'Benutzerdefinierte URL (optional)',
+                        useCustomUrl: 'Benutzerdefinierte URL verwenden',
+                        loadClasses: 'Klassen laden',
+                        selectClass: 'Wähle eine Klasse',
+                        teacherManagement: 'Lehrerverwaltung',
+                        manageTeacherAbbreviations: 'Hier können Lehrerkürzel verwaltet werden',
+                        spaces: 'Räume',
+                        selectDayTimeFindFreeSpaces: 'Wähle einen Tag und eine Zeit, um freie Räume zu finden.',
+                        search: 'Suchen',
+                        spaceDetails: 'Raum Details',
+                        close: 'Schließen',
+                        backToClassOverview: 'Zurück zur Klassenübersicht',
+                        noInfoAvailable: 'Für diesen Tag sind keine Informationen verfügbar',
+                        lessonNum: 'Stunde',
+                        teacherColon: 'Lehrer:',
+                        spaceColon: 'Raum:',
+                        timeColon: 'Zeit:',
+                        infoColon: 'Info:',
+                        generalInfo: 'Allgemeine Informationen',
+                        info: 'Info:',
+                        selectTeacher: 'Lehrer auswählen',
+                        planFor: 'Plan für',
+                        backToTeacherList: 'Zurück zur Lehrerliste',
+                        spaceBold: 'Raum',
+                        noFreeSpaces: 'Keine freien Räume verfügbar',
+                        occupiedSpaces: 'Besetzte Räume',
+                        detailsWillTakePlace: 'Folgende Unterrichtsstunden finden statt:',
+                        lessonCol: 'Stunde',
+                        spaceCol: 'Raum',
+                        timeCol: 'Zeit',
+                        classCol: 'Klasse',
+                        teacherCol: 'Lehrer',
+                        vplanCredentials: 'VPlan Anmeldedaten',
+                        settings: 'Einstellungen',
+                        changeAccessData: 'Zugangsdaten ändern',
+                        showAnalytics: 'Analysen anzeigen',
+                        deleteData: 'Daten löschen',
+                        language: 'Sprache',
+                        english: 'Englisch',
+                        german: 'Deutsch',
+                        appInfo: 'App Info',
+                        substituteOrganizer: 'Substitute - Vertretungsplan App',
+                        reportBug: 'Report a Bug',
+                        requestFeature: 'Request a Feature',
+                        changelog: 'Changelog',
+                        tabVPlan: 'VPlan',
+                        tabTeachers: 'Lehrer',
+                        tabSpaces: 'Räume',
+                        tabSettings: 'Einstellungen',
+                        fillCredentials: 'Bitte füllen Sie die Anmeldedaten aus!',
+                        errorLoadingClasses: 'Fehler beim Laden der Klassen: ',
+                        credentialsSaved: 'Anmeldedaten gespeichert!',
+                        save: 'Speichern',
+                        ok: 'OK',
+                        yes: 'Ja',
+                        no: 'Nein',
+                        deleteAllData: 'Alle gespeicherten Daten löschen?',
+                        errorLoadingTeachers: 'Fehler beim Laden der Lehrer: ',
+                        errorLoadingTeacherPlan: 'Fehler beim Laden der Lehrerplandaten: ',
+                        errorLoadingSpaceDetails: 'Fehler beim Laden der Raumdetails.',
+                        noPlanForDate: 'Kein Plan für das ausgewählte Datum verfügbar.',
+                        noLessonInSpaceAtTime: 'Zu diesem Zeitpunkt findet keine Unterrichtsstunde in diesem Raum statt.',
+                        selectDateTime: 'Bitte wähle ein Datum und eine Uhrzeit.',
+                        cacheClearedReload: 'Cache cleared. Please reload the data.',
+                        analyticsSettings: 'Analytics Settings',
+                        savedSchoolNumber: 'Gespeicherte Schulnummer',
+                        lastUsed: 'Zuletzt verwendet',
+                        apiStatus: 'API-Status',
+                        ready: 'Bereit',
+                        notConfigured: 'Nicht konfiguriert'
+                    }
+                };
+            }
+            currentLang = localStorage.getItem('language') || 'en';
+            updateTexts();
+        }
+
         let cachedXmlData = ''; // Cache for the fetched XML data for the current day
         let cachedTeacherList = []; // Cache for the teacher list
         
@@ -338,8 +535,9 @@
         let currentView = { type: null, name: null }; // Tracks what is being viewed, e.g., { type: 'class', name: '10A' }
 
         // Load saved credentials on page load
-        window.onload = function() {
+        window.onload = async function() {
             loadCredentials();
+            await loadTranslations();
             const favoriteClass = localStorage.getItem('favoriteClass');
             const schoolnumber = localStorage.getItem('vplanSchoolnumber');
 
@@ -1287,28 +1485,108 @@
         }
 
         function displayRoomDetails(roomNumber, lessons) {
-            document.getElementById('room-details-title').textContent = `Raum ${roomNumber} Details`;
+            document.getElementById('room-details-title').textContent = `${_('spaceDetails')} ${roomNumber}`;
             const detailsContent = document.getElementById('room-details-content');
 
             if (lessons.length === 0) {
-                detailsContent.innerHTML = '<p>Zu diesem Zeitpunkt findet keine Unterrichtsstunde in diesem Raum statt.</p>';
+                detailsContent.innerHTML = `<p>${_('noLessonInSpaceAtTime')}</p>`;
             } else {
-                detailsContent.innerHTML = `<p>Folgende Unterrichtsstunden finden statt:</p>`;
+                detailsContent.innerHTML = `<p>${_('detailsWillTakePlace')}</p>`;
                 lessons.forEach(lesson => {
                     const lessonItem = document.createElement('div');
                     lessonItem.className = 'class-item';
                     lessonItem.innerHTML = `
-                        <strong>Stunde ${lesson.stunde}: ${lesson.fach}</strong>
-                        <div>Klasse: ${lesson.klasse}</div>
-                        <div>Lehrer: ${lesson.lehrer}</div>
-                        <div>Zeit: ${lesson.beginn} - ${lesson.ende}</div>
-                        ${lesson.regel ? `<div>Info: ${lesson.regel}</div>` : ''}
+                        <strong>${_('lessonNum')} ${lesson.stunde}: ${lesson.fach}</strong>
+                        <div>${_('classCol')}: ${lesson.klasse}</div>
+                        <div>${_('teacherCol')}: ${lesson.lehrer}</div>
+                        <div>${_('timeColon')} ${lesson.beginn} - ${lesson.ende}</div>
+                        ${lesson.regel ? `<div>${_('infoColon')} ${lesson.regel}</div>` : ''}
                     `;
                     detailsContent.appendChild(lessonItem);
                 });
             }
 
             document.getElementById('room-details-modal').style.display = 'block';
+        }
+
+        function updateTexts() {
+            document.documentElement.lang = currentLang;
+            // Update input placeholders
+            document.getElementById('schoolnumber').placeholder = _('schoolNumber');
+            document.getElementById('username').placeholder = _('username');
+            document.getElementById('password').placeholder = _('password');
+            document.getElementById('customUrl').placeholder = _('customUrlOptional');
+
+            // Update buttons
+            const loadClassesBtn = document.querySelector('button[onclick*="loadClasses"]');
+            if (loadClassesBtn) loadClassesBtn.textContent = _('loadClasses');
+            const customUrlBtn = document.querySelector('button[onclick*="toggleCustomUrl"]');
+            if (customUrlBtn) customUrlBtn.textContent = _('useCustomUrl');
+
+            // Update h2
+            const vplanH2 = document.querySelector('#login-form h2');
+            if (vplanH2) vplanH2.textContent = _('vplanCredentials');
+            const classH2 = document.querySelector('#class-list-container h2');
+            if (classH2) classH2.textContent = _('selectClass');
+            const teacherH2 = document.querySelector('#tab-teacher h2');
+            if (teacherH2) teacherH2.textContent = _('teacherManagement');
+            const teacherP = document.querySelector('#tab-teacher p');
+            if (teacherP) teacherP.textContent = _('manageTeacherAbbreviations');
+            const freeroomsH2 = document.querySelector('#tab-freerooms h2');
+            if (freeroomsH2) freeroomsH2.textContent = _('spaces');
+            const freeroomsP = document.querySelector('#tab-freerooms p');
+            if (freeroomsP) freeroomsP.textContent = _('selectDayTimeFindFreeSpaces');
+            const searchBtn = document.querySelector('#tab-freerooms button[onclick*="findFreeRooms"]');
+            if (searchBtn) searchBtn.textContent = _('search');
+            const settingsH2 = document.querySelector('#tab-settings h2');
+            if (settingsH2) settingsH2.textContent = _('settings');
+            const changeAccessBtn = document.querySelector('#tab-settings button[onclick*="showSettings"]');
+            if (changeAccessBtn) changeAccessBtn.textContent = _('changeAccessData');
+            const showAnalyticsBtn = document.querySelector('#tab-settings button[onclick*="showAnalytics"]');
+            if (showAnalyticsBtn) showAnalyticsBtn.textContent = _('showAnalytics');
+            const deleteDataBtn = document.querySelector('#tab-settings button[onclick*="clearData"]');
+            if (deleteDataBtn) deleteDataBtn.textContent = _('deleteData');
+            const forceRefreshBtn = document.querySelector('#tab-settings button[onclick*="forceRefreshData"]');
+            if (forceRefreshBtn) forceRefreshBtn.textContent = _('cacheClearedReload');
+
+            // Nav items
+            const navItems = document.querySelectorAll('.bottom-nav .nav-item div:last-child');
+            navItems[0].textContent = _('tabVPlan');
+            navItems[1].textContent = _('tabTeachers');
+            navItems[2].textContent = _('tabSpaces');
+            navItems[3].textContent = _('tabSettings');
+
+            // Modals
+            const infoH2 = document.querySelector('#info-modal h2');
+            if (infoH2) infoH2.textContent = _('appInfo');
+            const infoP = document.querySelector('#info-modal p');
+            if (infoP) infoP.textContent = _('substituteOrganizer');
+            const bugLink = document.querySelector('#info-modal .class-item:nth-child(4) a');
+            if (bugLink) bugLink.textContent = _('reportBug');
+            const reqLink = document.querySelector('#info-modal .class-item:nth-child(5) a');
+            if (reqLink) reqLink.textContent = _('requestFeature');
+            const changeLink = document.querySelector('#info-modal .class-item:nth-child(6) a');
+            if (changeLink) changeLink.textContent = _('changelog');
+            const closeBtn = document.querySelector('#info-modal button');
+            if (closeBtn) closeBtn.textContent = _('close');
+            const okBtn = document.querySelector('#message-modal button');
+            if (okBtn) okBtn.textContent = _('ok');
+            const yesBtn = document.querySelector('#confirm-modal button:first-of-type');
+            if (yesBtn) yesBtn.textContent = _('yes');
+            const noBtn = document.querySelector('#confirm-modal button:last-of-type');
+            if (noBtn) noBtn.textContent = _('no');
+
+            // Language selector
+            const langSelect = document.getElementById('language-select');
+            if (langSelect) {
+                langSelect.value = currentLang;
+            }
+        }
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('language', lang);
+            loadTranslations();
         }
     </script>
 </body>
