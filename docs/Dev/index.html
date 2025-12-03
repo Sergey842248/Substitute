@@ -294,6 +294,23 @@
         </div>
     </div>
 
+    <!-- Message Modal -->
+    <div id="message-modal" class="modal" onclick="closeMessageModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <p id="message-text"></p>
+            <button onclick="closeMessageModal()">OK</button>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirm-modal" class="modal" onclick="">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <p id="confirm-text"></p>
+            <button onclick="resolveConfirm(true)">Ja</button>
+            <button onclick="resolveConfirm(false)">Nein</button>
+        </div>
+    </div>
+
     <!-- Info Modal -->
     <div id="info-modal" class="modal" onclick="closeModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
@@ -392,7 +409,7 @@
             localStorage.setItem('vplanPassword', password);
             localStorage.setItem('customUrl', customUrl);
 
-            alert('Anmeldedaten gespeichert!');
+            showMessageModal('Anmeldedaten gespeichert!');
         }
 
         function toggleCustomUrl() {
@@ -408,7 +425,7 @@
             const customUrl = document.getElementById('customUrl').value;
 
             if (!schoolnumber || (!username && !password && !customUrl)) {
-                alert('Bitte füllen Sie die Anmeldedaten aus!');
+                showMessageModal('Bitte füllen Sie die Anmeldedaten aus!');
                 return;
             }
 
@@ -454,7 +471,7 @@
                 document.getElementById('login-form').style.display = 'none';
 
             } catch (error) {
-                alert('Fehler beim Laden der Klassen: ' + error.message);
+                showMessageModal('Fehler beim Laden der Klassen: ' + error.message);
                 console.error('Error loading classes:', error);
             }
         }
@@ -714,7 +731,7 @@
             const customUrl = document.getElementById('customUrl').value;
 
             if (!schoolnumber || (!username && !password && !customUrl)) {
-                alert('Bitte füllen Sie die Anmeldedaten aus!');
+                showMessageModal('Bitte füllen Sie die Anmeldedaten aus!');
                 return;
             }
 
@@ -758,7 +775,7 @@
                 displayTeachers(teacherList);
 
             } catch (error) {
-                alert('Fehler beim Laden der Lehrer: ' + error.message);
+                showMessageModal('Fehler beim Laden der Lehrer: ' + error.message);
                 console.error('Error loading teachers:', error);
             }
         }
@@ -1005,8 +1022,8 @@
             `;
         }
 
-        function clearData() {
-            if (confirm('Alle gespeicherten Daten löschen?')) {
+        async function clearData() {
+            if (await showConfirmModal('Alle gespeicherten Daten löschen?')) {
                 localStorage.clear();
                 location.reload();
             }
@@ -1019,15 +1036,42 @@
         function closeModal() {
             document.getElementById('info-modal').style.display = 'none';
             document.getElementById('room-details-modal').style.display = 'none';
+            document.getElementById('message-modal').style.display = 'none';
+            document.getElementById('confirm-modal').style.display = 'none';
         }
 
+        // Custom popup functions
+        let confirmResolve;
 
+        function showMessageModal(message) {
+            document.getElementById('message-text').textContent = message;
+            document.getElementById('message-modal').style.display = 'block';
+        }
+
+        function closeMessageModal() {
+            document.getElementById('message-modal').style.display = 'none';
+        }
+
+        function showConfirmModal(message) {
+            document.getElementById('confirm-text').textContent = message;
+            document.getElementById('confirm-modal').style.display = 'block';
+            return new Promise(resolve => {
+                confirmResolve = resolve;
+            });
+        }
+
+        function resolveConfirm(result) {
+            document.getElementById('confirm-modal').style.display = 'none';
+            if (confirmResolve) {
+                confirmResolve(result);
+            }
+        }
 
         function forceRefreshData() {
             localStorage.removeItem('cachedClasses');
             localStorage.removeItem('cachedTeachers');
             cachedXmlData = '';
-            alert('Cache cleared. Please reload the data.');
+            showMessageModal('Cache cleared. Please reload the data.');
         }
 
         function selectDate() {
@@ -1063,7 +1107,7 @@
             const time = document.getElementById('freerooms-time').value;
 
             if (!date || !time) {
-                alert('Bitte wähle ein Datum und eine Uhrzeit.');
+                showMessageModal('Bitte wähle ein Datum und eine Uhrzeit.');
                 return;
             }
 
@@ -1071,7 +1115,7 @@
             const xmlText = await fetchPlanForDate(selectedDateTime);
 
             if (!xmlText) {
-                alert('Kein Plan für das ausgewählte Datum verfügbar.');
+                showMessageModal('Kein Plan für das ausgewählte Datum verfügbar.');
                 return;
             }
 
@@ -1174,14 +1218,14 @@
             const time = document.getElementById('freerooms-time').value;
 
             if (!date || !time) {
-                alert('Bitte wähle ein Datum und eine Uhrzeit.');
+                showMessageModal('Bitte wähle ein Datum und eine Uhrzeit.');
                 return;
             }
 
             const selectedDateTime = new Date(`${date}T${time}`);
             fetchPlanForDate(selectedDateTime).then(xmlText => {
                 if (!xmlText) {
-                    alert('Kein Plan für das ausgewählte Datum verfügbar.');
+                    showMessageModal('Kein Plan für das ausgewählte Datum verfügbar.');
                     return;
                 }
 
@@ -1189,7 +1233,7 @@
                 displayRoomDetails(roomNumber, roomLessons);
             }).catch(error => {
                 console.error('Fehler beim Laden der Raumdetails:', error);
-                alert('Fehler beim Laden der Raumdetails.');
+                showMessageModal('Fehler beim Laden der Raumdetails.');
             });
         }
 
