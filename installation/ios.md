@@ -1,6 +1,0 @@
----
-icon: apple
----
-
-# iOS
-
