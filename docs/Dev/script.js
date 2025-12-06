@@ -28,8 +28,8 @@ async function loadTranslations() {
                 selectClass: 'Select a Class',
                 teacherManagement: 'Teacher Management',
                 manageTeacherAbbreviations: 'Here you can manage teacher abbreviations',
-                spaces: 'Spaces',
-                selectDayTimeFindFreeSpaces: 'Select a day and time to find free spaces.',
+                rooms: 'Rooms',
+                selectDayTimeFindFreeRooms: 'Select a day and time to find free rooms.',
                 search: 'Search',
                 spaceDetails: 'Space Details',
                 close: 'Close',
@@ -46,8 +46,8 @@ async function loadTranslations() {
                 planFor: 'Plan for',
                 backToTeacherList: 'Back to Teacher List',
                 spaceBold: 'Space',
-                noFreeSpaces: 'No free spaces available',
-                occupiedSpaces: 'Occupied Spaces',
+                noFreeRooms: 'No free rooms available',
+                occupiedRooms: 'Occupied rooms',
                 detailsWillTakePlace: 'Following lessons take place:',
                 lessonCol: 'Lesson',
                 spaceCol: 'Space',
@@ -69,7 +69,7 @@ async function loadTranslations() {
                 changelog: 'Changelog',
                 tabVPlan: 'VPlan',
                 tabTeachers: 'Teachers',
-                tabSpaces: 'Spaces',
+                tabRooms: 'Rooms',
                 tabSettings: 'Settings',
                 fillCredentials: 'Please fill in the credentials!',
                 errorLoadingClasses: 'Error loading classes: ',
@@ -102,8 +102,8 @@ async function loadTranslations() {
                 selectClass: 'Wähle eine Klasse',
                 teacherManagement: 'Lehrerverwaltung',
                 manageTeacherAbbreviations: 'Hier können Lehrerkürzel verwaltet werden',
-                spaces: 'Räume',
-                selectDayTimeFindFreeSpaces: 'Wähle einen Tag und eine Zeit, um freie Räume zu finden.',
+                rooms: 'Räume',
+                selectDayTimeFindFreeRooms: 'Wähle einen Tag und eine Zeit, um freie Räume zu finden.',
                 search: 'Suchen',
                 spaceDetails: 'Raum Details',
                 close: 'Schließen',
@@ -120,8 +120,8 @@ async function loadTranslations() {
                 planFor: 'Plan für',
                 backToTeacherList: 'Zurück zur Lehrerliste',
                 spaceBold: 'Raum',
-                noFreeSpaces: 'Keine freien Räume verfügbar',
-                occupiedSpaces: 'Besetzte Räume',
+                noFreeRooms: 'Keine freien Räume verfügbar',
+                occupiedRooms: 'Besetzte Räume',
                 detailsWillTakePlace: 'Folgende Unterrichtsstunden finden statt:',
                 lessonCol: 'Stunde',
                 spaceCol: 'Raum',
@@ -143,7 +143,7 @@ async function loadTranslations() {
                 changelog: 'Changelog',
                 tabVPlan: 'VPlan',
                 tabTeachers: 'Lehrer',
-                tabSpaces: 'Räume',
+                tabRooms: 'Räume',
                 tabSettings: 'Einstellungen',
                 fillCredentials: 'Bitte füllen Sie die Anmeldedaten aus!',
                 errorLoadingClasses: 'Fehler beim Laden der Klassen: ',
@@ -1048,7 +1048,7 @@ function displayFreeRooms(freeRooms, occupiedRooms) {
     freeRoomsList.innerHTML = '';
 
     if (freeRooms.length > 0) {
-        freeRoomsList.innerHTML += `<h3>${_('spaces')}</h3>`;
+        freeRoomsList.innerHTML += `<h3>${_('rooms')}</h3>`;
         freeRooms.forEach(room => {
             const roomItem = document.createElement('div');
             roomItem.className = 'class-item';
@@ -1060,11 +1060,11 @@ function displayFreeRooms(freeRooms, occupiedRooms) {
             freeRoomsList.appendChild(roomItem);
         });
     } else {
-        freeRoomsList.innerHTML += `<h3>${_('noFreeSpaces')}</h3>`;
+        freeRoomsList.innerHTML += `<h3>${_('noFreeRooms')}</h3>`;
     }
 
     if (occupiedRooms.length > 0) {
-        freeRoomsList.innerHTML += `<h3>${_('occupiedSpaces')}</h3>`;
+        freeRoomsList.innerHTML += `<h3>${_('occupiedRooms')}</h3>`;
         occupiedRooms.forEach(room => {
             const roomItem = document.createElement('div');
             roomItem.className = 'class-item';
@@ -1202,9 +1202,9 @@ function updateTexts() {
     const teacherP = document.querySelector('#tab-teacher p');
     if (teacherP) teacherP.textContent = _('manageTeacherAbbreviations');
     const freeroomsH2 = document.querySelector('#tab-freerooms h2');
-    if (freeroomsH2) freeroomsH2.textContent = _('spaces');
+    if (freeroomsH2) freeroomsH2.textContent = _('rooms');
     const freeroomsP = document.querySelector('#tab-freerooms p');
-    if (freeroomsP) freeroomsP.textContent = _('selectDayTimeFindFreeSpaces');
+    if (freeroomsP) freeroomsP.textContent = _('selectDayTimeFindFreeRooms');
     const searchBtn = document.querySelector('#tab-freerooms button[onclick*="findFreeRooms"]');
     if (searchBtn) searchBtn.textContent = _('search');
     const settingsH2 = document.querySelector('#tab-settings h2');
@@ -1220,7 +1220,7 @@ function updateTexts() {
     const navItems = document.querySelectorAll('.bottom-nav .nav-item div:last-child');
     navItems[0].textContent = _('tabVPlan');
     navItems[1].textContent = _('tabTeachers');
-    navItems[2].textContent = _('tabSpaces');
+    navItems[2].textContent = _('tabRooms');
     navItems[3].textContent = _('tabSettings');
 
     // Modals
