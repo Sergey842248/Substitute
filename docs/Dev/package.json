@@ -1,0 +1,25 @@
+{
+  "name": "substitute-web",
+  "version": "1.0.0",
+  "description": "Substitute - Vertretungsplan Web App",
+  "private": true,
+  "scripts": {
+    "dev": "http-server",
+    "build": "echo 'No build step required for this static site'",
+    "test": "echo 'No tests configured'"
+  },
+  "keywords": [
+    "substitute",
+    "vertretungsplan",
+    "vplan"
+  ],
+  "author": "Sergey842248",
+  "license": "ISC",
+  "dependencies": {
+    "@vercel/analytics": "^1.1.1"
+  },
+  "devDependencies": {
+    "html-validator-cli": "^7.0.1",
+    "http-server": "^14.1.1"
+  }
+}
