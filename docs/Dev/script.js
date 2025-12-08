@@ -179,6 +179,14 @@ let cachedTeacherList = []; // Cache for the teacher list
 let currentDate = new Date();
 let currentView = { type: null, name: null }; // Tracks what is being viewed, e.g., { type: 'class', name: '10A' }
 
+// Function to calculate week number like in the Android app
+function weekNumber(date) {
+    const d = new Date(date.getFullYear(), 0, 1);
+    const dayOfYear = Math.floor((date - d) / (24 * 60 * 60 * 1000)) + 1;
+    const weekday = date.getDay() === 0 ? 7 : date.getDay(); // Convert Sunday 0 to 7
+    return Math.floor((dayOfYear - weekday + 10) / 7);
+}
+
 // Function to find the latest available date with a substitute plan
 async function findLatestDate() {
     let checkDate = new Date(); // Start from today
@@ -482,7 +490,7 @@ function displayLessons(lessons, dateString, className, xmlText) {
     container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
             <button onclick="changeDay(-1, '${className}')" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;"><</button>
-            <h3 style="margin: 0; text-align: center;">${dateString}</h3>
+            <h3 style="margin: 0; text-align: center; cursor: pointer;" onclick="showWeek()">${dateString}</h3>
             <button onclick="changeDay(1, '${className}')" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;">></button>
         </div>
         <div id="lessons"></div>
@@ -748,7 +756,7 @@ function displayTeacherLessons(teacherName, lessons, dateString) {
     container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
             <button onclick="changeDay(-1, '${teacherName}')" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;"><</button>
-            <h3 style="margin: 0; text-align: center;">${_('planFor')} ${teacherName}<br><small>${dateString}</small></h3>
+            <h3 style="margin: 0; text-align: center;">${_('planFor')} ${teacherName}<br><small style="cursor: pointer;" onclick="showWeek()">${dateString}</small></h3>
             <button onclick="changeDay(1, '${teacherName}')" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;">></button>
         </div>
         <div id="teacher-lessons"></div>
@@ -908,6 +916,7 @@ function closeModal() {
     document.getElementById('room-details-modal').style.display = 'none';
     document.getElementById('message-modal').style.display = 'none';
     document.getElementById('confirm-modal').style.display = 'none';
+    document.getElementById('week-modal').style.display = 'none';
 }
 
 // Custom popup functions
@@ -1248,6 +1257,12 @@ function updateTexts() {
     if (langSelect) {
         langSelect.value = currentLang;
     }
+}
+
+function showWeek() {
+    const week = weekNumber(currentDate) % 2 !== 0 ? 'A' : 'B';
+    document.getElementById('week-text').textContent = week;
+    document.getElementById('week-modal').style.display = 'block';
 }
 
 function changeLanguage(lang) {
