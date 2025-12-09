@@ -175,9 +175,26 @@ class VPlanAPI {
     return returnData;
   }
 
-  Future<dynamic> getVPlanJSON(Uri url, DateTime vpDate) async {
+  Future<dynamic> getVPlanJSON(Uri url, DateTime vpDate, {bool forceRefresh = false}) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<dynamic> data = [];
+
+    // Check TTL cache first unless force refresh is requested
+    if (!forceRefresh) {
+      String cacheKey = 'vplan_cache_${vpDate.year}-${vpDate.month.toString().padLeft(2, '0')}-${vpDate.day.toString().padLeft(2, '0')}';
+      String? cachedData = prefs.getString(cacheKey);
+      int? cacheTime = prefs.getInt('${cacheKey}_time');
+      
+      if (cachedData != null && cacheTime != null) {
+        int cacheTTL = prefs.getInt('vplanCacheTTL') ?? 300; // 5 minutes default
+        int currentTime = DateTime.now().millisecondsSinceEpoch;
+        
+        if (currentTime - cacheTime < cacheTTL * 1000) {
+          print('Using cached data for ${vpDate.toString().split(' ')[0]}');
+          return jsonDecode(cachedData);
+        }
+      }
+    }
 
     dynamic offlinePlan = await searchForOfflineData(vpDate);
 
