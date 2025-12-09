@@ -421,8 +421,69 @@ class SelectClass extends StatefulWidget {
 class _SelectClassState extends State<SelectClass> {
   dynamic classes = [];
   void getClasses() async {
+    // Prüfe, ob Zugangsdaten vorhanden sind
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? username = prefs.getString('vplanUsername');
+    
+    if (username == null || username == '') {
+      // Zeige Login-Dialog wenn keine Zugangsdaten vorhanden sind
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(25),
+            ),
+            backgroundColor: Theme.of(context).backgroundColor,
+            title: Text(
+              AppLocalizations.of(context)!.addNewClass,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 19),
+            ),
+            content: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(AppLocalizations.of(context)!.dontForgetCredentials),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  AppLocalizations.of(context)!.later,
+                  style: TextStyle(
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    PageTransition(
+                      type: PageTransitionType.rightToLeft,
+                      child: VPlanLogin(),
+                    ),
+                  );
+                },
+                child: Text(
+                  AppLocalizations.of(context)!.add,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+      return; // Stoppe weitere Ausführung wenn keine Zugangsdaten vorhanden sind
+    }
+    
+    // Wenn Zugangsdaten vorhanden sind, lade die Klassen
     VPlanAPI vplanAPI = new VPlanAPI();
-
     classes = await vplanAPI.getClassList();
     setState(() {});
   }
