@@ -1,8 +1,8 @@
 import 'package:expandiware/models/InputField.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-
 import 'package:page_transition/page_transition.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import './TeacherPlan.dart';
 
@@ -10,6 +10,7 @@ import 'package:expandiware/models/LoadingProcess.dart';
 import 'package:expandiware/models/Button.dart';
 
 import '../vplan/VPlanAPI.dart';
+import '../dashboard/settings/VPlanLogin.dart';
 
 class TeacherVPlan extends StatefulWidget {
   const TeacherVPlan({Key? key}) : super(key: key);
@@ -129,16 +130,80 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
           SizedBox(height: spaceBetween * 0.3),
           Button(
             text: AppLocalizations.of(context)!.see,
-            onPressed: () => Navigator.push(
-              context,
-              PageTransition(
-                type: PageTransitionType.rightToLeft,
-                child: TeacherPlan(
-                  teacher: textFieldController.text,
-                  selectedDate: selectedDate,
+            onPressed: () async {
+              // Prüfe, ob Zugangsdaten vorhanden sind
+              SharedPreferences prefs = await SharedPreferences.getInstance();
+              String? username = prefs.getString('vplanUsername');
+              
+              if (username == null || username == '') {
+                // Zeige Login-Dialog wenn keine Zugangsdaten vorhanden sind
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      backgroundColor: Theme.of(context).backgroundColor,
+                      title: Text(
+                        AppLocalizations.of(context)!.addNewClass,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 19),
+                      ),
+                      content: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(AppLocalizations.of(context)!.dontForgetCredentials),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(
+                            AppLocalizations.of(context)!.later,
+                            style: TextStyle(
+                              color: Theme.of(context).primaryColor,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              PageTransition(
+                                type: PageTransitionType.rightToLeft,
+                                child: VPlanLogin(),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            AppLocalizations.of(context)!.add,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                );
+                return;
+              }
+              
+              // Wenn Zugangsdaten vorhanden sind, navigiere weiter
+              Navigator.push(
+                context,
+                PageTransition(
+                  type: PageTransitionType.rightToLeft,
+                  child: TeacherPlan(
+                    teacher: textFieldController.text,
+                    selectedDate: selectedDate,
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
           scannWidget,
         ],
@@ -165,6 +230,68 @@ class _TeacherListState extends State<TeacherList> {
   List<dynamic> teachers = [];
 
   Future<void> getTeachers() async {
+    // Prüfe, ob Zugangsdaten vorhanden sind
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? username = prefs.getString('vplanUsername');
+    
+    if (username == null || username == '') {
+      // Zeige Login-Dialog wenn keine Zugangsdaten vorhanden sind
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(25),
+            ),
+            backgroundColor: Theme.of(context).backgroundColor,
+            title: Text(
+              AppLocalizations.of(context)!.addNewClass,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 19),
+            ),
+            content: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(AppLocalizations.of(context)!.dontForgetCredentials),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  AppLocalizations.of(context)!.later,
+                  style: TextStyle(
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    PageTransition(
+                      type: PageTransitionType.rightToLeft,
+                      child: VPlanLogin(),
+                    ),
+                  );
+                },
+                child: Text(
+                  AppLocalizations.of(context)!.add,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+      return; // Stoppe weitere Ausführung wenn keine Zugangsdaten vorhanden sind
+    }
+    
+    // Wenn Zugangsdaten vorhanden sind, lade die Lehrer
     VPlanAPI vplanAPI = new VPlanAPI();
     List<String> teacherShorts = await vplanAPI.getTeachers();
 
