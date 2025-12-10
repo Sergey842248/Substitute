@@ -67,7 +67,7 @@ async function loadTranslations() {
                 reportBug: 'Report a Bug',
                 requestFeature: 'Request a Feature',
                 changelog: 'Changelog',
-                tabVPlan: 'VPlan',
+                tabVPlan: 'SPlan',
                 tabTeachers: 'Teachers',
                 tabRooms: 'Rooms',
                 tabSettings: 'Settings',
