@@ -534,7 +534,7 @@ function displayLessons(lessons, dateString, className, xmlText) {
                 infoItem.style.backgroundColor = '#2a2a3c';
                 infoItem.style.borderColor = '#AF69EE';
                 infoItem.style.borderWidth = '2px';
-                infoItem.innerHTML = `<strong>${_('info')}:</strong> ${info}`;
+                infoItem.innerHTML = `${info}`;
                 generalInfoElement.appendChild(infoItem);
             });
         }
