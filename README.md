@@ -1,10 +1,8 @@
 # ReadMe
 
-## ReadMe
+<div align="center"><img src="https://raw.githubusercontent.com/Sergey842248/Substitute/refs/heads/main/android/app/src/main/ic_launcher-playstore.png" alt="Substitute App Logo"></div>
 
-![Substitute App Logo](https://raw.githubusercontent.com/Sergey842248/Substitute/refs/heads/main/android/app/src/main/ic_launcher-playstore.png)
-
-### Substitute
+<h3 align="center">Substitute</h3>
 
 
 
