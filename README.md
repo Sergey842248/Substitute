@@ -44,4 +44,4 @@ Contributions are always welcome! If you have ideas for new features, find bugs,
 
 ***
 
-Developed with ❤️ by
+Developed with ❤️ by Parsa
