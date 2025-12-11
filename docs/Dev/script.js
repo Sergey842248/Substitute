@@ -436,7 +436,9 @@ function parseLessons(xmlText, className) {
                 const regel = std.querySelector('If')?.textContent;
                 const beginn = std.querySelector('Beginn')?.textContent;
                 const ende = std.querySelector('Ende')?.textContent;
-                const ra = std.querySelector('Ra')?.textContent;
+                const raElement = std.querySelector('Ra');
+                const ra = raElement?.textContent;
+                const raChanged = raElement?.hasAttribute('RaAe') || false;
                 const le = std.querySelector('Le')?.textContent;
 
                 if (st && fa) {
@@ -447,6 +449,7 @@ function parseLessons(xmlText, className) {
                         beginn: beginn || '',
                         ende: ende || '',
                         raum: ra || '',
+                        raumChanged: raChanged,
                         lehrer: le || ''
                     });
                 }
@@ -509,10 +512,11 @@ function displayLessons(lessons, dateString, className, xmlText) {
             if (lesson.regel && lesson.regel.trim() !== '') {
                 lessonItem.style.backgroundColor = 'rgba(139, 0, 0, 0.6)';
             }
+    const roomStyle = lesson.raumChanged ? 'color: #ff4444; font-weight: bold;' : '';
     lessonItem.innerHTML = `
         <strong>${_('lessonNum')} ${lesson.stunde}: ${lesson.fach}</strong>
         <div>${_('teacherColon')} ${lesson.lehrer}</div>
-        <div>${_('spaceColon')} ${lesson.raum}</div>
+        <div>${_('spaceColon')} <span style="${roomStyle}">${lesson.raum}</span></div>
         <div>${_('timeColon')} ${lesson.beginn} - ${lesson.ende}</div>
         <div>${lesson.regel ? _('infoColon') + lesson.regel : ''}</div>
     `;
@@ -730,7 +734,9 @@ function parseTeacherLessons(xmlText, teacherName) {
                 const regel = std.querySelector('If')?.textContent;
                 const beginn = std.querySelector('Beginn')?.textContent;
                 const ende = std.querySelector('Ende')?.textContent;
-                const ra = std.querySelector('Ra')?.textContent;
+                const raElement = std.querySelector('Ra');
+                const ra = raElement?.textContent;
+                const raChanged = raElement?.hasAttribute('RaAe') || false;
 
                 if (st && fa) {
                     lessons.push({
@@ -741,6 +747,7 @@ function parseTeacherLessons(xmlText, teacherName) {
                         beginn: beginn || '',
                         ende: ende || '',
                         raum: ra || '',
+                        raumChanged: raChanged,
                         lehrer: lehrer
                     });
                 }
@@ -776,9 +783,10 @@ function displayTeacherLessons(teacherName, lessons, dateString) {
         if (lesson.regel && lesson.regel.trim() !== '') {
             lessonItem.style.backgroundColor = 'rgba(139, 0, 0, 0.6)';
         }
+        const roomStyle = lesson.raumChanged ? 'color: #ff4444; font-weight: bold;' : '';
         lessonItem.innerHTML = `
             <strong>${_('classCol')} ${lesson.klasse}, ${_('lessonNum')} ${lesson.stunde}: ${lesson.fach}</strong>
-            <div>${_('spaceColon')} ${lesson.raum}</div>
+            <div>${_('spaceColon')} <span style="${roomStyle}">${lesson.raum}</span></div>
             <div>${_('timeColon')} ${lesson.beginn} - ${lesson.ende}</div>
             <div>${lesson.regel ? _('infoColon') + lesson.regel : ''}</div>
         `;

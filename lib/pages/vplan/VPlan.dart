@@ -287,20 +287,6 @@ class _ClassWidgetState extends State<ClassWidget> {
     return '$hour:$minute';
   }
 
-  bool _isRoomChanged(Map<String, dynamic> lesson) {
-    // Check if the lesson has info that indicates a room change
-    if (lesson['info'] != null && lesson['info'].toString().isNotEmpty) {
-      // If there's substitution info, check if it mentions room changes
-      String info = lesson['info'].toString().toLowerCase();
-      if (info.contains('raum') || info.contains('room') || info.contains('ort')) {
-        return true;
-      }
-    }
-
-    // Additional logic: Check if this is a substitution that changes the room
-    return lesson['info'] != null;
-  }
-
   @override
   void initState() {
     super.initState();
@@ -393,11 +379,7 @@ class _ClassWidgetState extends State<ClassWidget> {
                                 Text(''),
                                 Text(
                                   AppLocalizations.of(context)!.room(nextLesson['place'] ?? ''),
-                                  style: TextStyle(
-                                    fontSize: 19,
-                                    color: _isRoomChanged(nextLesson) ? Colors.red : null,
-                                    fontWeight: _isRoomChanged(nextLesson) ? FontWeight.bold : null,
-                                  ),
+                                  style: TextStyle(fontSize: 19),
                                 ),
                                 SizedBox(height: spaceBetween),
                                 Text(

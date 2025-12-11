@@ -278,6 +278,26 @@ class VPlanAPI {
           }
         }
 
+        // Parse room changes from XML (RaAe attribute indicates room change)
+        Map<String, Map<String, bool>> roomChanges = {};
+        for (int i = 0; i < classes.length; i++) {
+          String classId = classes.elementAt(i).getElement('Kurz')!.innerText;
+          roomChanges[classId] = {};
+          
+          XmlElement? pl = classes.elementAt(i).getElement('Pl');
+          if (pl != null) {
+            Iterable<XmlElement> stunden = pl.findAllElements('Std');
+            for (var std in stunden) {
+              XmlElement? raElement = std.getElement('Ra');
+              XmlElement? stElement = std.getElement('St');
+              if (raElement != null && stElement != null) {
+                bool hasRaAe = raElement.getAttribute('RaAe') != null;
+                roomChanges[classId]![stElement.innerText] = hasRaAe;
+              }
+            }
+          }
+        }
+
         /* NEW XML PARSER */
 
         var infoList = ziZeilen.map((e) => e.innerText).toList();
@@ -293,6 +313,7 @@ class VPlanAPI {
           'data': jsonVPlan['VpMobil'],
           'info': infoList,
           'courses': courses,
+          'roomChanges': roomChanges,
         });
         //-------------------------------------
         List<String>? stringData = prefs.getStringList('offlineVPData');
@@ -361,8 +382,10 @@ class VPlanAPI {
 
     var jsonVPlan =
         pureVPlan['data']['Klassen']['Kl']; //get the XML data of the URL
+    
+    Map<String, bool>? classRoomChanges = pureVPlan['roomChanges']?[classId];
 
-    List<dynamic> lessons = await parseVPlanXML(jsonVPlan, classId);
+    List<dynamic> lessons = await parseVPlanXML(jsonVPlan, classId, classRoomChanges);
     return {
       'date': pureVPlan['date'],
       'week': pureVPlan['week'],
@@ -381,7 +404,7 @@ class VPlanAPI {
     return 'https://www.stundenplan24.de/${this.schoolnumber}/mobil/mobdaten/Klassen.xml';
   }
 
-  Future<List<dynamic>> parseVPlanXML(dynamic jsonVPlan, String classId) async {
+  Future<List<dynamic>> parseVPlanXML(dynamic jsonVPlan, String classId, [Map<String, bool>? roomChanges]) async {
     List<dynamic> _outpuLessons = [];
 
     if (jsonVPlan == null) {
@@ -396,11 +419,15 @@ class VPlanAPI {
         for (int j = 0; j < _lessons.length; j++) {
           // parse the lessons
           var currentLesson = _lessons[j];
+          String lessonCount = currentLesson['St']?.toString() ?? '';
+          bool placeChanged = roomChanges?[lessonCount] ?? false;
+          
           _outpuLessons.add({
             'count': currentLesson['St'],
             'lesson': currentLesson['Fa'],
             'teacher': await replaceTeacherShort(currentLesson['Le']),
             'place': currentLesson['Ra'],
+            'placeChanged': placeChanged,
             'begin': currentLesson['Beginn'],
             'end': currentLesson['Ende'],
             'info': currentLesson['If'],
@@ -442,8 +469,10 @@ class VPlanAPI {
     }
     dynamic jsonVPlan =
         pureVPlan['data']['Klassen']['Kl']; //get the XML data of the URL
+    
+    Map<String, bool>? classRoomChanges = pureVPlan['roomChanges']?[classId];
 
-    List<dynamic> lessons = await parseVPlanXML(jsonVPlan, classId);
+    List<dynamic> lessons = await parseVPlanXML(jsonVPlan, classId, classRoomChanges);
     return {
       'date': pureVPlan['date'],
       'week': pureVPlan['week'],
