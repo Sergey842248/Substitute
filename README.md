@@ -1,7 +1,3 @@
----
-icon: readme
----
-
 # ReadMe
 
 ## ReadMe
