@@ -16,36 +16,35 @@ icon: readme
 
 #### ✨ Key Features
 
-1. ⌚ **WearOS App:** Basisfunktionen für Android-basierte Smartwatches.
-2. 📅 **Moderne Vertretungspläne:** Ein klares und ansprechendes Design des Vertretungsplans.
-3. 🔄 **Hintergundaktualisierung:** Der Vertretungsplan wird automatisch im Hintergrund aktualisiert.
-4. 🧑‍🏫 **Lehrer-Zuweisung:** Finde heraus wann und wo welcher Lehrer Unterricht hat.
-5. 🚪 **Raum-Suche:** Finde freie Räume zu bestimmten Zeiten.
-6. 📲 **Teile deine Zugangsdaten:** Teile die Zugangsdaten für deine Schule/Klasse mit einem QR-Code.
-7. ✍️Echte Lehrername&#x6E;**:** Ersetze Lehrerabkürzungen mit den echten Namen.
-8. 🔔 **Benachrichtigungnen:** Receive push notifications for changes in the substitution plan.
-9. ⏰ **Set Class Times:** Define individual times for your lessons.
-10. ⭐ **Multiple Favorite Classes:** Save multiple classes as favorites for quick access.
-11. 🔤 **Translations:** Available in English and German.
+1. 📅 **Moderne Vertretungspläne:** Ein klares und ansprechendes Design des Vertretungsplans.
+2. 🔄 **Hintergundaktualisierung:** Der Vertretungsplan wird automatisch im Hintergrund aktualisiert.
+3. 🧑‍🏫 **Lehrer-Zuweisung:** Finde heraus wann und wo welcher Lehrer Unterricht hat.
+4. 🚪 **Raum-Suche:** Finde freie Räume zu bestimmten Zeiten.
+5. 🔔 **Benachrichtigungnen:** Receive push notifications for changes in the substitution plan.
+6. ⭐ **Mehrere Klassen:** Speichere mehrere Klassen als Favoriten, für einen schnellen Zugriff.
+7. 📲 **Teile deine Zugangsdaten:** Teile die Zugangsdaten für deine Schule/Klasse mit einem QR-Code(Nur in der App).
+8. ✍️**Echte Lehrernamen:** Ersetze Lehrerabkürzungen mit den echten Namen.
+9. 🔤 **Übersetzungen:** Verfügbar in Deutsch & Englisch.
+10. ⌚ **WearOS App:** Basisfunktionen für Android-basierte Smartwatches.
 
 #### 🚀 Installation
 
-You can download the latest version of Substitute directly from [GitHub Releases](https://github.com/Sergey842248/Substitute/releases).
+Lade die Apk von der [GitHub Releases](https://github.com/Sergey842248/Substitute/releases) Seite herunter und [installiere](https://future842248.gitbook.io/substitute/de/installation/android) sie, oder nutze die [Website](https://sergey842248.github.io/Substitute) als [Web App](https://future842248.gitbook.io/substitute/de/installation/ios).
 
 #### ⚙️ Configuration
 
-**Disable Background Updates**
+**Hintergrundupdates deaktivieren**
 
-By default, the app automatically updates the substitution plan in the background. If you want to disable this behavior, you can restrict battery usage for the app. To do this, navigate to your device settings under `Apps > Substitute > Battery` and set the option to `Restricted`.
+Standardmäßig aktualisiert die App die Vertretungspläne automatisch im Hintergrund. Wenn dieses Verhalten deaktiviert werden soll, kann die Batterienutzung dazu eingeschränkt werden.Um die Batterienutzung einzuschränken und die Hintergrundaktualisierung somit zu unterbinden, navigiere in einen Geräteeinstellungen zu `Apps > Substitute > Batterie` und setze die Option auf den Wert `Eingeschränkt`.
 
-#### 🤝 Contributing
+#### 🤝 Mithelfen
 
-Contributions are always welcome! If you have ideas for new features, find bugs, or want to improve the code, don't hesitate to create an issue or (better) send a pull request.
+Beiträge sind immer wilkommen! Wenn du eine Idee für neue Funktionen hst, Bugs findest oder den Code verbessern willst, zögere nicht ein "Issue", oder (besser) eine Pull request aufzumachen.
 
-#### 🙏 Acknowledgements
+#### 🙏 Dankessagung
 
-**Original Project:** A big thank you to the original project [expandiware](https://github.com/badbryany/expandiware) by @badbryany, on which this app is based. WHICH COLLECTED DATA!!!
+**Original Projekt:** Ein großes Dankeschön an das original Projekt [expandiware](https://github.com/badbryany/expandiware) von @badbryany, auf welchem diese App basiert. DAS ORIGINAL WELCHES DATEN SAMMELTE!!!
 
 ***
 
-Developed with ❤️ and Kotlin
+Entwickelt mit ❤️ von [Parsa](https://github.com/sergey842248)
