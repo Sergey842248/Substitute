@@ -40,8 +40,8 @@ Contributions are always welcome! If you have ideas for new features, find bugs,
 
 #### 🙏 Acknowledgements
 
-**Original Project:** A big thank you to the original project [expandiware](https://github.com/badbryany/expandiware) by @badbryany, on which this app is based. WHICH COLLECTED DATA!!!
+**Original Project:** A big thank you to the original project [expandiware](https://github.com/badbryany/expandiware) by @badbryany, on which this app is based (Data collection removed).
 
 ***
 
-Developed with ❤️ and Kotlin
+Developed with ❤️ by
