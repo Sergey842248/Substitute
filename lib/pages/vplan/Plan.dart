@@ -75,6 +75,24 @@ class _PlanState extends State<Plan> {
     return value;
   }
 
+  bool _isRoomChanged(Map<String, dynamic> lesson) {
+    // Check if the lesson has info that indicates a room change
+    // Typically, room changes are indicated by substitution info
+    // or by comparing with the standard room for this lesson
+    if (lesson['info'] != null && lesson['info'].toString().isNotEmpty) {
+      // If there's substitution info, check if it mentions room changes
+      String info = lesson['info'].toString().toLowerCase();
+      if (info.contains('raum') || info.contains('room') || info.contains('ort')) {
+        return true;
+      }
+    }
+
+    // Additional logic: Check if this is a substitution that changes the room
+    // This would typically be indicated by the presence of substitution info
+    // and the room being different from the standard room
+    return lesson['info'] != null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -326,7 +344,13 @@ class _PlanState extends State<Plan> {
                                     size: 16,
                                   ),
                                   SizedBox(width: 3),
-                                  Text(printValue(e['place'])),
+                                  Text(
+                                    printValue(e['place']),
+                                    style: TextStyle(
+                                      color: _isRoomChanged(e) ? Colors.red : null,
+                                      fontWeight: _isRoomChanged(e) ? FontWeight.bold : null,
+                                    ),
+                                  ),
                                 ],
                               ),
                               SizedBox(height: 5),

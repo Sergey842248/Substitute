@@ -1,8 +1,14 @@
+---
+icon: readme
+---
+
 # ReadMe
 
-<div align="center"><img src="https://raw.githubusercontent.com/Sergey842248/Substitute/refs/heads/main/android/app/src/main/ic_launcher-playstore.png" alt="Substitute App Logo"></div>
+## ReadMe
 
-<h3 align="center">Substitute</h3>
+![Substitute App Logo](https://raw.githubusercontent.com/Sergey842248/Substitute/refs/heads/main/android/app/src/main/ic_launcher-playstore.png)
+
+### Substitute
 
 
 
@@ -40,8 +46,8 @@ Contributions are always welcome! If you have ideas for new features, find bugs,
 
 #### 🙏 Acknowledgements
 
-**Original Project:** A big thank you to the original project [expandiware](https://github.com/badbryany/expandiware) by @badbryany, on which this app is based (Data collection removed).
+**Original Project:** A big thank you to the original project [expandiware](https://github.com/badbryany/expandiware) by @badbryany, on which this app is based. WHICH COLLECTED DATA!!!
 
 ***
 
-Developed with ❤️ by Parsa
+Developed with ❤️ and Kotlin
