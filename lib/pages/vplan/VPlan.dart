@@ -379,7 +379,11 @@ class _ClassWidgetState extends State<ClassWidget> {
                                 Text(''),
                                 Text(
                                   AppLocalizations.of(context)!.room(nextLesson['place'] ?? ''),
-                                  style: TextStyle(fontSize: 19),
+                                  style: TextStyle(
+                                    fontSize: 19,
+                                    color: nextLesson['info'] != null ? Colors.red : null,
+                                    fontWeight: nextLesson['info'] != null ? FontWeight.bold : null,
+                                  ),
                                 ),
                                 SizedBox(height: spaceBetween),
                                 Text(

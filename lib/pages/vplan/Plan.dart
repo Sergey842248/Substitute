@@ -324,9 +324,16 @@ class _PlanState extends State<Plan> {
                                   Icon(
                                     Icons.location_on_rounded,
                                     size: 16,
+                                    color: e['info'] != null ? Colors.red : null,
                                   ),
                                   SizedBox(width: 3),
-                                  Text(printValue(e['place'])),
+                                  Text(
+                                    printValue(e['place']),
+                                    style: TextStyle(
+                                      color: e['info'] != null ? Colors.red : null,
+                                      fontWeight: e['info'] != null ? FontWeight.bold : null,
+                                    ),
+                                  ),
                                 ],
                               ),
                               SizedBox(height: 5),
