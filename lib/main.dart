@@ -249,17 +249,30 @@ class _MyAppState extends State<MyApp> {
 }
 
 class HomePage extends StatefulWidget {
+  final String? initialTab;
+
+  const HomePage({Key? key, this.initialTab}) : super(key: key);
+
   @override
   _HomePageState createState() => _HomePageState();
 }
 
+class HomePageWithVPlanTab extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return HomePage(initialTab: 'vplanStudents');
+  }
+}
+
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
-  String activeText = 'vplanStudents';
+  late String activeText;
 
   @override
   void initState() {
     super.initState();
     eastereggController = AnimationController(vsync: this);
+    // Set initial tab based on constructor parameter, default to vplanStudents
+    activeText = widget.initialTab ?? 'vplanStudents';
   }
 
   void dispose() {

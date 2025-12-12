@@ -109,6 +109,14 @@ class _VPlanState extends State<VPlan> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh classes when returning from VPlanLogin with new credentials
+    // This fixes the issue where classes load infinitely after adding credentials
+    getClasses();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       child: Column(
@@ -491,6 +499,14 @@ class _SelectClassState extends State<SelectClass> {
   @override
   void initState() {
     super.initState();
+    getClasses();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh classes when returning from VPlanLogin with new credentials
+    // This fixes the issue where classes load infinitely after adding credentials
     getClasses();
   }
 

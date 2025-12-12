@@ -12,6 +12,7 @@ import '../../../models/InputField.dart';
 
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import '../../../models/QRScanner.dart';
+import '../../../main.dart';
 
 class VPlanLogin extends StatefulWidget {
   @override
@@ -330,7 +331,14 @@ class _VPlanLoginState extends State<VPlanLogin> {
                       );
                     }
                     Fluttertoast.showToast(msg: AppLocalizations.of(context)!.credsSaved);
-                    Navigator.pop(context);
+                    // Always navigate back to VPlan tab after saving credentials
+                    // This fixes the issue where classes load infinitely after adding credentials
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => HomePageWithVPlanTab(),
+                      ),
+                      (Route<dynamic> route) => false,
+                    );
                   },
                 ),
               ],
