@@ -174,6 +174,7 @@ async function loadTranslations() {
 
 let cachedXmlData = ''; // Cache for the fetched XML data for the current day
 let cachedTeacherList = []; // Cache for the teacher list
+let cachedCourses = []; // Cache for courses with visibility state
 
 // --- State for Date Navigation ---
 let currentDate = new Date();
@@ -503,10 +504,14 @@ function displayLessons(lessons, dateString, className, xmlText) {
 
     const lessonsElement = document.getElementById('lessons');
 
-    if (lessons.length === 0) {
+    // Filter lessons based on hidden courses
+    const hiddenCourses = getHiddenCourses();
+    const filteredLessons = lessons.filter(lesson => !hiddenCourses.includes(lesson.fach));
+
+    if (filteredLessons.length === 0) {
         lessonsElement.innerHTML = `<p>${_('noInfoAvailable')}</p>`;
     } else {
-        lessons.forEach(lesson => {
+        filteredLessons.forEach(lesson => {
             const lessonItem = document.createElement('div');
             lessonItem.className = 'class-item';
             if (lesson.regel && lesson.regel.trim() !== '') {
@@ -1277,4 +1282,178 @@ function changeLanguage(lang) {
     currentLang = lang;
     localStorage.setItem('language', lang);
     loadTranslations();
+}
+
+// --- Course Selection Functions ---
+
+function getHiddenCourses() {
+    const hidden = localStorage.getItem('hiddenSubjects');
+    return hidden ? JSON.parse(hidden) : [];
+}
+
+function addHiddenCourse(course) {
+    if (course === '---') return;
+    const hidden = getHiddenCourses();
+    if (!hidden.includes(course)) {
+        hidden.push(course);
+        localStorage.setItem('hiddenSubjects', JSON.stringify(hidden));
+    }
+}
+
+function removeHiddenCourse(course) {
+    const hidden = getHiddenCourses();
+    const newHidden = hidden.filter(c => c !== course);
+    localStorage.setItem('hiddenSubjects', JSON.stringify(newHidden));
+}
+
+function parseCourses(xmlText, className) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+    const classes = xmlDoc.querySelectorAll('Kl');
+    const courses = [];
+    const hiddenCourses = getHiddenCourses();
+
+    for (let i = 0; i < classes.length; i++) {
+        const kurz = classes[i].querySelector('Kurz');
+        if (kurz && kurz.textContent === className) {
+            const kurseElement = classes[i].querySelector('Kurse');
+            if (kurseElement) {
+                const kuElements = kurseElement.querySelectorAll('Ku');
+                kuElements.forEach(ku => {
+                    const kkz = ku.querySelector('KKz');
+                    if (kkz) {
+                        const courseName = kkz.textContent;
+                        const teacher = kkz.attributes.length > 0 ? kkz.attributes[0].value : '';
+                        if (courseName && courseName !== '---') {
+                            // Avoid duplicates
+                            const exists = courses.some(c => c.course === courseName);
+                            if (!exists) {
+                                courses.push({
+                                    course: courseName,
+                                    teacher: teacher,
+                                    show: !hiddenCourses.includes(courseName)
+                                });
+                            }
+                        }
+                    }
+                });
+            }
+            break;
+        }
+    }
+
+    // Sort courses alphabetically
+    courses.sort((a, b) => a.course.localeCompare(b.course));
+    return courses;
+}
+
+async function showCoursesModal() {
+    const favoriteClass = localStorage.getItem('favoriteClass');
+    if (!favoriteClass) {
+        showMessageModal(currentLang === 'de' ? 'Bitte wähle zuerst eine Klasse aus.' : 'Please select a class first.');
+        return;
+    }
+
+    // Try to get courses from cached XML or fetch new data
+    let xmlText = cachedXmlData;
+    if (!xmlText) {
+        try {
+            xmlText = await fetchPlanForDate(currentDate);
+        } catch (error) {
+            console.error('Error fetching data for courses:', error);
+            showMessageModal(currentLang === 'de' ? 'Fehler beim Laden der Kurse.' : 'Error loading courses.');
+            return;
+        }
+    }
+
+    if (!xmlText) {
+        showMessageModal(currentLang === 'de' ? 'Keine Daten verfügbar.' : 'No data available.');
+        return;
+    }
+
+    cachedCourses = parseCourses(xmlText, favoriteClass);
+    
+    const coursesTitle = document.getElementById('courses-modal-title');
+    coursesTitle.textContent = currentLang === 'de' ? 'Kurse' : 'Courses';
+    
+    displayCourses();
+    document.getElementById('courses-modal').style.display = 'block';
+}
+
+function displayCourses() {
+    const coursesList = document.getElementById('courses-list');
+    coursesList.innerHTML = '';
+
+    if (cachedCourses.length === 0) {
+        coursesList.innerHTML = `<p style="text-align: center; color: #888;">${currentLang === 'de' ? 'Keine Kurse verfügbar' : 'No courses available'}</p>`;
+        return;
+    }
+
+    cachedCourses.forEach((course, index) => {
+        const courseItem = document.createElement('div');
+        courseItem.className = `course-item ${course.show ? 'visible' : 'hidden'}`;
+        courseItem.onclick = () => toggleCourse(index);
+        courseItem.innerHTML = `
+            <div class="course-info">
+                <span class="course-name">${course.course}</span>
+                <span class="course-teacher">(${course.teacher})</span>
+            </div>
+            <div class="course-icon">
+                <span class="material-icons">${course.show ? 'visibility' : 'visibility_off'}</span>
+            </div>
+        `;
+        coursesList.appendChild(courseItem);
+    });
+}
+
+function toggleCourse(index) {
+    const course = cachedCourses[index];
+    course.show = !course.show;
+    
+    if (course.show) {
+        removeHiddenCourse(course.course);
+    } else {
+        addHiddenCourse(course.course);
+    }
+    
+    displayCourses();
+    refreshCurrentView();
+}
+
+function showAllCourses() {
+    cachedCourses.forEach(course => {
+        course.show = true;
+        removeHiddenCourse(course.course);
+    });
+    displayCourses();
+    refreshCurrentView();
+}
+
+function hideAllCourses() {
+    cachedCourses.forEach(course => {
+        course.show = false;
+        addHiddenCourse(course.course);
+    });
+    displayCourses();
+    refreshCurrentView();
+}
+
+function closeCoursesModal() {
+    document.getElementById('courses-modal').style.display = 'none';
+}
+
+function refreshCurrentView() {
+    if (currentView.type === 'class' && currentView.name) {
+        loadClassDetails(currentView.name, true);
+    }
+}
+
+// Filter lessons based on hidden courses
+function filterLessonsByVisibility(lessons) {
+    const hiddenCourses = getHiddenCourses();
+    return lessons.filter(lesson => {
+        // Check if the lesson's subject (fach) is in the hidden list
+        // The app uses course field from Ku2, but lessons use 'fach'
+        return !hiddenCourses.includes(lesson.fach);
+    });
 }

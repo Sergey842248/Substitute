@@ -19,6 +19,9 @@
     <div class="app-bar">
         <img src="icons/Icon-192.png" alt="Logo" class="logo">
         <div class="title">Substitute</div>
+        <div class="courses-btn" onclick="showCoursesModal()" title="Kurse auswählen">
+            <span class="material-icons">filter_list</span>
+        </div>
         <div class="refresh-btn" onclick="location.reload()">&#x21BB;</div>
         <div class="menu-btn" onclick="showInfo()">&#x22EE;</div>
     </div>
@@ -154,6 +157,25 @@
                 <a href="https://github.com/Sergey842248/Substitute/releases/latest" style="color: #AF69EE; text-decoration: none;">Changelog</a>
             </div>
             <button onclick="closeModal()">Schließen</button>
+        </div>
+    </div>
+
+    <!-- Courses Modal -->
+    <div id="courses-modal" class="modal" onclick="closeCoursesModal()">
+        <div class="modal-content courses-modal-content" onclick="event.stopPropagation()">
+            <div class="courses-header">
+                <h2 id="courses-modal-title">Kurse</h2>
+                <div class="courses-actions">
+                    <button class="icon-btn" onclick="showAllCourses()" title="Alle anzeigen">
+                        <span class="material-icons">visibility</span>
+                    </button>
+                    <button class="icon-btn" onclick="hideAllCourses()" title="Alle ausblenden">
+                        <span class="material-icons">visibility_off</span>
+                    </button>
+                </div>
+            </div>
+            <div id="courses-list" class="courses-grid"></div>
+            <button onclick="closeCoursesModal()">Schließen</button>
         </div>
     </div>
     <script src="script.js"></script>

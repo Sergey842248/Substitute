@@ -473,10 +473,7 @@ class VPlanAPI {
     dynamic jsonVPlan =
         pureVPlan['data']['Klassen']['Kl']; //get the XML data of the URL
     
-    Map<String, bool>? classRoomChanges;
-    if (pureVPlan['roomChanges']?[classId] != null) {
-      classRoomChanges = Map<String, bool>.from(pureVPlan['roomChanges'][classId]);
-    }
+    Map<String, bool>? classRoomChanges = pureVPlan['roomChanges']?[classId];
 
     List<dynamic> lessons = await parseVPlanXML(jsonVPlan, classId, classRoomChanges);
     return {

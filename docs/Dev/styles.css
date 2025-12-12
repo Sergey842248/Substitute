@@ -209,3 +209,137 @@ button:hover {
     border-radius: 20px;
     max-width: 400px;
 }
+
+/* Courses Button in App Bar */
+.app-bar .courses-btn {
+    position: absolute;
+    right: 100px;
+    color: #ffffff;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.app-bar .courses-btn .material-icons {
+    font-size: 22px;
+}
+
+/* Courses Modal */
+.courses-modal-content {
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    margin: 10% auto;
+}
+
+.courses-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.courses-header h2 {
+    margin: 0;
+    color: #AF69EE;
+}
+
+.courses-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.icon-btn {
+    width: auto;
+    padding: 8px;
+    background-color: #3a3a4c;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-btn:hover {
+    background-color: #4a4a5c;
+}
+
+.icon-btn .material-icons {
+    font-size: 20px;
+}
+
+.courses-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.course-item {
+    background-color: #3a3a4c;
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.course-item:hover {
+    border-color: #AF69EE;
+}
+
+.course-item.visible {
+    background-color: #3a3a4c;
+}
+
+.course-item.hidden {
+    background-color: rgba(58, 58, 76, 0.4);
+}
+
+.course-item.hidden .course-name,
+.course-item.hidden .course-teacher {
+    color: #888;
+    text-decoration: line-through;
+}
+
+.course-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.course-name {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.course-teacher {
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 2px;
+}
+
+.course-icon {
+    display: flex;
+    align-items: center;
+    margin-left: 8px;
+}
+
+.course-icon .material-icons {
+    font-size: 18px;
+    color: #AF69EE;
+}
+
+.course-item.hidden .course-icon .material-icons {
+    color: #666;
+}
+
+@media screen and (max-width: 400px) {
+    .courses-grid {
+        grid-template-columns: 1fr;
+    }
+}
