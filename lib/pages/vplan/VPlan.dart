@@ -108,13 +108,7 @@ class _VPlanState extends State<VPlan> {
     getClasses();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Refresh classes when returning from VPlanLogin with new credentials
-    // This fixes the issue where classes load infinitely after adding credentials
-    getClasses();
-  }
+
 
   @override
   Widget build(BuildContext context) {
