@@ -20,10 +20,10 @@ icon: readme
 2. 🔄 **Background Update:** The substitution plan is automatically updated in the background.
 3. 🧑‍🏫 **Teacher Assignment:** Find out when and where teachers are scheduled.
 4. 🚪 **Room Search:** Discover free rooms at specific times.
-5. 🔔 **Notifications:** Receive push notifications for changes in the substitution plan.
-6. ⭐ **Multiple Favorite Classes:** Save multiple classes as favorites for quick access.
-7. 📲 **Share Login Credentials:** Share your school/class credentials with others via QR code(App-only).
-8. ✍️ **Real Teacher Names:** Replace abbreviations with the full names of teachers.
+5. ⭐ **Multiple Favorite Classes:** Save multiple classes as favorites for quick access.
+6. **📚 Course Selection:** Hide Courses you don't need to see.
+7. 🔔 **Notifications:** Receive push notifications for changes in the substitution plan.
+8. 📲 **Share Login Credentials:** Share your school/class credentials with others via QR code(App-only).
 9. 🔤 **Translations:** Available in English and German.
 10. **⌚ WearOS App:** Basic functions directly on your smartwatch.
 

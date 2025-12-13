@@ -20,10 +20,10 @@ icon: readme
 2. 🔄 **Hintergundaktualisierung:** Der Vertretungsplan wird automatisch im Hintergrund aktualisiert.
 3. 🧑‍🏫 **Lehrer-Zuweisung:** Finde heraus wann und wo welcher Lehrer Unterricht hat.
 4. 🚪 **Raum-Suche:** Finde freie Räume zu bestimmten Zeiten.
-5. 🔔 **Benachrichtigungnen:** Receive push notifications for changes in the substitution plan.
-6. ⭐ **Mehrere Klassen:** Speichere mehrere Klassen als Favoriten, für einen schnellen Zugriff.
-7. 📲 **Teile deine Zugangsdaten:** Teile die Zugangsdaten für deine Schule/Klasse mit einem QR-Code(Nur in der App).
-8. ✍️**Echte Lehrernamen:** Ersetze Lehrerabkürzungen mit den echten Namen.
+5. ⭐ **Mehrere Klassen:** Speichere mehrere Klassen als Favoriten, für einen schnellen Zugriff.
+6. **📚 Kurswahl:** Blende Kurse aus, die du nicht sehen willst.
+7. 🔔 **Benachrichtigungnen:** Receive push notifications for changes in the substitution plan.
+8. 📲 **Zugangsdaten teilen:** Teile die Zugangsdaten für deine Schule/Klasse via QR-Code(Nur App).
 9. 🔤 **Übersetzungen:** Verfügbar in Deutsch & Englisch.
 10. ⌚ **WearOS App:** Basisfunktionen für Android-basierte Smartwatches.
 
@@ -33,7 +33,7 @@ Lade die Apk von der [GitHub Releases](https://github.com/Sergey842248/Substitut
 
 #### ⚙️ Configuration
 
-**Hintergrundupdates deaktivieren**
+**Hintergrundaktualisierungen deaktivieren**
 
 Standardmäßig aktualisiert die App die Vertretungspläne automatisch im Hintergrund. Wenn dieses Verhalten deaktiviert werden soll, kann die Batterienutzung dazu eingeschränkt werden.Um die Batterienutzung einzuschränken und die Hintergrundaktualisierung somit zu unterbinden, navigiere in einen Geräteeinstellungen zu `Apps > Substitute > Batterie` und setze die Option auf den Wert `Eingeschränkt`.
 
