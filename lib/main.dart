@@ -266,6 +266,7 @@ class HomePageWithVPlanTab extends StatelessWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late String activeText;
+  bool _hasCheckedForUpdates = false;
 
   @override
   void initState() {
@@ -297,7 +298,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   void checkForUpdates(BuildContext context) async {
-    if (version == 'loading...') return; // Don't check if version is not loaded yet
+    if (_hasCheckedForUpdates || version == 'loading...') return; // Check only once per app open
+    _hasCheckedForUpdates = true;
     try {
       final response = await http.get(
         Uri.parse('https://api.github.com/repos/Sergey842248/Substitute/releases/latest'),
