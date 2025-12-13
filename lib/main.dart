@@ -314,6 +314,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             context: context,
             builder: (context) => AlertDialog(
               backgroundColor: Theme.of(context).backgroundColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20.0),
+              ),
               title: Row(
                 children: [
                   Icon(Icons.system_security_update_outlined),
