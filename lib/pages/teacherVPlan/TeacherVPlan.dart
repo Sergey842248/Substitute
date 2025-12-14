@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:expandiware/models/InputField.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -22,7 +24,6 @@ class TeacherVPlan extends StatefulWidget {
 class _TeacherVPlanState extends State<TeacherVPlan> {
   String teacherShort = '';
   double spaceBetween = 50;
-  String searchText = '';
   DateTime selectedDate = DateTime.now();
 
   TextEditingController textFieldController = new TextEditingController();
@@ -30,15 +31,6 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
   void setTeacherShort(String newValue) {
     teacherShort = newValue;
     textFieldController.text = newValue;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    textFieldController.addListener(() {
-      searchText = textFieldController.text;
-      setState(() {});
-    });
   }
 
   @override
@@ -53,7 +45,7 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
           }
           return TeacherList(
             setTeacherShort: this.setTeacherShort,
-            searchText: searchText,
+            textController: textFieldController,
           );
         },
       ),
@@ -214,12 +206,12 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
 
 class TeacherList extends StatefulWidget {
   final Function setTeacherShort;
-  final String searchText;
+  final TextEditingController textController;
 
   const TeacherList({
     Key? key,
     required this.setTeacherShort,
-    required this.searchText,
+    required this.textController,
   }) : super(key: key);
 
   @override
@@ -228,6 +220,8 @@ class TeacherList extends StatefulWidget {
 
 class _TeacherListState extends State<TeacherList> {
   List<dynamic> teachers = [];
+  String searchText = '';
+  Timer? _debounceTimer;
 
   Future<void> getTeachers() async {
     // Prüfe, ob Zugangsdaten vorhanden sind
@@ -309,6 +303,20 @@ class _TeacherListState extends State<TeacherList> {
   void initState() {
     super.initState();
     getTeachers();
+    widget.textController.addListener(() {
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(Duration(milliseconds: 500), () {
+        setState(() {
+          searchText = widget.textController.text;
+        });
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -316,11 +324,11 @@ class _TeacherListState extends State<TeacherList> {
     // Create a filtered list for display without modifying the original
     List<dynamic> displayTeachers = List.from(teachers);
 
-    if (widget.searchText != '' && displayTeachers.isNotEmpty && displayTeachers[0] != AppLocalizations.of(context)!.scanningTeacherAbbreviations) {
+    if (searchText != '' && displayTeachers.isNotEmpty && displayTeachers[0] != AppLocalizations.of(context)!.scanningTeacherAbbreviations) {
       List<dynamic> filteredList = [];
       try {
         RegExp exp = new RegExp(
-          '${widget.searchText.toLowerCase()}[a-z,ö,ä,ü]*',
+          '${searchText.toLowerCase()}[a-z,ö,ä,ü]*',
         );
         for (int i = 0; i < displayTeachers.length; i++) {
           if (exp.hasMatch(displayTeachers[i]['short'].toString().toLowerCase())) {
