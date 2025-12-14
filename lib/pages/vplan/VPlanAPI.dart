@@ -206,7 +206,13 @@ class VPlanAPI {
 
     if (prefs.getString('customUrl') != null &&
         prefs.getString('customUrl') != '') {
-      url = Uri.parse(prefs.getString('customUrl')! + 'mobdaten/Klassen.xml');
+      if (url.toString().contains('PlanKl')) {
+        // For dated requests, append the path to customUrl
+        String path = url.path;
+        url = Uri.parse(prefs.getString('customUrl')! + path);
+      } else {
+        url = Uri.parse(prefs.getString('customUrl')! + 'mobdaten/Klassen.xml');
+      }
     } else {
       client = http_auth.BasicAuthClient(vplanUsername, vplanPassword);
     }
