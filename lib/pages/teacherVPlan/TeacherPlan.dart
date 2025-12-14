@@ -32,13 +32,40 @@ class _TeacherPlanState extends State<TeacherPlan> {
     teacherName = (await vplanAPI.replaceTeacherShort(widget.teacher))!;
 
     // Construct URL for selected date
-    String dateString = vplanAPI.parseDate(widget.selectedDate);
-    String url = 'https://www.stundenplan24.de/${vplanAPI.schoolnumber}/mobil/mobdaten/PlanKl$dateString.xml';
+    String url;
+    if (widget.selectedDate.year == DateTime.now().year &&
+        widget.selectedDate.month == DateTime.now().month &&
+        widget.selectedDate.day == DateTime.now().day) {
+      // For today's date, use the standard today URL to avoid fetching next day's data
+      url = await vplanAPI.getDayURL();
+    } else {
+      String dateString = vplanAPI.parseDate(widget.selectedDate);
+      url = 'https://www.stundenplan24.de/${vplanAPI.schoolnumber}/mobil/mobdaten/PlanKl$dateString.xml';
+    }
 
     var data = (await vplanAPI.getVPlanJSON(
       Uri.parse(url),
       widget.selectedDate,
     ))['data'];
+
+    // Check if the fetched data is for the correct date
+    try {
+      DateTime fetchedDate = VPlanAPI().parseStringDatatoDateTime(data['Kopf']['DatumPlan']);
+      if (fetchedDate.year != widget.selectedDate.year ||
+          fetchedDate.month != widget.selectedDate.month ||
+          fetchedDate.day != widget.selectedDate.day) {
+        // Data is for a different date, show no data
+        res = [];
+        setState(() {});
+        return;
+      }
+    } catch (e) {
+      // If date parsing fails, assume data is invalid
+      res = [];
+      setState(() {});
+      return;
+    }
+
     setState(() {
       date = data['Kopf']['DatumPlan'];
     });
@@ -128,13 +155,7 @@ class _TeacherPlanState extends State<TeacherPlan> {
 
   @override
   Widget build(BuildContext context) {
-    String displayDate = '...';
-    DateTime displayDateDateTime = DateTime.now();
-    try {
-      displayDateDateTime = VPlanAPI().parseStringDatatoDateTime(date);
-    } catch (e) {}
-
-    displayDate = '${displayDateDateTime.day}.${displayDateDateTime.month}';
+    String displayDate = '${widget.selectedDate.day}.${widget.selectedDate.month}';
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: ListPage(
