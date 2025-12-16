@@ -8,7 +8,7 @@ icon: apple
 {% step %}
 ### Öffne die Website
 
-Öffne Safari and öffne Substitute [https://sergey842248.github.io/Substitute](https://sergey842248.github.io/Substitute)
+Öffne Safari und öffne Substitute [https://sergey842248.github.io/Substitute](https://sergey842248.github.io/Substitute)
 {% endstep %}
 
 {% step %}
