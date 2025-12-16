@@ -90,7 +90,8 @@ async function loadTranslations() {
                 lastUsed: 'Last Used',
                 apiStatus: 'API Status',
                 ready: 'Ready',
-                notConfigured: 'Not configured'
+                notConfigured: 'Not configured',
+                searchTeacher: 'Search for teacher abbreviation'
             },
             de: {
                 schoolNumber: 'Schulnummer',
@@ -164,7 +165,8 @@ async function loadTranslations() {
                 lastUsed: 'Zuletzt verwendet',
                 apiStatus: 'API-Status',
                 ready: 'Bereit',
-                notConfigured: 'Nicht konfiguriert'
+                notConfigured: 'Nicht konfiguriert',
+                searchTeacher: 'Suche nach Lehrerkürzel'
             }
         };
     }
@@ -624,7 +626,7 @@ async function loadTeachers(forceRefresh = false) {
     if (cachedTeachers && !forceRefresh) {
         const teacherList = JSON.parse(cachedTeachers);
         cachedTeacherList = teacherList;
-        displayTeachers(teacherList);
+        displayTeachers(teacherList, '');
         return;
     }
 
@@ -657,7 +659,7 @@ async function loadTeachers(forceRefresh = false) {
         const teacherList = parseTeachers(xmlText);
         cachedTeacherList = teacherList; // Cache the teacher list in memory
         localStorage.setItem('cachedTeachers', JSON.stringify(teacherList)); // Cache in localStorage
-        displayTeachers(teacherList);
+        displayTeachers(teacherList, '');
 
     } catch (error) {
         showMessageModal('Fehler beim Laden der Lehrer: ' + error.message);
@@ -683,11 +685,13 @@ function parseTeachers(xmlText) {
     return Array.from(teachers).sort();
 }
 
-function displayTeachers(teacherList) {
+function displayTeachers(teacherList, filter = '') {
     const teacherListElement = document.getElementById('teacher-list');
     teacherListElement.innerHTML = '';
 
-    teacherList.forEach(teacherName => {
+    const filteredList = teacherList.filter(teacher => teacher.toLowerCase().includes(filter.toLowerCase()));
+
+    filteredList.forEach(teacherName => {
         const teacherItem = document.createElement('div');
         teacherItem.className = 'class-item';
         teacherItem.style.cursor = 'pointer';
@@ -697,6 +701,11 @@ function displayTeachers(teacherList) {
     });
 
     teacherListElement.style.display = 'block';
+}
+
+function filterTeachers() {
+    const filter = document.getElementById('teacher-search').value;
+    displayTeachers(cachedTeacherList, filter);
 }
 
 async function loadTeacherDetails(teacherName, fromDateChange = false) {
@@ -806,7 +815,7 @@ function backToTeachers() {
         <p>${_('manageTeacherAbbreviations')}</p>
         <div id="teacher-list" class="class-list"></div>
     `;
-    displayTeachers(cachedTeacherList);
+    displayTeachers(cachedTeacherList, '');
 }
 
 function showSettings() {
@@ -1270,6 +1279,10 @@ function updateTexts() {
     if (langSelect) {
         langSelect.value = currentLang;
     }
+
+    // Teacher search placeholder
+    const searchInput = document.getElementById('teacher-search');
+    if (searchInput) searchInput.placeholder = _('searchTeacher');
 }
 
 function showWeek() {
