@@ -56,7 +56,7 @@ async function loadTranslations() {
                 teacherCol: 'Teacher',
                 vplanCredentials: 'VPlan Credentials',
                 settings: 'Settings',
-                changeAccessData: 'Change Access Data',
+                changeAccessData: 'Change your credentials',
                 showAnalytics: 'Show Analytics',
                 deleteData: 'Delete Data',
                 language: 'Language',
