@@ -813,6 +813,7 @@ function backToTeachers() {
     container.innerHTML = `
         <h2>${_('teacherManagement')}</h2>
         <p>${_('manageTeacherAbbreviations')}</p>
+        <input type="text" id="teacher-search" placeholder="${_('searchTeacher')}" oninput="filterTeachers()">
         <div id="teacher-list" class="class-list"></div>
     `;
     displayTeachers(cachedTeacherList, '');
