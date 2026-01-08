@@ -31,17 +31,17 @@ class _TeacherPlanState extends State<TeacherPlan> {
 
     teacherName = (await vplanAPI.replaceTeacherShort(widget.teacher))!;
 
-    // Construct URL for selected date
-    String url;
-    if (widget.selectedDate.year == DateTime.now().year &&
-        widget.selectedDate.month == DateTime.now().month &&
-        widget.selectedDate.day == DateTime.now().day) {
-      // For today's date, use the standard today URL to avoid fetching next day's data
-      url = await vplanAPI.getDayURL();
-    } else {
-      String dateString = vplanAPI.parseDate(widget.selectedDate);
-      url = 'https://www.stundenplan24.de/${vplanAPI.schoolnumber}/mobil/mobdaten/PlanKl$dateString.xml';
-    }
+    final DateTime normalizedDate = DateTime(
+      widget.selectedDate.year,
+      widget.selectedDate.month,
+      widget.selectedDate.day,
+    );
+
+    final String dateString = vplanAPI.parseDate(normalizedDate);
+
+    final String url =
+        'https://www.stundenplan24.de/${vplanAPI.schoolnumber}/mobil/mobdaten/PlanKl$dateString.xml';
+
 
     var data = (await vplanAPI.getVPlanJSON(
       Uri.parse(url),

@@ -13,10 +13,10 @@ import 'package:expandiware/models/Button.dart';
 
 import '../vplan/VPlanAPI.dart';
 import '../dashboard/settings/VPlanLogin.dart';
-
+Timer? _debounceTimer;
+late VoidCallback _textListener;
 class TeacherVPlan extends StatefulWidget {
   const TeacherVPlan({Key? key}) : super(key: key);
-
   @override
   _TeacherVPlanState createState() => _TeacherVPlanState();
 }
@@ -24,7 +24,12 @@ class TeacherVPlan extends StatefulWidget {
 class _TeacherVPlanState extends State<TeacherVPlan> {
   String teacherShort = '';
   double spaceBetween = 50;
-  DateTime selectedDate = DateTime.now();
+  DateTime selectedDate = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    DateTime.now().day,
+  );
+
 
   TextEditingController textFieldController = new TextEditingController();
 
@@ -32,6 +37,7 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
     teacherShort = newValue;
     textFieldController.text = newValue;
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -90,9 +96,13 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
                   firstDate: DateTime.now().subtract(Duration(days: 30)),
                   lastDate: DateTime.now().add(Duration(days: 30)),
                 );
-                if (picked != null && picked != selectedDate) {
+                if (picked != null) {
                   setState(() {
-                    selectedDate = picked;
+                    selectedDate = DateTime(
+                      picked.year,
+                      picked.month,
+                      picked.day,
+                    );
                   });
                 }
               },
@@ -298,26 +308,32 @@ class _TeacherListState extends State<TeacherList> {
     }
     setState(() {});
   }
-
   @override
   void initState() {
     super.initState();
     getTeachers();
-    widget.textController.addListener(() {
+
+    _textListener = () {
       _debounceTimer?.cancel();
-      _debounceTimer = Timer(Duration(milliseconds: 500), () {
+      _debounceTimer = Timer(const Duration(milliseconds: 5000), () {
+        if (!mounted) return;
         setState(() {
           searchText = widget.textController.text;
         });
       });
-    });
+    };
+
+    widget.textController.addListener(_textListener);
   }
+
 
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    widget.textController.removeListener(_textListener);
     super.dispose();
   }
+
 
   @override
   Widget build(BuildContext context) {
