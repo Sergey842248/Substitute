@@ -27,25 +27,56 @@ class Plan extends StatefulWidget {
 class _PlanState extends State<Plan> {
   VPlanAPI vplanAPI = new VPlanAPI();
 
-  void newVP(bool nextDay) async {
-    String? date = data['data']['date'];
+  Future<void> newVP(bool nextDay) async {
     setState(() {
       data = 'loading';
     });
+
+    try {
+      // Get current date from data if available, otherwise use today's date
+      DateTime currentDate;
+      if (data is Map && data['data'] != null && data['data']['date'] != null) {
+        currentDate = VPlanAPI().parseStringDatatoDateTime(data['data']['date']);
+      } else {
+        currentDate = DateTime.now();
+      }
+
+      // Calculate new date
+      DateTime newDate;
+      if (nextDay) {
+        int days = 1;
+        if (currentDate.weekday == 5) { // Friday
+          days = 3; // Skip weekend
+        }
+        newDate = currentDate.add(Duration(days: days));
+      } else {
+        int days = 1;
+        if (currentDate.weekday == 1) { // Monday
+          days = 3; // Skip weekend
+        }
+        newDate = currentDate.subtract(Duration(days: days));
+      }
+
+    // Get lessons for the new date
     dynamic newData = await VPlanAPI().getLessonsByDate(
-      date: VPlanAPI().changeDate(
-        date: (date == null ? '' : date),
-        nextDay: nextDay,
-      ),
+      date: newDate,
       classId: widget.classId,
     );
 
     setState(() {
-      data = {'data': newData, 'info': newData['info']};
+      data = {
+        'data': newData,
+        'info': newData['info'],
+      };
     });
+    } catch (e) {
+      print('Error loading plan for new date: $e');
+      // If there's an error, try to reload current data
+      await getData();
+    }
   }
 
-  void getData() async {
+  Future<void> getData() async {
     setState(() => data = 'loading'); // show loading animation
     VPlanAPI vplanAPI = new VPlanAPI();
 
