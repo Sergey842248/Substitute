@@ -429,8 +429,11 @@ class VPlanAPI {
           // parse the lessons
           var currentLesson = _lessons[j];
           String lessonCount = currentLesson['St']?.toString() ?? '';
-          bool placeChanged = roomChanges?[lessonCount] ?? false;
-          
+          bool hasRaAe = roomChanges?[lessonCount] ?? false;
+          String room = currentLesson['Ra'] ?? '';
+          bool hasLetters = RegExp(r'[a-zA-Z]').hasMatch(room);
+          bool placeChanged = hasRaAe && !hasLetters;
+
           _outpuLessons.add({
             'count': currentLesson['St'],
             'lesson': currentLesson['Fa'],
