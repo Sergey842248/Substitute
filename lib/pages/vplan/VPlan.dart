@@ -272,66 +272,69 @@ class _ClassWidgetState extends State<ClassWidget> {
       }
     }
 
-    // If no next lesson found for today, check if we should show first lesson of next day
-    if (!foundNextLesson && realVPlan.isNotEmpty) {
-      // Check if current time is after the last lesson of the day
-      Map<String, dynamic> lastLesson = realVPlan.last;
-      double lastLessonEndTime = (toTimeOfDay(lastLesson['end']).hour +
-              (toTimeOfDay(lastLesson['end']).minute / 60));
-
-      if (currentTime.hour + (currentTime.minute / 60) > lastLessonEndTime) {
-        // Current time is after last lesson, so get first lesson of next day
-        try {
-          DateTime today = DateTime.now();
-          DateTime tomorrow = today.add(Duration(days: 1));
-
-          // Skip weekend if today is Friday
-          if (today.weekday == 5) { // Friday
-            tomorrow = today.add(Duration(days: 3));
-          }
-
-          dynamic tomorrowVplan = await VPlanAPI().getLessonsByDate(
-            date: tomorrow,
-            classId: widget.classId,
-          );
-
-          if (tomorrowVplan != null &&
-              tomorrowVplan['data'] != null &&
-              tomorrowVplan['data'].isNotEmpty) {
-
-            // Filter hidden courses from tomorrow's lessons
-            List<dynamic> tomorrowRealVPlan = [];
-            for (var i = 0; i < tomorrowVplan['data'].length; i++) {
-              bool add = true;
-              for (var j = 0; j < hiddenCourses.length; j++) {
-                if (tomorrowVplan['data'][i]['course'] == hiddenCourses[j] ||
-                    tomorrowVplan['data'][i]['course'] == '---') {
-                  add = false;
-                }
-              }
-              if (add) {
-                tomorrowRealVPlan.add(tomorrowVplan['data'][i]);
-              }
-            }
-
-            if (tomorrowRealVPlan.isNotEmpty) {
-              // Use the first lesson of tomorrow
-              nextLesson = tomorrowRealVPlan.first;
-              foundNextLesson = true;
-            }
-          }
-        } catch (e) {
-          print('Error fetching next day lessons: $e');
-        }
-      }
-    }
-
-    if (!foundNextLesson && realVPlan.isNotEmpty) {
-      nextLesson = realVPlan[lessonIndex];
-    } else if (realVPlan.isNotEmpty) {
+    if (foundNextLesson) {
       nextLesson = realVPlan[lessonIndex];
     } else {
-      nextLesson = {};
+      // Check if current time is after the last lesson of the day
+      if (realVPlan.isNotEmpty) {
+        Map<String, dynamic> lastLesson = realVPlan.last;
+        double lastLessonEndTime = (toTimeOfDay(lastLesson['end']).hour +
+                (toTimeOfDay(lastLesson['end']).minute / 60));
+
+        if (currentTime.hour + (currentTime.minute / 60) > lastLessonEndTime) {
+          // Current time is after last lesson, so get first lesson of next day
+          try {
+            DateTime today = DateTime.now();
+            DateTime tomorrow = today.add(Duration(days: 1));
+
+            // Skip weekend if today is Friday
+            if (today.weekday == 5) { // Friday
+              tomorrow = today.add(Duration(days: 3));
+            }
+
+            dynamic tomorrowVplan = await VPlanAPI().getLessonsByDate(
+              date: tomorrow,
+              classId: widget.classId,
+            );
+
+            if (tomorrowVplan != null &&
+                tomorrowVplan['data'] != null &&
+                tomorrowVplan['data'].isNotEmpty) {
+
+              // Filter hidden courses from tomorrow's lessons
+              List<dynamic> tomorrowRealVPlan = [];
+              for (var i = 0; i < tomorrowVplan['data'].length; i++) {
+                bool add = true;
+                for (var j = 0; j < hiddenCourses.length; j++) {
+                  if (tomorrowVplan['data'][i]['course'] == hiddenCourses[j] ||
+                      tomorrowVplan['data'][i]['course'] == '---') {
+                    add = false;
+                  }
+                }
+                if (add) {
+                  tomorrowRealVPlan.add(tomorrowVplan['data'][i]);
+                }
+              }
+
+              if (tomorrowRealVPlan.isNotEmpty) {
+                // Use the first lesson of tomorrow
+                nextLesson = tomorrowRealVPlan.first;
+              } else {
+                nextLesson = {};
+              }
+            } else {
+              nextLesson = {};
+            }
+          } catch (e) {
+            print('Error fetching next day lessons: $e');
+            nextLesson = {};
+          }
+        } else {
+          nextLesson = {};
+        }
+      } else {
+        nextLesson = {};
+      }
     }
 
     setState(() {});

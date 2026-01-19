@@ -85,10 +85,57 @@ class _PlanState extends State<Plan> {
       setState(() => data = _lessons);
       return;
     }
-    data = {
-      'data': _lessons,
-      'info': _lessons['info'],
-    };
+
+    // Check if the day is over (current time is after the last lesson's end time)
+    bool dayOver = false;
+    if (_lessons['data'].isNotEmpty) {
+      var lastLesson = _lessons['data'].last;
+      String endTimeStr = lastLesson['end'];
+      if (endTimeStr != null && endTimeStr != '---') {
+        try {
+          List<String> parts = endTimeStr.split(':');
+          int hour = int.parse(parts[0]);
+          int minute = int.parse(parts[1]);
+          DateTime now = DateTime.now();
+          DateTime lastEnd = DateTime(now.year, now.month, now.day, hour, minute);
+          if (now.isAfter(lastEnd)) {
+            dayOver = true;
+          }
+        } catch (e) {
+          // Ignore parsing errors
+        }
+      }
+    }
+
+    if (dayOver) {
+      // Load lessons for the next day
+      DateTime tomorrow = DateTime.now().add(Duration(days: 1));
+      // Skip weekends
+      if (tomorrow.weekday == 6) { // Saturday
+        tomorrow = tomorrow.add(Duration(days: 2)); // Monday
+      } else if (tomorrow.weekday == 7) { // Sunday
+        tomorrow = tomorrow.add(Duration(days: 1)); // Monday
+      }
+      dynamic tomorrowLessons = await VPlanAPI().getLessonsByDate(date: tomorrow, classId: widget.classId);
+      if (tomorrowLessons['error'] == null && tomorrowLessons['data'] != null && tomorrowLessons['data'].isNotEmpty) {
+        data = {
+          'data': tomorrowLessons,
+          'info': tomorrowLessons['info'],
+        };
+      } else {
+        // If no lessons tomorrow or error, keep today's data
+        data = {
+          'data': _lessons,
+          'info': _lessons['info'],
+        };
+      }
+    } else {
+      data = {
+        'data': _lessons,
+        'info': _lessons['info'],
+      };
+    }
+
     hiddenSubjects = await vplanAPI.getHiddenCourses();
 
     setState(() {});
