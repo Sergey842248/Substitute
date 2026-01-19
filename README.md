@@ -46,5 +46,3 @@ Contributions are always welcome! If you have ideas for new features, find bugs,
 **Original Project:** A big thank you to the original project [expandiware](https://github.com/badbryany/expandiware) by @badbryany, on which this app is based. WHICH COLLECTED DATA!!!
 
 ***
-
-Developed with ❤️ by [Parsa](https://github.com/sergey842248)
