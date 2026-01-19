@@ -12,8 +12,8 @@ android {
         applicationId = "com.future.watchtitute"
         minSdk = 30
         targetSdk = 36
-        versionCode = 375
-        versionName = "3.7.5"
+        versionCode = 376
+        versionName = "3.7.6"
 
     }
 
