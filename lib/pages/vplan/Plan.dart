@@ -28,10 +28,6 @@ class _PlanState extends State<Plan> {
   VPlanAPI vplanAPI = new VPlanAPI();
 
   Future<void> newVP(bool nextDay) async {
-    setState(() {
-      data = 'loading';
-    });
-
     try {
       // Get current date from data if available, otherwise use today's date
       DateTime currentDate;
@@ -40,6 +36,10 @@ class _PlanState extends State<Plan> {
       } else {
         currentDate = DateTime.now();
       }
+
+      setState(() {
+        data = 'loading';
+      });
 
       // Calculate new date
       DateTime newDate;
