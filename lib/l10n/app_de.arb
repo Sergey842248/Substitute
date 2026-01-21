@@ -16,7 +16,7 @@
     "dashboard": "Dashboard",
     "appTitle": "Substitute",
     "newVersionAvailable": "Neue Version verfügbar",
-    "newVersionMessage": "Eine neue Version ({version}) ist verfügbar. Jetzt herunterladen!",
+    "newVersionMessage": "Eine neue Version ({version}) ist verfügbar. Lade sie herunter und öffne die Datei um sie zu installieren.",
     "@newVersionMessage": {
         "placeholders": {
             "version": {
