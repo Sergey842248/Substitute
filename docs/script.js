@@ -729,11 +729,34 @@ async function loadTeacherDetails(teacherName, fromDateChange = false) {
     }
 }
 
+function normalizeVPlanInfoText(text) {
+    if (!text) return '';
+    return text
+        .toString()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/ß/g, 'ss')
+        .trim();
+}
+
+function isCancelledLessonInfo(infoText) {
+    const t = normalizeVPlanInfoText(infoText);
+    if (!t) return false;
+
+    if (/\b(entfall|entfallt|entfaellt|ausfall|ausgefallen)\b/.test(t)) return true;
+
+    // Handles variants like "fällt heute aus" / "fällt wegen ... aus"
+    return /\b(fallt|faellt)\b/.test(t) && /\baus\b/.test(t);
+}
+
 function parseTeacherLessons(xmlText, teacherName) {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
     const classes = xmlDoc.querySelectorAll('Kl');
     const lessons = [];
+
+    const normalizedTeacher = (teacherName || '').trim().toLowerCase();
 
     classes.forEach(cls => {
         const className = cls.querySelector('Kurz')?.textContent;
@@ -741,11 +764,15 @@ function parseTeacherLessons(xmlText, teacherName) {
 
         stunden.forEach(std => {
             const lehrer = std.querySelector('Le')?.textContent;
+            if (!lehrer) return;
 
-            if (lehrer && lehrer.trim() === teacherName.trim()) {
+            if (lehrer.trim().toLowerCase() === normalizedTeacher) {
                 const st = std.querySelector('St')?.textContent;
                 const fa = std.querySelector('Fa')?.textContent;
                 const regel = std.querySelector('If')?.textContent;
+
+                if (isCancelledLessonInfo(regel)) return;
+
                 const beginn = std.querySelector('Beginn')?.textContent;
                 const ende = std.querySelector('Ende')?.textContent;
                 const raElement = std.querySelector('Ra');
@@ -768,7 +795,17 @@ function parseTeacherLessons(xmlText, teacherName) {
             }
         });
     });
-    lessons.sort((a, b) => a.stunde.localeCompare(b.stunde));
+
+    lessons.sort((a, b) => {
+        const aNum = parseInt(a.stunde, 10);
+        const bNum = parseInt(b.stunde, 10);
+
+        if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
+            return aNum - bNum;
+        }
+        return a.stunde.localeCompare(b.stunde);
+    });
+
     return lessons;
 }
 
