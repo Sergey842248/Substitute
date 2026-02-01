@@ -319,16 +319,13 @@ async function loadClasses(forceRefresh = false) {
 
     try {
 const proxy = 'https://corsproxy.io/?';
-let url;
-let headers = {};
-
+let targetUrl;
 if (customUrl) {
-    url = `${proxy}${customUrl}Klassen.xml`;
+    targetUrl = `${customUrl}Klassen.xml`;
 } else {
-    url = `${proxy}https://www.stundenplan24.de/${schoolnumber}/mobil/mobdaten/Klassen.xml`;
-    const credentials = btoa(`${username}:${password}`);
-    headers['Authorization'] = `Basic ${credentials}`;
+    targetUrl = `https://www.stundenplan24.de/${schoolnumber}/mobil/mobdaten/Klassen.xml`;
 }
+const url = `${proxy}${encodeURIComponent(targetUrl)}`;
 
         const response = await fetch(url, {
             method: 'GET',
@@ -631,17 +628,14 @@ async function loadTeachers(forceRefresh = false) {
     }
 
     try {
-        const proxy = 'https://corsproxy.io/?';
-        let url;
-        let headers = {};
-
-        if (customUrl) {
-            url = `${proxy}${customUrl}Klassen.xml`;
-        } else {
-            url = `${proxy}https://www.stundenplan24.de/${schoolnumber}/mobil/mobdaten/Klassen.xml`;
-            const credentials = btoa(`${username}:${password}`);
-            headers['Authorization'] = `Basic ${credentials}`;
-        }
+const proxy = 'https://corsproxy.io/?';
+let targetUrl;
+if (customUrl) {
+    targetUrl = `${customUrl}Klassen.xml`;
+} else {
+    targetUrl = `https://www.stundenplan24.de/${schoolnumber}/mobil/mobdaten/Klassen.xml`;
+}
+const url = `${proxy}${encodeURIComponent(targetUrl)}`;
 
         const response = await fetch(url, {
             method: 'GET',
@@ -920,16 +914,13 @@ async function fetchPlanForDate(date) {
     
     try {
 const proxy = 'https://corsproxy.io/?';
-let url;
-let headers = {};
-
+let targetUrl;
 if (customUrl) {
-    url = `${proxy}${customUrl}${dateUrlPart}`;
+    targetUrl = `${customUrl}Klassen.xml`;
 } else {
-    url = `${proxy}https://www.stundenplan24.de/${schoolnumber}/mobil/mobdaten/${dateUrlPart}`;
-    const credentials = btoa(`${username}:${password}`);
-    headers['Authorization'] = `Basic ${credentials}`;
+    targetUrl = `https://www.stundenplan24.de/${schoolnumber}/mobil/mobdaten/Klassen.xml`;
 }
+const url = `${proxy}${encodeURIComponent(targetUrl)}`;
 
         const response = await fetch(url, { method: 'GET', headers: headers });
 
