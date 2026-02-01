@@ -318,7 +318,7 @@ async function loadClasses(forceRefresh = false) {
     }
 
     try {
-const proxy = 'https://corsproxy.io/?';
+const proxy = 'https://cors.parsafallah09.workers.dev/?url=';
 let url;
 let headers = {};
 
@@ -631,7 +631,7 @@ async function loadTeachers(forceRefresh = false) {
     }
 
     try {
-        const proxy = 'https://corsproxy.io/?';
+        const proxy = 'https://cors.parsafallah09.workers.dev/?url=';
         let url;
         let headers = {};
 
@@ -919,7 +919,7 @@ async function fetchPlanForDate(date) {
     const dateUrlPart = `PlanKl${formatDateForURL(date)}.xml`;
     
     try {
-const proxy = 'https://corsproxy.io/?';
+const proxy = 'https://cors.parsafallah09.workers.dev/?url=';
 let url;
 let headers = {};
 
