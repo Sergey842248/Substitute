@@ -319,14 +319,16 @@ async function loadClasses(forceRefresh = false) {
 
     try {
 const proxy = 'https://corsproxy.io/?';
-let targetUrl;
+let url;
 let headers = {};
+
 if (customUrl) {
-    targetUrl = `${customUrl}Klassen.xml`;
+    url = `${proxy}${customUrl}Klassen.xml`;
 } else {
-    targetUrl = `https://www.stundenplan24.de/${schoolnumber}/mobil/mobdaten/Klassen.xml`;
+    url = `${proxy}https://www.stundenplan24.de/${schoolnumber}/mobil/mobdaten/Klassen.xml`;
+    const credentials = btoa(`${username}:${password}`);
+    headers['Authorization'] = `Basic ${credentials}`;
 }
-const url = `${proxy}${encodeURIComponent(targetUrl)}`;
 
         const response = await fetch(url, {
             method: 'GET',
@@ -629,15 +631,17 @@ async function loadTeachers(forceRefresh = false) {
     }
 
     try {
-const proxy = 'https://corsproxy.io/?';
-let targetUrl;
-let headers = {};
-if (customUrl) {
-    targetUrl = `${customUrl}Klassen.xml`;
-} else {
-    targetUrl = `https://www.stundenplan24.de/${schoolnumber}/mobil/mobdaten/Klassen.xml`;
-}
-const url = `${proxy}${encodeURIComponent(targetUrl)}`;
+        const proxy = 'https://corsproxy.io/?';
+        let url;
+        let headers = {};
+
+        if (customUrl) {
+            url = `${proxy}${customUrl}Klassen.xml`;
+        } else {
+            url = `${proxy}https://www.stundenplan24.de/${schoolnumber}/mobil/mobdaten/Klassen.xml`;
+            const credentials = btoa(`${username}:${password}`);
+            headers['Authorization'] = `Basic ${credentials}`;
+        }
 
         const response = await fetch(url, {
             method: 'GET',
@@ -916,14 +920,16 @@ async function fetchPlanForDate(date) {
     
     try {
 const proxy = 'https://corsproxy.io/?';
-let targetUrl;
+let url;
 let headers = {};
+
 if (customUrl) {
-    targetUrl = `${customUrl}Klassen.xml`;
+    url = `${proxy}${customUrl}${dateUrlPart}`;
 } else {
-    targetUrl = `https://www.stundenplan24.de/${schoolnumber}/mobil/mobdaten/Klassen.xml`;
+    url = `${proxy}https://www.stundenplan24.de/${schoolnumber}/mobil/mobdaten/${dateUrlPart}`;
+    const credentials = btoa(`${username}:${password}`);
+    headers['Authorization'] = `Basic ${credentials}`;
 }
-const url = `${proxy}${encodeURIComponent(targetUrl)}`;
 
         const response = await fetch(url, { method: 'GET', headers: headers });
 
