@@ -320,6 +320,7 @@ async function loadClasses(forceRefresh = false) {
     try {
 const proxy = 'https://corsproxy.io/?';
 let targetUrl;
+let headers = {};
 if (customUrl) {
     targetUrl = `${customUrl}Klassen.xml`;
 } else {
@@ -630,6 +631,7 @@ async function loadTeachers(forceRefresh = false) {
     try {
 const proxy = 'https://corsproxy.io/?';
 let targetUrl;
+let headers = {};
 if (customUrl) {
     targetUrl = `${customUrl}Klassen.xml`;
 } else {
@@ -915,6 +917,7 @@ async function fetchPlanForDate(date) {
     try {
 const proxy = 'https://corsproxy.io/?';
 let targetUrl;
+let headers = {};
 if (customUrl) {
     targetUrl = `${customUrl}Klassen.xml`;
 } else {
