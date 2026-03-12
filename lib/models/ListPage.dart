@@ -11,6 +11,7 @@ class ListPage extends StatefulWidget {
     this.canclePage,
     this.onPop,
     this.onTitleClick,
+    this.onRefresh,
   }) : super(key: key);
 
   final String title;
@@ -21,6 +22,7 @@ class ListPage extends StatefulWidget {
   Function? onPop;
   final List<Widget> children;
   List<Widget>? actions;
+  final Future<void> Function()? onRefresh;
 
   @override
   State<ListPage> createState() => _ListPageState();
@@ -212,33 +214,64 @@ class _ListPageState extends State<ListPage> {
                 alignment: Alignment.bottomCenter,
                 height: MediaQuery.of(context).size.height *
                     (topHeight == 0 ? 0.85 : 0.85),
-                child: widget.animate!
-                    ? AnimatedSwitcher(
-                        duration: Duration(milliseconds: 500),
-                        transitionBuilder: (child, animation) =>
-                            SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0, 2),
-                            end: const Offset(0, 0),
-                          ).animate(animation),
-                          child: child,
-                        ),
-                        child: ListView(
-                          key: ValueKey(widget.children),
-                          controller: controller,
-                          physics: const BouncingScrollPhysics(
-                            parent: AlwaysScrollableScrollPhysics(),
-                          ),
-                          children: widget.children,
-                        ),
+                child: widget.onRefresh != null
+                    ? RefreshIndicator(
+                        onRefresh: widget.onRefresh!,
+                        child: widget.animate!
+                            ? AnimatedSwitcher(
+                                duration: Duration(milliseconds: 500),
+                                transitionBuilder: (child, animation) =>
+                                    SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0, 2),
+                                    end: const Offset(0, 0),
+                                  ).animate(animation),
+                                  child: child,
+                                ),
+                                child: ListView(
+                                  key: ValueKey(widget.children),
+                                  controller: controller,
+                                  physics: const BouncingScrollPhysics(
+                                    parent: AlwaysScrollableScrollPhysics(),
+                                  ),
+                                  children: widget.children,
+                                ),
+                              )
+                            : ListView(
+                                controller: controller,
+                                physics: const BouncingScrollPhysics(
+                                  parent: AlwaysScrollableScrollPhysics(),
+                                ),
+                                children: widget.children,
+                              ),
                       )
-                    : ListView(
-                        controller: controller,
-                        physics: const BouncingScrollPhysics(
-                          parent: AlwaysScrollableScrollPhysics(),
-                        ),
-                        children: widget.children,
-                      ),
+                    : (widget.animate!
+                        ? AnimatedSwitcher(
+                            duration: Duration(milliseconds: 500),
+                            transitionBuilder: (child, animation) =>
+                                SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0, 2),
+                                end: const Offset(0, 0),
+                              ).animate(animation),
+                              child: child,
+                            ),
+                            child: ListView(
+                              key: ValueKey(widget.children),
+                              controller: controller,
+                              physics: const BouncingScrollPhysics(
+                                parent: AlwaysScrollableScrollPhysics(),
+                              ),
+                              children: widget.children,
+                            ),
+                          )
+                        : ListView(
+                            controller: controller,
+                            physics: const BouncingScrollPhysics(
+                              parent: AlwaysScrollableScrollPhysics(),
+                            ),
+                            children: widget.children,
+                          )),
               ),
             ),
           ],

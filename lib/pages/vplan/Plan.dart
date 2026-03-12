@@ -226,6 +226,7 @@ class _PlanState extends State<Plan> {
       return ListPage(
         title: '${widget.classId}',
         animate: true,
+        onRefresh: () => getData(),
         actions: [
           IconButton(
             onPressed: () => getData(),
@@ -299,9 +300,13 @@ class _PlanState extends State<Plan> {
           ),
         );
       },
-      title: '${widget.classId} - $displayDate',
+       title: '${widget.classId} - $displayDate',
       animate: true,
       smallTitle: true,
+      onRefresh: () {
+        VPlanAPI().removePlanByDate(data['data']['date']);
+        return getData();
+      },
       actions: [
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
