@@ -451,16 +451,7 @@ class _PlanState extends State<Plan> {
                 },
               ).toList()),
         data != 'loading'
-            ? Container(
-                margin: EdgeInsets.only(
-                  top: 15,
-                  bottom: 15,
-                  left: MediaQuery.of(context).size.width * 0.1,
-                  right: MediaQuery.of(context).size.width * 0.1,
-                ),
-                color: Theme.of(context).backgroundColor,
-                height: 2,
-              )
+            ? const SizedBox()
             : const SizedBox(),
         data != 'loading'
             ? (data['info'] != null &&
