@@ -217,6 +217,10 @@ class _ListPageState extends State<ListPage> {
                 child: widget.onRefresh != null
                     ? RefreshIndicator(
                         onRefresh: widget.onRefresh!,
+                        displacement: 0,
+                        strokeWidth: 0,
+                        color: Colors.transparent,
+                        backgroundColor: Colors.transparent,
                         child: widget.animate!
                             ? AnimatedSwitcher(
                                 duration: Duration(milliseconds: 500),
