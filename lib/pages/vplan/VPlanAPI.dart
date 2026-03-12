@@ -159,6 +159,29 @@ class VPlanAPI {
     }
   }
 
+  Future<void> refreshAllPlansInBackground() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    
+    // Get all student classes
+    List<String>? classes = prefs.getStringList('classes');
+    if (classes == null || classes.isEmpty) return;
+    
+    // Get the URL for today's plan
+    String urlString = await getDayURL();
+    Uri url = Uri.parse(urlString);
+    DateTime today = DateTime.now();
+    
+    // Refresh each class in the background in parallel (force refresh to get latest data)
+    await Future.wait(classes.map((classId) async {
+      try {
+        // Force refresh by calling getVPlanJSON with forceRefresh: true
+        await getVPlanJSON(url, today, forceRefresh: true);
+      } catch (e) {
+        print('Background refresh error for class $classId: $e');
+      }
+    }));
+  }
+
   Future<List<dynamic>> getCourses(String classId) async {
     List<dynamic> data = (await getVPlanJSON(
       Uri.parse(await getDayURL()),

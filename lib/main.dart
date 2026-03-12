@@ -29,6 +29,7 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 
 /* pages */
 import 'pages/vplan/VPlan.dart';
+import 'pages/vplan/VPlanAPI.dart';
 import 'pages/teacherVPlan/TeacherVPlan.dart';
 import 'pages/dashboard/Dashboard.dart';
 
@@ -274,6 +275,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     eastereggController = AnimationController(vsync: this);
     // Set initial tab based on constructor parameter, default to vplanStudents
     activeText = widget.initialTab ?? 'vplanStudents';
+    
+    // Refresh all VPlans in the background when app opens
+    _refreshAllPlans();
+  }
+
+  Future<void> _refreshAllPlans() async {
+    try {
+      await VPlanAPI().refreshAllPlansInBackground();
+      print('Background refresh completed');
+    } catch (e) {
+      print('Error during background refresh: $e');
+    }
   }
 
   void dispose() {
