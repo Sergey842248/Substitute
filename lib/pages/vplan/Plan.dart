@@ -146,7 +146,7 @@ class _PlanState extends State<Plan> {
 
   dynamic data = 'loading';
   List<String>? hiddenSubjects;
-  bool showLessonTimes = false;
+  bool hideLessonTimes = true;
   bool hideTeacher = false;
 
   String printValue(String? value) {
@@ -166,7 +166,7 @@ class _PlanState extends State<Plan> {
   Future<void> _loadSettings() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      showLessonTimes = prefs.getBool('showLessonTimes') ?? false;
+      hideLessonTimes = prefs.getBool('hideLessonTimes') ?? true;
       hideTeacher = prefs.getBool('hideTeacher') ?? false;
     });
   }
@@ -398,7 +398,7 @@ class _PlanState extends State<Plan> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (showLessonTimes)
+                              if (!hideLessonTimes)
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -412,7 +412,7 @@ class _PlanState extends State<Plan> {
                                         '${printValue(e['begin'])} - ${printValue(e['end'])}'),
                                   ],
                                 ),
-                              if (showLessonTimes) SizedBox(height: 5),
+                              if (!hideLessonTimes) SizedBox(height: 5),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 crossAxisAlignment: CrossAxisAlignment.start,

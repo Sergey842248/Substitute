@@ -92,8 +92,8 @@ async function loadTranslations() {
                 ready: 'Ready',
                 notConfigured: 'Not configured',
                 searchTeacher: 'Search for teacher abbreviation',
-                showLessonTimes: 'Show Lesson Times',
-                showLessonTimesSubtitle: 'Display times for individual lessons in the plan'
+                showLessonTimes: 'Hide Lesson Times',
+                showLessonTimesSubtitle: 'Hide times for individual lessons in the plan'
             },
             de: {
                 schoolNumber: 'Schulnummer',
@@ -169,8 +169,8 @@ async function loadTranslations() {
                 ready: 'Bereit',
                 notConfigured: 'Nicht konfiguriert',
                 searchTeacher: 'Suche nach Lehrerkürzel',
-                showLessonTimes: 'Stundenzeiten anzeigen',
-                showLessonTimesSubtitle: 'Zeiten der einzelnen Stunden im Vertretungsplan anzeigen'
+                showLessonTimes: 'Stundenzeiten ausblenden',
+                showLessonTimesSubtitle: 'Zeiten der einzelnen Stunden im Vertretungsplan ausblenden'
             }
         };
     }
@@ -223,9 +223,9 @@ window.onload = async function() {
     const favoriteClass = localStorage.getItem('favoriteClass');
     const schoolnumber = localStorage.getItem('vplanSchoolnumber');
 
-    // Load showLessonTimes setting
-    const showLessonTimes = localStorage.getItem('showLessonTimes') === 'true';
-    document.getElementById('show-lesson-times').checked = showLessonTimes;
+    // Load hideLessonTimes setting (default: hidden = true)
+    const hideLessonTimes = localStorage.getItem('hideLessonTimes') !== 'false';
+    document.getElementById('hide-lesson-times').checked = hideLessonTimes;
 
     // Load hideTeacher setting
     const hideTeacher = localStorage.getItem('hideTeacher') === 'true';
@@ -238,8 +238,8 @@ window.onload = async function() {
 
 // Toggle lesson times display setting
 function toggleLessonTimes() {
-    const checkbox = document.getElementById('show-lesson-times');
-    localStorage.setItem('showLessonTimes', checkbox.checked);
+    const checkbox = document.getElementById('hide-lesson-times');
+    localStorage.setItem('hideLessonTimes', checkbox.checked);
     // Re-display lessons if currently showing a plan
     if (currentView.type === 'class' && currentView.name) {
         loadClassDetails(currentView.name, true);
@@ -552,8 +552,8 @@ function displayLessons(lessons, dateString, className, xmlText) {
                 lessonItem.style.backgroundColor = 'rgba(139, 0, 0, 0.6)';
             }
     const roomStyle = lesson.raumChanged ? 'color: #ff4444; font-weight: bold;' : '';
-    const showLessonTimes = localStorage.getItem('showLessonTimes') === 'true';
-    const timeRow = showLessonTimes ? `<div>${_('timeColon')} ${lesson.beginn} - ${lesson.ende}</div>` : '';
+    const hideLessonTimes = localStorage.getItem('hideLessonTimes') !== 'false';
+    const timeRow = !hideLessonTimes ? `<div>${_('timeColon')} ${lesson.beginn} - ${lesson.ende}</div>` : '';
     const hideTeacher = localStorage.getItem('hideTeacher') === 'true';
     const teacherRow = hideTeacher ? '' : `<div>${_('teacherColon')} ${lesson.lehrer}</div>`;
     lessonItem.innerHTML = `

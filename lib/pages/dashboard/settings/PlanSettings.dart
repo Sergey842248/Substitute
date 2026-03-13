@@ -9,7 +9,7 @@ class PlanSettings extends StatefulWidget {
 }
 
 class _PlanSettingsState extends State<PlanSettings> {
-  bool _showLessonTimes = false;
+  bool _hideLessonTimes = true;
   bool _hideTeacher = false;
 
   @override
@@ -21,16 +21,16 @@ class _PlanSettingsState extends State<PlanSettings> {
   Future<void> _loadSettings() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      _showLessonTimes = prefs.getBool('showLessonTimes') ?? false;
+      _hideLessonTimes = prefs.getBool('hideLessonTimes') ?? true;
       _hideTeacher = prefs.getBool('hideTeacher') ?? false;
     });
   }
 
   Future<void> _toggleLessonTimes(bool value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('showLessonTimes', value);
+    await prefs.setBool('hideLessonTimes', value);
     setState(() {
-      _showLessonTimes = value;
+      _hideLessonTimes = value;
     });
   }
 
@@ -66,7 +66,7 @@ class _PlanSettingsState extends State<PlanSettings> {
                     title: Padding(
                       padding: EdgeInsets.all(4),
                       child: Text(
-                        'Show Lesson Times',
+                        'Hide Lesson Times',
                         style: TextStyle(
                           fontSize: 18,
                         ),
@@ -75,7 +75,7 @@ class _PlanSettingsState extends State<PlanSettings> {
                     subtitle: Padding(
                       padding: EdgeInsets.all(4),
                       child: Text(
-                        'Display times for individual lessons in the plan',
+                        'Hide times for individual lessons in the plan',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w100,
@@ -83,7 +83,7 @@ class _PlanSettingsState extends State<PlanSettings> {
                         ),
                       ),
                     ),
-                    value: _showLessonTimes,
+                    value: _hideLessonTimes,
                     onChanged: _toggleLessonTimes,
                   ),
                 ),
