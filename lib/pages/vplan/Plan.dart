@@ -147,6 +147,7 @@ class _PlanState extends State<Plan> {
   dynamic data = 'loading';
   List<String>? hiddenSubjects;
   bool showLessonTimes = false;
+  bool hideTeacher = false;
 
   String printValue(String? value) {
     if (value == null) {
@@ -166,6 +167,7 @@ class _PlanState extends State<Plan> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       showLessonTimes = prefs.getBool('showLessonTimes') ?? false;
+      hideTeacher = prefs.getBool('hideTeacher') ?? false;
     });
   }
 
@@ -433,18 +435,19 @@ class _PlanState extends State<Plan> {
                                 ],
                               ),
                               SizedBox(height: 5),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Icon(
-                                    Icons.person_rounded,
-                                    size: 16,
-                                  ),
-                                  SizedBox(width: 3),
-                                  Text(printValue(e['teacher'])),
-                                ],
-                              ),
+                              if (!hideTeacher)
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.person_rounded,
+                                      size: 16,
+                                    ),
+                                    SizedBox(width: 3),
+                                    Text(printValue(e['teacher'])),
+                                  ],
+                                ),
                             ],
                           ),
                         ],

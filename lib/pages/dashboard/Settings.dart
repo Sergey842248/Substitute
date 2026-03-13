@@ -32,7 +32,6 @@ class _SettingsState extends State<Settings> {
         'link': PlanSettings(),
       },
       {
-      {
         'title': AppLocalizations.of(context)!.credentials,
         'icon': Icons.lock_outline_rounded,
         'subtitle': AppLocalizations.of(context)!.credentialsSubtitle,

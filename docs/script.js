@@ -227,6 +227,10 @@ window.onload = async function() {
     const showLessonTimes = localStorage.getItem('showLessonTimes') === 'true';
     document.getElementById('show-lesson-times').checked = showLessonTimes;
 
+    // Load hideTeacher setting
+    const hideTeacher = localStorage.getItem('hideTeacher') === 'true';
+    document.getElementById('hide-teacher').checked = hideTeacher;
+
     if (favoriteClass && schoolnumber) {
         loadPlanForFavoriteClass(favoriteClass);
     }
@@ -236,6 +240,16 @@ window.onload = async function() {
 function toggleLessonTimes() {
     const checkbox = document.getElementById('show-lesson-times');
     localStorage.setItem('showLessonTimes', checkbox.checked);
+    // Re-display lessons if currently showing a plan
+    if (currentView.type === 'class' && currentView.name) {
+        loadClassDetails(currentView.name, true);
+    }
+}
+
+// Toggle hide teacher setting
+function toggleHideTeacher() {
+    const checkbox = document.getElementById('hide-teacher');
+    localStorage.setItem('hideTeacher', checkbox.checked);
     // Re-display lessons if currently showing a plan
     if (currentView.type === 'class' && currentView.name) {
         loadClassDetails(currentView.name, true);
@@ -540,9 +554,11 @@ function displayLessons(lessons, dateString, className, xmlText) {
     const roomStyle = lesson.raumChanged ? 'color: #ff4444; font-weight: bold;' : '';
     const showLessonTimes = localStorage.getItem('showLessonTimes') === 'true';
     const timeRow = showLessonTimes ? `<div>${_('timeColon')} ${lesson.beginn} - ${lesson.ende}</div>` : '';
+    const hideTeacher = localStorage.getItem('hideTeacher') === 'true';
+    const teacherRow = hideTeacher ? '' : `<div>${_('teacherColon')} ${lesson.lehrer}</div>`;
     lessonItem.innerHTML = `
         <strong>${_('lessonNum')} ${lesson.stunde}: ${lesson.fach}</strong>
-        <div>${_('teacherColon')} ${lesson.lehrer}</div>
+        ${teacherRow}
         <div>${_('spaceColon')} <span style="${roomStyle}">${lesson.raum}</span></div>
         ${timeRow}
         <div>${lesson.regel ? _('infoColon') + lesson.regel : ''}</div>

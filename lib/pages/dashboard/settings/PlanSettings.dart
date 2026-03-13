@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../models/ListPage.dart';
+import '../../../models/ListPage.dart';
 
 class PlanSettings extends StatefulWidget {
   @override
@@ -11,6 +10,7 @@ class PlanSettings extends StatefulWidget {
 
 class _PlanSettingsState extends State<PlanSettings> {
   bool _showLessonTimes = false;
+  bool _hideTeacher = false;
 
   @override
   void initState() {
@@ -22,6 +22,7 @@ class _PlanSettingsState extends State<PlanSettings> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       _showLessonTimes = prefs.getBool('showLessonTimes') ?? false;
+      _hideTeacher = prefs.getBool('hideTeacher') ?? false;
     });
   }
 
@@ -33,50 +34,104 @@ class _PlanSettingsState extends State<PlanSettings> {
     });
   }
 
+  Future<void> _toggleHideTeacher(bool value) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hideTeacher', value);
+    setState(() {
+      _hideTeacher = value;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ListPage(
-      title: AppLocalizations.of(context)!.planSettings,
-      children: [
-        Container(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          margin: EdgeInsets.all(10),
-          child: Center(
-            child: SwitchListTile(
-              secondary: Container(
-                margin: EdgeInsets.all(4),
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                child: Icon(Icons.access_time_rounded),
-              ),
-              title: Padding(
-                padding: EdgeInsets.all(4),
-                child: Text(
-                  AppLocalizations.of(context)!.showLessonTimes,
-                  style: TextStyle(
-                    fontSize: 18,
+    return Scaffold(
+      body: SafeArea(
+        child: ListPage(
+          title: 'Plan Settings',
+          children: [
+            Material(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              child: Container(
+                margin: EdgeInsets.all(10),
+                child: Center(
+                  child: SwitchListTile(
+                    secondary: Container(
+                      margin: EdgeInsets.all(4),
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Icon(Icons.access_time_rounded),
+                    ),
+                    title: Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Text(
+                        'Show Lesson Times',
+                        style: TextStyle(
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    subtitle: Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Text(
+                        'Display times for individual lessons in the plan',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w100,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                    value: _showLessonTimes,
+                    onChanged: _toggleLessonTimes,
                   ),
                 ),
               ),
-              subtitle: Padding(
-                padding: EdgeInsets.all(4),
-                child: Text(
-                  AppLocalizations.of(context)!.showLessonTimesSubtitle,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w100,
-                    color: Colors.grey,
-                  ),
-                ),
-              ),
-              value: _showLessonTimes,
-              onChanged: _toggleLessonTimes,
             ),
-          ),
+            Material(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              child: Container(
+                margin: EdgeInsets.all(10),
+                child: Center(
+                  child: SwitchListTile(
+                    secondary: Container(
+                      margin: EdgeInsets.all(4),
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Icon(Icons.person_outline_rounded),
+                    ),
+                    title: Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Text(
+                        'Hide Teacher',
+                        style: TextStyle(
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    subtitle: Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Text(
+                        'Hide teacher names in the substitution plan',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w100,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                    value: _hideTeacher,
+                    onChanged: _toggleHideTeacher,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

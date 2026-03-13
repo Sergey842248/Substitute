@@ -182,5 +182,7 @@
     "showLessonTimes": "Stundenzeiten anzeigen",
     "showLessonTimesSubtitle": "Zeiten der einzelnen Stunden im Vertretungsplan anzeigen",
     "planSettings": "Plan-Einstellungen",
-    "planSettingsSubtitle": "Einstellungen für den Vertretungsplan"
+    "planSettingsSubtitle": "Einstellungen für den Vertretungsplan",
+    "hideTeacher": "Lehrer ausblenden",
+    "hideTeacherSubtitle": "Lehrernamen im Vertretungsplan ausblenden"
 }

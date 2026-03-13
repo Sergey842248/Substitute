@@ -182,5 +182,7 @@
     "showLessonTimes": "Show lesson times",
     "showLessonTimesSubtitle": "Show times of individual lessons in the substitution plan",
     "planSettings": "Plan Settings",
-    "planSettingsSubtitle": "Settings for the substitution plan"
+    "planSettingsSubtitle": "Settings for the substitution plan",
+    "hideTeacher": "Hide Teacher",
+    "hideTeacherSubtitle": "Hide teacher names in the substitution plan"
 }
