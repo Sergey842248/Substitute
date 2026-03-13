@@ -178,5 +178,7 @@
     "minutes": "Minuten",
     "hours": "Stunden",
     "onlyRemOnChange": "Nur bei Änderung benachrichtigen",
-    "shareTeacherName": "Lehrernamen teilen"
+    "shareTeacherName": "Lehrernamen teilen",
+    "showLessonTimes": "Stundenzeiten anzeigen",
+    "showLessonTimesSubtitle": "Zeiten der einzelnen Stunden im Vertretungsplan anzeigen"
 }

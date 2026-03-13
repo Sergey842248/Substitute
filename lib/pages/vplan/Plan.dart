@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/ListItem.dart';
 import '../../models/ListPage.dart';
@@ -145,6 +146,7 @@ class _PlanState extends State<Plan> {
 
   dynamic data = 'loading';
   List<String>? hiddenSubjects;
+  bool showLessonTimes = false;
 
   String printValue(String? value) {
     if (value == null) {
@@ -156,7 +158,15 @@ class _PlanState extends State<Plan> {
   @override
   void initState() {
     super.initState();
+    _loadSettings();
     getData();
+  }
+
+  Future<void> _loadSettings() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      showLessonTimes = prefs.getBool('showLessonTimes') ?? false;
+    });
   }
 
   int weekNumber(DateTime date) {
@@ -386,20 +396,21 @@ class _PlanState extends State<Plan> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Icon(
-                                    Icons.access_time_rounded,
-                                    size: 16,
-                                  ),
-                                  SizedBox(width: 3),
-                                  Text(
-                                      '${printValue(e['begin'])} - ${printValue(e['end'])}'),
-                                ],
-                              ),
-                              SizedBox(height: 5),
+                              if (showLessonTimes)
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.access_time_rounded,
+                                      size: 16,
+                                    ),
+                                    SizedBox(width: 3),
+                                    Text(
+                                        '${printValue(e['begin'])} - ${printValue(e['end'])}'),
+                                  ],
+                                ),
+                              if (showLessonTimes) SizedBox(height: 5),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 crossAxisAlignment: CrossAxisAlignment.start,
