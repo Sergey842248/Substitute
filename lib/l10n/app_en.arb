@@ -180,5 +180,7 @@
     "onlyRemOnChange": "Only remind when lesson changes",
     "shareTeacherName": "Share teacher name",
     "showLessonTimes": "Show lesson times",
-    "showLessonTimesSubtitle": "Show times of individual lessons in the substitution plan"
+    "showLessonTimesSubtitle": "Show times of individual lessons in the substitution plan",
+    "planSettings": "Plan Settings",
+    "planSettingsSubtitle": "Settings for the substitution plan"
 }

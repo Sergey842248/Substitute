@@ -91,7 +91,9 @@ async function loadTranslations() {
                 apiStatus: 'API Status',
                 ready: 'Ready',
                 notConfigured: 'Not configured',
-                searchTeacher: 'Search for teacher abbreviation'
+                searchTeacher: 'Search for teacher abbreviation',
+                showLessonTimes: 'Show Lesson Times',
+                showLessonTimesSubtitle: 'Display times for individual lessons in the plan'
             },
             de: {
                 schoolNumber: 'Schulnummer',
@@ -166,7 +168,9 @@ async function loadTranslations() {
                 apiStatus: 'API-Status',
                 ready: 'Bereit',
                 notConfigured: 'Nicht konfiguriert',
-                searchTeacher: 'Suche nach Lehrerkürzel'
+                searchTeacher: 'Suche nach Lehrerkürzel',
+                showLessonTimes: 'Stundenzeiten anzeigen',
+                showLessonTimesSubtitle: 'Zeiten der einzelnen Stunden im Vertretungsplan anzeigen'
             }
         };
     }
@@ -219,10 +223,24 @@ window.onload = async function() {
     const favoriteClass = localStorage.getItem('favoriteClass');
     const schoolnumber = localStorage.getItem('vplanSchoolnumber');
 
+    // Load showLessonTimes setting
+    const showLessonTimes = localStorage.getItem('showLessonTimes') === 'true';
+    document.getElementById('show-lesson-times').checked = showLessonTimes;
+
     if (favoriteClass && schoolnumber) {
         loadPlanForFavoriteClass(favoriteClass);
     }
 };
+
+// Toggle lesson times display setting
+function toggleLessonTimes() {
+    const checkbox = document.getElementById('show-lesson-times');
+    localStorage.setItem('showLessonTimes', checkbox.checked);
+    // Re-display lessons if currently showing a plan
+    if (currentView.type === 'class' && currentView.name) {
+        loadClassDetails(currentView.name, true);
+    }
+}
 
 async function loadPlanForFavoriteClass(className) {
     const schoolnumber = localStorage.getItem('vplanSchoolnumber');
@@ -520,11 +538,13 @@ function displayLessons(lessons, dateString, className, xmlText) {
                 lessonItem.style.backgroundColor = 'rgba(139, 0, 0, 0.6)';
             }
     const roomStyle = lesson.raumChanged ? 'color: #ff4444; font-weight: bold;' : '';
+    const showLessonTimes = localStorage.getItem('showLessonTimes') === 'true';
+    const timeRow = showLessonTimes ? `<div>${_('timeColon')} ${lesson.beginn} - ${lesson.ende}</div>` : '';
     lessonItem.innerHTML = `
         <strong>${_('lessonNum')} ${lesson.stunde}: ${lesson.fach}</strong>
         <div>${_('teacherColon')} ${lesson.lehrer}</div>
         <div>${_('spaceColon')} <span style="${roomStyle}">${lesson.raum}</span></div>
-        <div>${_('timeColon')} ${lesson.beginn} - ${lesson.ende}</div>
+        ${timeRow}
         <div>${lesson.regel ? _('infoColon') + lesson.regel : ''}</div>
     `;
             lessonsElement.appendChild(lessonItem);
@@ -977,6 +997,15 @@ function closeModal() {
     document.getElementById('message-modal').style.display = 'none';
     document.getElementById('confirm-modal').style.display = 'none';
     document.getElementById('week-modal').style.display = 'none';
+    document.getElementById('plan-settings-modal').style.display = 'none';
+}
+
+function showPlanSettings() {
+    document.getElementById('plan-settings-modal').style.display = 'block';
+}
+
+function closePlanSettingsModal() {
+    document.getElementById('plan-settings-modal').style.display = 'none';
 }
 
 // Custom popup functions
