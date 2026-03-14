@@ -1375,11 +1375,13 @@ function updateTexts() {
     const noBtn = document.querySelector('#confirm-modal button:last-of-type');
     if (noBtn) noBtn.textContent = _('no');
 
-    // Language selector
-    const langSelect = document.getElementById('language-select');
-    if (langSelect) {
-        langSelect.value = currentLang;
-    }
+    // Language selector (radio buttons)
+    const langRadios = document.querySelectorAll('input[name="language"]');
+    langRadios.forEach(radio => {
+        if (radio.value === currentLang) {
+            radio.checked = true;
+        }
+    });
 
     // Teacher search placeholder
     const searchInput = document.getElementById('teacher-search');
@@ -1391,6 +1393,13 @@ function updateTexts() {
 
     const planSettingsCloseBtn = document.getElementById('plan-settings-close-btn');
     if (planSettingsCloseBtn) planSettingsCloseBtn.textContent = _('close');
+
+    // Language Modal
+    const languageH2 = document.getElementById('language-modal-title');
+    if (languageH2) languageH2.textContent = _('language');
+
+    const languageCloseBtn = document.getElementById('language-close-btn');
+    if (languageCloseBtn) languageCloseBtn.textContent = _('close');
 
     // Update plan settings toggles based on current checkbox state
     updatePlanSettingsTexts();
@@ -1426,6 +1435,14 @@ function changeLanguage(lang) {
     currentLang = lang;
     localStorage.setItem('language', lang);
     loadTranslations();
+}
+
+function showLanguageModal() {
+    document.getElementById('language-modal').style.display = 'block';
+}
+
+function closeLanguageModal() {
+    document.getElementById('language-modal').style.display = 'none';
 }
 
 // --- Course Selection Functions ---

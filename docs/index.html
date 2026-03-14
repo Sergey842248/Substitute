@@ -85,13 +85,9 @@
                 <button onclick="showSettings()">Change your credentials</button>
                 <button onclick="showAnalytics()">Show Analytics</button>
                 <button onclick="showPlanSettings()">Plan Settings</button>
+                <button onclick="showLanguageModal()">Language</button>
 
                 <button onclick="clearData()">Delete Data</button>
-                <p><strong>Language:</strong></p>
-                <select id="language-select" onchange="changeLanguage(this.value)">
-                    <option value="en">English</option>
-                    <option value="de">Deutsch</option>
-                </select>
                 <div id="settings-info"></div>
             </div>
         </div>
@@ -206,6 +202,28 @@
                 <p class="toggle-subtitle" id="teacher-subtitle">Hide teacher names in the substitution plan</p>
             </div>
             <button onclick="closePlanSettingsModal()" id="plan-settings-close-btn">Schließen</button>
+        </div>
+    </div>
+
+    <!-- Language Modal -->
+    <div id="language-modal" class="modal" onclick="closeLanguageModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2 id="language-modal-title">Sprache</h2>
+            <div class="language-options">
+                <label class="language-option">
+                    <input type="radio" name="language" value="en" onchange="changeLanguage(this.value)">
+                    <span class="language-radio"></span>
+                    <span class="language-text">English</span>
+                    <span class="material-icons language-icon">language</span>
+                </label>
+                <label class="language-option">
+                    <input type="radio" name="language" value="de" onchange="changeLanguage(this.value)">
+                    <span class="language-radio"></span>
+                    <span class="language-text">Deutsch</span>
+                    <span class="material-icons language-icon">location_on</span>
+                </label>
+            </div>
+            <button onclick="closeLanguageModal()" id="language-close-btn">Schließen</button>
         </div>
     </div>
     <script src="script.js"></script>

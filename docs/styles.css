@@ -424,3 +424,78 @@ input:checked + .slider {
 input:checked + .slider:before {
     transform: translateX(22px);
 }
+
+/* Language Radio Buttons */
+.language-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.language-option {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    padding: 15px;
+    background-color: #3a3a4c;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.language-option:hover {
+    background-color: #4a4a5c;
+}
+
+.language-option input[type="radio"] {
+    display: none;
+}
+
+.language-radio {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #666;
+    margin-right: 12px;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.language-option input[type="radio"]:checked + .language-radio {
+    border-color: #AF69EE;
+}
+
+.language-option input[type="radio"]:checked + .language-radio::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    background-color: #AF69EE;
+    border-radius: 50%;
+}
+
+.language-option input[type="radio"]:checked ~ .language-text {
+    color: #AF69EE;
+    font-weight: 600;
+}
+
+.language-option:has(input:checked) {
+    border-color: #AF69EE;
+}
+
+.language-text {
+    font-size: 16px;
+    color: #ffffff;
+    flex: 1;
+}
+
+.language-icon {
+    font-size: 20px;
+    margin-left: 8px;
+    color: #ffffff;
+}
