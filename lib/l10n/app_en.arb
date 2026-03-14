@@ -181,6 +181,8 @@
     "shareTeacherName": "Share teacher name",
     "showLessonTimes": "Show lesson times",
     "showLessonTimesSubtitle": "Show times of individual lessons in the substitution plan",
+    "hideLessonTimes": "Hide lesson times",
+    "hideLessonTimesSubtitle": "Hide times for individual lessons in the plan",
     "planSettings": "Plan Settings",
     "planSettingsSubtitle": "Settings for the substitution plan",
     "hideTeacher": "Hide Teacher",

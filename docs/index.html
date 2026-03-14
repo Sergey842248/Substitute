@@ -184,28 +184,28 @@
     <!-- Plan Settings Modal -->
     <div id="plan-settings-modal" class="modal" onclick="closePlanSettingsModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <h2 data-en="Plan Settings" data-de="Plan-Einstellungen">Plan Settings</h2>
+            <h2 id="plan-settings-title">Plan Settings</h2>
             <div class="toggle-container">
                 <div class="toggle-row">
-                    <span class="toggle-text" data-en="Hide Lesson Times" data-de="Stundenzeiten ausblenden">Hide Lesson Times</span>
+                    <span class="toggle-text" id="lesson-times-label">Hide Lesson Times</span>
                     <label class="switch">
                         <input type="checkbox" id="hide-lesson-times" onchange="toggleLessonTimes()">
                         <span class="slider"></span>
                     </label>
                 </div>
-                <p class="toggle-subtitle" data-en="Hide times for individual lessons in the plan" data-de="Zeiten der einzelnen Stunden im Vertretungsplan ausblenden">Hide times for individual lessons in the plan</p>
+                <p class="toggle-subtitle" id="lesson-times-subtitle">Hide times for individual lessons in the plan</p>
             </div>
             <div class="toggle-container">
                 <div class="toggle-row">
-                    <span class="toggle-text" data-en="Hide Teacher" data-de="Lehrer ausblenden">Hide Teacher</span>
+                    <span class="toggle-text" id="teacher-label">Hide Teacher</span>
                     <label class="switch">
                         <input type="checkbox" id="hide-teacher" onchange="toggleHideTeacher()">
                         <span class="slider"></span>
                     </label>
                 </div>
-                <p class="toggle-subtitle" data-en="Hide teacher names in the substitution plan" data-de="Lehrernamen im Vertretungsplan ausblenden">Hide teacher names in the substitution plan</p>
+                <p class="toggle-subtitle" id="teacher-subtitle">Hide teacher names in the substitution plan</p>
             </div>
-            <button onclick="closePlanSettingsModal()" data-en="Close" data-de="Schließen">Schließen</button>
+            <button onclick="closePlanSettingsModal()" id="plan-settings-close-btn">Schließen</button>
         </div>
     </div>
     <script src="script.js"></script>

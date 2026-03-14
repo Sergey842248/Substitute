@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../models/ListPage.dart';
 
@@ -44,10 +45,11 @@ class _PlanSettingsState extends State<PlanSettings> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         child: ListPage(
-          title: 'Plan Settings',
+          title: l10n.planSettings,
           children: [
             Material(
               color: Theme.of(context).scaffoldBackgroundColor,
@@ -66,7 +68,7 @@ class _PlanSettingsState extends State<PlanSettings> {
                     title: Padding(
                       padding: EdgeInsets.all(4),
                       child: Text(
-                        'Hide Lesson Times',
+                        _hideLessonTimes ? l10n.hideLessonTimes : l10n.showLessonTimes,
                         style: TextStyle(
                           fontSize: 18,
                         ),
@@ -75,7 +77,7 @@ class _PlanSettingsState extends State<PlanSettings> {
                     subtitle: Padding(
                       padding: EdgeInsets.all(4),
                       child: Text(
-                        'Hide times for individual lessons in the plan',
+                        _hideLessonTimes ? l10n.hideLessonTimesSubtitle : l10n.showLessonTimesSubtitle,
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w100,
@@ -106,7 +108,7 @@ class _PlanSettingsState extends State<PlanSettings> {
                     title: Padding(
                       padding: EdgeInsets.all(4),
                       child: Text(
-                        'Hide Teacher',
+                        l10n.hideTeacher,
                         style: TextStyle(
                           fontSize: 18,
                         ),
@@ -115,7 +117,7 @@ class _PlanSettingsState extends State<PlanSettings> {
                     subtitle: Padding(
                       padding: EdgeInsets.all(4),
                       child: Text(
-                        'Hide teacher names in the substitution plan',
+                        l10n.hideTeacherSubtitle,
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w100,

@@ -92,8 +92,14 @@ async function loadTranslations() {
                 ready: 'Ready',
                 notConfigured: 'Not configured',
                 searchTeacher: 'Search for teacher abbreviation',
-                showLessonTimes: 'Hide Lesson Times',
-                showLessonTimesSubtitle: 'Hide times for individual lessons in the plan'
+                planSettings: 'Plan Settings',
+                planSettingsSubtitle: 'Settings for the substitution plan',
+                showLessonTimes: 'Show lesson times',
+                showLessonTimesSubtitle: 'Show times of individual lessons in the substitution plan',
+                hideLessonTimes: 'Hide lesson times',
+                hideLessonTimesSubtitle: 'Hide times for individual lessons in the plan',
+                hideTeacher: 'Hide Teacher',
+                hideTeacherSubtitle: 'Hide teacher names in the substitution plan'
             },
             de: {
                 schoolNumber: 'Schulnummer',
@@ -169,8 +175,14 @@ async function loadTranslations() {
                 ready: 'Bereit',
                 notConfigured: 'Nicht konfiguriert',
                 searchTeacher: 'Suche nach Lehrerkürzel',
-                showLessonTimes: 'Stundenzeiten ausblenden',
-                showLessonTimesSubtitle: 'Zeiten der einzelnen Stunden im Vertretungsplan ausblenden'
+                planSettings: 'Plan-Einstellungen',
+                planSettingsSubtitle: 'Einstellungen für den Vertretungsplan',
+                showLessonTimes: 'Stundenzeiten anzeigen',
+                showLessonTimesSubtitle: 'Zeiten der einzelnen Stunden im Vertretungsplan anzeigen',
+                hideLessonTimes: 'Stundenzeiten ausblenden',
+                hideLessonTimesSubtitle: 'Zeiten der einzelnen Stunden im Vertretungsplan ausblenden',
+                hideTeacher: 'Lehrer ausblenden',
+                hideTeacherSubtitle: 'Lehrernamen im Vertretungsplan ausblenden'
             }
         };
     }
@@ -240,6 +252,8 @@ window.onload = async function() {
 function toggleLessonTimes() {
     const checkbox = document.getElementById('hide-lesson-times');
     localStorage.setItem('hideLessonTimes', checkbox.checked);
+    // Update the toggle texts based on new state
+    updatePlanSettingsTexts();
     // Re-display lessons if currently showing a plan
     if (currentView.type === 'class' && currentView.name) {
         loadClassDetails(currentView.name, true);
@@ -250,6 +264,8 @@ function toggleLessonTimes() {
 function toggleHideTeacher() {
     const checkbox = document.getElementById('hide-teacher');
     localStorage.setItem('hideTeacher', checkbox.checked);
+    // Update the toggle texts based on new state
+    updatePlanSettingsTexts();
     // Re-display lessons if currently showing a plan
     if (currentView.type === 'class' && currentView.name) {
         loadClassDetails(currentView.name, true);
@@ -1327,6 +1343,8 @@ function updateTexts() {
     if (changeAccessBtn) changeAccessBtn.textContent = _('changeAccessData');
     const showAnalyticsBtn = document.querySelector('#tab-settings button[onclick*="showAnalytics"]');
     if (showAnalyticsBtn) showAnalyticsBtn.textContent = _('showAnalytics');
+    const showPlanSettingsBtn = document.querySelector('#tab-settings button[onclick*="showPlanSettings"]');
+    if (showPlanSettingsBtn) showPlanSettingsBtn.textContent = _('planSettings');
     const deleteDataBtn = document.querySelector('#tab-settings button[onclick*="clearData"]');
     if (deleteDataBtn) deleteDataBtn.textContent = _('deleteData');
 
@@ -1366,6 +1384,36 @@ function updateTexts() {
     // Teacher search placeholder
     const searchInput = document.getElementById('teacher-search');
     if (searchInput) searchInput.placeholder = _('searchTeacher');
+
+    // Plan Settings Modal
+    const planSettingsH2 = document.getElementById('plan-settings-title');
+    if (planSettingsH2) planSettingsH2.textContent = _('planSettings');
+
+    const planSettingsCloseBtn = document.getElementById('plan-settings-close-btn');
+    if (planSettingsCloseBtn) planSettingsCloseBtn.textContent = _('close');
+
+    // Update plan settings toggles based on current checkbox state
+    updatePlanSettingsTexts();
+}
+
+function updatePlanSettingsTexts() {
+    const hideLessonTimes = document.getElementById('hide-lesson-times');
+    const hideTeacher = document.getElementById('hide-teacher');
+    const lessonTimesLabel = document.getElementById('lesson-times-label');
+    const lessonTimesSubtitle = document.getElementById('lesson-times-subtitle');
+    const teacherLabel = document.getElementById('teacher-label');
+    const teacherSubtitle = document.getElementById('teacher-subtitle');
+
+    if (hideLessonTimes && hideLessonTimes.checked) {
+        if (lessonTimesLabel) lessonTimesLabel.textContent = _('hideLessonTimes');
+        if (lessonTimesSubtitle) lessonTimesSubtitle.textContent = _('hideLessonTimesSubtitle');
+    } else if (hideLessonTimes) {
+        if (lessonTimesLabel) lessonTimesLabel.textContent = _('showLessonTimes');
+        if (lessonTimesSubtitle) lessonTimesSubtitle.textContent = _('showLessonTimesSubtitle');
+    }
+
+    if (teacherLabel) teacherLabel.textContent = _('hideTeacher');
+    if (teacherSubtitle) teacherSubtitle.textContent = _('hideTeacherSubtitle');
 }
 
 function showWeek() {

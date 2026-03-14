@@ -181,6 +181,8 @@
     "shareTeacherName": "Lehrernamen teilen",
     "showLessonTimes": "Stundenzeiten anzeigen",
     "showLessonTimesSubtitle": "Zeiten der einzelnen Stunden im Vertretungsplan anzeigen",
+    "hideLessonTimes": "Stundenzeiten ausblenden",
+    "hideLessonTimesSubtitle": "Zeiten der einzelnen Stunden im Vertretungsplan ausblenden",
     "planSettings": "Plan-Einstellungen",
     "planSettingsSubtitle": "Einstellungen für den Vertretungsplan",
     "hideTeacher": "Lehrer ausblenden",
