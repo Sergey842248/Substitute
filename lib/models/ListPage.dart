@@ -147,7 +147,7 @@ class _ListPageState extends State<ListPage> {
                     ],
                   ),
 
-                  // Linke konkave Ecke
+                  // left concave corner
                   Positioned(
                     bottom: -cornerRadius,
                     left: 0,
@@ -168,7 +168,7 @@ class _ListPageState extends State<ListPage> {
                     ),
                   ),
 
-                  // Rechte konkave Ecke
+                  // right concave corner
                   Positioned(
                     bottom: -cornerRadius,
                     right: 0,
