@@ -371,6 +371,14 @@ button:hover {
     margin: 8px 0 0 0;
 }
 
+/* Material Icons Styles */
+.material-icons {
+    color: #ffffff;
+    font-size: 18px;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+
 /* Toggle Switch */
 .switch {
     position: relative;
