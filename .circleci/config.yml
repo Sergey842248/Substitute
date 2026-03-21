@@ -4,8 +4,8 @@ version: 2.1
 jobs:
   test-java:
     docker:
-      - image: cimg/openjdk:17.0
-    working_directory: ~/project/wearos
+      - image: cimg/android:2026.03
+    working_directory: ~/project/android
     steps:
       - checkout:
           path: ~/project
