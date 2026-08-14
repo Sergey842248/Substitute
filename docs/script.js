@@ -105,6 +105,8 @@ async function loadTranslations() {
                 removeFromFavorites: 'Remove from favorites',
                 persons: 'Persons',
                 noPersonsYet: 'No persons yet. Add a person to show only the courses you want.',
+                hidePersons: 'Hide Persons',
+                hidePersonsSubtitle: 'Hide the persons section',
                 addPerson: 'Add Person',
                 personName: 'Person\'s name',
                 enterPersonName: 'Enter a name for the person:',
@@ -198,6 +200,8 @@ async function loadTranslations() {
                 removeFromFavorites: 'Aus Favoriten entfernen',
                 persons: 'Personen',
                 noPersonsYet: 'Noch keine Personen. Füge eine Person hinzu, um nur die gewünschten Kurse anzuzeigen.',
+                hidePersons: 'Personen ausblenden',
+                hidePersonsSubtitle: 'Den Personenbereich ausblenden',
                 addPerson: 'Person hinzufügen',
                 personName: 'Name der Person',
                 enterPersonName: 'Gib einen Namen für die Person ein:',
@@ -343,6 +347,13 @@ function displayPersons() {
     const container = document.getElementById('persons-container');
     const list = document.getElementById('persons-list');
     const persons = getPersons();
+
+    // Hide the persons section when enabled in the settings (default: hidden)
+    if (localStorage.getItem('hidePersons') !== 'false') {
+        container.style.display = 'none';
+        list.innerHTML = '';
+        return;
+    }
 
     // Always show the section so the "Add Person" button is reachable
     container.style.display = 'block';
@@ -634,6 +645,13 @@ async function getPlanXmlForDate() {
 
 // Load saved credentials on page load
 window.onload = async function() {
+    // One-time migration: older versions stored 'hidePersons' with a default of
+    // OFF. Reset any stored value once so the new default (ON = hidden) applies.
+    if (localStorage.getItem('hidePersonsMigrated') === null) {
+        localStorage.removeItem('hidePersons');
+        localStorage.setItem('hidePersonsMigrated', '1');
+    }
+
     loadCredentials();
     await loadTranslations();
     const favoriteClass = localStorage.getItem('favoriteClass');
@@ -646,6 +664,10 @@ window.onload = async function() {
     // Load hideTeacher setting
     const hideTeacher = localStorage.getItem('hideTeacher') === 'true';
     document.getElementById('hide-teacher').checked = hideTeacher;
+
+    // Load hidePersons setting (default: hidden = true)
+    const hidePersons = localStorage.getItem('hidePersons') !== 'false';
+    document.getElementById('hide-persons').checked = hidePersons;
 
     // Auto-load a saved favorite plan on startup (prefer the last viewed one)
     const favorites = getFavoriteClasses();
@@ -683,6 +705,16 @@ function toggleHideTeacher() {
     if (currentView.type === 'class' && currentView.name) {
         loadClassDetails(currentView.name, true);
     }
+}
+
+// Toggle hide persons section setting
+function toggleHidePersons() {
+    const checkbox = document.getElementById('hide-persons');
+    localStorage.setItem('hidePersons', checkbox.checked);
+    // Update the toggle texts based on new state
+    updatePlanSettingsTexts();
+    // Re-render the persons section based on the new setting
+    displayPersons();
 }
 
 async function loadPlanForFavoriteClass(className) {
@@ -1860,6 +1892,8 @@ function updatePlanSettingsTexts() {
     const lessonTimesSubtitle = document.getElementById('lesson-times-subtitle');
     const teacherLabel = document.getElementById('teacher-label');
     const teacherSubtitle = document.getElementById('teacher-subtitle');
+    const personsLabel = document.getElementById('persons-label');
+    const personsSubtitle = document.getElementById('persons-subtitle');
 
     if (hideLessonTimes && hideLessonTimes.checked) {
         if (lessonTimesLabel) lessonTimesLabel.textContent = _('hideLessonTimes');
@@ -1871,6 +1905,8 @@ function updatePlanSettingsTexts() {
 
     if (teacherLabel) teacherLabel.textContent = _('hideTeacher');
     if (teacherSubtitle) teacherSubtitle.textContent = _('hideTeacherSubtitle');
+    if (personsLabel) personsLabel.textContent = _('hidePersons');
+    if (personsSubtitle) personsSubtitle.textContent = _('hidePersonsSubtitle');
 }
 
 function showWeek() {

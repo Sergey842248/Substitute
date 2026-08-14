@@ -187,6 +187,8 @@
     "planSettingsSubtitle": "Settings for the substitution plan",
     "hideTeacher": "Hide Teacher",
     "hideTeacherSubtitle": "Hide teacher names in the substitution plan",
+    "hidePersons": "Hide Persons",
+    "hidePersonsSubtitle": "Hide the persons section",
     "persons": "Persons",
     "noPersonsYet": "No persons yet. Add a person to show only the courses you want.",
     "addPerson": "Add Person",

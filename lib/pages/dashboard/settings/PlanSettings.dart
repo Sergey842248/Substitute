@@ -12,6 +12,7 @@ class PlanSettings extends StatefulWidget {
 class _PlanSettingsState extends State<PlanSettings> {
   bool _hideLessonTimes = true;
   bool _hideTeacher = false;
+  bool _hidePersons = false;
 
   @override
   void initState() {
@@ -21,9 +22,16 @@ class _PlanSettingsState extends State<PlanSettings> {
 
   Future<void> _loadSettings() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    // One-time migration: older versions stored 'hidePersons' with a default
+    // of OFF. Reset any stored value once so the new default (ON) applies.
+    if (!(prefs.getBool('hidePersonsMigrated') ?? false)) {
+      await prefs.remove('hidePersons');
+      await prefs.setBool('hidePersonsMigrated', true);
+    }
     setState(() {
       _hideLessonTimes = prefs.getBool('hideLessonTimes') ?? true;
       _hideTeacher = prefs.getBool('hideTeacher') ?? false;
+      _hidePersons = prefs.getBool('hidePersons') ?? true;
     });
   }
 
@@ -40,6 +48,14 @@ class _PlanSettingsState extends State<PlanSettings> {
     await prefs.setBool('hideTeacher', value);
     setState(() {
       _hideTeacher = value;
+    });
+  }
+
+  Future<void> _toggleHidePersons(bool value) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hidePersons', value);
+    setState(() {
+      _hidePersons = value;
     });
   }
 
@@ -127,6 +143,46 @@ class _PlanSettingsState extends State<PlanSettings> {
                     ),
                     value: _hideTeacher,
                     onChanged: _toggleHideTeacher,
+                  ),
+                ),
+              ),
+            ),
+            Material(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              child: Container(
+                margin: EdgeInsets.all(10),
+                child: Center(
+                  child: SwitchListTile(
+                    secondary: Container(
+                      margin: EdgeInsets.all(4),
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Icon(Icons.groups_outlined),
+                    ),
+                    title: Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Text(
+                        l10n.hidePersons,
+                        style: TextStyle(
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    subtitle: Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Text(
+                        l10n.hidePersonsSubtitle,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w100,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                    value: _hidePersons,
+                    onChanged: _toggleHidePersons,
                   ),
                 ),
               ),

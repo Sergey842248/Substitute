@@ -187,6 +187,8 @@
     "planSettingsSubtitle": "Einstellungen für den Vertretungsplan",
     "hideTeacher": "Lehrer ausblenden",
     "hideTeacherSubtitle": "Lehrernamen im Vertretungsplan ausblenden",
+    "hidePersons": "Personen ausblenden",
+    "hidePersonsSubtitle": "Den Personenbereich ausblenden",
     "persons": "Personen",
     "noPersonsYet": "Noch keine Personen. Füge eine Person hinzu, um nur die gewünschten Kurse anzuzeigen.",
     "addPerson": "Person hinzufügen",

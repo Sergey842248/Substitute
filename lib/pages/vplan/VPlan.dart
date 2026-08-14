@@ -29,6 +29,7 @@ class VPlan extends StatefulWidget {
 class _VPlanState extends State<VPlan> {
   List<String> classes = [];
   List<Map<String, dynamic>> persons = [];
+  bool hidePersons = true;
   final listKey = GlobalKey<AnimatedListState>();
 
   void getClasses() async {
@@ -46,6 +47,13 @@ class _VPlanState extends State<VPlan> {
       classes.add(prefClasses[i]);
     }
 
+    // One-time migration: older versions stored 'hidePersons' with a default
+    // of OFF. Reset any stored value once so the new default (ON) applies.
+    if (!(prefs.getBool('hidePersonsMigrated') ?? false)) {
+      await prefs.remove('hidePersons');
+      await prefs.setBool('hidePersonsMigrated', true);
+    }
+    hidePersons = prefs.getBool('hidePersons') ?? true;
     persons = await VPlanAPI().getPersons();
     setState(() {});
 
@@ -116,6 +124,9 @@ class _VPlanState extends State<VPlan> {
 
 
   Widget _personsSection() {
+    // Persons section can be hidden in the plan settings
+    if (hidePersons) return SizedBox();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
