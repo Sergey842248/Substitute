@@ -102,7 +102,14 @@ async function loadTranslations() {
                 hideTeacherSubtitle: 'Hide teacher names in the substitution plan',
                 favorites: 'Favorites',
                 addToFavorites: 'Add to favorites',
-                removeFromFavorites: 'Remove from favorites'
+                removeFromFavorites: 'Remove from favorites',
+                persons: 'Persons',
+                noPersonsYet: 'No persons yet. Add a person to show only the courses you want.',
+                addPerson: 'Add Person',
+                personName: 'Person\'s name',
+                enterPersonName: 'Enter a name for the person:',
+                savePerson: 'Save Person',
+                editCourses: 'Edit courses'
             },
             de: {
                 schoolNumber: 'Schulnummer',
@@ -188,7 +195,14 @@ async function loadTranslations() {
                 hideTeacherSubtitle: 'Lehrernamen im Vertretungsplan ausblenden',
                 favorites: 'Favoriten',
                 addToFavorites: 'Zu Favoriten hinzufügen',
-                removeFromFavorites: 'Aus Favoriten entfernen'
+                removeFromFavorites: 'Aus Favoriten entfernen',
+                persons: 'Personen',
+                noPersonsYet: 'Noch keine Personen. Füge eine Person hinzu, um nur die gewünschten Kurse anzuzeigen.',
+                addPerson: 'Person hinzufügen',
+                personName: 'Name der Person',
+                enterPersonName: 'Gib einen Namen für die Person ein:',
+                savePerson: 'Person speichern',
+                editCourses: 'Kurse bearbeiten'
             }
         };
     }
@@ -295,6 +309,262 @@ function displayFavoriteClasses() {
     });
 }
 
+// --- Persons (named profiles with class + own course selection) ---
+
+let personCreation = null; // Pending person being created: { className, name, courses }
+let coursesForPerson = null; // Person whose courses the courses modal currently edits
+
+function getPersons() {
+    try {
+        return JSON.parse(localStorage.getItem('persons') || '[]');
+    } catch (error) {
+        console.error('Error parsing persons:', error);
+        return [];
+    }
+}
+
+function savePersons(persons) {
+    localStorage.setItem('persons', JSON.stringify(persons));
+}
+
+function findPerson(id) {
+    return getPersons().find(p => p.id === id) || null;
+}
+
+function deletePerson(id) {
+    savePersons(getPersons().filter(p => p.id !== id));
+    if (currentView.type === 'person' && currentView.id === id) {
+        backToOverview();
+    }
+    displayPersons();
+}
+
+function displayPersons() {
+    const container = document.getElementById('persons-container');
+    const list = document.getElementById('persons-list');
+    const persons = getPersons();
+
+    // Always show the section so the "Add Person" button is reachable
+    container.style.display = 'block';
+    list.innerHTML = '';
+
+    if (persons.length === 0) {
+        list.innerHTML = `<p style="color: #aaa; font-size: 14px; margin: 0 0 10px 0;">${_('noPersonsYet')}</p>`;
+        return;
+    }
+
+    persons.forEach(person => {
+        const item = document.createElement('div');
+        item.className = 'class-item class-item-row';
+        item.onclick = () => loadPersonPlan(person.id);
+
+        const name = document.createElement('div');
+        name.style.flex = '1';
+        const nameStrong = document.createElement('strong');
+        nameStrong.textContent = person.name;
+        const classSmall = document.createElement('small');
+        classSmall.textContent = person.classId;
+        classSmall.style.color = '#aaa';
+        name.appendChild(nameStrong);
+        name.appendChild(document.createElement('br'));
+        name.appendChild(classSmall);
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'icon-btn fav-btn';
+        editBtn.title = _('editCourses');
+        editBtn.innerHTML = '<span class="material-icons" style="color: #AF69EE;">visibility</span>';
+        editBtn.onclick = (event) => {
+            event.stopPropagation();
+            openPersonCoursesModal(person);
+        };
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'icon-btn fav-btn';
+        removeBtn.title = _('removeFromFavorites');
+        removeBtn.innerHTML = '<span class="material-icons" style="color: #888;">close</span>';
+        removeBtn.onclick = (event) => {
+            event.stopPropagation();
+            deletePerson(person.id);
+        };
+
+        item.appendChild(name);
+        item.appendChild(editBtn);
+        item.appendChild(removeBtn);
+        list.appendChild(item);
+    });
+}
+
+function startAddPerson() {
+    if (!localStorage.getItem('vplanSchoolnumber')) {
+        showMessageModal(currentLang === 'de' ? 'Bitte gib zuerst deine Zugangsdaten ein.' : 'Please enter your credentials first.');
+        return;
+    }
+    personCreation = { className: null, name: null, courses: null };
+    coursesForPerson = null;
+
+    const classListContainer = document.getElementById('class-list-container');
+    classListContainer.innerHTML = `
+        <h2>${_('selectClass')}</h2>
+        <div id="class-list"></div>
+    `;
+    document.getElementById('login-form').style.display = 'none';
+    document.getElementById('class-list-container').style.display = 'block';
+    document.getElementById('favorites-container').style.display = 'none';
+    document.getElementById('persons-container').style.display = 'none';
+
+    const cached = localStorage.getItem('cachedClasses');
+    if (cached) {
+        displayClasses(JSON.parse(cached));
+    } else {
+        loadClasses();
+    }
+}
+
+// Returns an actual plan XML containing course data. cachedXmlData may hold the
+// Klassen.xml class list, which has no <Kurse> data - in that case the plan is
+// fetched for the current (or latest available) date.
+async function getPlanXmlForCourses() {
+    if (cachedXmlData && cachedXmlData.includes('<Kopf>')) {
+        return cachedXmlData;
+    }
+    let xmlText = await getPlanXmlForDate();
+    if (!xmlText) {
+        currentDate = await findLatestDate();
+        xmlText = await getPlanXmlForDate();
+    }
+    return xmlText;
+}
+
+async function selectPersonClass(className) {
+    const name = prompt(_('enterPersonName'), className);
+    if (!name || !name.trim()) {
+        // Creation cancelled
+        personCreation = null;
+        backToOverview();
+        return;
+    }
+
+    personCreation.className = className;
+    personCreation.name = name.trim();
+
+    // Baseline: all courses of the class minus the global hidden courses (migration)
+    let courses = null;
+    try {
+        const xmlText = await getPlanXmlForCourses();
+        if (xmlText) {
+            const allCourses = parseCourses(xmlText, className).map(c => c.course);
+            const hidden = getHiddenCourses();
+            courses = allCourses.filter(c => !hidden.includes(c));
+        }
+    } catch (error) {
+        console.error('Error loading courses for person:', error);
+    }
+    personCreation.courses = courses;
+
+    openPersonCoursesModal(personCreation);
+}
+
+async function openPersonCoursesModal(person) {
+    coursesForPerson = person;
+    try {
+        const xmlText = await getPlanXmlForCourses();
+        if (!xmlText) {
+            showMessageModal(currentLang === 'de' ? 'Keine Daten verfügbar.' : 'No data available.');
+            coursesForPerson = null;
+            return;
+        }
+        cachedCourses = parseCourses(xmlText, person.classId);
+
+        const coursesTitle = document.getElementById('courses-modal-title');
+        coursesTitle.textContent = `${_('courses')} - ${person.name}`;
+        displayCourses();
+        document.getElementById('courses-modal').style.display = 'block';
+    } catch (error) {
+        console.error('Error loading courses:', error);
+        showMessageModal(currentLang === 'de' ? 'Fehler beim Laden der Kurse.' : 'Error loading courses.');
+        coursesForPerson = null;
+    }
+}
+
+function savePersonCourses() {
+    if (!coursesForPerson) {
+        closeCoursesModal();
+        return;
+    }
+
+    if (personCreation && personCreation.className) {
+        // Finishing creation: add the new person
+        const persons = getPersons();
+        persons.push({
+            id: String(Date.now()),
+            name: personCreation.name,
+            classId: personCreation.className,
+            courses: personCreation.courses,
+        });
+        savePersons(persons);
+        personCreation = null;
+        closeCoursesModal();
+        backToOverview();
+        displayPersons();
+    } else {
+        // Editing an existing person
+        const persons = getPersons();
+        const idx = persons.findIndex(p => p.id === coursesForPerson.id);
+        if (idx !== -1) {
+            persons[idx].courses = coursesForPerson.courses;
+            savePersons(persons);
+        }
+        closeCoursesModal();
+        // Refresh the open plan if it belongs to this person
+        if (currentView.type === 'person' && currentView.id === coursesForPerson.id) {
+            loadPersonPlan(currentView.id, true);
+        }
+    }
+    coursesForPerson = null;
+}
+
+async function loadPersonPlan(personId, fromDateChange = false) {
+    const person = findPerson(personId);
+    if (!person) return;
+
+    if (!fromDateChange) {
+        currentDate = new Date();
+        currentDate = await findLatestDate();
+    }
+    currentView = { type: 'person', id: personId };
+
+    try {
+        const xmlText = await getPlanXmlForDate();
+        if (xmlText) {
+            cachedXmlData = xmlText; // Cache the plan XML for the courses modal
+            const { lessons, planDate } = parseLessons(xmlText, person.classId);
+            displayLessons(lessons, formatDateForDisplay(currentDate), person.classId, xmlText, person);
+        } else {
+            displayLessons([], formatDateForDisplay(currentDate), person.classId, null, person);
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden des Personenplans: ', error);
+        displayLessons([], formatDateForDisplay(currentDate), person.classId, null, person);
+    }
+}
+
+function backToOverview() {
+    document.getElementById('class-list-container').innerHTML = `
+        <h2>${_('selectClass')}</h2>
+        <div id="class-list"></div>
+    `;
+    if (cachedXmlData) {
+        const classList = parseClasses(cachedXmlData);
+        displayClasses(classList);
+    } else {
+        // Fallback if cache is empty for some reason
+        document.getElementById('login-form').style.display = 'block';
+        document.getElementById('class-list-container').style.display = 'none';
+    }
+    // Remove manual save button when leaving settings view
+    removeManualSaveButton();
+}
+
 // Function to calculate week number like in the Android app
 function weekNumber(date) {
     const d = new Date(date.getFullYear(), 0, 1);
@@ -303,26 +573,63 @@ function weekNumber(date) {
     return Math.floor((dayOfYear - weekday + 10) / 7);
 }
 
-// Function to find the latest available date with a substitute plan
+let latestPlanCache = null; // { dayKey, date, xml } - caches the latest available plan per day
+
+// Function to find the latest available date with a substitute plan.
+// The scan runs in parallel and its result (date + plan XML) is cached for the
+// current calendar day, so repeated plan loads (classes, teachers, persons)
+// don't re-scan all days and don't fetch the plan twice.
 async function findLatestDate() {
+    const dayKey = `${formatDateForURL(new Date())}_${localStorage.getItem('vplanSchoolnumber') || ''}`;
+    if (latestPlanCache && latestPlanCache.dayKey === dayKey) {
+        return latestPlanCache.date;
+    }
+
     let checkDate = new Date(); // Start from today
     let maxDays = 7; // Check up to 7 days ahead
-    let latest = null;
 
+    // Scan all days in parallel
+    const checks = [];
     for (let i = 0; i <= maxDays; i++) {
-        try {
-            const xmlText = await fetchPlanForDate(checkDate);
-            if (xmlText !== null) {
-                latest = new Date(checkDate);
-            }
-        } catch (error) {
-            // If there's an error (other than 404), skip this day
-            console.error(`Error checking plan for ${formatDateForDisplay(checkDate)}:`, error);
-        }
+        const candidate = new Date(checkDate);
+        checks.push(
+            fetchPlanForDate(candidate).then(
+                (xmlText) => ({ date: candidate, xml: xmlText }),
+                (error) => {
+                    // If there's an error (other than 404), skip this day
+                    console.error(`Error checking plan for ${formatDateForDisplay(candidate)}:`, error);
+                    return { date: candidate, xml: null };
+                }
+            )
+        );
         checkDate.setDate(checkDate.getDate() + 1);
     }
 
+    const settled = await Promise.all(checks);
+
+    let latest = null;
+    let latestXml = null;
+    for (let i = 0; i < settled.length; i++) {
+        if (settled[i].xml !== null) {
+            latest = settled[i].date;
+            latestXml = settled[i].xml;
+        }
+    }
+
+    if (latest) {
+        latestPlanCache = { dayKey: dayKey, date: latest, xml: latestXml };
+    }
     return latest || new Date(); // Return latest found, or today if none
+}
+
+// Returns the plan XML for the current date, reusing the XML cached by
+// findLatestDate to avoid a second network request.
+async function getPlanXmlForDate() {
+    if (latestPlanCache && latestPlanCache.xml &&
+        formatDateForURL(latestPlanCache.date) === formatDateForURL(currentDate)) {
+        return latestPlanCache.xml;
+    }
+    return await fetchPlanForDate(currentDate);
 }
 
 // Load saved credentials on page load
@@ -388,7 +695,7 @@ async function loadPlanForFavoriteClass(className) {
     currentDate = await findLatestDate();
 
     try {
-        const xmlText = await fetchPlanForDate(currentDate);
+        const xmlText = await getPlanXmlForDate();
         if (xmlText) {
             cachedXmlData = xmlText; // Cache the data
             const { lessons, planDate } = parseLessons(xmlText, className);
@@ -529,6 +836,8 @@ function displayClasses(classList) {
     const classListElement = document.getElementById('class-list');
     classListElement.innerHTML = '';
 
+    const creatingPerson = personCreation && personCreation.className === null;
+
     classList.forEach(className => {
         const classItem = document.createElement('div');
         classItem.className = 'class-item class-item-row';
@@ -536,23 +845,35 @@ function displayClasses(classList) {
             <strong>${className}</strong>
         `;
 
-        // Star button to add/remove this plan from favorites
-        const isFav = isFavoriteClass(className);
-        const favBtn = document.createElement('button');
-        favBtn.className = 'icon-btn fav-btn';
-        favBtn.title = isFav ? _('removeFromFavorites') : _('addToFavorites');
-        favBtn.innerHTML = `<span class="material-icons" style="color: ${isFav ? '#AF69EE' : '#888'};">${isFav ? 'star' : 'star_border'}</span>`;
-        favBtn.onclick = (event) => {
-            event.stopPropagation();
-            toggleFavoriteClass(className);
-        };
-        classItem.appendChild(favBtn);
+        // During person creation, tapping a class selects it for the new person
+        if (!creatingPerson) {
+            // Star button to add/remove this plan from favorites
+            const isFav = isFavoriteClass(className);
+            const favBtn = document.createElement('button');
+            favBtn.className = 'icon-btn fav-btn';
+            favBtn.title = isFav ? _('removeFromFavorites') : _('addToFavorites');
+            favBtn.innerHTML = `<span class="material-icons" style="color: ${isFav ? '#AF69EE' : '#888'};">${isFav ? 'star' : 'star_border'}</span>`;
+            favBtn.onclick = (event) => {
+                event.stopPropagation();
+                toggleFavoriteClass(className);
+            };
+            classItem.appendChild(favBtn);
+        }
 
-        classItem.onclick = () => loadClassDetails(className);
+        classItem.onclick = () => {
+            if (creatingPerson) {
+                selectPersonClass(className);
+            } else {
+                loadClassDetails(className);
+            }
+        };
         classListElement.appendChild(classItem);
     });
 
-    displayFavoriteClasses();
+    if (!creatingPerson) {
+        displayFavoriteClasses();
+        displayPersons();
+    }
 }
 
 async function loadClassDetails(className, fromDateChange = false) {
@@ -566,8 +887,9 @@ async function loadClassDetails(className, fromDateChange = false) {
     
 
     try {
-        const xmlText = await fetchPlanForDate(currentDate);
+        const xmlText = await getPlanXmlForDate();
     if (xmlText) {
+        cachedXmlData = xmlText; // Cache the plan XML for the courses modal
         const { lessons, planDate } = parseLessons(xmlText, className);
         displayLessons(lessons, formatDateForDisplay(currentDate), currentView.name, xmlText);
     } else {
@@ -660,10 +982,11 @@ function parseGeneralInfo(xmlText) {
     return generalInfo;
 }
 
-function displayLessons(lessons, dateString, className, xmlText) {
+function displayLessons(lessons, dateString, className, xmlText, person) {
     const container = document.getElementById('class-list-container');
-    // Hide the favorites list while a plan is open
+    // Hide the favorites and persons lists while a plan is open
     document.getElementById('favorites-container').style.display = 'none';
+    document.getElementById('persons-container').style.display = 'none';
     container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
             <button onclick="changeDay(-1, '${className}')" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;"><</button>
@@ -677,9 +1000,13 @@ function displayLessons(lessons, dateString, className, xmlText) {
 
     const lessonsElement = document.getElementById('lessons');
 
-    // Filter lessons based on hidden courses
-    const hiddenCourses = getHiddenCourses();
-    const filteredLessons = lessons.filter(lesson => !hiddenCourses.includes(lesson.fach));
+    // Filter lessons based on hidden courses (or the person's selected courses)
+    const filteredLessons = lessons.filter(lesson => {
+        if (person) {
+            return person.courses === null || person.courses.includes(lesson.fach);
+        }
+        return !getHiddenCourses().includes(lesson.fach);
+    });
 
     if (filteredLessons.length === 0) {
         lessonsElement.innerHTML = `<p>${_('noInfoAvailable')}</p>`;
@@ -728,20 +1055,7 @@ function displayLessons(lessons, dateString, className, xmlText) {
 }
 
 function backToClasses() {
-    document.getElementById('class-list-container').innerHTML = `
-        <h2>${_('selectClass')}</h2>
-        <div id="class-list"></div>
-    `;
-    if (cachedXmlData) {
-        const classList = parseClasses(cachedXmlData);
-        displayClasses(classList);
-    } else {
-        // Fallback if cache is empty for some reason
-        document.getElementById('login-form').style.display = 'block';
-        document.getElementById('class-list-container').style.display = 'none';
-    }
-    // Remove manual save button when leaving settings view
-    removeManualSaveButton();
+    backToOverview();
 }
 
 function removeManualSaveButton() {
@@ -891,8 +1205,9 @@ async function loadTeacherDetails(teacherName, fromDateChange = false) {
     currentView = { type: 'teacher', name: teacherName };
 
     try {
-        const xmlText = await fetchPlanForDate(currentDate);
+        const xmlText = await getPlanXmlForDate();
         if (xmlText) {
+            cachedXmlData = xmlText; // Cache the plan XML for the courses modal
             const lessons = parseTeacherLessons(xmlText, teacherName);
             displayTeacherLessons(teacherName, lessons, formatDateForDisplay(currentDate));
         } else {
@@ -1082,6 +1397,8 @@ function changeDay(offset, name) {
         loadClassDetails(name, true);
     } else if (currentView.type === 'teacher') {
         loadTeacherDetails(name, true);
+    } else if (currentView.type === 'person') {
+        loadPersonPlan(currentView.id, true);
     }
 }
 
@@ -1452,6 +1769,12 @@ function updateTexts() {
     if (classH2) classH2.textContent = _('selectClass');
     const favoritesH2 = document.getElementById('favorites-title');
     if (favoritesH2) favoritesH2.textContent = _('favorites');
+    const personsH2 = document.getElementById('persons-title');
+    if (personsH2) personsH2.textContent = _('persons');
+    const addPersonBtn = document.getElementById('add-person-btn');
+    if (addPersonBtn) addPersonBtn.title = _('addPerson');
+    const coursesSaveBtn = document.getElementById('courses-save-btn');
+    if (coursesSaveBtn) coursesSaveBtn.textContent = _('savePerson');
     const teacherH2 = document.querySelector('#tab-teacher h2');
     if (teacherH2) teacherH2.textContent = _('teacherManagement');
     const teacherP = document.querySelector('#tab-teacher p');
@@ -1634,22 +1957,31 @@ function parseCourses(xmlText, className) {
 }
 
 async function showCoursesModal() {
+    // In a person's plan, edit that person's course selection
+    if (currentView.type === 'person') {
+        const person = findPerson(currentView.id);
+        if (person) {
+            openPersonCoursesModal(person);
+        }
+        return;
+    }
+
+    coursesForPerson = null;
+
     const favoriteClass = localStorage.getItem('favoriteClass');
     if (!favoriteClass) {
         showMessageModal(currentLang === 'de' ? 'Bitte wähle zuerst eine Klasse aus.' : 'Please select a class first.');
         return;
     }
 
-    // Try to get courses from cached XML or fetch new data
-    let xmlText = cachedXmlData;
-    if (!xmlText) {
-        try {
-            xmlText = await fetchPlanForDate(currentDate);
-        } catch (error) {
-            console.error('Error fetching data for courses:', error);
-            showMessageModal(currentLang === 'de' ? 'Fehler beim Laden der Kurse.' : 'Error loading courses.');
-            return;
-        }
+    // Try to get courses from a plan XML (the class list has no course data)
+    let xmlText;
+    try {
+        xmlText = await getPlanXmlForCourses();
+    } catch (error) {
+        console.error('Error fetching data for courses:', error);
+        showMessageModal(currentLang === 'de' ? 'Fehler beim Laden der Kurse.' : 'Error loading courses.');
+        return;
     }
 
     if (!xmlText) {
@@ -1670,14 +2002,20 @@ function displayCourses() {
     const coursesList = document.getElementById('courses-list');
     coursesList.innerHTML = '';
 
+    const saveBtn = document.getElementById('courses-save-btn');
+    if (saveBtn) saveBtn.style.display = coursesForPerson ? 'block' : 'none';
+
     if (cachedCourses.length === 0) {
         coursesList.innerHTML = `<p style="text-align: center; color: #888;">${currentLang === 'de' ? 'Keine Kurse verfügbar' : 'No courses available'}</p>`;
         return;
     }
 
     cachedCourses.forEach((course, index) => {
+        const shown = coursesForPerson
+            ? (coursesForPerson.courses === null || coursesForPerson.courses.includes(course.course))
+            : !getHiddenCourses().includes(course.course);
         const courseItem = document.createElement('div');
-        courseItem.className = `course-item ${course.show ? 'visible' : 'hidden'}`;
+        courseItem.className = `course-item ${shown ? 'visible' : 'hidden'}`;
         courseItem.onclick = () => toggleCourse(index);
         courseItem.innerHTML = `
             <div class="course-info">
@@ -1685,7 +2023,7 @@ function displayCourses() {
                 <span class="course-teacher">(${course.teacher})</span>
             </div>
             <div class="course-icon">
-                <span class="material-icons">${course.show ? 'visibility' : 'visibility_off'}</span>
+                <span class="material-icons">${shown ? 'visibility' : 'visibility_off'}</span>
             </div>
         `;
         coursesList.appendChild(courseItem);
@@ -1694,19 +2032,40 @@ function displayCourses() {
 
 function toggleCourse(index) {
     const course = cachedCourses[index];
+
+    if (coursesForPerson) {
+        let list = coursesForPerson.courses;
+        if (list === null) {
+            list = cachedCourses.map(c => c.course);
+        }
+        if (list.includes(course.course)) {
+            list = list.filter(c => c !== course.course);
+        } else {
+            list.push(course.course);
+        }
+        coursesForPerson.courses = list;
+        displayCourses();
+        return;
+    }
+
     course.show = !course.show;
-    
+
     if (course.show) {
         removeHiddenCourse(course.course);
     } else {
         addHiddenCourse(course.course);
     }
-    
+
     displayCourses();
     refreshCurrentView();
 }
 
 function showAllCourses() {
+    if (coursesForPerson) {
+        coursesForPerson.courses = cachedCourses.map(c => c.course);
+        displayCourses();
+        return;
+    }
     cachedCourses.forEach(course => {
         course.show = true;
         removeHiddenCourse(course.course);
@@ -1716,6 +2075,11 @@ function showAllCourses() {
 }
 
 function hideAllCourses() {
+    if (coursesForPerson) {
+        coursesForPerson.courses = [];
+        displayCourses();
+        return;
+    }
     cachedCourses.forEach(course => {
         course.show = false;
         addHiddenCourse(course.course);
@@ -1726,6 +2090,12 @@ function hideAllCourses() {
 
 function closeCoursesModal() {
     document.getElementById('courses-modal').style.display = 'none';
+    if (coursesForPerson && personCreation && personCreation.className) {
+        // Cancelled person creation
+        personCreation = null;
+        backToOverview();
+    }
+    coursesForPerson = null;
 }
 
 function refreshCurrentView() {

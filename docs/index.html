@@ -29,6 +29,15 @@
     <!-- Content -->
     <div class="content">
         <div id="tab-vplan" class="tab-content">
+        <div id="persons-container" style="display: none;">
+            <div class="persons-header">
+                <h2 id="persons-title">Personen</h2>
+                <button class="icon-btn" id="add-person-btn" onclick="startAddPerson()" title="Person hinzufügen">
+                    <span class="material-icons">person_add</span>
+                </button>
+            </div>
+            <div id="persons-list"></div>
+        </div>
         <div id="favorites-container" style="display: none;">
             <h2 id="favorites-title">Favoriten</h2>
             <div id="favorites-list"></div>
@@ -177,6 +186,7 @@
                 </div>
             </div>
             <div id="courses-list" class="courses-grid"></div>
+            <button id="courses-save-btn" onclick="savePersonCourses()" style="display: none;">Fertig</button>
             <button onclick="closeCoursesModal()">Schließen</button>
         </div>
     </div>

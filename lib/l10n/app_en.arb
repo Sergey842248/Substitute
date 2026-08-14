@@ -186,5 +186,20 @@
     "planSettings": "Plan Settings",
     "planSettingsSubtitle": "Settings for the substitution plan",
     "hideTeacher": "Hide Teacher",
-    "hideTeacherSubtitle": "Hide teacher names in the substitution plan"
+    "hideTeacherSubtitle": "Hide teacher names in the substitution plan",
+    "persons": "Persons",
+    "noPersonsYet": "No persons yet. Add a person to show only the courses you want.",
+    "addPerson": "Add Person",
+    "personName": "Person's name",
+    "enterPersonName": "Please enter a name for the person.",
+    "savePerson": "Save Person",
+    "selectPersonClass": "Select a class for the new person",
+    "coursesFor": "Courses for {name}",
+    "@coursesFor": {
+        "placeholders": {
+            "name": {
+                "type": "String"
+            }
+        }
+    }
 }

@@ -186,5 +186,20 @@
     "planSettings": "Plan-Einstellungen",
     "planSettingsSubtitle": "Einstellungen für den Vertretungsplan",
     "hideTeacher": "Lehrer ausblenden",
-    "hideTeacherSubtitle": "Lehrernamen im Vertretungsplan ausblenden"
+    "hideTeacherSubtitle": "Lehrernamen im Vertretungsplan ausblenden",
+    "persons": "Personen",
+    "noPersonsYet": "Noch keine Personen. Füge eine Person hinzu, um nur die gewünschten Kurse anzuzeigen.",
+    "addPerson": "Person hinzufügen",
+    "personName": "Name der Person",
+    "enterPersonName": "Bitte gib einen Namen für die Person ein.",
+    "savePerson": "Person speichern",
+    "selectPersonClass": "Wähle eine Klasse für die neue Person",
+    "coursesFor": "Kurse für {name}",
+    "@coursesFor": {
+        "placeholders": {
+            "name": {
+                "type": "String"
+            }
+        }
+    }
 }

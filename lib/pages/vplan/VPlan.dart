@@ -4,6 +4,7 @@ import 'package:expandiware/pages/dashboard/settings/Lessons.dart';
 import 'package:expandiware/pages/vplan/VPlanAPI.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:animations/animations.dart';
@@ -27,6 +28,7 @@ class VPlan extends StatefulWidget {
 
 class _VPlanState extends State<VPlan> {
   List<String> classes = [];
+  List<Map<String, dynamic>> persons = [];
   final listKey = GlobalKey<AnimatedListState>();
 
   void getClasses() async {
@@ -43,6 +45,9 @@ class _VPlanState extends State<VPlan> {
       listKey.currentState!.insertItem(i);
       classes.add(prefClasses[i]);
     }
+
+    persons = await VPlanAPI().getPersons();
+    setState(() {});
 
     String? username = prefs.getString('vplanUsername');
 
@@ -110,13 +115,192 @@ class _VPlanState extends State<VPlan> {
 
 
 
+  Widget _personsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 15),
+              child: Text(
+                AppLocalizations.of(context)!.persons,
+                style: TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: _openAddPerson,
+              icon: Icon(Icons.person_add_alt_1_rounded),
+              tooltip: AppLocalizations.of(context)!.addPerson,
+            ),
+          ],
+        ),
+        if (persons.length == 0)
+          Padding(
+            padding: const EdgeInsets.only(left: 15, right: 15, bottom: 10),
+            child: Text(
+              AppLocalizations.of(context)!.noPersonsYet,
+              style: TextStyle(
+                color: Theme.of(context).focusColor.withOpacity(0.5),
+              ),
+            ),
+          )
+        else
+          ...persons.map((person) {
+            return ListItem(
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    person['name'],
+                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    person['classId'],
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).focusColor.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
+              actionButton: IconButton(
+                onPressed: () => _deletePerson(person),
+                icon: Icon(
+                  Icons.delete_rounded,
+                  color: Theme.of(context).focusColor.withOpacity(0.5),
+                ),
+              ),
+              onClick: () {
+                Navigator.push(
+                  context,
+                  PageTransition(
+                    type: PageTransitionType.rightToLeft,
+                    child: Scaffold(
+                      body: Plan(
+                        classId: person['classId'],
+                        person: person,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          }),
+      ],
+    );
+  }
+
+  void _deletePerson(Map<String, dynamic> person) async {
+    await VPlanAPI().deletePerson(person['id']);
+    setState(() {
+      persons.remove(person);
+    });
+  }
+
+  Future<void> _openAddPerson() async {
+    final VPlanAPI vplanAPI = VPlanAPI();
+
+    // Step 1: Pick a class for the new person
+    final completer = Completer<String?>();
+    await Navigator.push(
+      context,
+      PageTransition(
+        type: PageTransitionType.rightToLeft,
+        child: Scaffold(
+          body: SelectClass(
+            personMode: true,
+            pop: (className) {
+              if (!completer.isCompleted) completer.complete(className);
+            },
+            favs: [],
+          ),
+        ),
+      ),
+    ).then((_) {
+      // If the user left the class selection without picking one, abort
+      if (!completer.isCompleted) completer.complete(null);
+    });
+    final String? className = await completer.future;
+    if (className == null || !mounted) return;
+
+    // Step 2: Enter the person's name
+    final TextEditingController nameController = TextEditingController();
+    final String? name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(25),
+        ),
+        backgroundColor: Theme.of(context).backgroundColor,
+        title: Text(
+          AppLocalizations.of(context)!.personName,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 19),
+        ),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context)!.personName,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(AppLocalizations.of(context)!.later),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, nameController.text.trim()),
+            child: Text(
+              AppLocalizations.of(context)!.save,
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (name == null || name.isEmpty || !mounted) return;
+
+    // Step 3: Choose the courses to show for this person
+    final person = {
+      'id': '${DateTime.now().millisecondsSinceEpoch}',
+      'name': name,
+      'classId': className,
+      'courses': <String>[],
+    };
+    await Navigator.push(
+      context,
+      PageTransition(
+        type: PageTransitionType.rightToLeft,
+        child: Scaffold(
+          body: PersonCourses(
+            classId: className,
+            person: person,
+            isNew: true,
+          ),
+        ),
+      ),
+    );
+
+    persons = await vplanAPI.getPersons();
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+          _personsSection(),
           OpenContainer(
             closedColor: Theme.of(context).scaffoldBackgroundColor,
             openColor: Theme.of(context).scaffoldBackgroundColor,
@@ -195,6 +379,7 @@ class _VPlanState extends State<VPlan> {
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -477,10 +662,12 @@ class SelectClass extends StatefulWidget {
     Key? key,
     required this.pop,
     required this.favs,
+    this.personMode = false,
   }) : super(key: key);
 
   final Function pop;
   final List<String> favs;
+  final bool personMode;
 
   @override
   State<SelectClass> createState() => _SelectClassState();
@@ -709,6 +896,12 @@ class _SelectClassState extends State<SelectClass> {
                 : null,
             color: used ? Theme.of(context).indicatorColor : null,
             onClick: () async {
+              if (widget.personMode) {
+                // Person creation: only report the picked class
+                this.widget.pop(className);
+                Navigator.pop(context);
+                return;
+              }
               SharedPreferences instance =
                   await SharedPreferences.getInstance();
               List<String>? _classes = instance.getStringList('classes');

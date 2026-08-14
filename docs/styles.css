@@ -190,6 +190,17 @@ button:hover {
     border: 1px solid #444;
 }
 
+/* Persons section */
+.persons-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.persons-header h2 {
+    margin: 0;
+}
+
 /* Favorite plan rows */
 .class-item-row {
     display: flex;

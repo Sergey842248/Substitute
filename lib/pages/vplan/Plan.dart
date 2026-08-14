@@ -1,6 +1,7 @@
 import 'package:animations/animations.dart';
 import 'package:expandiware/models/Button.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart';
@@ -15,10 +16,12 @@ import './VPlanAPI.dart';
 
 class Plan extends StatefulWidget {
   final String classId;
+  final Map<String, dynamic>? person;
 
   const Plan({
     Key? key,
     required this.classId,
+    this.person,
   }) : super(key: key);
 
   @override
@@ -343,10 +346,22 @@ class _PlanState extends State<Plan> {
                   size: 20,
                 ),
               ),
-              openBuilder: (context, closeContainer) => Courses(
-                classId: widget.classId,
-                updateCourses: () => getData(),
-              ),
+              openBuilder: (context, closeContainer) => widget.person != null
+                  ? PersonCourses(
+                      classId: widget.classId,
+                      person: widget.person!,
+                      isNew: false,
+                      onSaved: (courses) {
+                        setState(() {
+                          widget.person!['courses'] = courses;
+                        });
+                        getData();
+                      },
+                    )
+                  : Courses(
+                      classId: widget.classId,
+                      updateCourses: () => getData(),
+                    ),
             ),
             // courses
             IconButton(
@@ -371,7 +386,14 @@ class _PlanState extends State<Plan> {
               ]
             : (data['data']['data'] as List).map(
                 (e) {
-                  if (hiddenSubjects!.contains(e['course'])) {
+                  if (widget.person != null) {
+                    // Person: only show the courses selected for this person
+                    final List<dynamic>? shown =
+                        widget.person!['courses'] as List<dynamic>?;
+                    if (shown != null && !shown.contains(e['course'])) {
+                      return SizedBox();
+                    }
+                  } else if (hiddenSubjects!.contains(e['course'])) {
                     return SizedBox();
                   }
                   return ListItem(
@@ -655,6 +677,192 @@ class _CoursesState extends State<Courses> {
             ),
           ],
         ),
+      ],
+    );
+  }
+}
+
+class PersonCourses extends StatefulWidget {
+  final String classId;
+  final Map<String, dynamic> person;
+  final bool isNew; // true: created & added to storage on save, false: updates existing person
+  final Function(List<String> courses)? onSaved;
+
+  const PersonCourses({
+    Key? key,
+    required this.classId,
+    required this.person,
+    this.isNew = false,
+    this.onSaved,
+  }) : super(key: key);
+
+  @override
+  State<PersonCourses> createState() => _PersonCoursesState();
+}
+
+class _PersonCoursesState extends State<PersonCourses> {
+  VPlanAPI vplanAPI = new VPlanAPI();
+  List<dynamic> courses = [];
+  Set<String> shown = {};
+  bool loading = true;
+
+  void getData() async {
+    List<dynamic> _courses = await vplanAPI.getCourses(widget.classId);
+    List<dynamic> courseList = [];
+    for (int i = 0; i < _courses.length; i++) {
+      courseList.add({
+        'course': _courses[i]['course'],
+        'teacher': _courses[i]['teacher'],
+      });
+    }
+
+    Set<String> initial;
+    if (widget.isNew) {
+      // Baseline for new persons: all courses minus the global hidden courses
+      List<String> hidden = await vplanAPI.getHiddenCourses();
+      initial = courseList
+          .map((c) => c['course'] as String)
+          .where((c) => !hidden.contains(c))
+          .toSet();
+    } else {
+      final List<dynamic>? stored = widget.person['courses'] as List<dynamic>?;
+      initial = stored == null
+          ? courseList.map((c) => c['course'] as String).toSet()
+          : stored.cast<String>().toSet();
+    }
+
+    if (!mounted) return;
+    setState(() {
+      courses = courseList;
+      shown = initial;
+      loading = false;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getData();
+  }
+
+  void _save() {
+    final List<String> selected = courses
+        .where((c) => shown.contains(c['course']))
+        .map((c) => c['course'] as String)
+        .toList();
+
+    if (widget.isNew) {
+      widget.person['courses'] = selected;
+      vplanAPI.addPerson(widget.person);
+    } else {
+      vplanAPI.updatePersonCourses(widget.person['id'], selected);
+    }
+
+    widget.onSaved?.call(selected);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListPage(
+      title: AppLocalizations.of(context)!.coursesFor(widget.person['name']),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.check_rounded),
+          tooltip: AppLocalizations.of(context)!.savePerson,
+          onPressed: loading ? null : _save,
+        ),
+      ],
+      children: [
+        if (loading)
+          Center(child: LoadingProcess())
+        else
+          GridView.count(
+            childAspectRatio: 3 / 1.5,
+            shrinkWrap: true,
+            crossAxisCount: 2,
+            crossAxisSpacing: 1,
+            mainAxisSpacing: 1,
+            physics: BouncingScrollPhysics(),
+            children: [
+              ...courses.map((e) {
+                final bool isShown = shown.contains(e['course']);
+                return ListItem(
+                  color: isShown
+                      ? Theme.of(context).backgroundColor
+                      : Theme.of(context).backgroundColor.withOpacity(0.4),
+                  title: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                e['course'],
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  decoration:
+                                      !isShown ? TextDecoration.lineThrough : null,
+                                  color: !isShown ? Colors.grey : null,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                '(${e['teacher']})',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  decoration:
+                                      !isShown ? TextDecoration.lineThrough : null,
+                                  color: !isShown ? Colors.grey : null,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          alignment: Alignment.center,
+                          width: 17,
+                          child: AnimatedSwitcher(
+                            duration: Duration(milliseconds: 500),
+                            child: isShown
+                                ? Icon(
+                                    Icons.visibility_outlined,
+                                    key: ValueKey(1),
+                                    size: 16,
+                                  )
+                                : Icon(
+                                    Icons.visibility_off_outlined,
+                                    key: ValueKey(2),
+                                    size: 16,
+                                  ),
+                            transitionBuilder: (Widget child, Animation<double> animation) =>
+                                SizeTransition(
+                              sizeFactor: animation,
+                              child: child,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  onClick: () {
+                    setState(() {
+                      if (shown.contains(e['course'])) {
+                        shown.remove(e['course']);
+                      } else {
+                        shown.add(e['course']);
+                      }
+                    });
+                  },
+                );
+              }),
+            ],
+          ),
       ],
     );
   }

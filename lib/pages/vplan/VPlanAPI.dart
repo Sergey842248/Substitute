@@ -87,6 +87,51 @@ class VPlanAPI {
     return hiddenSubjects;
   }
 
+  // --- Persons (named profiles with class + own course selection) ---
+
+  Future<List<Map<String, dynamic>>> getPersons() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? data = prefs.getString('persons');
+    if (data == null || data.isEmpty) {
+      return [];
+    }
+    try {
+      List<dynamic> list = jsonDecode(data) as List;
+      return list.cast<Map<String, dynamic>>();
+    } catch (e) {
+      print('Error parsing persons: $e');
+      return [];
+    }
+  }
+
+  Future<void> savePersons(List<Map<String, dynamic>> persons) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('persons', jsonEncode(persons));
+  }
+
+  Future<void> addPerson(Map<String, dynamic> person) async {
+    List<Map<String, dynamic>> persons = await getPersons();
+    persons.add(person);
+    await savePersons(persons);
+  }
+
+  Future<void> updatePersonCourses(String personId, List<String> courses) async {
+    List<Map<String, dynamic>> persons = await getPersons();
+    for (int i = 0; i < persons.length; i++) {
+      if (persons[i]['id'] == personId) {
+        persons[i]['courses'] = courses;
+        break;
+      }
+    }
+    await savePersons(persons);
+  }
+
+  Future<void> deletePerson(String personId) async {
+    List<Map<String, dynamic>> persons = await getPersons();
+    persons.removeWhere((p) => p['id'] == personId);
+    await savePersons(persons);
+  }
+
   Future<List<dynamic>> getShownCourses(String classId) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
