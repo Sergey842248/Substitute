@@ -99,7 +99,10 @@ async function loadTranslations() {
                 hideLessonTimes: 'Hide lesson times',
                 hideLessonTimesSubtitle: 'Hide times for individual lessons in the plan',
                 hideTeacher: 'Hide Teacher',
-                hideTeacherSubtitle: 'Hide teacher names in the substitution plan'
+                hideTeacherSubtitle: 'Hide teacher names in the substitution plan',
+                favorites: 'Favorites',
+                addToFavorites: 'Add to favorites',
+                removeFromFavorites: 'Remove from favorites'
             },
             de: {
                 schoolNumber: 'Schulnummer',
@@ -182,7 +185,10 @@ async function loadTranslations() {
                 hideLessonTimes: 'Stundenzeiten ausblenden',
                 hideLessonTimesSubtitle: 'Zeiten der einzelnen Stunden im Vertretungsplan ausblenden',
                 hideTeacher: 'Lehrer ausblenden',
-                hideTeacherSubtitle: 'Lehrernamen im Vertretungsplan ausblenden'
+                hideTeacherSubtitle: 'Lehrernamen im Vertretungsplan ausblenden',
+                favorites: 'Favoriten',
+                addToFavorites: 'Zu Favoriten hinzufügen',
+                removeFromFavorites: 'Aus Favoriten entfernen'
             }
         };
     }
@@ -197,6 +203,97 @@ let cachedCourses = []; // Cache for courses with visibility state
 // --- State for Date Navigation ---
 let currentDate = new Date();
 let currentView = { type: null, name: null }; // Tracks what is being viewed, e.g., { type: 'class', name: '10A' }
+
+// --- Favorites (saved substitution plans) ---
+
+function getFavoriteClasses() {
+    let favorites = localStorage.getItem('favoriteClasses');
+    if (!favorites) {
+        // Migrate the old single-favorite setting
+        const oldFavorite = localStorage.getItem('favoriteClass');
+        favorites = oldFavorite ? JSON.stringify([oldFavorite]) : JSON.stringify([]);
+        localStorage.setItem('favoriteClasses', favorites);
+    }
+    try {
+        return JSON.parse(favorites);
+    } catch (error) {
+        console.error('Error parsing favorite classes:', error);
+        return [];
+    }
+}
+
+function saveFavoriteClasses(favorites) {
+    localStorage.setItem('favoriteClasses', JSON.stringify(favorites));
+}
+
+function isFavoriteClass(className) {
+    return getFavoriteClasses().includes(className);
+}
+
+function toggleFavoriteClass(className) {
+    let favorites = getFavoriteClasses();
+    let added = false;
+    if (favorites.includes(className)) {
+        favorites = favorites.filter(c => c !== className);
+    } else {
+        favorites.push(className);
+        added = true;
+    }
+    saveFavoriteClasses(favorites);
+    refreshFavoritesUI();
+    return added;
+}
+
+function removeFavoriteClass(className) {
+    const favorites = getFavoriteClasses().filter(c => c !== className);
+    saveFavoriteClasses(favorites);
+    refreshFavoritesUI();
+}
+
+function refreshFavoritesUI() {
+    displayFavoriteClasses();
+    // Re-render the class list so the star icons stay in sync
+    const classList = document.getElementById('class-list');
+    if (classList && classList.children.length > 0 && cachedXmlData) {
+        displayClasses(parseClasses(cachedXmlData));
+    }
+}
+
+function displayFavoriteClasses() {
+    const container = document.getElementById('favorites-container');
+    const list = document.getElementById('favorites-list');
+    const favorites = getFavoriteClasses();
+
+    if (favorites.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+    list.innerHTML = '';
+
+    favorites.forEach(className => {
+        const item = document.createElement('div');
+        item.className = 'class-item class-item-row';
+        item.onclick = () => loadClassDetails(className);
+
+        const name = document.createElement('strong');
+        name.textContent = className;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'icon-btn fav-btn';
+        removeBtn.title = _('removeFromFavorites');
+        removeBtn.innerHTML = '<span class="material-icons" style="color: #888;">close</span>';
+        removeBtn.onclick = (event) => {
+            event.stopPropagation();
+            removeFavoriteClass(className);
+        };
+
+        item.appendChild(name);
+        item.appendChild(removeBtn);
+        list.appendChild(item);
+    });
+}
 
 // Function to calculate week number like in the Android app
 function weekNumber(date) {
@@ -243,8 +340,17 @@ window.onload = async function() {
     const hideTeacher = localStorage.getItem('hideTeacher') === 'true';
     document.getElementById('hide-teacher').checked = hideTeacher;
 
-    if (favoriteClass && schoolnumber) {
-        loadPlanForFavoriteClass(favoriteClass);
+    // Auto-load a saved favorite plan on startup (prefer the last viewed one)
+    const favorites = getFavoriteClasses();
+    let classToLoad = null;
+    if (favoriteClass && favorites.includes(favoriteClass)) {
+        classToLoad = favoriteClass;
+    } else if (favorites.length > 0) {
+        classToLoad = favorites[0];
+    }
+
+    if (classToLoad && schoolnumber) {
+        loadPlanForFavoriteClass(classToLoad);
     }
 };
 
@@ -425,13 +531,28 @@ function displayClasses(classList) {
 
     classList.forEach(className => {
         const classItem = document.createElement('div');
-        classItem.className = 'class-item';
+        classItem.className = 'class-item class-item-row';
         classItem.innerHTML = `
             <strong>${className}</strong>
         `;
+
+        // Star button to add/remove this plan from favorites
+        const isFav = isFavoriteClass(className);
+        const favBtn = document.createElement('button');
+        favBtn.className = 'icon-btn fav-btn';
+        favBtn.title = isFav ? _('removeFromFavorites') : _('addToFavorites');
+        favBtn.innerHTML = `<span class="material-icons" style="color: ${isFav ? '#AF69EE' : '#888'};">${isFav ? 'star' : 'star_border'}</span>`;
+        favBtn.onclick = (event) => {
+            event.stopPropagation();
+            toggleFavoriteClass(className);
+        };
+        classItem.appendChild(favBtn);
+
         classItem.onclick = () => loadClassDetails(className);
         classListElement.appendChild(classItem);
     });
+
+    displayFavoriteClasses();
 }
 
 async function loadClassDetails(className, fromDateChange = false) {
@@ -541,6 +662,8 @@ function parseGeneralInfo(xmlText) {
 
 function displayLessons(lessons, dateString, className, xmlText) {
     const container = document.getElementById('class-list-container');
+    // Hide the favorites list while a plan is open
+    document.getElementById('favorites-container').style.display = 'none';
     container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
             <button onclick="changeDay(-1, '${className}')" style="font-size: 24px; background: none; border: none; color: #AF69EE; cursor: pointer;"><</button>
@@ -1327,6 +1450,8 @@ function updateTexts() {
     if (vplanH2) vplanH2.textContent = _('vplanCredentials');
     const classH2 = document.querySelector('#class-list-container h2');
     if (classH2) classH2.textContent = _('selectClass');
+    const favoritesH2 = document.getElementById('favorites-title');
+    if (favoritesH2) favoritesH2.textContent = _('favorites');
     const teacherH2 = document.querySelector('#tab-teacher h2');
     if (teacherH2) teacherH2.textContent = _('teacherManagement');
     const teacherP = document.querySelector('#tab-teacher p');

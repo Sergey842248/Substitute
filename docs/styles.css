@@ -190,6 +190,33 @@ button:hover {
     border: 1px solid #444;
 }
 
+/* Favorite plan rows */
+.class-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.class-item-row strong {
+    flex: 1;
+}
+
+.fav-btn {
+    width: 36px;
+    height: 36px;
+    padding: 6px;
+    margin: 0;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background-color: transparent;
+}
+
+.fav-btn:hover {
+    background-color: #3a3a4c;
+}
+
 .modal {
     display: none;
     position: fixed;
