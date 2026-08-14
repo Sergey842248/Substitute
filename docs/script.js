@@ -484,7 +484,7 @@ async function openPersonCoursesModal(person) {
             coursesForPerson = null;
             return;
         }
-        cachedCourses = parseCourses(xmlText, person.classId);
+        cachedCourses = parseCourses(xmlText, person.classId || person.className);
 
         const coursesTitle = document.getElementById('courses-modal-title');
         coursesTitle.textContent = `${_('courses')} - ${person.name}`;
