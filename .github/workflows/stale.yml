@@ -64,3 +64,10 @@ jobs:
           # days-before-issue-close: 7    # Overrides days-before-close for issues
           # days-before-pr-close: 14      # Overrides days-before-close for PRs
           # start-date: “2023-01-01T00:00:00Z”  # Only issues/PRs after this date
+  workflow-keepalive:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: liskin/gh-workflow-keepalive@v1
