@@ -43,7 +43,7 @@ class VPlanAPI {
     return classList;
   }
 
-  void addHiddenCourse(String lesson) async {
+  Future<void> addHiddenCourse(String lesson) async {
     if (lesson == '---') {
       return;
     }
@@ -53,12 +53,14 @@ class VPlanAPI {
     if (hiddenSubjects == null) {
       hiddenSubjects = [];
     }
-    hiddenSubjects.add(lesson);
+    if (!hiddenSubjects.contains(lesson)) {
+      hiddenSubjects.add(lesson);
+    }
 
-    prefs.setStringList('hiddenSubjects', hiddenSubjects);
+    await prefs.setStringList('hiddenSubjects', hiddenSubjects);
   }
 
-  void removeHiddenCourse(String course) async {
+  Future<void> removeHiddenCourse(String course) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     List<String>? hiddenSubjects = prefs.getStringList('hiddenSubjects');
@@ -73,10 +75,10 @@ class VPlanAPI {
       }
     }
 
-    prefs.setStringList('hiddenSubjects', newCourses);
+    await prefs.setStringList('hiddenSubjects', newCourses);
   }
 
-  Future<List<String>> getHiddenCourses() async {
+Future<List<String>> getHiddenCourses() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     List<String>? hiddenSubjects = prefs.getStringList('hiddenSubjects');
@@ -87,6 +89,33 @@ class VPlanAPI {
     return hiddenSubjects;
   }
 
+  /// Prüft, ob ein Stunden-/Ausfall-Eintrag zu einem vom Nutzer
+  /// ausgeblendeten Kurs gehört.
+  ///
+  /// Manche Einträge (v.a. komplette Kursausfälle wie
+  /// "spl1 Herr Schilling fällt aus") haben kein gesetztes 'course'
+  /// bzw. 'lesson' Feld - das Kurskürzel steckt dort nur als erstes
+  /// Wort im freien 'info'-Text. Ohne diese zusätzliche Prüfung wurden
+  /// solche Einträge nie herausgefiltert, selbst wenn der Kurs
+  /// abgewählt war.
+  bool isLessonHidden(dynamic lesson, List<String> hiddenCourses) {
+    if (hiddenCourses.contains(lesson['course']) ||
+        hiddenCourses.contains(lesson['lesson'])) {
+      return true;
+    }
+
+    if (lesson['info'] != null) {
+      String infoText = lesson['info'].toString().trim();
+      if (infoText.isNotEmpty) {
+        String firstWord = infoText.split(RegExp(r'\s+')).first;
+        if (hiddenCourses.contains(firstWord)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
   // --- Persons (named profiles with class + own course selection) ---
 
   Future<List<Map<String, dynamic>>> getPersons() async {

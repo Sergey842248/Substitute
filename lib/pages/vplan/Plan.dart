@@ -393,7 +393,7 @@ class _PlanState extends State<Plan> {
                     if (shown != null && !shown.contains(e['course'])) {
                       return SizedBox();
                     }
-                  } else if (hiddenSubjects!.contains(e['course'])) {
+                  } else if (vplanAPI.isLessonHidden(e, hiddenSubjects!)) {
                     return SizedBox();
                   }
                   return ListItem(
@@ -564,22 +564,24 @@ class _CoursesState extends State<Courses> {
       actions: [
         IconButton(
           icon: Icon(Icons.visibility_rounded),
-          onPressed: () {
+          onPressed: () async {
             for (int i = 0; i < courses.length; i++) {
               courses[i]['show'] = true;
-              vplanAPI.removeHiddenCourse(courses[i]['course']);
+              await vplanAPI.removeHiddenCourse(courses[i]['course']);
             }
             setState(() {});
+            await widget.updateCourses();
           },
         ),
         IconButton(
           icon: Icon(Icons.visibility_off_rounded),
-          onPressed: () {
+          onPressed: () async {
             for (int i = 0; i < courses.length; i++) {
               courses[i]['show'] = false;
-              vplanAPI.addHiddenCourse(courses[i]['course']);
+              await vplanAPI.addHiddenCourse(courses[i]['course']);
             }
             setState(() {});
+            await widget.updateCourses();
           },
         ),
       ],
@@ -661,17 +663,16 @@ class _CoursesState extends State<Courses> {
                     ],
                   ),
                 ),
-                onClick: () {
+                onClick: () async {
                   setState(() {
                     e['show'] = !e['show'];
                   });
                   if (e['show']) {
-                    vplanAPI.removeHiddenCourse(e['course']);
-                    print('remove course');
+                    await vplanAPI.removeHiddenCourse(e['course']);
                   } else {
-                    vplanAPI.addHiddenCourse(e['course']);
-                    print('add course');
+                    await vplanAPI.addHiddenCourse(e['course']);
                   }
+                  await widget.updateCourses();
                 },
               ),
             ),

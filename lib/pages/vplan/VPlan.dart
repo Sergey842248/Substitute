@@ -418,17 +418,13 @@ class _ClassWidgetState extends State<ClassWidget> {
   Map<String, dynamic> nextLesson = {'': 'loading'};
   getData() async {
     List<dynamic> realVPlan = [];
-    dynamic vplan = await VPlanAPI().getLessonsForToday(widget.classId);
-    List<String> hiddenCourses = await VPlanAPI().getHiddenCourses();
+    VPlanAPI vplanAPI = VPlanAPI();
+    dynamic vplan = await vplanAPI.getLessonsForToday(widget.classId);
+    List<String> hiddenCourses = await vplanAPI.getHiddenCourses();
 
     for (var i = 0; i < vplan['data'].length; i++) {
-      bool add = true;
-      for (var j = 0; j < hiddenCourses.length; j++) {
-        if (vplan['data'][i]['course'] == hiddenCourses[j] ||
-            vplan['data'][i]['course'] == '---') {
-          add = false;
-        }
-      }
+      bool add = !vplanAPI.isLessonHidden(vplan['data'][i], hiddenCourses) &&
+          vplan['data'][i]['course'] != '---';
       if (add) {
         realVPlan.add(vplan['data'][i]);
       }
@@ -500,13 +496,9 @@ class _ClassWidgetState extends State<ClassWidget> {
               // Filter hidden courses from tomorrow's lessons
               List<dynamic> tomorrowRealVPlan = [];
               for (var i = 0; i < tomorrowVplan['data'].length; i++) {
-                bool add = true;
-                for (var j = 0; j < hiddenCourses.length; j++) {
-                  if (tomorrowVplan['data'][i]['course'] == hiddenCourses[j] ||
-                      tomorrowVplan['data'][i]['course'] == '---') {
-                    add = false;
-                  }
-                }
+                bool add = !vplanAPI.isLessonHidden(
+                        tomorrowVplan['data'][i], hiddenCourses) &&
+                    tomorrowVplan['data'][i]['course'] != '---';
                 if (add) {
                   tomorrowRealVPlan.add(tomorrowVplan['data'][i]);
                 }
