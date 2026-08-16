@@ -45,6 +45,12 @@ android {
         multiDexEnabled true
     }
 
+    buildTypes {
+        debug {
+            applicationIdSuffix ".dev"
+        }
+    }
+
     lintOptions {
         checkReleaseBuilds false
         abortOnError false
