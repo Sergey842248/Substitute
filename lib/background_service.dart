@@ -208,7 +208,8 @@ void vplanNotifications(Timer timer) async {
     if (!reminded) {
       createNotification(
         id: 10000000,
-        title: 'keine Veränderungen (${_vplanDate.day}.${_vplanDate.month})',
+        title:
+            'keine Veränderungen (${_vplanDate.day.toString().padLeft(2, '0')}.${_vplanDate.month.toString().padLeft(2, '0')}.${_vplanDate.year})',
         body: ' ',
         subtitle: 'expandiware',
         normal: true,

@@ -155,7 +155,10 @@ class _TeacherPlanState extends State<TeacherPlan> {
 
   @override
   Widget build(BuildContext context) {
-    String displayDate = '${widget.selectedDate.day}.${widget.selectedDate.month}';
+    String displayDate =
+        '${widget.selectedDate.day.toString().padLeft(2, '0')}.'
+        '${widget.selectedDate.month.toString().padLeft(2, '0')}.'
+        '${widget.selectedDate.year}';
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: ListPage(

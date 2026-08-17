@@ -205,6 +205,9 @@ class _PlanState extends State<Plan> {
   Widget build(BuildContext context) {
     DateTime displayDateDateTime;
     String displayDate = '...';
+    // Kopfzeile: oben steht der Name der Person (falls eine ausgewählt
+    // wurde) bzw. die Klasse, darunter das Datum.
+    String headerTitle = widget.person?['name']?.toString() ?? widget.classId;
     if (data == null) {
       return Text('no substitution plan');
     }
@@ -261,7 +264,7 @@ class _PlanState extends State<Plan> {
           }
       }
       return ListPage(
-        title: '${widget.classId}',
+        title: headerTitle,
         animate: true,
         onRefresh: () => getData(),
         actions: [
@@ -302,7 +305,7 @@ class _PlanState extends State<Plan> {
     if (data.toString().contains('data')) {
       displayDateDateTime =
           VPlanAPI().parseStringDatatoDateTime(data['data']['date'].toString());
-      displayDate = '${displayDateDateTime.day}.${displayDateDateTime.month}';
+      displayDate = DateFormat('dd.MM.yyyy').format(displayDateDateTime);
     }
     return ListPage(
       onTitleClick: () {
@@ -337,7 +340,7 @@ class _PlanState extends State<Plan> {
           ),
         );
       },
-       title: '${widget.classId} - $displayDate',
+       title: '$headerTitle\n$displayDate',
       animate: true,
       smallTitle: true,
       onRefresh: () {
