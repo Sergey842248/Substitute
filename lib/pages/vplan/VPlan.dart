@@ -373,7 +373,7 @@ class _VPlanState extends State<VPlan> {
                             child: ListItem(
                               onClick: () {},
                               title: Text(
-                                classes[index],
+                                classId,
                                 style: TextStyle(
                                   fontSize: 19,
                                 ),
