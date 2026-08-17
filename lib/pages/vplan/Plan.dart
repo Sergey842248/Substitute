@@ -73,10 +73,29 @@ class _PlanState extends State<Plan> {
         'info': newData['info'],
       };
     });
+    _loadMissedCourses();
     } catch (e) {
       print('Error loading plan for new date: $e');
       // If there's an error, try to reload current data
       await getData();
+    }
+  }
+
+  /// Lädt die Kurse, die laut Sick-Track am angezeigten Tag verpasst wurden,
+  /// damit im Plan das Stiftsymbol (Unterschrift holen) angezeigt werden kann.
+  Future<void> _loadMissedCourses() async {
+    if (data is Map &&
+        data['data'] != null &&
+        data['data']['date'] != null) {
+      DateTime date =
+          VPlanAPI().parseStringDatatoDateTime(data['data']['date'].toString());
+      Set<String> missed =
+          await vplanAPI.getMissedCoursesForDate(widget.classId, date);
+      if (mounted) {
+        setState(() {
+          missedCourses = missed;
+        });
+      }
     }
   }
 
@@ -145,12 +164,15 @@ class _PlanState extends State<Plan> {
     setState(() {});
 
     vplanAPI.cleanVplanOfflineData();
+
+    _loadMissedCourses();
   }
 
   dynamic data = 'loading';
   List<String>? hiddenSubjects;
   bool hideLessonTimes = true;
   bool hideTeacher = false;
+  Set<String> missedCourses = {};
 
   String printValue(String? value) {
     if (value == null) {
@@ -384,108 +406,7 @@ class _PlanState extends State<Plan> {
                   child: LoadingProcess(),
                 )
               ]
-            : (data['data']['data'] as List).map(
-                (e) {
-                  if (widget.person != null) {
-                    // Person: only show the courses selected for this person
-                    final List<dynamic>? shown =
-                        widget.person!['courses'] as List<dynamic>?;
-                    if (shown != null && !shown.contains(e['course'])) {
-                      return SizedBox();
-                    }
-                  } else if (vplanAPI.isLessonHidden(e, hiddenSubjects!)) {
-                    return SizedBox();
-                  }
-                  return ListItem(
-                    onClick: () {},
-                    color: e['info'] == null
-                        ? null
-                        : Color.fromARGB(158, 119, 18, 18),
-                    leading: Text(
-                      printValue('${e['count']}'),
-                      style: TextStyle(fontSize: 18),
-                    ),
-                    title: Container(
-                      alignment: Alignment.centerLeft,
-                      width: MediaQuery.of(context).size.width * 0.1,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            printValue(e['lesson']),
-                            style: TextStyle(fontSize: 19),
-                          ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (!hideLessonTimes)
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Icon(
-                                      Icons.access_time_rounded,
-                                      size: 16,
-                                    ),
-                                    SizedBox(width: 3),
-                                    Text(
-                                        '${printValue(e['begin'])} - ${printValue(e['end'])}'),
-                                  ],
-                                ),
-                              if (!hideLessonTimes) SizedBox(height: 5),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Icon(
-                                    Icons.location_on_rounded,
-                                    size: 16,
-                                    color: e['placeChanged'] == true ? Colors.red : null,
-                                  ),
-                                  SizedBox(width: 3),
-                                  Text(
-                                    printValue(e['place']),
-                                    style: e['placeChanged'] == true
-                                        ? TextStyle(
-                                            color: Colors.red,
-                                            fontWeight: FontWeight.bold,
-                                          )
-                                        : null,
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 5),
-                              if (!hideTeacher)
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Icon(
-                                      Icons.person_rounded,
-                                      size: 16,
-                                    ),
-                                    SizedBox(width: 3),
-                                    Text(printValue(e['teacher'])),
-                                  ],
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    subtitle: e['info'] == null
-                        ? null
-                        : Text(
-                            '${e['info']}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  );
-                },
-              ).toList()),
+            : _buildLessons(data['data']['data'] as List)),
         data != 'loading'
             ? const SizedBox()
             : const SizedBox(),
@@ -515,6 +436,138 @@ class _PlanState extends State<Plan> {
             : SizedBox(),
       ],
     );
+  }
+
+  List<Widget> _buildLessons(List<dynamic> lessons) {
+    Set<String> signatureShown = {};
+    return lessons.map((e) {
+      if (widget.person != null) {
+        final List<dynamic>? shown =
+            widget.person!['courses'] as List<dynamic>?;
+        if (shown != null && !shown.contains(e['course'])) {
+          return SizedBox();
+        }
+      } else if (vplanAPI.isLessonHidden(e, hiddenSubjects!)) {
+        return SizedBox();
+      }
+      String course = e['course']?.toString() ?? '';
+      if (course.isEmpty || course == '---') {
+        course = e['lesson']?.toString() ?? '';
+      }
+      bool showSignature = false;
+      if (missedCourses.contains(course) && !signatureShown.contains(course)) {
+        signatureShown.add(course);
+        showSignature = true;
+      }
+      return ListItem(
+        onClick: () {},
+        color: e['info'] == null ? null : Color.fromARGB(158, 119, 18, 18),
+        leading: Text(
+          printValue('${e['count']}'),
+          style: TextStyle(fontSize: 18),
+        ),
+        title: Container(
+          alignment: Alignment.centerLeft,
+          width: MediaQuery.of(context).size.width * 0.1,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                printValue(e['lesson']),
+                style: TextStyle(fontSize: 19),
+              ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!hideLessonTimes)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.access_time_rounded, size: 16),
+                        SizedBox(width: 3),
+                        Text(
+                            '${printValue(e['begin'])} - ${printValue(e['end'])}'),
+                      ],
+                    ),
+                  if (!hideLessonTimes) SizedBox(height: 5),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.location_on_rounded,
+                        size: 16,
+                        color: e['placeChanged'] == true ? Colors.red : null,
+                      ),
+                      SizedBox(width: 3),
+                      Text(
+                        printValue(e['place']),
+                        style: e['placeChanged'] == true
+                            ? TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                              )
+                            : null,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 5),
+                  if (!hideTeacher)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.person_rounded, size: 16),
+                        SizedBox(width: 3),
+                        Text(printValue(e['teacher'])),
+                      ],
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        subtitle: (e['info'] == null && !showSignature)
+            ? null
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (e['info'] != null)
+                    Text(
+                      '${e['info']}',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  if (showSignature) ...[
+                    SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.edit_rounded,
+                          size: 16,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        SizedBox(width: 5),
+                        Flexible(
+                          child: Text(
+                            AppLocalizations.of(context)!.getSignature,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+      );
+    }).toList();
   }
 }
 

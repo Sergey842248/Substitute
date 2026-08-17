@@ -203,5 +203,34 @@
                 "type": "String"
             }
         }
+    },
+    "sickTrack": "Krankheitstracker",
+    "sickTrackSubtitle": "Verpasste Stunden verfolgen und Unterschriften holen",
+    "sickTrackAdd": "Krankheitszeitraum hinzufügen",
+    "selectClassOrPerson": "Klasse oder Person auswählen",
+    "selectClassOrPersonHint": "Wähle eine gespeicherte Klasse oder Person zum Verfolgen",
+    "anotherClass": "Andere Klasse",
+    "selectCourses": "Kurse auswählen",
+    "selectSickDays": "Krankheitstage auswählen",
+    "sickDays": "Krankheitstage",
+    "addDay": "Tag hinzufügen",
+    "noSickDaysSelected": "Keine Tage ausgewählt",
+    "missedLessons": "Verpasste Stunden",
+    "noMissedLessons": "Keine verpassten Stunden",
+    "noSickTrackEntries": "Noch keine Krankheitszeiträume. Füge einen hinzu, um zu sehen, welche Stunden du verpasst hast.",
+    "getSignature": "Unterschrift holen",
+    "missedLesson": "{date} · {count}. Stunde · {course}",
+    "@missedLesson": {
+        "placeholders": {
+            "date": {
+                "type": "String"
+            },
+            "count": {
+                "type": "String"
+            },
+            "course": {
+                "type": "String"
+            }
+        }
     }
 }

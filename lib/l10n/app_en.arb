@@ -203,5 +203,34 @@
                 "type": "String"
             }
         }
+    },
+    "sickTrack": "Sick-Track",
+    "sickTrackSubtitle": "Track missed lessons and get signatures for them",
+    "sickTrackAdd": "Add sick period",
+    "selectClassOrPerson": "Select class or person",
+    "selectClassOrPersonHint": "Choose a saved class or person to track",
+    "anotherClass": "Another class",
+    "selectCourses": "Select courses",
+    "selectSickDays": "Select sick days",
+    "sickDays": "Sick days",
+    "addDay": "Add day",
+    "noSickDaysSelected": "No days selected",
+    "missedLessons": "Missed lessons",
+    "noMissedLessons": "No missed lessons",
+    "noSickTrackEntries": "No sick periods yet. Add one to see which lessons you missed.",
+    "getSignature": "Get signature",
+    "missedLesson": "{date} · {count}. hour · {course}",
+    "@missedLesson": {
+        "placeholders": {
+            "date": {
+                "type": "String"
+            },
+            "count": {
+                "type": "String"
+            },
+            "course": {
+                "type": "String"
+            }
+        }
     }
 }

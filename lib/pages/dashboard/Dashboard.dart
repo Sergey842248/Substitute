@@ -9,6 +9,7 @@ import 'package:animations/animations.dart';
 
 import './FindRoom.dart';
 import './Settings.dart';
+import './SickTrack.dart';
 import '../vplan/Analytics.dart';
 
 class Dashboard extends StatelessWidget {
@@ -34,6 +35,15 @@ class Dashboard extends StatelessWidget {
         'title': AppLocalizations.of(context)!.analysis,
         'subtitle': AppLocalizations.of(context)!.analysisSubtitle,
         'link': Analytics(),
+      },
+      {
+        'icon': Icon(
+          Icons.sick_rounded,
+          color: Theme.of(context).focusColor,
+        ),
+        'title': AppLocalizations.of(context)!.sickTrack,
+        'subtitle': AppLocalizations.of(context)!.sickTrackSubtitle,
+        'link': const SickTrack(),
       },
       {
         'icon': Icon(

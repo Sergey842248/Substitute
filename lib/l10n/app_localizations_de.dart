@@ -389,6 +389,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get hideTeacherSubtitle => 'Lehrernamen im Vertretungsplan ausblenden';
 
   @override
+  String get hidePersons => 'Personen ausblenden';
+
+  @override
+  String get hidePersonsSubtitle => 'Den Personenbereich ausblenden';
+
+  @override
   String get persons => 'Personen';
 
   @override
@@ -413,5 +419,58 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String coursesFor(String name) {
     return 'Kurse für $name';
+  }
+
+  @override
+  String get sickTrack => 'Krankheitstracker';
+
+  @override
+  String get sickTrackSubtitle =>
+      'Verpasste Stunden verfolgen und Unterschriften holen';
+
+  @override
+  String get sickTrackAdd => 'Krankheitszeitraum hinzufügen';
+
+  @override
+  String get selectClassOrPerson => 'Klasse oder Person auswählen';
+
+  @override
+  String get selectClassOrPersonHint =>
+      'Wähle eine gespeicherte Klasse oder Person zum Verfolgen';
+
+  @override
+  String get anotherClass => 'Andere Klasse';
+
+  @override
+  String get selectCourses => 'Kurse auswählen';
+
+  @override
+  String get selectSickDays => 'Krankheitstage auswählen';
+
+  @override
+  String get sickDays => 'Krankheitstage';
+
+  @override
+  String get addDay => 'Tag hinzufügen';
+
+  @override
+  String get noSickDaysSelected => 'Keine Tage ausgewählt';
+
+  @override
+  String get missedLessons => 'Verpasste Stunden';
+
+  @override
+  String get noMissedLessons => 'Keine verpassten Stunden';
+
+  @override
+  String get noSickTrackEntries =>
+      'Noch keine Krankheitszeiträume. Füge einen hinzu, um zu sehen, welche Stunden du verpasst hast.';
+
+  @override
+  String get getSignature => 'Unterschrift holen';
+
+  @override
+  String missedLesson(String date, String count, String course) {
+    return '$date · $count. Stunde · $course';
   }
 }

@@ -794,6 +794,18 @@ abstract class AppLocalizations {
   /// **'Hide teacher names in the substitution plan'**
   String get hideTeacherSubtitle;
 
+  /// No description provided for @hidePersons.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide Persons'**
+  String get hidePersons;
+
+  /// No description provided for @hidePersonsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide the persons section'**
+  String get hidePersonsSubtitle;
+
   /// No description provided for @persons.
   ///
   /// In en, this message translates to:
@@ -841,6 +853,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Courses for {name}'**
   String coursesFor(String name);
+
+  /// No description provided for @sickTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Sick-Track'**
+  String get sickTrack;
+
+  /// No description provided for @sickTrackSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Track missed lessons and get signatures for them'**
+  String get sickTrackSubtitle;
+
+  /// No description provided for @sickTrackAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add sick period'**
+  String get sickTrackAdd;
+
+  /// No description provided for @selectClassOrPerson.
+  ///
+  /// In en, this message translates to:
+  /// **'Select class or person'**
+  String get selectClassOrPerson;
+
+  /// No description provided for @selectClassOrPersonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a saved class or person to track'**
+  String get selectClassOrPersonHint;
+
+  /// No description provided for @anotherClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Another class'**
+  String get anotherClass;
+
+  /// No description provided for @selectCourses.
+  ///
+  /// In en, this message translates to:
+  /// **'Select courses'**
+  String get selectCourses;
+
+  /// No description provided for @selectSickDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Select sick days'**
+  String get selectSickDays;
+
+  /// No description provided for @sickDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Sick days'**
+  String get sickDays;
+
+  /// No description provided for @addDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Add day'**
+  String get addDay;
+
+  /// No description provided for @noSickDaysSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No days selected'**
+  String get noSickDaysSelected;
+
+  /// No description provided for @missedLessons.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed lessons'**
+  String get missedLessons;
+
+  /// No description provided for @noMissedLessons.
+  ///
+  /// In en, this message translates to:
+  /// **'No missed lessons'**
+  String get noMissedLessons;
+
+  /// No description provided for @noSickTrackEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'No sick periods yet. Add one to see which lessons you missed.'**
+  String get noSickTrackEntries;
+
+  /// No description provided for @getSignature.
+  ///
+  /// In en, this message translates to:
+  /// **'Get signature'**
+  String get getSignature;
+
+  /// No description provided for @missedLesson.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} · {count}. hour · {course}'**
+  String missedLesson(String date, String count, String course);
 }
 
 class _AppLocalizationsDelegate

@@ -386,6 +386,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Hide teacher names in the substitution plan';
 
   @override
+  String get hidePersons => 'Hide Persons';
+
+  @override
+  String get hidePersonsSubtitle => 'Hide the persons section';
+
+  @override
   String get persons => 'Persons';
 
   @override
@@ -410,5 +416,58 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String coursesFor(String name) {
     return 'Courses for $name';
+  }
+
+  @override
+  String get sickTrack => 'Sick-Track';
+
+  @override
+  String get sickTrackSubtitle =>
+      'Track missed lessons and get signatures for them';
+
+  @override
+  String get sickTrackAdd => 'Add sick period';
+
+  @override
+  String get selectClassOrPerson => 'Select class or person';
+
+  @override
+  String get selectClassOrPersonHint =>
+      'Choose a saved class or person to track';
+
+  @override
+  String get anotherClass => 'Another class';
+
+  @override
+  String get selectCourses => 'Select courses';
+
+  @override
+  String get selectSickDays => 'Select sick days';
+
+  @override
+  String get sickDays => 'Sick days';
+
+  @override
+  String get addDay => 'Add day';
+
+  @override
+  String get noSickDaysSelected => 'No days selected';
+
+  @override
+  String get missedLessons => 'Missed lessons';
+
+  @override
+  String get noMissedLessons => 'No missed lessons';
+
+  @override
+  String get noSickTrackEntries =>
+      'No sick periods yet. Add one to see which lessons you missed.';
+
+  @override
+  String get getSignature => 'Get signature';
+
+  @override
+  String missedLesson(String date, String count, String course) {
+    return '$date · $count. hour · $course';
   }
 }

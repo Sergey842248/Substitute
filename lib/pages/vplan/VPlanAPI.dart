@@ -723,6 +723,123 @@ Future<List<String>> getHiddenCourses() async {
     return prefs.getStringList('classes')!;
   }
 
+  // --- Sick-Track (Krankheitstracker) ---
+
+  /// Formatiert ein Datum als ISO-String (yyyy-MM-dd) zum Speichern/Vergleichen.
+  String isoDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<List<Map<String, dynamic>>> getSickTrackEntries() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? data = prefs.getString('sickTrack');
+    if (data == null || data.isEmpty) {
+      return [];
+    }
+    try {
+      List<dynamic> list = jsonDecode(data) as List;
+      return list.cast<Map<String, dynamic>>();
+    } catch (e) {
+      print('Error parsing sickTrack: $e');
+      return [];
+    }
+  }
+
+  Future<void> saveSickTrackEntries(List<Map<String, dynamic>> entries) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('sickTrack', jsonEncode(entries));
+  }
+
+  Future<void> addSickTrackEntry(Map<String, dynamic> entry) async {
+    List<Map<String, dynamic>> entries = await getSickTrackEntries();
+    entries.add(entry);
+    await saveSickTrackEntries(entries);
+  }
+
+  Future<void> deleteSickTrackEntry(String entryId) async {
+    List<Map<String, dynamic>> entries = await getSickTrackEntries();
+    entries.removeWhere((e) => e['id'] == entryId);
+    await saveSickTrackEntries(entries);
+  }
+
+  /// Ermittelt alle verpassten Stunden eines Krankheitszeitraums:
+  /// für jeden ausgewählten Tag wird der (gespeicherte oder neu geladene)
+  /// Vertretungsplan der Klasse durchsucht und alle Stunden der gewählten
+  /// Kurse als verpasst markiert.
+  Future<List<Map<String, dynamic>>> getMissedLessons(
+      Map<String, dynamic> entry) async {
+    List<Map<String, dynamic>> missed = [];
+    List<String> days = (entry['days'] as List?)?.cast<String>() ?? [];
+    List<String> courses = (entry['courses'] as List?)?.cast<String>() ?? [];
+    String classId = entry['classId']?.toString() ?? '';
+
+    for (String day in days) {
+      DateTime date;
+      try {
+        date = DateTime.parse(day);
+      } catch (e) {
+        continue;
+      }
+
+      dynamic plan;
+      try {
+        plan = await getLessonsByDate(date: date, classId: classId);
+      } catch (e) {
+        plan = null;
+      }
+      if (plan == null || plan['error'] != null || plan['data'] == null) {
+        continue;
+      }
+
+      List<dynamic> lessons = plan['data'];
+      for (var lesson in lessons) {
+        String course = lesson['course']?.toString() ?? '';
+        if (course.isEmpty || course == '---') {
+          course = lesson['lesson']?.toString() ?? '';
+        }
+        if (!courses.contains(course)) continue;
+        missed.add({
+          'date': day,
+          'count': lesson['count']?.toString() ?? '',
+          'lesson': lesson['lesson']?.toString() ?? '',
+          'course': course,
+          'teacher': lesson['teacher']?.toString() ?? '',
+          'place': lesson['place']?.toString() ?? '',
+          'begin': lesson['begin']?.toString() ?? '',
+          'end': lesson['end']?.toString() ?? '',
+          'info': lesson['info']?.toString(),
+        });
+      }
+    }
+
+    missed.sort((a, b) {
+      int c = (a['date'] as String).compareTo(b['date'] as String);
+      if (c != 0) return c;
+      int aCount = int.tryParse(a['count']) ?? 0;
+      int bCount = int.tryParse(b['count']) ?? 0;
+      return aCount.compareTo(bCount);
+    });
+    return missed;
+  }
+
+  /// Liefert die Menge der Kurse, die an einem bestimmten Datum für eine
+  /// Klasse verpasst wurden (über alle Krankheitszeiträume hinweg). Wird
+  /// im Vertretungsplan genutzt, um das Stiftsymbol anzuzeigen.
+  Future<Set<String>> getMissedCoursesForDate(
+      String classId, DateTime date) async {
+    Set<String> missed = {};
+    String iso = isoDate(date);
+    List<Map<String, dynamic>> entries = await getSickTrackEntries();
+    for (var entry in entries) {
+      if (entry['classId']?.toString() != classId) continue;
+      List<String> days = (entry['days'] as List?)?.cast<String>() ?? [];
+      if (!days.contains(iso)) continue;
+      List<String> courses = (entry['courses'] as List?)?.cast<String>() ?? [];
+      missed.addAll(courses);
+    }
+    return missed;
+  }
+
   void cleanVplanOfflineData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String>? offlineVPData = prefs.getStringList('offlineVPData');
