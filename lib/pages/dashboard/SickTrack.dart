@@ -325,14 +325,15 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
           break;
         }
       }
+      await _loadCourses(classId!);
     } else if (result.startsWith('class:')) {
       setState(() {
         classId = result.substring(6);
         sourceLabel = classId;
         selectedCourses = {};
       });
+      await _loadCourses(classId!, preselectShown: true);
     }
-    await _loadCourses(classId!);
   }
 
   Future<void> _pickOtherClass() async {
@@ -374,20 +375,36 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
       sourceLabel = picked;
       selectedCourses = {};
     });
-    await _loadCourses(picked);
+    await _loadCourses(picked, preselectShown: true);
   }
 
-  Future<void> _loadCourses(String _classId) async {
+  Future<void> _loadCourses(String _classId,
+      {bool preselectShown = false}) async {
     setState(() => loadingCourses = true);
     List<dynamic> courses = await vplanAPI.getCourses(_classId);
+    if (!mounted) return;
+    Set<String> selected = selectedCourses;
+    if (selected.isEmpty) {
+      if (preselectShown) {
+        // Übernimm die Kurse, die für diese Klasse bereits gewählt sind
+        // (alle Kurse der Klasse minus die im Vertretungsplan
+        // ausgeblendeten). Im Sick Tracker kann die Auswahl danach nur
+        // noch feinjustiert werden.
+        List<String> hidden = await vplanAPI.getHiddenCourses();
+        selected = courses
+            .map((c) => c['course']?.toString() ?? '')
+            .where((c) => !hidden.contains(c))
+            .toSet();
+      } else {
+        selected =
+            courses.map((c) => c['course']?.toString() ?? '').toSet();
+      }
+    }
     if (!mounted) return;
     setState(() {
       availableCourses = courses;
       loadingCourses = false;
-      if (selectedCourses.isEmpty) {
-        selectedCourses =
-            courses.map((c) => c['course']?.toString() ?? '').toSet();
-      }
+      selectedCourses = selected;
     });
   }
 
