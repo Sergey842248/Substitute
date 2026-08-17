@@ -159,7 +159,7 @@ class _PlanState extends State<Plan> {
       };
     }
 
-    hiddenSubjects = await vplanAPI.getHiddenCourses();
+    hiddenSubjects = await vplanAPI.getHiddenCourses(widget.classId);
 
     setState(() {});
 
@@ -595,7 +595,8 @@ class _CoursesState extends State<Courses> {
   void getData() async {
     List<dynamic> _courses = await vplanAPI.getCourses(widget.classId);
 
-    List<String> hiddenCourses = await vplanAPI.getHiddenCourses();
+    List<String> hiddenCourses =
+        await vplanAPI.getHiddenCourses(widget.classId);
     for (int i = 0; i < _courses.length; i++) {
       courses.add({
         'course': _courses[i]['course'],
@@ -623,7 +624,8 @@ class _CoursesState extends State<Courses> {
           onPressed: () async {
             for (int i = 0; i < courses.length; i++) {
               courses[i]['show'] = true;
-              await vplanAPI.removeHiddenCourse(courses[i]['course']);
+              await vplanAPI.removeHiddenCourse(
+                  widget.classId, courses[i]['course']);
             }
             setState(() {});
             await widget.updateCourses();
@@ -634,7 +636,8 @@ class _CoursesState extends State<Courses> {
           onPressed: () async {
             for (int i = 0; i < courses.length; i++) {
               courses[i]['show'] = false;
-              await vplanAPI.addHiddenCourse(courses[i]['course']);
+              await vplanAPI.addHiddenCourse(
+                  widget.classId, courses[i]['course']);
             }
             setState(() {});
             await widget.updateCourses();
@@ -724,9 +727,11 @@ class _CoursesState extends State<Courses> {
                     e['show'] = !e['show'];
                   });
                   if (e['show']) {
-                    await vplanAPI.removeHiddenCourse(e['course']);
+                    await vplanAPI.removeHiddenCourse(
+                        widget.classId, e['course']);
                   } else {
-                    await vplanAPI.addHiddenCourse(e['course']);
+                    await vplanAPI.addHiddenCourse(
+                        widget.classId, e['course']);
                   }
                   await widget.updateCourses();
                 },
@@ -775,12 +780,9 @@ class _PersonCoursesState extends State<PersonCourses> {
 
     Set<String> initial;
     if (widget.isNew) {
-      // Baseline for new persons: all courses minus the global hidden courses
-      List<String> hidden = await vplanAPI.getHiddenCourses();
-      initial = courseList
-          .map((c) => c['course'] as String)
-          .where((c) => !hidden.contains(c))
-          .toSet();
+      // Baseline for new persons: alle Kurse sichtbar - es werden keine
+      // ausgeblendeten Kurse anderer Klassen übernommen.
+      initial = courseList.map((c) => c['course'] as String).toSet();
     } else {
       final List<dynamic>? stored = widget.person['courses'] as List<dynamic>?;
       initial = stored == null

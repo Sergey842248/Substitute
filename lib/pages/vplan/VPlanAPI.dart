@@ -43,50 +43,81 @@ class VPlanAPI {
     return classList;
   }
 
-  Future<void> addHiddenCourse(String lesson) async {
+  /// Speichert die ausgeblendeten Kurse **pro Klasse** (nicht mehr global),
+  /// damit neu angelegte Klassen/Personen initial alle Kurse sichtbar haben.
+  ///
+  /// Format: 'hiddenSubjectsByClass' = JSON-Map { classId: [course, ...] }
+  Map<String, dynamic> _decodeHiddenByClass(SharedPreferences prefs) {
+    String? data = prefs.getString('hiddenSubjectsByClass');
+    if (data == null || data.isEmpty) return {};
+    try {
+      return jsonDecode(data) as Map<String, dynamic>;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  /// Einmalige Migration: die alte globale 'hiddenSubjects'-Liste wird auf
+  /// alle bereits angelegten Klassen übertragen, damit sich für bestehende
+  /// Klassen nichts ändert. Neu hinzugefügte Klassen starten leer (alle
+  /// Kurse sichtbar).
+  Future<void> _migrateHiddenCourses(SharedPreferences prefs) async {
+    if (prefs.containsKey('hiddenSubjectsByClass')) return;
+    List<String>? old = prefs.getStringList('hiddenSubjects');
+    List<String>? classes = prefs.getStringList('classes');
+    Map<String, dynamic> byClass = {};
+    if (old != null && old.isNotEmpty && classes != null) {
+      for (String c in classes) {
+        byClass[c] = List<String>.from(old);
+      }
+    }
+    await prefs.setString('hiddenSubjectsByClass', jsonEncode(byClass));
+    await prefs.remove('hiddenSubjects');
+  }
+
+  Future<void> addHiddenCourse(String classId, String lesson) async {
     if (lesson == '---') {
       return;
     }
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    List<String>? hiddenSubjects = prefs.getStringList('hiddenSubjects');
-    if (hiddenSubjects == null) {
-      hiddenSubjects = [];
+    Map<String, dynamic> byClass = _decodeHiddenByClass(prefs);
+    List<String> hidden = (byClass[classId] as List?)?.cast<String>() ?? [];
+    if (!hidden.contains(lesson)) {
+      hidden.add(lesson);
     }
-    if (!hiddenSubjects.contains(lesson)) {
-      hiddenSubjects.add(lesson);
-    }
+    byClass[classId] = hidden;
 
-    await prefs.setStringList('hiddenSubjects', hiddenSubjects);
+    await prefs.setString('hiddenSubjectsByClass', jsonEncode(byClass));
   }
 
-  Future<void> removeHiddenCourse(String course) async {
+  Future<void> removeHiddenCourse(String classId, String course) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    List<String>? hiddenSubjects = prefs.getStringList('hiddenSubjects');
-    if (hiddenSubjects == null) {
-      hiddenSubjects = [];
-    }
-    List<String> newCourses = [];
+    Map<String, dynamic> byClass = _decodeHiddenByClass(prefs);
+    List<String> hidden = (byClass[classId] as List?)?.cast<String>() ?? [];
+    hidden.remove(course);
+    byClass[classId] = hidden;
 
-    for (int i = 0; i < hiddenSubjects.length; i++) {
-      if (course != hiddenSubjects[i]) {
-        newCourses.add(hiddenSubjects[i]);
-      }
-    }
-
-    await prefs.setStringList('hiddenSubjects', newCourses);
+    await prefs.setString('hiddenSubjectsByClass', jsonEncode(byClass));
   }
 
-Future<List<String>> getHiddenCourses() async {
+  /// Entfernt die gespeicherten ausgeblendeten Kurse einer Klasse. Wird
+  /// beim Löschen einer Klasse aus den Favoriten aufgerufen, damit eine
+  /// später erneut hinzugefügte Klasse wieder mit allen Kursen startet.
+  Future<void> removeHiddenCoursesForClass(String classId) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    Map<String, dynamic> byClass = _decodeHiddenByClass(prefs);
+    byClass.remove(classId);
+    await prefs.setString('hiddenSubjectsByClass', jsonEncode(byClass));
+  }
 
-    List<String>? hiddenSubjects = prefs.getStringList('hiddenSubjects');
-    if (hiddenSubjects == null) {
-      hiddenSubjects = [];
-    }
+  Future<List<String>> getHiddenCourses(String classId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await _migrateHiddenCourses(prefs);
 
-    return hiddenSubjects;
+    Map<String, dynamic> byClass = _decodeHiddenByClass(prefs);
+    return (byClass[classId] as List?)?.cast<String>() ?? [];
   }
 
   /// Prüft, ob ein Stunden-/Ausfall-Eintrag zu einem vom Nutzer
@@ -162,12 +193,7 @@ Future<List<String>> getHiddenCourses() async {
   }
 
   Future<List<dynamic>> getShownCourses(String classId) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    List<String>? hiddenSubjects = prefs.getStringList('hiddenSubjects');
-    if (hiddenSubjects == null) {
-      hiddenSubjects = [];
-    }
+    List<String> hiddenSubjects = await getHiddenCourses(classId);
 
     List<dynamic> courses = await getCourses(classId);
 

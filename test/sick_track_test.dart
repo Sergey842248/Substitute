@@ -192,4 +192,49 @@ void main() {
       expect(VPlanAPI().isoDate(DateTime(2026, 12, 25)), '2026-12-25');
     });
   });
+
+  group('hidden courses per class', () {
+    test('hiding a course only affects that class', () async {
+      final api = VPlanAPI();
+      await api.addHiddenCourse('11', 'M-2');
+      expect(await api.getHiddenCourses('11'), ['M-2']);
+      // Neu angelegte Klasse 12 startet ohne ausgeblendete Kurse
+      expect(await api.getHiddenCourses('12'), isEmpty);
+    });
+
+    test('removing a hidden course works per class', () async {
+      final api = VPlanAPI();
+      await api.addHiddenCourse('11', 'M-2');
+      await api.addHiddenCourse('12', 'E-1');
+      await api.removeHiddenCourse('11', 'M-2');
+      expect(await api.getHiddenCourses('11'), isEmpty);
+      expect(await api.getHiddenCourses('12'), ['E-1']);
+    });
+
+    test('deleting a class resets its hidden courses', () async {
+      final api = VPlanAPI();
+      await api.addHiddenCourse('11', 'M-2');
+      await api.addHiddenCourse('12', 'E-1');
+      await api.removeHiddenCoursesForClass('11');
+      expect(await api.getHiddenCourses('11'), isEmpty);
+      // Andere Klassen bleiben unberührt
+      expect(await api.getHiddenCourses('12'), ['E-1']);
+    });
+
+    test('migrates old global hidden list to existing classes once',
+        () async {
+      SharedPreferences.setMockInitialValues({
+        'classes': ['11', '12'],
+        'hiddenSubjects': ['M-2', 'E-1'],
+      });
+      final api = VPlanAPI();
+      expect(await api.getHiddenCourses('11'), ['M-2', 'E-1']);
+      expect(await api.getHiddenCourses('12'), ['M-2', 'E-1']);
+      // Neue Klasse nach der Migration startet leer
+      expect(await api.getHiddenCourses('13'), isEmpty);
+      // Migration läuft nicht erneut: Abwählen in 13 bleibt pro Klasse
+      await api.addHiddenCourse('13', 'D');
+      expect(await api.getHiddenCourses('11'), ['M-2', 'E-1']);
+    });
+  });
 }

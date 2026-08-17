@@ -351,6 +351,7 @@ class _VPlanState extends State<VPlan> {
                       classId: classes[index],
                       classIndex: index,
                       onDelete: () async {
+                        String classId = classes[index];
                         SharedPreferences prefs =
                             await SharedPreferences.getInstance();
                         List<String>? newClasses =
@@ -358,8 +359,12 @@ class _VPlanState extends State<VPlan> {
                         if (newClasses == null) {
                           newClasses = [];
                         }
-                        newClasses.remove(classes[index]);
+                        newClasses.remove(classId);
                         prefs.setStringList('classes', newClasses);
+                        // Auch die gespeicherten Kurs-Auswahlen der Klasse
+                        // zurücksetzen, damit eine später erneut hinzugefügte
+                        // Klasse wieder mit allen Kursen startet.
+                        await VPlanAPI().removeHiddenCoursesForClass(classId);
 
                         listKey.currentState!.removeItem(
                           index,
@@ -420,7 +425,8 @@ class _ClassWidgetState extends State<ClassWidget> {
     List<dynamic> realVPlan = [];
     VPlanAPI vplanAPI = VPlanAPI();
     dynamic vplan = await vplanAPI.getLessonsForToday(widget.classId);
-    List<String> hiddenCourses = await vplanAPI.getHiddenCourses();
+    List<String> hiddenCourses =
+        await vplanAPI.getHiddenCourses(widget.classId);
 
     for (var i = 0; i < vplan['data'].length; i++) {
       bool add = !vplanAPI.isLessonHidden(vplan['data'][i], hiddenCourses) &&

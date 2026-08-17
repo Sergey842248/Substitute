@@ -390,7 +390,8 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
         // (alle Kurse der Klasse minus die im Vertretungsplan
         // ausgeblendeten). Im Sick Tracker kann die Auswahl danach nur
         // noch feinjustiert werden.
-        List<String> hidden = await vplanAPI.getHiddenCourses();
+        List<String> hidden =
+            await vplanAPI.getHiddenCourses(_classId);
         selected = courses
             .map((c) => c['course']?.toString() ?? '')
             .where((c) => !hidden.contains(c))

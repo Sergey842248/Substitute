@@ -116,7 +116,7 @@ void vplanNotifications(Timer timer) async {
   List<dynamic> _lessons = [];
   if (_remindDayBefore) {
     if (_today.difference(_vplanDate) <= Duration(days: 1)) {
-      List<String> _courses = await VPlanAPI().getHiddenCourses();
+      List<String> _courses = await VPlanAPI().getHiddenCourses(_classId);
         VPlanAPI _vplanAPI = VPlanAPI();
         for (int i = 0; i < data['data'].length; i++) {
           if (!_vplanAPI.isLessonHidden(data['data'][i], _courses)) {
@@ -130,7 +130,7 @@ void vplanNotifications(Timer timer) async {
         _today.month == _vplanDate.month &&
         _today.year == _vplanDate.year) {
       if (_today.hour == _remindHour && _today.minute == _remindMinutes) {
-        List<String> _courses = await VPlanAPI().getHiddenCourses();
+        List<String> _courses = await VPlanAPI().getHiddenCourses(_classId);
         VPlanAPI _vplanAPI = VPlanAPI();
         for (int i = 0; i < data['data'].length; i++) {
           if (!_vplanAPI.isLessonHidden(data['data'][i], _courses)) {
