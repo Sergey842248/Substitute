@@ -33,6 +33,20 @@ import 'pages/vplan/VPlanAPI.dart';
 import 'pages/teacherVPlan/TeacherVPlan.dart';
 import 'pages/dashboard/Dashboard.dart';
 
+/// Compares two version strings (e.g. '3.7.10') numerically segment by segment.
+/// Returns < 0 if [a] is older, 0 if equal, > 0 if [a] is newer.
+int compareVersions(String a, String b) {
+  final List<String> aParts = a.split('.');
+  final List<String> bParts = b.split('.');
+  final int max = aParts.length > bParts.length ? aParts.length : bParts.length;
+  for (int i = 0; i < max; i++) {
+    final int aNum = i < aParts.length ? int.tryParse(aParts[i]) ?? 0 : 0;
+    final int bNum = i < bParts.length ? int.tryParse(bParts[i]) ?? 0 : 0;
+    if (aNum != bNum) return aNum.compareTo(bNum);
+  }
+  return 0;
+}
+
 Map<String, dynamic> _readAndroidBuildData(AndroidDeviceInfo build) {
   return <String, dynamic>{
     'version.securityPatch': build.version.securityPatch,
@@ -322,7 +336,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         final jsonResponse = json.decode(response.body);
         final latestVersion = jsonResponse['tag_name'].replaceAll('v', ''); // Assuming tags are like 'v1.2.3'
 
-        if (latestVersion.compareTo(version) > 0) {
+        if (compareVersions(latestVersion, version) > 0) {
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
