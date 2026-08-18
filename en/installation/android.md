@@ -8,7 +8,7 @@ icon: android
 {% step %}
 ### Download the APK
 
-Head to the [GitHub Releases](https://github.com/Sergey842248/Substitute/releases) Page and download the latest `Substitute-Android.apk` file.
+Head to the [GitHub Releases](https://github.com/Sergey842248/Substitute/releases) Page and download the latest `Substitute.apk` file.
 
 <div align="left"><figure><img src="../../.gitbook/assets/Downloading.png" alt="" width="188"><figcaption></figcaption></figure></div>
 {% endstep %}

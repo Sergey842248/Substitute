@@ -2,7 +2,7 @@
 ## Android (Native App)
 
 1. Head to the [GitHub Releases](https://github.com/Sergey842248/Substitute/releases) Page
-2. Download the latest `Substitute-Android.apk` file
+2. Download the latest `Substitute.apk` file
 
 <figure><img src="../.gitbook/assets/Download.png" alt="" width="188"><figcaption></figcaption></figure>
 
