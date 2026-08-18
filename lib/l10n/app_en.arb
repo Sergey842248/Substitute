@@ -78,7 +78,9 @@
     "close": "Close",
     "courses": "Courses",
     "noAdditionalInformation": "No additional information available",
+    "search": "Search",
     "searchTeachers": "Search Teachers",
+    "searchTeachersSubtitle": "Search teacher abbreviations and view a teacher's substitution plan",
     "teacherAbbreviationHint": "Teacher abbreviation (like \"AB\")",
     "selectedDate": "Selected Date: {day}.{month}.{year}",
     "@selectedDate": {

@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import './TeacherPlan.dart';
 
 import 'package:expandiware/models/LoadingProcess.dart';
+import 'package:expandiware/models/ListPage.dart';
 import 'package:expandiware/models/Button.dart';
 
 import '../vplan/VPlanAPI.dart';
@@ -23,7 +24,6 @@ class TeacherVPlan extends StatefulWidget {
 
 class _TeacherVPlanState extends State<TeacherVPlan> {
   String teacherShort = '';
-  double spaceBetween = 50;
   DateTime selectedDate = DateTime(
     DateTime.now().year,
     DateTime.now().month,
@@ -38,178 +38,192 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
     textFieldController.text = newValue;
   }
 
+  /// Schlüssel für den oberen Bereich (Suchfeld, Datum, Button), dessen Höhe
+  /// gemessen wird, damit die Lehrerliste den restlichen Platz bis zum
+  /// unteren Bildschirmrand ausfüllt.
+  final GlobalKey _topSectionKey = GlobalKey();
+  double _gridHeight = 250;
+
+  void _measureGridHeight() {
+    if (!mounted) return;
+    final BuildContext? topCtx = _topSectionKey.currentContext;
+    if (topCtx == null) return;
+    final RenderBox? box = topCtx.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return;
+
+    // Verfügbare Höhe im ListPage-Inhalt: Bildschirm minus Statusleiste,
+    // minus Header (~10% Höhe + abgerundete Ecken) und minus der Padding der
+    // Inhaltsfläche.
+    final double screenH = MediaQuery.of(context).size.height;
+    final double statusBar = MediaQuery.of(context).padding.top;
+    final double available =
+        screenH - statusBar - screenH * 0.1 - 30 - 15 - 10;
+    final double h = available - box.size.height;
+    if (h > 100 && (h - _gridHeight).abs() > 1) {
+      setState(() => _gridHeight = h);
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
-    Widget scannWidget = Container(
-      margin: EdgeInsets.all(20),
-      child: FutureBuilder(
-        future: Future.delayed(Duration(microseconds: 1)),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return LoadingProcess();
-          }
-          return TeacherList(
-            setTeacherShort: this.setTeacherShort,
-            textController: textFieldController,
-          );
-        },
-      ),
-    );
-    return Container(
-      margin: EdgeInsets.only(
-        left: 50,
-        right: 50,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            AppLocalizations.of(context)!.searchTeachers,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureGridHeight());
+    return ListPage(
+      title: AppLocalizations.of(context)!.searchTeachers,
+      smallTitle: true,
+      children: [
+        Column(
+          key: _topSectionKey,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            InputField(
+              controller: textFieldController,
+              labelText: AppLocalizations.of(context)!.teacherAbbreviationHint,
             ),
-          ),
-          SizedBox(height: spaceBetween * 0.3),
-          InputField(
-            controller: textFieldController,
-            labelText: AppLocalizations.of(context)!.teacherAbbreviationHint,
-          ),
-          SizedBox(height: spaceBetween * 0.3),
-          Container(
-            margin: EdgeInsets.all(10),
-            padding: EdgeInsets.all(10),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.all(
-                Radius.circular(20),
-              ),
-              color: Theme.of(context).backgroundColor,
+        Container(
+          margin: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(10),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.all(
+              Radius.circular(20),
             ),
-            child: InkWell(
-              onTap: () async {
-                final DateTime? picked = await showDatePicker(
-                  context: context,
-                  initialDate: selectedDate,
-                  firstDate: DateTime.now().subtract(Duration(days: 30)),
-                  lastDate: DateTime.now().add(Duration(days: 30)),
-                );
-                if (picked != null) {
-                  setState(() {
-                    selectedDate = DateTime(
-                      picked.year,
-                      picked.month,
-                      picked.day,
-                    );
-                  });
-                }
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                  SizedBox(width: 10),
-                  Text(
-                    AppLocalizations.of(context)!.selectedDate(
-                      selectedDate.day.toString(),
-                      selectedDate.month.toString(),
-                      selectedDate.year.toString(),
-                    ),
-                    style: TextStyle(
-                      color: Theme.of(context).primaryColor,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            color: Theme.of(context).backgroundColor,
           ),
-          SizedBox(height: spaceBetween * 0.3),
-          Button(
-            text: AppLocalizations.of(context)!.see,
-            onPressed: () async {
-              // Prüfe, ob Zugangsdaten vorhanden sind
-              SharedPreferences prefs = await SharedPreferences.getInstance();
-              String? username = prefs.getString('vplanUsername');
-              
-              if (username == null || username == '') {
-                // Zeige Login-Dialog wenn keine Zugangsdaten vorhanden sind
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return AlertDialog(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      backgroundColor: Theme.of(context).backgroundColor,
-                      title: Text(
-                        AppLocalizations.of(context)!.addNewClass,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 19),
-                      ),
-                      content: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(AppLocalizations.of(context)!.dontForgetCredentials),
-                        ],
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(
-                            AppLocalizations.of(context)!.later,
-                            style: TextStyle(
-                              color: Theme.of(context).primaryColor,
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            Navigator.push(
-                              context,
-                              PageTransition(
-                                type: PageTransitionType.rightToLeft,
-                                child: VPlanLogin(),
-                              ),
-                            );
-                          },
-                          child: Text(
-                            AppLocalizations.of(context)!.add,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).primaryColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                );
-                return;
+          child: InkWell(
+            onTap: () async {
+              final DateTime? picked = await showDatePicker(
+                context: context,
+                initialDate: selectedDate,
+                firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                lastDate: DateTime.now().add(const Duration(days: 30)),
+              );
+              if (picked != null) {
+                setState(() {
+                  selectedDate = DateTime(
+                    picked.year,
+                    picked.month,
+                    picked.day,
+                  );
+                });
               }
-              
-              // Wenn Zugangsdaten vorhanden sind, navigiere weiter
-              Navigator.push(
-                context,
-                PageTransition(
-                  type: PageTransitionType.rightToLeft,
-                  child: TeacherPlan(
-                    teacher: textFieldController.text,
-                    selectedDate: selectedDate,
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.calendar_today,
+                  color: Theme.of(context).primaryColor,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  AppLocalizations.of(context)!.selectedDate(
+                    selectedDate.day.toString(),
+                    selectedDate.month.toString(),
+                    selectedDate.year.toString(),
+                  ),
+                  style: TextStyle(
+                    color: Theme.of(context).primaryColor,
+                    fontSize: 16,
                   ),
                 ),
-              );
-            },
+              ],
+            ),
           ),
-          scannWidget,
-        ],
-      ),
+        ),
+        Button(
+          text: AppLocalizations.of(context)!.see,
+          onPressed: () async {
+            // Prüfe, ob Zugangsdaten vorhanden sind
+            SharedPreferences prefs = await SharedPreferences.getInstance();
+            String? username = prefs.getString('vplanUsername');
+            
+            if (username == null || username == '') {
+              // Zeige Login-Dialog wenn keine Zugangsdaten vorhanden sind
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    backgroundColor: Theme.of(context).backgroundColor,
+                    title: Text(
+                      AppLocalizations.of(context)!.addNewClass,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 19),
+                    ),
+                    content: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(AppLocalizations.of(context)!.dontForgetCredentials),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          AppLocalizations.of(context)!.later,
+                          style: TextStyle(
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            PageTransition(
+                              type: PageTransitionType.rightToLeft,
+                              child: VPlanLogin(),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          AppLocalizations.of(context)!.add,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+              return;
+            }
+            
+            // Wenn Zugangsdaten vorhanden sind, navigiere weiter
+            Navigator.push(
+              context,
+              PageTransition(
+                type: PageTransitionType.rightToLeft,
+                child: TeacherPlan(
+                  teacher: textFieldController.text,
+                  selectedDate: selectedDate,
+                ),
+              ),
+            );
+          },
+        ),
+          ],
+        ),
+        FutureBuilder(
+          future: Future.delayed(const Duration(microseconds: 1)),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const LoadingProcess();
+            }
+            return TeacherList(
+              setTeacherShort: setTeacherShort,
+              textController: textFieldController,
+              height: _gridHeight,
+            );
+          },
+        ),
+      ],
     );
   }
 }
@@ -217,11 +231,13 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
 class TeacherList extends StatefulWidget {
   final Function setTeacherShort;
   final TextEditingController textController;
+  final double height;
 
   const TeacherList({
     Key? key,
     required this.setTeacherShort,
     required this.textController,
+    this.height = 300,
   }) : super(key: key);
 
   @override
@@ -358,7 +374,7 @@ class _TeacherListState extends State<TeacherList> {
     }
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.35,
+      height: widget.height,
       child: displayTeachers.isEmpty || displayTeachers[0] == AppLocalizations.of(context)!.scanningTeacherAbbreviations
           ? Column(
               mainAxisAlignment: MainAxisAlignment.center,

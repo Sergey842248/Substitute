@@ -1,48 +1,48 @@
-
+import 'package:animations/animations.dart';
+import 'package:expandiware/models/ListItem.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../models/ListItem.dart';
-import 'package:expandiware/models/ListPage.dart';
+import '../dashboard/FindRoom.dart';
+import '../dashboard/RoomPlan.dart';
+import '../teacherVPlan/TeacherVPlan.dart';
 
-import 'package:animations/animations.dart';
+/// Zentrales Such-Menü: bündelt alle Suchfunktionen (Lehrer, freie Räume,
+/// Raumplan) an einem Ort. Wird als eigener Tab im unteren Menü angezeigt.
+class SearchMenu extends StatelessWidget {
+  SearchMenu({Key? key}) : super(key: key);
 
-import './Settings.dart';
-import './SickTrack.dart';
-import '../vplan/Analytics.dart';
-
-class Dashboard extends StatelessWidget {
-  double margin = 8;
+  final double margin = 8;
 
   @override
   Widget build(BuildContext context) {
     List<dynamic> elements = [
       {
         'icon': Icon(
-          Icons.analytics_rounded,
+          Icons.person_search_rounded,
           color: Theme.of(context).focusColor,
         ),
-        'title': AppLocalizations.of(context)!.analysis,
-        'subtitle': AppLocalizations.of(context)!.analysisSubtitle,
-        'link': Analytics(),
+        'title': AppLocalizations.of(context)!.searchTeachers,
+        'subtitle': AppLocalizations.of(context)!.searchTeachersSubtitle,
+        'link': const TeacherVPlan(),
       },
       {
         'icon': Icon(
-          Icons.sick_rounded,
+          Icons.place_rounded,
           color: Theme.of(context).focusColor,
         ),
-        'title': AppLocalizations.of(context)!.sickTrack,
-        'subtitle': AppLocalizations.of(context)!.sickTrackSubtitle,
-        'link': const SickTrack(),
+        'title': AppLocalizations.of(context)!.findFreeRoom,
+        'subtitle': AppLocalizations.of(context)!.findFreeRoomSubtitle,
+        'link': const FindRoom(),
       },
       {
         'icon': Icon(
-          Icons.settings_rounded,
+          Icons.meeting_room_rounded,
           color: Theme.of(context).focusColor,
         ),
-        'title': AppLocalizations.of(context)!.settingsTitle,
-        'subtitle': AppLocalizations.of(context)!.settingsSubtitle,
-        'link': Settings(),
+        'title': AppLocalizations.of(context)!.roomPlan,
+        'subtitle': AppLocalizations.of(context)!.roomPlanSubtitle,
+        'link': const RoomPlan(),
       },
     ];
     return Container(
@@ -51,11 +51,11 @@ class Dashboard extends StatelessWidget {
       alignment: Alignment.center,
       child: Scrollbar(
         thickness: 3,
-        radius: Radius.circular(100),
+        radius: const Radius.circular(100),
         isAlwaysShown: true,
         controller: ScrollController(),
         child: ListView(
-          physics: BouncingScrollPhysics(),
+          physics: const BouncingScrollPhysics(),
           shrinkWrap: true,
           children: [
             ...elements.map(

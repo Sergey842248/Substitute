@@ -78,7 +78,9 @@
     "close": "Schließen",
     "courses": "Kurse",
     "noAdditionalInformation": "Keine zusätzlichen Informationen verfügbar",
+    "search": "Suche",
     "searchTeachers": "Lehrer suchen",
+    "searchTeachersSubtitle": "Lehrerkürzel durchsuchen und den Vertretungsplan eines Lehrers ansehen",
     "teacherAbbreviationHint": "Lehrerkürzel (z.B. \"AB\")",
     "selectedDate": "Ausgewähltes Datum: {day}.{month}.{year}",
     "@selectedDate": {

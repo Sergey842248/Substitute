@@ -30,8 +30,8 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 /* pages */
 import 'pages/vplan/VPlan.dart';
 import 'pages/vplan/VPlanAPI.dart';
-import 'pages/teacherVPlan/TeacherVPlan.dart';
 import 'pages/dashboard/Dashboard.dart';
+import 'pages/search/SearchMenu.dart';
 
 /// Compares two version strings (e.g. '3.7.10') numerically segment by segment.
 /// Returns < 0 if [a] is older, 0 if equal, > 0 if [a] is newer.
@@ -432,11 +432,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'widget': VPlan(),
       },
       {
-        'key': 'vplanTeachers',
-        'text': AppLocalizations.of(context)!.vplanTeachers,
+        'key': 'search',
+        'text': AppLocalizations.of(context)!.search,
         'index': 1,
-        'icon': 'assets/img/person.svg',
-        'widget': TeacherVPlan(),
+        'icon': 'assets/img/search.svg',
+        'widget': SearchMenu(),
       },
       {
         'key': 'dashboard',
