@@ -408,18 +408,21 @@ class _TeacherListState extends State<TeacherList> {
                       .toList(),
             )
           : GridView.count(
-              crossAxisCount: 2,
+              crossAxisCount: 3,
               shrinkWrap: true,
               physics: BouncingScrollPhysics(),
-              childAspectRatio: 2 / 1.3,
+              childAspectRatio: 2 / 1.1,
               children: [
                 ...displayTeachers.map(
                   (e) => Container(
-                    margin: EdgeInsets.all(5),
+                    margin: EdgeInsets.all(3),
                     child: InkWell(
                       onTap: () => widget.setTeacherShort(e['short']),
                       child: Container(
-                        padding: EdgeInsets.all(15),
+                        padding: EdgeInsets.symmetric(
+                          vertical: 6,
+                          horizontal: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Theme.of(context).backgroundColor,
                           borderRadius: BorderRadius.circular(10),
@@ -427,9 +430,11 @@ class _TeacherListState extends State<TeacherList> {
                         child: Center(
                           child: Text(
                             e['name'],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontWeight: FontWeight.w500,
-                              fontSize: 14,
+                              fontSize: 12,
                             ),
                           ),
                         ),
