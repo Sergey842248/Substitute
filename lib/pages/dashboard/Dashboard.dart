@@ -8,6 +8,7 @@ import 'package:expandiware/models/ListPage.dart';
 import 'package:animations/animations.dart';
 
 import './FindRoom.dart';
+import './RoomPlan.dart';
 import './Settings.dart';
 import './SickTrack.dart';
 import '../vplan/Analytics.dart';
@@ -26,6 +27,15 @@ class Dashboard extends StatelessWidget {
         'title': AppLocalizations.of(context)!.findFreeRoom,
         'subtitle': AppLocalizations.of(context)!.findFreeRoomSubtitle,
         'link': FindRoom(),
+      },
+      {
+        'icon': Icon(
+          Icons.meeting_room_rounded,
+          color: Theme.of(context).focusColor,
+        ),
+        'title': AppLocalizations.of(context)!.roomPlan,
+        'subtitle': AppLocalizations.of(context)!.roomPlanSubtitle,
+        'link': const RoomPlan(),
       },
       {
         'icon': Icon(

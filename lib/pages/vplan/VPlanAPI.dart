@@ -671,6 +671,43 @@ class VPlanAPI {
     };
   }
 
+  /// Lädt den rohen Vertretungsplan (mit allen Klassen) für ein bestimmtes
+  /// Datum, ohne ihn für eine einzelne Klasse aufzubereiten. Wird z.B. vom
+  /// Raumplan genutzt, um die Belegung aller Räume zu durchsuchen.
+  ///
+  /// Für heute wird wie im restlichen App-Code die 'Klassen.xml' verwendet,
+  /// für andere Tage die tagesbezogene 'PlanKl<Datum>.xml'.
+  Future<dynamic> getRawPlanByDate(DateTime date,
+      {bool forceRefresh = false}) async {
+    await login();
+
+    DateTime today = DateTime.now();
+    bool isToday = date.year == today.year &&
+        date.month == today.month &&
+        date.day == today.day;
+
+    Uri url;
+    if (isToday) {
+      url = Uri.parse(await getDayURL());
+    } else {
+      url = Uri.parse(
+        'https://www.stundenplan24.de/${this.schoolnumber}/mobil/mobdaten/PlanKl${parseDate(date)}.xml',
+      );
+    }
+
+    dynamic pureVPlan;
+    try {
+      pureVPlan = await getVPlanJSON(url, date, forceRefresh: forceRefresh);
+    } catch (e) {
+      return {'error': 'no internet'};
+    }
+
+    if (pureVPlan == null || pureVPlan.toString() == '{}') {
+      return {};
+    }
+    return pureVPlan;
+  }
+
   String parseDate(DateTime _date) {
     String stringDate = '';
 
