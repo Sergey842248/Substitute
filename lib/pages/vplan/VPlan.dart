@@ -361,10 +361,12 @@ class _VPlanState extends State<VPlan> {
                         }
                         newClasses.remove(classId);
                         prefs.setStringList('classes', newClasses);
-                        // Auch die gespeicherten Kurs-Auswahlen der Klasse
-                        // zurücksetzen, damit eine später erneut hinzugefügte
-                        // Klasse wieder mit allen Kursen startet.
+                        // Auch die gespeicherten Kurs-Auswahlen und den
+                        // benutzerdefinierten Namen der Klasse zurücksetzen,
+                        // damit eine später erneut hinzugefügte Klasse wieder
+                        // mit allen Kursen startet.
                         await VPlanAPI().removeHiddenCoursesForClass(classId);
+                        await VPlanAPI().removeClassName(classId);
 
                         listKey.currentState!.removeItem(
                           index,
@@ -421,6 +423,64 @@ class ClassWidget extends StatefulWidget {
 
 class _ClassWidgetState extends State<ClassWidget> {
   Map<String, dynamic> nextLesson = {'': 'loading'};
+  String? customName;
+
+  Future<void> _loadCustomName() async {
+    String? name = await VPlanAPI().getClassName(widget.classId);
+    if (mounted && name != customName) {
+      setState(() {
+        customName = name;
+      });
+    }
+  }
+
+  Future<void> _renameClass() async {
+    final TextEditingController nameController =
+        TextEditingController(text: customName ?? widget.classId);
+    final String? newName = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(25),
+        ),
+        backgroundColor: Theme.of(context).backgroundColor,
+        title: Text(
+          AppLocalizations.of(context)!.renameClass,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 19),
+        ),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context)!.classNameHint,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(context, nameController.text.trim()),
+            child: Text(
+              AppLocalizations.of(context)!.save,
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (newName == null || !mounted) return;
+    await VPlanAPI().setClassName(widget.classId, newName);
+    if (mounted) {
+      setState(() {
+        customName = newName.isEmpty ? null : newName;
+      });
+    }
+  }
+
   getData() async {
     List<dynamic> realVPlan = [];
     VPlanAPI vplanAPI = VPlanAPI();
@@ -553,6 +613,7 @@ class _ClassWidgetState extends State<ClassWidget> {
   void initState() {
     super.initState();
     getData();
+    _loadCustomName();
   }
 
   @override
@@ -564,18 +625,31 @@ class _ClassWidgetState extends State<ClassWidget> {
         children: [
           ListItem(
             title: Text(
-              '${widget.classId}',
+              customName ?? widget.classId,
               style: TextStyle(
                 fontSize: 19,
               ),
             ),
             onClick: widget.openContainer,
-            actionButton: IconButton(
-              onPressed: widget.onDelete,
-              icon: Icon(
-                Icons.delete_rounded,
-                color: Theme.of(context).focusColor.withOpacity(0.5),
-              ),
+            actionButton: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  onPressed: _renameClass,
+                  icon: Icon(
+                    Icons.edit_rounded,
+                    color: Theme.of(context).focusColor.withOpacity(0.5),
+                  ),
+                  tooltip: AppLocalizations.of(context)!.renameClass,
+                ),
+                IconButton(
+                  onPressed: widget.onDelete,
+                  icon: Icon(
+                    Icons.delete_rounded,
+                    color: Theme.of(context).focusColor.withOpacity(0.5),
+                  ),
+                ),
+              ],
             ),
             margin: 0,
             borderRadius: BorderRadius.only(
@@ -919,6 +993,60 @@ class _SelectClassState extends State<SelectClass> {
               }
               _classes.add(className);
               instance.setStringList('classes', _classes);
+
+              // Optional: ask for a custom name for the class
+              final TextEditingController nameController =
+                  TextEditingController(text: className);
+              final String? customName = await showDialog<String>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  backgroundColor: Theme.of(context).backgroundColor,
+                  title: Text(
+                    AppLocalizations.of(context)!.nameClass,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 19),
+                  ),
+                  content: TextField(
+                    controller: nameController,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText:
+                          AppLocalizations.of(context)!.classNameHint,
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        AppLocalizations.of(context)!.later,
+                        style: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(
+                          context, nameController.text.trim()),
+                      child: Text(
+                        AppLocalizations.of(context)!.save,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+              if (customName != null &&
+                  customName.isNotEmpty &&
+                  customName != className) {
+                await VPlanAPI().setClassName(className, customName);
+              }
+
               this.widget.pop(className);
               Navigator.pop(context);
             },

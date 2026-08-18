@@ -173,6 +173,7 @@ class _PlanState extends State<Plan> {
   bool hideLessonTimes = true;
   bool hideTeacher = false;
   Set<String> missedCourses = {};
+  String? className;
 
   String printValue(String? value) {
     if (value == null) {
@@ -190,9 +191,11 @@ class _PlanState extends State<Plan> {
 
   Future<void> _loadSettings() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? customName = await vplanAPI.getClassName(widget.classId);
     setState(() {
       hideLessonTimes = prefs.getBool('hideLessonTimes') ?? true;
       hideTeacher = prefs.getBool('hideTeacher') ?? false;
+      className = customName;
     });
   }
 
@@ -206,8 +209,9 @@ class _PlanState extends State<Plan> {
     DateTime displayDateDateTime;
     String displayDate = '...';
     // Kopfzeile: oben steht der Name der Person (falls eine ausgewählt
-    // wurde) bzw. die Klasse, darunter das Datum.
-    String headerTitle = widget.person?['name']?.toString() ?? widget.classId;
+    // wurde) bzw. der benutzerdefinierte Name der Klasse, darunter das Datum.
+    String headerTitle = widget.person?['name']?.toString() ??
+        (className ?? widget.classId);
     if (data == null) {
       return Text('no substitution plan');
     }

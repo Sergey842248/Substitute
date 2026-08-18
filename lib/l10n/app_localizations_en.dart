@@ -208,6 +208,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'Please add a class to your favorites to see the analysis.';
 
   @override
+  String get nameClass => 'Name the class';
+
+  @override
+  String get renameClass => 'Rename class';
+
+  @override
+  String get classNameHint => 'Custom name (optional)';
+
+  @override
   String get couldNotLoadVPlanData => 'Could not load VPlan data.';
 
   @override

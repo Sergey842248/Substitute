@@ -112,6 +112,58 @@ class VPlanAPI {
     await prefs.setString('hiddenSubjectsByClass', jsonEncode(byClass));
   }
 
+  /// Benutzerdefinierte Namen für die Favoriten-Klassen.
+  ///
+  /// Format: 'classNames' = JSON-Map { classId: customName }
+  Map<String, dynamic> _decodeClassNames(SharedPreferences prefs) {
+    String? data = prefs.getString('classNames');
+    if (data == null || data.isEmpty) return {};
+    try {
+      return jsonDecode(data) as Map<String, dynamic>;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  /// Liefert den benutzerdefinierten Namen einer Klasse oder null, falls
+  /// keiner gesetzt ist.
+  Future<String?> getClassName(String classId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? name = _decodeClassNames(prefs)[classId]?.toString();
+    return (name == null || name.isEmpty) ? null : name;
+  }
+
+  /// Liefert alle benutzerdefinierten Klassennamen als Map { classId: name }.
+  Future<Map<String, String>> getClassNames() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    Map<String, dynamic> names = _decodeClassNames(prefs);
+    return names.map((key, value) => MapEntry(key, value.toString()));
+  }
+
+  /// Setzt den benutzerdefinierten Namen einer Klasse. Ein leerer Name
+  /// entfernt den gespeicherten Namen wieder.
+  Future<void> setClassName(String classId, String name) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    Map<String, dynamic> names = _decodeClassNames(prefs);
+    if (name.trim().isEmpty) {
+      names.remove(classId);
+    } else {
+      names[classId] = name.trim();
+    }
+    await prefs.setString('classNames', jsonEncode(names));
+  }
+
+  /// Entfernt den gespeicherten Namen einer Klasse. Wird beim Löschen einer
+  /// Klasse aus den Favoriten aufgerufen, damit ein später erneut
+  /// hinzugefügter Klasseneintrag wieder ohne benutzerdefinierten Namen
+  /// startet.
+  Future<void> removeClassName(String classId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    Map<String, dynamic> names = _decodeClassNames(prefs);
+    names.remove(classId);
+    await prefs.setString('classNames', jsonEncode(names));
+  }
+
   Future<List<String>> getHiddenCourses(String classId) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await _migrateHiddenCourses(prefs);

@@ -260,6 +260,7 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
   Future<void> _pickSource() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String> classes = prefs.getStringList('classes') ?? [];
+    Map<String, String> classNames = await vplanAPI.getClassNames();
     List<Map<String, dynamic>> persons = await vplanAPI.getPersons();
 
     final String? result = await showModalBottomSheet<String>(
@@ -291,7 +292,7 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
             ...classes.map(
               (c) => ListTile(
                 leading: const Icon(Icons.school_rounded),
-                title: Text(c),
+                title: Text(classNames[c] ?? c),
                 onTap: () => Navigator.pop(context, 'class:$c'),
               ),
             ),
@@ -329,7 +330,7 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
     } else if (result.startsWith('class:')) {
       setState(() {
         classId = result.substring(6);
-        sourceLabel = classId;
+        sourceLabel = classNames[classId] ?? classId;
         selectedCourses = {};
       });
       await _loadCourses(classId!, preselectShown: true);

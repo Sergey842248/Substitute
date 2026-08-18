@@ -464,6 +464,24 @@ abstract class AppLocalizations {
   /// **'Please add a class to your favorites to see the analysis.'**
   String get addClassToFavoritesForAnalysis;
 
+  /// No description provided for @nameClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Name the class'**
+  String get nameClass;
+
+  /// No description provided for @renameClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename class'**
+  String get renameClass;
+
+  /// No description provided for @classNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom name (optional)'**
+  String get classNameHint;
+
   /// No description provided for @couldNotLoadVPlanData.
   ///
   /// In en, this message translates to:

@@ -210,6 +210,15 @@ class AppLocalizationsDe extends AppLocalizations {
       'Bitte füge eine Klasse zu deinen Favoriten hinzu, um die Analyse zu sehen.';
 
   @override
+  String get nameClass => 'Klasse benennen';
+
+  @override
+  String get renameClass => 'Klasse umbenennen';
+
+  @override
+  String get classNameHint => 'Benutzerdefinierter Name (optional)';
+
+  @override
   String get couldNotLoadVPlanData =>
       'VPlan-Daten konnten nicht geladen werden.';
 
