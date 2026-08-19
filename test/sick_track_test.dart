@@ -57,6 +57,73 @@ void main() {
     'roomChanges': {},
   });
 
+  // Fake plan for the next school day (Monday 17.08.2026) with only M-1,
+  // used to test that the signature icon appears at the *next* lesson after
+  // the sick period.
+  final String fakePlanMondayJson = jsonEncode({
+    'date': 'Montag, 17. August 2026',
+    'week': 'A',
+    'data': {
+      'Kopf': {'DatumPlan': 'Montag, 17. August 2026'},
+      'Klassen': {
+        'Kl': [
+          {
+            'Kurz': '10A',
+            'Pl': {
+              'Std': [
+                {
+                  'St': '1',
+                  'Fa': 'M',
+                  'Le': 'AB',
+                  'Ra': '101',
+                  'Beginn': '07:45',
+                  'Ende': '08:30',
+                  'Ku2': 'M-1',
+                },
+              ]
+            }
+          }
+        ]
+      }
+    },
+    'info': [],
+    'courses': [],
+    'roomChanges': {},
+  });
+
+  // Fake plan for Tuesday 18.08.2026 (again with M-1), used to test that a
+  // later occurrence does NOT get the signature icon again.
+  final String fakePlanTuesdayJson = jsonEncode({
+    'date': 'Dienstag, 18. August 2026',
+    'week': 'A',
+    'data': {
+      'Kopf': {'DatumPlan': 'Dienstag, 18. August 2026'},
+      'Klassen': {
+        'Kl': [
+          {
+            'Kurz': '10A',
+            'Pl': {
+              'Std': [
+                {
+                  'St': '2',
+                  'Fa': 'M',
+                  'Le': 'AB',
+                  'Ra': '101',
+                  'Beginn': '08:35',
+                  'Ende': '09:20',
+                  'Ku2': 'M-1',
+                },
+              ]
+            }
+          }
+        ]
+      }
+    },
+    'info': [],
+    'courses': [],
+    'roomChanges': {},
+  });
+
   setUp(() {
     SharedPreferences.setMockInitialValues({
       'vplanSchoolnumber': '123456',
@@ -179,6 +246,45 @@ void main() {
       });
       final courses =
           await VPlanAPI().getMissedCoursesForDate('10B', DateTime(2026, 8, 15));
+      expect(courses, isEmpty);
+    });
+
+    test('returns course at the next lesson after the sick period', () async {
+      // Sick day is Saturday 15.08.2026 → next lesson is Monday 17.08.2026.
+      SharedPreferences.setMockInitialValues({
+        'vplanSchoolnumber': '123456',
+        'vplanUsername': 'user',
+        'vplanPassword': 'pass',
+        'offlineVPData': [fakePlanJson, fakePlanMondayJson],
+      });
+      await VPlanAPI().addSickTrackEntry({
+        'id': '1',
+        'classId': '10A',
+        'courses': ['M-1'],
+        'days': ['2026-08-15'],
+      });
+      final courses =
+          await VPlanAPI().getMissedCoursesForDate('10A', DateTime(2026, 8, 17));
+      expect(courses, contains('M-1'));
+    });
+
+    test('does not return a course again at a later occurrence', () async {
+      // M-1 occurs on Monday 17.08.2026 and Tuesday 18.08.2026. The signature
+      // icon must only appear at the *next* lesson (Monday), not on Tuesday.
+      SharedPreferences.setMockInitialValues({
+        'vplanSchoolnumber': '123456',
+        'vplanUsername': 'user',
+        'vplanPassword': 'pass',
+        'offlineVPData': [fakePlanJson, fakePlanMondayJson, fakePlanTuesdayJson],
+      });
+      await VPlanAPI().addSickTrackEntry({
+        'id': '1',
+        'classId': '10A',
+        'courses': ['M-1'],
+        'days': ['2026-08-15'],
+      });
+      final courses =
+          await VPlanAPI().getMissedCoursesForDate('10A', DateTime(2026, 8, 18));
       expect(courses, isEmpty);
     });
   });

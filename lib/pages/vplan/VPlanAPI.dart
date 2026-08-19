@@ -937,9 +937,16 @@ class VPlanAPI {
     return missed;
   }
 
-  /// Liefert die Menge der Kurse, die an einem bestimmten Datum für eine
-  /// Klasse verpasst wurden (über alle Krankheitszeiträume hinweg). Wird
-  /// im Vertretungsplan genutzt, um das Stiftsymbol anzuzeigen.
+  /// Liefert die Menge der Kurse, die am angezeigten Tag für eine Klasse das
+  /// Stiftsymbol („Unterschrift holen“) bekommen. Wird im Vertretungsplan
+  /// genutzt, um das Stiftsymbol anzuzeigen.
+  ///
+  /// Das Stiftsymbol erscheint, wenn
+  /// - der angezeigte Tag selbst ein Krankheitstag ist (alle Kurse des
+  ///   Zeitraums wurden an diesem Tag verpasst) oder
+  /// - der angezeigte Tag die **nächste Stunde** eines Kurses nach dem Ende
+  ///   des Krankheitszeitraums ist – genau dort muss die Unterschrift
+  ///   eingeholt werden.
   Future<Set<String>> getMissedCoursesForDate(
       String classId, DateTime date) async {
     Set<String> missed = {};
@@ -948,9 +955,71 @@ class VPlanAPI {
     for (var entry in entries) {
       if (entry['classId']?.toString() != classId) continue;
       List<String> days = (entry['days'] as List?)?.cast<String>() ?? [];
-      if (!days.contains(iso)) continue;
+      if (days.isEmpty) continue;
       List<String> courses = (entry['courses'] as List?)?.cast<String>() ?? [];
-      missed.addAll(courses);
+      if (courses.isEmpty) continue;
+
+      // Krankheitstag selbst: Alle Kurse des Zeitraums wurden verpasst.
+      if (days.contains(iso)) {
+        missed.addAll(courses);
+        continue;
+      }
+
+      // Nach dem Krankheitszeitraum: Das Stiftsymbol erscheint nur an der
+      // nächsten Stunde des Kurses. Dafür wird ab dem Tag nach dem letzten
+      // Krankheitstag vor dem angezeigten Tag gescannt, wann der Kurs zum
+      // ersten Mal wieder im Plan auftaucht – nur dieser Tag bekommt das
+      // Symbol.
+      days.sort();
+      // Letzter Krankheitstag, der vor dem angezeigten Tag liegt.
+      String? lastSickBefore;
+      for (final d in days) {
+        if (d.compareTo(iso) < 0) lastSickBefore = d;
+      }
+      if (lastSickBefore == null) continue; // vor dem Krankheitszeitraum
+
+      DateTime lastSick;
+      try {
+        lastSick = DateTime.parse(lastSickBefore);
+      } catch (e) {
+        continue;
+      }
+      // Nur kurze Zeit nach der Krankheit erinnern, sonst würde ein alter
+      // Eintrag bei jedem Planaufruf viele Tage abfragen.
+      if (date.difference(lastSick).inDays > 14) continue;
+
+      Set<String> pending = Set.from(courses);
+      DateTime cursor = lastSick.add(const Duration(days: 1));
+      while (!cursor.isAfter(date) && pending.isNotEmpty) {
+        // Wochenenden überspringen (keine Pläne/Stunden).
+        if (cursor.weekday == DateTime.saturday ||
+            cursor.weekday == DateTime.sunday) {
+          cursor = cursor.add(const Duration(days: 1));
+          continue;
+        }
+        dynamic plan;
+        try {
+          plan = await getLessonsByDate(date: cursor, classId: classId);
+        } catch (e) {
+          plan = null;
+        }
+        if (plan != null && plan['error'] == null && plan['data'] != null) {
+          Set<String> onThisDay = {};
+          for (var lesson in plan['data']) {
+            String course = lesson['course']?.toString() ?? '';
+            if (course.isEmpty || course == '---') {
+              course = lesson['lesson']?.toString() ?? '';
+            }
+            if (pending.contains(course)) onThisDay.add(course);
+          }
+          if (isoDate(cursor) == iso) {
+            // Der angezeigte Tag ist die erste Stunde nach der Krankheit.
+            missed.addAll(onThisDay);
+          }
+          pending.removeAll(onThisDay);
+        }
+        cursor = cursor.add(const Duration(days: 1));
+      }
     }
     return missed;
   }
