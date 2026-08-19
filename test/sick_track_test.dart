@@ -434,6 +434,204 @@ void main() {
     });
   });
 
+  group('only actually missed courses get the signature', () {
+    // Plan for 15.08.2026 that contains only M-1 (E-2 is selected but has no
+    // lesson that day).
+    String planWithOnlyM1(String dateString) => jsonEncode({
+          'date': dateString,
+          'week': 'A',
+          'data': {
+            'Kopf': {'DatumPlan': dateString},
+            'Klassen': {
+              'Kl': [
+                {
+                  'Kurz': '10A',
+                  'Pl': {
+                    'Std': [
+                      {
+                        'St': '1',
+                        'Fa': 'M',
+                        'Le': 'AB',
+                        'Ra': '101',
+                        'Beginn': '07:45',
+                        'Ende': '08:30',
+                        'Ku2': 'M-1',
+                      },
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          'info': [],
+          'courses': [],
+          'roomChanges': {},
+        });
+
+    test('on a sick day only courses with a lesson that day get the symbol',
+        () async {
+      SharedPreferences.setMockInitialValues({
+        'vplanSchoolnumber': '123456',
+        'vplanUsername': 'user',
+        'vplanPassword': 'pass',
+        'offlineVPData': [planWithOnlyM1('Freitag, 15. August 2026')],
+      });
+      await VPlanAPI().addSickTrackEntry({
+        'id': '1',
+        'classId': '10A',
+        'courses': ['M-1', 'E-2'],
+        'days': ['2026-08-15'],
+      });
+      final courses = await VPlanAPI()
+          .getMissedCoursesForDate('10A', DateTime(2026, 8, 15));
+      // E-2 hatte an dem Tag keine Stunde → keine Unterschrift nötig.
+      expect(courses.keys, ['M-1']);
+    });
+
+    test('no symbol at the next lesson when the course was never missed',
+        () async {
+      // E-2 is selected for the period, but has no lesson on the sick day
+      // (15.08) – only on Monday 17.08. Since nothing was missed, E-2 must
+      // not get the signature symbol at its next lesson.
+      SharedPreferences.setMockInitialValues({
+        'vplanSchoolnumber': '123456',
+        'vplanUsername': 'user',
+        'vplanPassword': 'pass',
+        'offlineVPData': [
+          planWithOnlyM1('Freitag, 15. August 2026'),
+          fakePlanMondayJson, // 17.08 has M-1, not E-2
+        ],
+      });
+      await VPlanAPI().addSickTrackEntry({
+        'id': '1',
+        'classId': '10A',
+        'courses': ['E-2'],
+        'days': ['2026-08-15'],
+      });
+      final courses = await VPlanAPI()
+          .getMissedCoursesForDate('10A', DateTime(2026, 8, 17));
+      expect(courses, isEmpty);
+    });
+  });
+
+  group('cancelled lessons are not counted as missed', () {
+    // Plan for 15.08.2026 where the M-1 lesson is cancelled ("Entfall").
+    final String cancelledM1Json = jsonEncode({
+      'date': 'Freitag, 15. August 2026',
+      'week': 'A',
+      'data': {
+        'Kopf': {'DatumPlan': 'Freitag, 15. August 2026'},
+        'Klassen': {
+          'Kl': [
+            {
+              'Kurz': '10A',
+              'Pl': {
+                'Std': [
+                  {
+                    'St': '1',
+                    'Fa': 'M',
+                    'Le': 'AB',
+                    'Ra': '101',
+                    'Beginn': '07:45',
+                    'Ende': '08:30',
+                    'Ku2': 'M-1',
+                    'If': 'Entfall',
+                  },
+                ]
+              }
+            }
+          ]
+        }
+      },
+      'info': [],
+      'courses': [],
+      'roomChanges': {},
+    });
+
+    // Plan for Monday 17.08.2026 where the M-1 lesson is cancelled.
+    final String cancelledMondayJson = jsonEncode({
+      'date': 'Montag, 17. August 2026',
+      'week': 'A',
+      'data': {
+        'Kopf': {'DatumPlan': 'Montag, 17. August 2026'},
+        'Klassen': {
+          'Kl': [
+            {
+              'Kurz': '10A',
+              'Pl': {
+                'Std': [
+                  {
+                    'St': '1',
+                    'Fa': 'M',
+                    'Le': 'AB',
+                    'Ra': '101',
+                    'Beginn': '07:45',
+                    'Ende': '08:30',
+                    'Ku2': 'M-1',
+                    'If': 'M-1 Herr Schilling fällt aus',
+                  },
+                ]
+              }
+            }
+          ]
+        }
+      },
+      'info': [],
+      'courses': [],
+      'roomChanges': {},
+    });
+
+    test('a cancelled lesson on the sick day is not missed', () async {
+      SharedPreferences.setMockInitialValues({
+        'vplanSchoolnumber': '123456',
+        'vplanUsername': 'user',
+        'vplanPassword': 'pass',
+        'offlineVPData': [cancelledM1Json],
+      });
+      await VPlanAPI().addSickTrackEntry({
+        'id': '1',
+        'classId': '10A',
+        'courses': ['M-1'],
+        'days': ['2026-08-15'],
+      });
+      final entries = await VPlanAPI().getSickTrackEntries();
+      expect(await VPlanAPI().getMissedLessons(entries.first), isEmpty);
+      final courses = await VPlanAPI()
+          .getMissedCoursesForDate('10A', DateTime(2026, 8, 15));
+      expect(courses, isEmpty);
+    });
+
+    test('a cancelled next lesson gets no symbol, the following one does',
+        () async {
+      // Sick day 15.08 (M-1 real), Monday 17.08 (M-1 cancelled), Tuesday
+      // 18.08 (M-1 real again).
+      SharedPreferences.setMockInitialValues({
+        'vplanSchoolnumber': '123456',
+        'vplanUsername': 'user',
+        'vplanPassword': 'pass',
+        'offlineVPData': [
+          fakePlanJson,
+          cancelledMondayJson,
+          fakePlanTuesdayJson,
+        ],
+      });
+      await VPlanAPI().addSickTrackEntry({
+        'id': '1',
+        'classId': '10A',
+        'courses': ['M-1'],
+        'days': ['2026-08-15'],
+      });
+      // Am ausgefallenen Montag kann keine Unterschrift geholt werden.
+      final monday = await VPlanAPI()
+          .getMissedCoursesForDate('10A', DateTime(2026, 8, 17));
+      expect(monday, isEmpty);
+      // Erst die nächste echte Stunde (Dienstag) bekommt das Symbol.
+      final tuesday = await VPlanAPI()
+          .getMissedCoursesForDate('10A', DateTime(2026, 8, 18));
+      expect(tuesday['M-1'], 1);
+    });
+  });
+
   group('isoDate', () {
     test('formats date with zero-padded month and day', () {
       expect(VPlanAPI().isoDate(DateTime(2026, 8, 5)), '2026-08-05');

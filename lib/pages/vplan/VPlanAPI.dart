@@ -910,10 +910,33 @@ class VPlanAPI {
     await saveSickTrackEntries(entries);
   }
 
+  /// Erkennt, ob ein Plan-Eintrag eine ausgefallene Stunde ist (der
+  /// Info-Text enthält z.B. „Entfall“, „Ausfall“, „ausgefallen“ oder
+  /// „… fällt aus“). Ausgefallene Stunden zählen im Sick-Track nicht als
+  /// verpasst – in diesem Kurs war man nicht abwesend.
+  bool isCancelledLesson(dynamic lesson) {
+    String? info = lesson?['info']?.toString();
+    if (info == null || info.trim().isEmpty) return false;
+    String t = info
+        .toLowerCase()
+        .replaceAll('ä', 'ae')
+        .replaceAll('ö', 'oe')
+        .replaceAll('ü', 'ue')
+        .replaceAll('ß', 'ss');
+    if (RegExp(r'\b(entfall|entfallt|entfaellt|ausfall|ausgefallen)\b')
+        .hasMatch(t)) {
+      return true;
+    }
+    // Varianten wie „fällt heute aus“ / „fällt wegen … aus“.
+    return RegExp(r'\b(fallt|faellt)\b').hasMatch(t) &&
+        RegExp(r'\baus\b').hasMatch(t);
+  }
+
   /// Ermittelt alle verpassten Stunden eines Krankheitszeitraums:
   /// für jeden ausgewählten Tag wird der (gespeicherte oder neu geladene)
   /// Vertretungsplan der Klasse durchsucht und alle Stunden der gewählten
-  /// Kurse als verpasst markiert.
+  /// Kurse als verpasst markiert. Ausgefallene Stunden zählen nicht als
+  /// verpasst.
   Future<List<Map<String, dynamic>>> getMissedLessons(
       Map<String, dynamic> entry) async {
     List<Map<String, dynamic>> missed = [];
@@ -941,6 +964,9 @@ class VPlanAPI {
 
       List<dynamic> lessons = plan['data'];
       for (var lesson in lessons) {
+        // Ausgefallene Stunden („Entfall“, „… fällt aus“) wurden nicht
+        // versäumt – dafür braucht man keine Unterschrift.
+        if (isCancelledLesson(lesson)) continue;
         String course = lesson['course']?.toString() ?? '';
         if (course.isEmpty || course == '---') {
           course = lesson['lesson']?.toString() ?? '';
@@ -1013,18 +1039,34 @@ class VPlanAPI {
       courses = courses.where((c) => !done.contains(c)).toList();
       if (courses.isEmpty) continue;
 
+      // Nur tatsächlich verpasste Stunden zählen (ausgefallene Stunden
+      // nicht) – eine Unterschrift pro verpasster Stunde.
+      List<Map<String, dynamic>> missedLessons = await getMissedLessons(entry);
+      Map<String, int> counts = {};
+      for (var m in missedLessons) {
+        String course = m['course']?.toString() ?? '';
+        counts[course] = (counts[course] ?? 0) + 1;
+      }
+
       // Kurse, die am angezeigten Tag das Stiftsymbol bekommen.
       Set<String> toShow = {};
 
-      // Krankheitstag selbst: Alle Kurse des Zeitraums wurden verpasst.
+      // Krankheitstag selbst: Nur die Kurse, die an diesem Tag tatsächlich
+      // eine (nicht ausgefallene) Stunde hatten, wurden verpasst – nicht
+      // alle Kurse, an denen man generell teilnimmt.
       if (days.contains(iso)) {
-        toShow.addAll(courses);
+        for (var m in missedLessons) {
+          if (m['date'] == iso && courses.contains(m['course'])) {
+            toShow.add(m['course'] as String);
+          }
+        }
       } else {
         // Nach dem Krankheitszeitraum: Das Stiftsymbol erscheint nur an der
         // nächsten Stunde des Kurses. Dafür wird ab dem Tag nach dem letzten
         // Krankheitstag vor dem angezeigten Tag gescannt, wann der Kurs zum
         // ersten Mal wieder im Plan auftaucht – nur dieser Tag bekommt das
-        // Symbol.
+        // Symbol. Ausgefallene Stunden zählen dabei nicht als „nächste
+        // Stunde“.
         days.sort();
         // Letzter Krankheitstag, der vor dem angezeigten Tag liegt.
         String? lastSickBefore;
@@ -1061,6 +1103,8 @@ class VPlanAPI {
           if (plan != null && plan['error'] == null && plan['data'] != null) {
             Set<String> onThisDay = {};
             for (var lesson in plan['data']) {
+              // Ausgefallene Stunde ist nicht die nächste Stunde des Kurses.
+              if (isCancelledLesson(lesson)) continue;
               String course = lesson['course']?.toString() ?? '';
               if (course.isEmpty || course == '---') {
                 course = lesson['lesson']?.toString() ?? '';
@@ -1079,18 +1123,15 @@ class VPlanAPI {
 
       if (toShow.isEmpty) continue;
 
-      // Anzahl der verpassten Stunden je Kurs (eine Unterschrift pro
-      // verpasster Stunde).
-      Map<String, int> counts = {};
-      List<Map<String, dynamic>> missedLessons = await getMissedLessons(entry);
-      for (var m in missedLessons) {
-        String course = m['course']?.toString() ?? '';
-        counts[course] = (counts[course] ?? 0) + 1;
-      }
       for (String c in toShow) {
+        int? count = counts[c];
+        // Nur Kurse, die tatsächlich verpasst wurden, bekommen das Symbol –
+        // Kurse ohne verpasste Stunde (z.B. weil sie am Krankheitstag gar
+        // keine Stunde hatten) nicht.
+        if (count == null || count <= 0) continue;
         Map<String, dynamic> details = missed[c] ??=
             {'count': 0, 'entryIds': <String>[]};
-        details['count'] = (details['count'] as int) + (counts[c] ?? 1);
+        details['count'] = (details['count'] as int) + count;
         (details['entryIds'] as List).add(entry['id'].toString());
       }
     }
