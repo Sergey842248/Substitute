@@ -242,5 +242,15 @@
                 "type": "String"
             }
         }
-    }
+    },
+    "markSignatureDone": "Mark signature as done",
+    "signatureDoneQuestion": "Do you want to mark the signature for {course} as done?",
+    "@signatureDoneQuestion": {
+        "placeholders": {
+            "course": {
+                "type": "String"
+            }
+        }
+    },
+    "done": "Done"
 }

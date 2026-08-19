@@ -242,5 +242,15 @@
                 "type": "String"
             }
         }
-    }
+    },
+    "markSignatureDone": "Unterschrift als erledigt markieren",
+    "signatureDoneQuestion": "Möchtest du die Unterschrift für {course} als erledigt markieren?",
+    "@signatureDoneQuestion": {
+        "placeholders": {
+            "course": {
+                "type": "String"
+            }
+        }
+    },
+    "done": "Erledigt"
 }

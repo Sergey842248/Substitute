@@ -879,6 +879,37 @@ class VPlanAPI {
     await saveSickTrackEntries(entries);
   }
 
+  /// Kurse, deren Unterschrift(en) für diesen Krankheitseintrag bereits als
+  /// erledigt (abgeholt) markiert wurden.
+  Future<Set<String>> getDoneSignatures(String entryId) async {
+    List<Map<String, dynamic>> entries = await getSickTrackEntries();
+    for (var entry in entries) {
+      if (entry['id'].toString() == entryId) {
+        return ((entry['signaturesDone'] as List?) ?? [])
+            .cast<String>()
+            .toSet();
+      }
+    }
+    return {};
+  }
+
+  /// Markiert die Unterschrift(en) eines Kurses für einen Krankheitseintrag
+  /// als erledigt (abgeholt). Wird im Vertretungsplan aufgerufen, wenn der
+  /// Nutzer das Stiftsymbol antippt und bestätigt.
+  Future<void> markSignatureDone(String entryId, String course) async {
+    List<Map<String, dynamic>> entries = await getSickTrackEntries();
+    for (var entry in entries) {
+      if (entry['id'].toString() == entryId) {
+        List<String> done =
+            ((entry['signaturesDone'] as List?) ?? []).cast<String>();
+        if (!done.contains(course)) done.add(course);
+        entry['signaturesDone'] = done;
+        break;
+      }
+    }
+    await saveSickTrackEntries(entries);
+  }
+
   /// Ermittelt alle verpassten Stunden eines Krankheitszeitraums:
   /// für jeden ausgewählten Tag wird der (gespeicherte oder neu geladene)
   /// Vertretungsplan der Klasse durchsucht und alle Stunden der gewählten
@@ -953,7 +984,19 @@ class VPlanAPI {
   ///   eingeholt werden.
   Future<Map<String, int>> getMissedCoursesForDate(
       String classId, DateTime date) async {
-    Map<String, int> missed = {};
+    Map<String, Map<String, dynamic>> details =
+        await getMissedCourseDetailsForDate(classId, date);
+    return details.map((course, d) => MapEntry(course, d['count'] as int));
+  }
+
+  /// Wie [getMissedCoursesForDate], liefert aber zusätzlich zu jedem Kurs die
+  /// IDs der Krankheitseinträge, aus denen das Stiftsymbol stammt – damit die
+  /// Unterschrift im Vertretungsplan als erledigt markiert werden kann.
+  ///
+  /// Rückgabe: { Kurs: { 'count': int, 'entryIds': [String, ...] } }
+  Future<Map<String, Map<String, dynamic>>> getMissedCourseDetailsForDate(
+      String classId, DateTime date) async {
+    Map<String, Map<String, dynamic>> missed = {};
     String iso = isoDate(date);
     List<Map<String, dynamic>> entries = await getSickTrackEntries();
     for (var entry in entries) {
@@ -961,6 +1004,13 @@ class VPlanAPI {
       List<String> days = (entry['days'] as List?)?.cast<String>() ?? [];
       if (days.isEmpty) continue;
       List<String> courses = (entry['courses'] as List?)?.cast<String>() ?? [];
+      if (courses.isEmpty) continue;
+
+      // Kurse, deren Unterschrift bereits als erledigt markiert wurde,
+      // bekommen für diesen Eintrag kein Stiftsymbol mehr.
+      Set<String> done =
+          await getDoneSignatures(entry['id'].toString());
+      courses = courses.where((c) => !done.contains(c)).toList();
       if (courses.isEmpty) continue;
 
       // Kurse, die am angezeigten Tag das Stiftsymbol bekommen.
@@ -1038,7 +1088,10 @@ class VPlanAPI {
         counts[course] = (counts[course] ?? 0) + 1;
       }
       for (String c in toShow) {
-        missed[c] = (missed[c] ?? 0) + (counts[c] ?? 1);
+        Map<String, dynamic> details = missed[c] ??=
+            {'count': 0, 'entryIds': <String>[]};
+        details['count'] = (details['count'] as int) + (counts[c] ?? 1);
+        (details['entryIds'] as List).add(entry['id'].toString());
       }
     }
     return missed;

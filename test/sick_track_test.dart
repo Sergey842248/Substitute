@@ -353,6 +353,87 @@ void main() {
     });
   });
 
+  group('mark signature done', () {
+    test('marks a course as done and hides its signature', () async {
+      await VPlanAPI().addSickTrackEntry({
+        'id': '1',
+        'classId': '10A',
+        'courses': ['M-1', 'E-2'],
+        'days': ['2026-08-15'],
+      });
+      await VPlanAPI().markSignatureDone('1', 'M-1');
+      final courses = await VPlanAPI()
+          .getMissedCoursesForDate('10A', DateTime(2026, 8, 15));
+      expect(courses.keys, ['E-2']);
+    });
+
+    test('marking done only removes the signature of that entry', () async {
+      await VPlanAPI().addSickTrackEntry({
+        'id': '1',
+        'classId': '10A',
+        'courses': ['M-1'],
+        'days': ['2026-08-15'],
+      });
+      await VPlanAPI().addSickTrackEntry({
+        'id': '2',
+        'classId': '10A',
+        'courses': ['M-1'],
+        'days': ['2026-08-15'],
+      });
+      await VPlanAPI().markSignatureDone('1', 'M-1');
+      final courses = await VPlanAPI()
+          .getMissedCoursesForDate('10A', DateTime(2026, 8, 15));
+      // Der zweite Eintrag braucht weiterhin eine Unterschrift.
+      expect(courses['M-1'], 1);
+    });
+
+    test('marking done removes the signature at the next lesson too',
+        () async {
+      SharedPreferences.setMockInitialValues({
+        'vplanSchoolnumber': '123456',
+        'vplanUsername': 'user',
+        'vplanPassword': 'pass',
+        'offlineVPData': [fakePlanJson, fakePlanMondayJson],
+      });
+      await VPlanAPI().addSickTrackEntry({
+        'id': '1',
+        'classId': '10A',
+        'courses': ['M-1'],
+        'days': ['2026-08-15'],
+      });
+      await VPlanAPI().markSignatureDone('1', 'M-1');
+      final courses = await VPlanAPI()
+          .getMissedCoursesForDate('10A', DateTime(2026, 8, 17));
+      expect(courses, isEmpty);
+    });
+
+    test('details contain entry ids for marking', () async {
+      await VPlanAPI().addSickTrackEntry({
+        'id': '7',
+        'classId': '10A',
+        'courses': ['M-1', 'E-2'],
+        'days': ['2026-08-15'],
+      });
+      final details = await VPlanAPI()
+          .getMissedCourseDetailsForDate('10A', DateTime(2026, 8, 15));
+      expect(details.keys, containsAll(['M-1', 'E-2']));
+      expect(details['M-1']!['count'], 1);
+      expect(details['M-1']!['entryIds'], ['7']);
+    });
+
+    test('done signatures are stored per entry', () async {
+      await VPlanAPI().addSickTrackEntry({
+        'id': '1',
+        'classId': '10A',
+        'courses': ['M-1'],
+        'days': ['2026-08-15'],
+      });
+      await VPlanAPI().markSignatureDone('1', 'M-1');
+      expect(await VPlanAPI().getDoneSignatures('1'), contains('M-1'));
+      expect(await VPlanAPI().getDoneSignatures('2'), isEmpty);
+    });
+  });
+
   group('isoDate', () {
     test('formats date with zero-padded month and day', () {
       expect(VPlanAPI().isoDate(DateTime(2026, 8, 5)), '2026-08-05');

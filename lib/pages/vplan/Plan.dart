@@ -83,19 +83,64 @@ class _PlanState extends State<Plan> {
 
   /// Lädt die Kurse, die laut Sick-Track am angezeigten Tag verpasst wurden,
   /// damit im Plan das Stiftsymbol (Unterschrift holen) angezeigt werden kann.
+  /// Gespeichert werden neben der Anzahl auch die Krankheitseinträge, aus
+  /// denen das Symbol stammt – um die Unterschrift als erledigt markieren zu
+  /// können.
   Future<void> _loadMissedCourses() async {
     if (data is Map &&
         data['data'] != null &&
         data['data']['date'] != null) {
       DateTime date =
           VPlanAPI().parseStringDatatoDateTime(data['data']['date'].toString());
-      Map<String, int> missed =
-          await vplanAPI.getMissedCoursesForDate(widget.classId, date);
+      Map<String, Map<String, dynamic>> missed =
+          await vplanAPI.getMissedCourseDetailsForDate(widget.classId, date);
       if (mounted) {
         setState(() {
           missedCourses = missed;
         });
       }
+    }
+  }
+
+  /// Fragt nach, ob die Unterschrift(en) für einen Kurs als erledigt markiert
+  /// werden sollen, und speichert das im Sick-Track.
+  Future<void> _askMarkSignatureDone(String course) async {
+    final details = missedCourses[course];
+    if (details == null) return;
+    final l10n = AppLocalizations.of(context);
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(
+            Radius.circular(20.0),
+          ),
+        ),
+        title: Center(child: Text(l10n!.markSignatureDone)),
+        titlePadding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+        contentPadding: const EdgeInsets.all(15),
+        actionsPadding: const EdgeInsets.all(0),
+        content: Text(
+          l10n.signatureDoneQuestion(course),
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.done),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      for (final entryId in (details['entryIds'] as List)) {
+        await vplanAPI.markSignatureDone(entryId.toString(), course);
+      }
+      await _loadMissedCourses();
     }
   }
 
@@ -172,7 +217,8 @@ class _PlanState extends State<Plan> {
   List<String>? hiddenSubjects;
   bool hideLessonTimes = true;
   bool hideTeacher = false;
-  Map<String, int> missedCourses = {};
+  // Kurs → { 'count': Anzahl benötigter Unterschriften, 'entryIds': [...] }
+  Map<String, Map<String, dynamic>> missedCourses = {};
   String? className;
 
   String printValue(String? value) {
@@ -462,7 +508,7 @@ class _PlanState extends State<Plan> {
         course = e['lesson']?.toString() ?? '';
       }
       bool showSignature = false;
-      int signatureCount = missedCourses[course] ?? 0;
+      int signatureCount = missedCourses[course]?['count'] ?? 0;
       if (signatureCount > 0 && !signatureShown.contains(course)) {
         signatureShown.add(course);
         showSignature = true;
@@ -550,43 +596,49 @@ class _PlanState extends State<Plan> {
                     ),
                   if (showSignature) ...[
                     SizedBox(height: 4),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.edit_rounded,
-                          size: 16,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        SizedBox(width: 5),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
+                    // Tippen auf das Stiftsymbol oder den Text daneben fragt,
+                    // ob die Unterschrift für diesen Kurs als erledigt
+                    // markiert werden soll.
+                    GestureDetector(
+                      onTap: () => _askMarkSignatureDone(course),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.edit_rounded,
+                            size: 16,
                             color: Theme.of(context).primaryColor,
-                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Text(
-                            '$signatureCount',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 5),
-                        Flexible(
-                          child: Text(
-                            AppLocalizations.of(context)!.getSignature,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
+                          SizedBox(width: 5),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
                               color: Theme.of(context).primaryColor,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '$signatureCount',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                          SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              AppLocalizations.of(context)!.getSignature,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ],

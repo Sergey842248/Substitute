@@ -108,6 +108,22 @@ class AppLocalizationsDe extends AppLocalizations {
       'Einen Raum finden, der zu einer bestimmten Zeit nicht belegt ist';
 
   @override
+  String get roomPlan => 'Raumplan';
+
+  @override
+  String get roomPlanSubtitle => 'Stundenplan eines Raums anzeigen';
+
+  @override
+  String get selectRoom => 'Raum auswählen';
+
+  @override
+  String get noLessonsInRoom => 'Keine Stunden in diesem Raum';
+
+  @override
+  String get noPlanForThisDay =>
+      'Kein Vertretungsplan für diesen Tag verfügbar.';
+
+  @override
   String get analysis => 'Analyse';
 
   @override
@@ -183,7 +199,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Keine zusätzlichen Informationen verfügbar';
 
   @override
+  String get search => 'Suche';
+
+  @override
   String get searchTeachers => 'Lehrer suchen';
+
+  @override
+  String get searchTeachersSubtitle =>
+      'Lehrerkürzel durchsuchen und den Vertretungsplan eines Lehrers ansehen';
 
   @override
   String get teacherAbbreviationHint => 'Lehrerkürzel (z.B. \"AB\")';
@@ -482,4 +505,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String missedLesson(String date, String count, String course) {
     return '$date · $count. Stunde · $course';
   }
+
+  @override
+  String get markSignatureDone => 'Unterschrift als erledigt markieren';
+
+  @override
+  String signatureDoneQuestion(String course) {
+    return 'Möchtest du die Unterschrift für $course als erledigt markieren?';
+  }
+
+  @override
+  String get done => 'Erledigt';
 }

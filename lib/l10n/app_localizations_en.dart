@@ -107,6 +107,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'Find a room which isn\'t occupied for a specific time';
 
   @override
+  String get roomPlan => 'Room plan';
+
+  @override
+  String get roomPlanSubtitle => 'View the schedule of a room';
+
+  @override
+  String get selectRoom => 'Select room';
+
+  @override
+  String get noLessonsInRoom => 'No lessons in this room';
+
+  @override
+  String get noPlanForThisDay => 'No substitution plan available for this day.';
+
+  @override
   String get analysis => 'Analysis';
 
   @override
@@ -180,7 +195,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noAdditionalInformation => 'No additional information available';
 
   @override
+  String get search => 'Search';
+
+  @override
   String get searchTeachers => 'Search Teachers';
+
+  @override
+  String get searchTeachersSubtitle =>
+      'Search teacher abbreviations and view a teacher\'s substitution plan';
 
   @override
   String get teacherAbbreviationHint => 'Teacher abbreviation (like \"AB\")';
@@ -479,4 +501,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String missedLesson(String date, String count, String course) {
     return '$date · $count. hour · $course';
   }
+
+  @override
+  String get markSignatureDone => 'Mark signature as done';
+
+  @override
+  String signatureDoneQuestion(String course) {
+    return 'Do you want to mark the signature for $course as done?';
+  }
+
+  @override
+  String get done => 'Done';
 }

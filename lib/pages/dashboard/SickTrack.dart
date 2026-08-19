@@ -88,6 +88,9 @@ class _SickTrackState extends State<SickTrack> {
     List<dynamic> days = entry['days'] as List? ?? [];
     List<Map<String, dynamic>>? missed = missedCache[entry['id']];
     String classId = entry['classId']?.toString() ?? '';
+    // Kurse, deren Unterschrift(en) bereits als erledigt markiert wurden.
+    Set<String> doneSignatures =
+        ((entry['signaturesDone'] as List?) ?? []).cast<String>().toSet();
 
     return ListItem(
       padding: 15,
@@ -154,22 +157,46 @@ class _SickTrackState extends State<SickTrack> {
                       ),
                       SizedBox(height: 4),
                       ...missed.map(
-                        (m) => Padding(
-                          padding: const EdgeInsets.only(bottom: 3),
-                          child: Text(
-                            AppLocalizations.of(context)!.missedLesson(
-                              formatDay(m['date']),
-                              m['count'],
-                              m['course'],
+                        (m) {
+                          // Haken hinter erledigten Unterschriften, Kreuz
+                          // hinter den noch offenen.
+                          final bool done =
+                              doneSignatures.contains(m['course']);
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 3),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  done
+                                      ? Icons.check_circle_rounded
+                                      : Icons.cancel_rounded,
+                                  size: 16,
+                                  color: done
+                                      ? Colors.green
+                                      : Theme.of(context)
+                                          .focusColor
+                                          .withOpacity(0.5),
+                                ),
+                                SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    AppLocalizations.of(context)!.missedLesson(
+                                      formatDay(m['date']),
+                                      m['count'],
+                                      m['course'],
+                                    ),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Theme.of(context)
+                                          .focusColor
+                                          .withOpacity(0.8),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Theme.of(context)
-                                  .focusColor
-                                  .withOpacity(0.8),
-                            ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                     ],
                   ),

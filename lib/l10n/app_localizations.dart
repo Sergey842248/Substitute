@@ -278,6 +278,36 @@ abstract class AppLocalizations {
   /// **'Find a room which isn\'t occupied for a specific time'**
   String get findFreeRoomSubtitle;
 
+  /// No description provided for @roomPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Room plan'**
+  String get roomPlan;
+
+  /// No description provided for @roomPlanSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'View the schedule of a room'**
+  String get roomPlanSubtitle;
+
+  /// No description provided for @selectRoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Select room'**
+  String get selectRoom;
+
+  /// No description provided for @noLessonsInRoom.
+  ///
+  /// In en, this message translates to:
+  /// **'No lessons in this room'**
+  String get noLessonsInRoom;
+
+  /// No description provided for @noPlanForThisDay.
+  ///
+  /// In en, this message translates to:
+  /// **'No substitution plan available for this day.'**
+  String get noPlanForThisDay;
+
   /// No description provided for @analysis.
   ///
   /// In en, this message translates to:
@@ -416,11 +446,23 @@ abstract class AppLocalizations {
   /// **'No additional information available'**
   String get noAdditionalInformation;
 
+  /// No description provided for @search.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get search;
+
   /// No description provided for @searchTeachers.
   ///
   /// In en, this message translates to:
   /// **'Search Teachers'**
   String get searchTeachers;
+
+  /// No description provided for @searchTeachersSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search teacher abbreviations and view a teacher\'s substitution plan'**
+  String get searchTeachersSubtitle;
 
   /// No description provided for @teacherAbbreviationHint.
   ///
@@ -967,6 +1009,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{date} · {count}. hour · {course}'**
   String missedLesson(String date, String count, String course);
+
+  /// No description provided for @markSignatureDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark signature as done'**
+  String get markSignatureDone;
+
+  /// No description provided for @signatureDoneQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to mark the signature for {course} as done?'**
+  String signatureDoneQuestion(String course);
+
+  /// No description provided for @done.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
 }
 
 class _AppLocalizationsDelegate
