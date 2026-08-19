@@ -89,7 +89,7 @@ class _PlanState extends State<Plan> {
         data['data']['date'] != null) {
       DateTime date =
           VPlanAPI().parseStringDatatoDateTime(data['data']['date'].toString());
-      Set<String> missed =
+      Map<String, int> missed =
           await vplanAPI.getMissedCoursesForDate(widget.classId, date);
       if (mounted) {
         setState(() {
@@ -172,7 +172,7 @@ class _PlanState extends State<Plan> {
   List<String>? hiddenSubjects;
   bool hideLessonTimes = true;
   bool hideTeacher = false;
-  Set<String> missedCourses = {};
+  Map<String, int> missedCourses = {};
   String? className;
 
   String printValue(String? value) {
@@ -462,7 +462,8 @@ class _PlanState extends State<Plan> {
         course = e['lesson']?.toString() ?? '';
       }
       bool showSignature = false;
-      if (missedCourses.contains(course) && !signatureShown.contains(course)) {
+      int signatureCount = missedCourses[course] ?? 0;
+      if (signatureCount > 0 && !signatureShown.contains(course)) {
         signatureShown.add(course);
         showSignature = true;
       }
@@ -556,6 +557,23 @@ class _PlanState extends State<Plan> {
                           Icons.edit_rounded,
                           size: 16,
                           color: Theme.of(context).primaryColor,
+                        ),
+                        SizedBox(width: 5),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).primaryColor,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '$signatureCount',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                         SizedBox(width: 5),
                         Flexible(

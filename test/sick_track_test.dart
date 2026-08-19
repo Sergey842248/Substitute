@@ -213,7 +213,8 @@ void main() {
   });
 
   group('getMissedCoursesForDate', () {
-    test('returns courses for matching date and class', () async {
+    test('returns courses with signature count for matching date and class',
+        () async {
       await VPlanAPI().addSickTrackEntry({
         'id': '1',
         'classId': '10A',
@@ -222,7 +223,69 @@ void main() {
       });
       final courses =
           await VPlanAPI().getMissedCoursesForDate('10A', DateTime(2026, 8, 15));
-      expect(courses, containsAll(['M-1', 'E-2']));
+      expect(courses.keys, containsAll(['M-1', 'E-2']));
+      // Jede dieser Stunden kommt im Fake-Plan genau einmal vor.
+      expect(courses['M-1'], 1);
+      expect(courses['E-2'], 1);
+    });
+
+    test('counts multiple missed lessons of the same course', () async {
+      // M-1 kommt am Krankheitstag zweimal vor (1. und 4. Stunde) → 2
+      // Unterschriften nötig.
+      final String doubleM1 = jsonEncode({
+        'date': 'Freitag, 15. August 2026',
+        'week': 'A',
+        'data': {
+          'Kopf': {'DatumPlan': 'Freitag, 15. August 2026'},
+          'Klassen': {
+            'Kl': [
+              {
+                'Kurz': '10A',
+                'Pl': {
+                  'Std': [
+                    {
+                      'St': '1',
+                      'Fa': 'M',
+                      'Le': 'AB',
+                      'Ra': '101',
+                      'Beginn': '07:45',
+                      'Ende': '08:30',
+                      'Ku2': 'M-1',
+                    },
+                    {
+                      'St': '4',
+                      'Fa': 'M',
+                      'Le': 'AB',
+                      'Ra': '104',
+                      'Beginn': '10:30',
+                      'Ende': '11:15',
+                      'Ku2': 'M-1',
+                    },
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        'info': [],
+        'courses': [],
+        'roomChanges': {},
+      });
+      SharedPreferences.setMockInitialValues({
+        'vplanSchoolnumber': '123456',
+        'vplanUsername': 'user',
+        'vplanPassword': 'pass',
+        'offlineVPData': [doubleM1],
+      });
+      await VPlanAPI().addSickTrackEntry({
+        'id': '1',
+        'classId': '10A',
+        'courses': ['M-1'],
+        'days': ['2026-08-15'],
+      });
+      final courses =
+          await VPlanAPI().getMissedCoursesForDate('10A', DateTime(2026, 8, 15));
+      expect(courses['M-1'], 2);
     });
 
     test('returns empty set for a different date', () async {
@@ -265,7 +328,8 @@ void main() {
       });
       final courses =
           await VPlanAPI().getMissedCoursesForDate('10A', DateTime(2026, 8, 17));
-      expect(courses, contains('M-1'));
+      expect(courses.keys, contains('M-1'));
+      expect(courses['M-1'], 1);
     });
 
     test('does not return a course again at a later occurrence', () async {
