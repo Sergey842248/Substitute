@@ -407,4 +407,70 @@ void main() {
       expect(await api.getHiddenCourses('11'), ['M-2', 'E-1']);
     });
   });
+
+  group('offline plan retention', () {
+    const months = [
+      'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+      'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
+    ];
+
+    // Builds a German date string (weekday is ignored by the parser).
+    String germanDate(DateTime date) =>
+        'Montag, ${date.day}. ${months[date.month - 1]} ${date.year}';
+
+    String planForDate(DateTime date) => jsonEncode({
+          'data': {
+            'Kopf': {'DatumPlan': germanDate(date)},
+          },
+        });
+
+    test('keeps plans from the last 14 days and prunes older ones', () async {
+      final today = DateTime.now();
+      final oldPlan = planForDate(today.subtract(const Duration(days: 15)));
+      final recentPlan = planForDate(today.subtract(const Duration(days: 7)));
+      final todayPlan = planForDate(today);
+      SharedPreferences.setMockInitialValues({
+        'offlineVPData': [oldPlan, recentPlan, todayPlan],
+      });
+
+      await VPlanAPI().cleanVplanOfflineData();
+
+      final prefs = await SharedPreferences.getInstance();
+      final stored = prefs.getStringList('offlineVPData')!;
+      expect(stored.length, 2);
+      final storedDates = stored
+          .map((e) => jsonDecode(e)['data']['Kopf']['DatumPlan'])
+          .toList();
+      expect(storedDates, contains(germanDate(today.subtract(const Duration(days: 7)))));
+      expect(storedDates, contains(germanDate(today)));
+      expect(storedDates, isNot(contains(germanDate(today.subtract(const Duration(days: 15))))));
+    });
+
+    test('keeps plans exactly 14 days old and future plans', () async {
+      final today = DateTime.now();
+      final boundaryPlan = planForDate(today.subtract(const Duration(days: 14)));
+      final futurePlan = planForDate(today.add(const Duration(days: 2)));
+      SharedPreferences.setMockInitialValues({
+        'offlineVPData': [boundaryPlan, futurePlan],
+      });
+
+      await VPlanAPI().cleanVplanOfflineData();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getStringList('offlineVPData')!.length, 2);
+    });
+
+    test('still deduplicates plans by date during cleanup', () async {
+      final today = DateTime.now();
+      final plan = planForDate(today);
+      SharedPreferences.setMockInitialValues({
+        'offlineVPData': [plan, plan],
+      });
+
+      await VPlanAPI().cleanVplanOfflineData();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getStringList('offlineVPData')!.length, 1);
+    });
+  });
 }

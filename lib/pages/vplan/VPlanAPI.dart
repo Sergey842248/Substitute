@@ -759,8 +759,10 @@ class VPlanAPI {
         break;
     }
 
+    // German dates don't zero-pad the day (e.g. "4. August"), but
+    // DateTime.parse requires two digits.
     return DateTime.parse(
-      '${dateArray[2]}-${dateArray[1]}-${dateArray[0]}',
+      '${dateArray[2]}-${dateArray[1]}-${dateArray[0].padLeft(2, '0')}',
     );
   }
 
@@ -1042,7 +1044,11 @@ class VPlanAPI {
     return missed;
   }
 
-  void cleanVplanOfflineData() async {
+  // Local plans are kept for at least 14 days so the user can navigate back
+  // in time. Plans older than that are pruned during cleanup.
+  static const int offlinePlanRetentionDays = 14;
+
+  Future<void> cleanVplanOfflineData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String>? offlineVPData = prefs.getStringList('offlineVPData');
 
@@ -1055,8 +1061,23 @@ class VPlanAPI {
       vplanData.add(jsonDecode(offlineVPData[i]));
     }
     List<dynamic> cleanedPlan = [];
+    DateTime today = DateTime.now();
 
     for (int i = 0; i < vplanData.length; i++) {
+      // Skip plans older than the retention period (future plans are kept).
+      DateTime? planDate;
+      try {
+        planDate = parseStringDatatoDateTime(
+          vplanData[i]['data']['Kopf']['DatumPlan'],
+        );
+      } catch (e) {
+        planDate = null;
+      }
+      if (planDate != null &&
+          today.difference(planDate).inDays > offlinePlanRetentionDays) {
+        continue;
+      }
+
       bool addIt = true;
       for (int j = 0; j < cleanedPlan.length; j++) {
         if (cleanedPlan[j]['data']['Kopf']['DatumPlan'] ==
