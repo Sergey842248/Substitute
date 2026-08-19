@@ -29,7 +29,7 @@ class VPlan extends StatefulWidget {
 class _VPlanState extends State<VPlan> {
   List<String> classes = [];
   List<Map<String, dynamic>> persons = [];
-  bool hidePersons = true;
+  bool hidePersons = false;
   final listKey = GlobalKey<AnimatedListState>();
 
   void getClasses() async {
@@ -48,12 +48,12 @@ class _VPlanState extends State<VPlan> {
     }
 
     // One-time migration: older versions stored 'hidePersons' with a default
-    // of OFF. Reset any stored value once so the new default (ON) applies.
+    // of OFF. Reset any stored value once so the new default applies.
     if (!(prefs.getBool('hidePersonsMigrated') ?? false)) {
       await prefs.remove('hidePersons');
       await prefs.setBool('hidePersonsMigrated', true);
     }
-    hidePersons = prefs.getBool('hidePersons') ?? true;
+    hidePersons = prefs.getBool('hidePersons') ?? false;
     persons = await VPlanAPI().getPersons();
     setState(() {});
 
@@ -150,18 +150,7 @@ class _VPlanState extends State<VPlan> {
             ),
           ],
         ),
-        if (persons.length == 0)
-          Padding(
-            padding: const EdgeInsets.only(left: 15, right: 15, bottom: 10),
-            child: Text(
-              AppLocalizations.of(context)!.noPersonsYet,
-              style: TextStyle(
-                color: Theme.of(context).focusColor.withOpacity(0.5),
-              ),
-            ),
-          )
-        else
-          ...persons.map((person) {
+        ...persons.map((person) {
             return ListItem(
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

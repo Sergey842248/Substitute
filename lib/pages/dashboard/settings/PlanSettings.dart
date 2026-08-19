@@ -23,7 +23,7 @@ class _PlanSettingsState extends State<PlanSettings> {
   Future<void> _loadSettings() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     // One-time migration: older versions stored 'hidePersons' with a default
-    // of OFF. Reset any stored value once so the new default (ON) applies.
+    // of OFF. Reset any stored value once so the new default applies.
     if (!(prefs.getBool('hidePersonsMigrated') ?? false)) {
       await prefs.remove('hidePersons');
       await prefs.setBool('hidePersonsMigrated', true);
@@ -31,7 +31,7 @@ class _PlanSettingsState extends State<PlanSettings> {
     setState(() {
       _hideLessonTimes = prefs.getBool('hideLessonTimes') ?? true;
       _hideTeacher = prefs.getBool('hideTeacher') ?? false;
-      _hidePersons = prefs.getBool('hidePersons') ?? true;
+      _hidePersons = prefs.getBool('hidePersons') ?? false;
     });
   }
 
