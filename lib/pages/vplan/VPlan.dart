@@ -634,12 +634,6 @@ class _ClassWidgetState extends State<ClassWidget> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ListItem(
-            leading: nextLesson['weekend'] == true
-                ? Icon(
-                    Icons.weekend_rounded,
-                    color: Theme.of(context).focusColor.withValues(alpha: 0.5),
-                  )
-                : null,
             title: Text(
               customName ?? widget.classId,
               style: TextStyle(
@@ -682,19 +676,31 @@ class _ClassWidgetState extends State<ClassWidget> {
             child: Container(
               key: ValueKey(nextLesson),
               width: double.infinity,
-              alignment: Alignment.topCenter,
+              alignment: Alignment.center,
               child: nextLesson.toString() == '{: loading}'
                   ? LoadingProcess()
                   : (nextLesson['weekend'] == true
-                      ? SizedBox(
-                          width: double.infinity,
-                          child: Text(
-                            AppLocalizations.of(context)!.weekend,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 19,
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.weekend_rounded,
+                              size: 30,
+                              color: Theme.of(context)
+                                  .focusColor
+                                  .withValues(alpha: 0.5),
                             ),
-                          ),
+                            const SizedBox(height: 6),
+                            Text(
+                              AppLocalizations.of(context)!.weekend,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 19,
+                              ),
+                            ),
+                          ],
                         )
                       : (nextLesson.toString() == '{}'
                           ? Text(
