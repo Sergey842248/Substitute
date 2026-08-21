@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(runner LANGUAGES CXX)
 
 set(BINARY_NAME "expandiware")
-set(APPLICATION_ID "com.example.expandiware")
+set(APPLICATION_ID "com.future.substitute")
 
 cmake_policy(SET CMP0063 NEW)
 
