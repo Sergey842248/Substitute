@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:animations/animations.dart';
 import 'package:expandiware/models/Button.dart';
 import 'package:flutter/material.dart';
@@ -651,12 +653,38 @@ class _CoursesState extends State<Courses> {
   VPlanAPI vplanAPI = new VPlanAPI();
   List<dynamic> courses = [];
   bool? seeAll;
+  Timer? _debounce;
 
   void getData() async {
     List<dynamic> _courses = await vplanAPI.getCourses(widget.classId);
 
+    // On first open for a new class, hide all courses by default
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    Map<String, dynamic> initialized = {};
+    String? initData = prefs.getString('initializedClasses');
+    if (initData != null && initData.isNotEmpty) {
+      try {
+        initialized = Map<String, dynamic>.from(
+            Map<String, dynamic>.from(jsonDecode(initData)) as Map);
+      } catch (e) {}
+    }
+    bool isFirstOpen = !initialized.containsKey(widget.classId);
+    if (isFirstOpen) {
+      initialized[widget.classId] = true;
+      await prefs.setString('initializedClasses', jsonEncode(initialized));
+    }
+
     List<String> hiddenCourses =
         await vplanAPI.getHiddenCourses(widget.classId);
+    if (isFirstOpen && hiddenCourses.isEmpty && _courses.isNotEmpty) {
+      // Hide all courses for first-time setup
+      List<String> allCourses = _courses
+          .map((c) => c['course'] as String)
+          .where((c) => c != '---')
+          .toList();
+      await vplanAPI.setHiddenCourses(widget.classId, allCourses);
+      hiddenCourses = allCourses;
+    }
     for (int i = 0; i < _courses.length; i++) {
       courses.add({
         'course': _courses[i]['course'],
@@ -668,10 +696,23 @@ class _CoursesState extends State<Courses> {
     setState(() {});
   }
 
+  void _debouncedUpdate() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 800), () {
+      widget.updateCourses();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     getData();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
   }
 
   @override
@@ -684,9 +725,8 @@ class _CoursesState extends State<Courses> {
           onPressed: () async {
             for (int i = 0; i < courses.length; i++) {
               courses[i]['show'] = true;
-              await vplanAPI.removeHiddenCourse(
-                  widget.classId, courses[i]['course']);
             }
+            await vplanAPI.setHiddenCourses(widget.classId, []);
             setState(() {});
             await widget.updateCourses();
           },
@@ -696,9 +736,11 @@ class _CoursesState extends State<Courses> {
           onPressed: () async {
             for (int i = 0; i < courses.length; i++) {
               courses[i]['show'] = false;
-              await vplanAPI.addHiddenCourse(
-                  widget.classId, courses[i]['course']);
             }
+            List<String> allCourses = courses
+                .map((c) => c['course'] as String)
+                .toList();
+            await vplanAPI.setHiddenCourses(widget.classId, allCourses);
             setState(() {});
             await widget.updateCourses();
           },
@@ -793,7 +835,7 @@ class _CoursesState extends State<Courses> {
                     await vplanAPI.addHiddenCourse(
                         widget.classId, e['course']);
                   }
-                  await widget.updateCourses();
+                  _debouncedUpdate();
                 },
               ),
             ),
@@ -840,9 +882,9 @@ class _PersonCoursesState extends State<PersonCourses> {
 
     Set<String> initial;
     if (widget.isNew) {
-      // Baseline for new persons: alle Kurse sichtbar - es werden keine
-      // ausgeblendeten Kurse anderer Klassen übernommen.
-      initial = courseList.map((c) => c['course'] as String).toSet();
+      // Baseline for new persons: alle Kurse deaktiviert - der Nutzer
+      // wählt nur die Kurse aus, die er sehen möchte.
+      initial = <String>{};
     } else {
       final List<dynamic>? stored = widget.person['courses'] as List<dynamic>?;
       initial = stored == null

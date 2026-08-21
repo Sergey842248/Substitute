@@ -515,4 +515,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get done => 'Done';
+
+  @override
+  String get time => 'Time';
+
+  @override
+  String get hour => 'Hour';
+
+  @override
+  String get fullDay => 'Full day';
+
+  @override
+  String get fullDayMessage =>
+      'Show all lessons for this day without filtering by time.';
+
+  @override
+  String get selectDate => 'Tap to select a date';
+
+  @override
+  String get selectTime => 'Tap to select a time';
+
+  @override
+  String get lessonTimes => 'Lesson times';
+
+  @override
+  String get lessonTimesSubtitle => 'Manually set the times for each lesson';
 }

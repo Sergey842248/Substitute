@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:expandiware/l10n/app_localizations.dart';
 
 import '../dashboard/FindRoom.dart';
-import '../dashboard/RoomPlan.dart';
 import '../teacherVPlan/TeacherVPlan.dart';
 
 /// Zentrales Such-Menü: bündelt alle Suchfunktionen (Lehrer, freie Räume,
@@ -28,21 +27,12 @@ class SearchMenu extends StatelessWidget {
       },
       {
         'icon': Icon(
-          Icons.place_rounded,
-          color: Theme.of(context).focusColor,
-        ),
-        'title': AppLocalizations.of(context)!.findFreeRoom,
-        'subtitle': AppLocalizations.of(context)!.findFreeRoomSubtitle,
-        'link': const FindRoom(),
-      },
-      {
-        'icon': Icon(
           Icons.meeting_room_rounded,
           color: Theme.of(context).focusColor,
         ),
         'title': AppLocalizations.of(context)!.roomPlan,
         'subtitle': AppLocalizations.of(context)!.roomPlanSubtitle,
-        'link': const RoomPlan(),
+        'link': const FindRoom(),
       },
     ];
     return Container(

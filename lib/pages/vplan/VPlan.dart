@@ -129,8 +129,6 @@ class _VPlanState extends State<VPlan> {
     getClasses();
   }
 
-
-
   Widget _personsSection() {
     // Persons section can be hidden in the plan settings
     if (hidePersons) return SizedBox();
@@ -159,47 +157,47 @@ class _VPlanState extends State<VPlan> {
           ],
         ),
         ...persons.map((person) {
-            return ListItem(
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    person['name'],
-                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    person['classId'],
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).focusColor.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
-              ),
-              actionButton: IconButton(
-                onPressed: () => _deletePerson(person),
-                icon: Icon(
-                  Icons.delete_rounded,
-                  color: Theme.of(context).focusColor.withValues(alpha: 0.5),
+          return ListItem(
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  person['name'],
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
                 ),
+                SizedBox(height: 2),
+                Text(
+                  person['classId'],
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).focusColor.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+            actionButton: IconButton(
+              onPressed: () => _deletePerson(person),
+              icon: Icon(
+                Icons.delete_rounded,
+                color: Theme.of(context).focusColor.withValues(alpha: 0.5),
               ),
-              onClick: () {
-                Navigator.push(
-                  context,
-                  PageTransition(
-                    type: PageTransitionType.rightToLeft,
-                    child: Scaffold(
-                      body: Plan(
-                        classId: person['classId'],
-                        person: person,
-                      ),
+            ),
+            onClick: () {
+              Navigator.push(
+                context,
+                PageTransition(
+                  type: PageTransitionType.rightToLeft,
+                  child: Scaffold(
+                    body: Plan(
+                      classId: person['classId'],
+                      person: person,
                     ),
                   ),
-                );
-              },
-            );
-          }),
+                ),
+              );
+            },
+          );
+        }),
       ],
     );
   }
@@ -308,92 +306,95 @@ class _VPlanState extends State<VPlan> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-          _personsSection(),
-          OpenContainer(
-            closedColor: Theme.of(context).scaffoldBackgroundColor,
-            openColor: Theme.of(context).scaffoldBackgroundColor,
-            openElevation: 0,
-            closedElevation: 0,
-            closedBuilder: (context, openContainer) => ListItem(
-              title: Text(
-                AppLocalizations.of(context)!.selectClass,
-                style: TextStyle(
-                  fontSize: 19,
+            _personsSection(),
+            const SizedBox(height: 2),
+            OpenContainer(
+              closedColor: Theme.of(context).scaffoldBackgroundColor,
+              openColor: Theme.of(context).scaffoldBackgroundColor,
+              openElevation: 0,
+              closedElevation: 0,
+              closedBuilder: (context, openContainer) => ListItem(
+                margin: 5,
+                title: Text(
+                  AppLocalizations.of(context)!.selectClass,
+                  style: TextStyle(
+                    fontSize: 19,
+                  ),
                 ),
+                onClick: openContainer,
               ),
-              onClick: openContainer,
+              openBuilder: (context, closeContainer) => SelectClass(
+                pop: (String classId) {
+                  listKey.currentState!.insertItem(classes.length);
+                  classes.add(classId);
+                },
+                favs: classes,
+              ),
             ),
-            openBuilder: (context, closeContainer) => SelectClass(
-              pop: (String classId) {
-                listKey.currentState!.insertItem(classes.length);
-                classes.add(classId);
-              },
-              favs: classes,
-            ),
-          ),
-          Container(
-            height: MediaQuery.of(context).size.height * 0.5,
-            child: Scrollbar(
-              radius: Radius.circular(100),
-              child: AnimatedList(
-                physics: BouncingScrollPhysics(),
-                key: listKey,
-                initialItemCount: classes.length,
-                itemBuilder: (context, index, animation) => SizeTransition(
-                  sizeFactor: animation,
-                  child: OpenContainer(
-                    closedColor: Theme.of(context).scaffoldBackgroundColor,
-                    openColor: Theme.of(context).scaffoldBackgroundColor,
-                    closedBuilder: (context, openContainer) => ClassWidget(
-                      classId: classes[index],
-                      classIndex: index,
-                      onDelete: () async {
-                        String classId = classes[index];
-                        SharedPreferences prefs =
-                            await SharedPreferences.getInstance();
-                        List<String>? newClasses =
-                            prefs.getStringList('classes');
-                        if (newClasses == null) {
-                          newClasses = [];
-                        }
-                        newClasses.remove(classId);
-                        prefs.setStringList('classes', newClasses);
-                        // Auch die gespeicherten Kurs-Auswahlen und den
-                        // benutzerdefinierten Namen der Klasse zurücksetzen,
-                        // damit eine später erneut hinzugefügte Klasse wieder
-                        // mit allen Kursen startet.
-                        await VPlanAPI().removeHiddenCoursesForClass(classId);
-                        await VPlanAPI().removeClassName(classId);
+            Container(
+              height: MediaQuery.of(context).size.height * 0.5,
+              child: Scrollbar(
+                radius: Radius.circular(100),
+                child: AnimatedList(
+                  padding: EdgeInsets.zero,
+                  physics: BouncingScrollPhysics(),
+                  key: listKey,
+                  initialItemCount: classes.length,
+                  itemBuilder: (context, index, animation) => SizeTransition(
+                    sizeFactor: animation,
+                    child: OpenContainer(
+                      closedColor: Theme.of(context).scaffoldBackgroundColor,
+                      openColor: Theme.of(context).scaffoldBackgroundColor,
+                      closedBuilder: (context, openContainer) => ClassWidget(
+                        classId: classes[index],
+                        classIndex: index,
+                        onDelete: () async {
+                          String classId = classes[index];
+                          SharedPreferences prefs =
+                              await SharedPreferences.getInstance();
+                          List<String>? newClasses =
+                              prefs.getStringList('classes');
+                          if (newClasses == null) {
+                            newClasses = [];
+                          }
+                          newClasses.remove(classId);
+                          prefs.setStringList('classes', newClasses);
+                          // Auch die gespeicherten Kurs-Auswahlen und den
+                          // benutzerdefinierten Namen der Klasse zurücksetzen,
+                          // damit eine später erneut hinzugefügte Klasse wieder
+                          // mit allen Kursen startet.
+                          await VPlanAPI().removeHiddenCoursesForClass(classId);
+                          await VPlanAPI().removeClassName(classId);
 
-                        listKey.currentState!.removeItem(
-                          index,
-                          (context, animation) => SizeTransition(
-                            sizeFactor: animation,
-                            child: ListItem(
-                              onClick: () {},
-                              title: Text(
-                                classId,
-                                style: TextStyle(
-                                  fontSize: 19,
+                          listKey.currentState!.removeItem(
+                            index,
+                            (context, animation) => SizeTransition(
+                              sizeFactor: animation,
+                              child: ListItem(
+                                onClick: () {},
+                                title: Text(
+                                  classId,
+                                  style: TextStyle(
+                                    fontSize: 19,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                        classes.removeAt(index);
-                        //getClasses();
-                      },
-                      openContainer: openContainer,
-                    ),
-                    openBuilder: (context, closeContainer) => Plan(
-                      classId: classes[index],
+                          );
+                          classes.removeAt(index);
+                          //getClasses();
+                        },
+                        openContainer: openContainer,
+                      ),
+                      openBuilder: (context, closeContainer) => Plan(
+                        classId: classes[index],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
         ),
       ),
     );
@@ -459,8 +460,7 @@ class _ClassWidgetState extends State<ClassWidget> {
             child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
-            onPressed: () =>
-                Navigator.pop(context, nameController.text.trim()),
+            onPressed: () => Navigator.pop(context, nameController.text.trim()),
             child: Text(
               AppLocalizations.of(context)!.save,
               style: TextStyle(fontWeight: FontWeight.bold),
@@ -531,24 +531,35 @@ class _ClassWidgetState extends State<ClassWidget> {
     if (foundNextLesson) {
       nextLesson = realVPlan[lessonIndex];
     } else {
-      // Check if current time is after the last lesson of the day
-      if (realVPlan.isNotEmpty) {
-        Map<String, dynamic> lastLesson = realVPlan.last;
-        double lastLessonEndTime = (toTimeOfDay(lastLesson['end']).hour +
-                (toTimeOfDay(lastLesson['end']).minute / 60));
+      // No lesson found today. Check weekend first, then after-school.
+      DateTime now = DateTime.now();
 
-        if (currentTime.hour + (currentTime.minute / 60) > lastLessonEndTime) {
-          // Current time is after last lesson, so get first lesson of next day
+      if (now.weekday == DateTime.saturday || now.weekday == DateTime.sunday) {
+        nextLesson = {'weekend': true};
+      } else {
+        // Weekday - check if it's after school hours
+        bool afterSchool = false;
+        if (realVPlan.isNotEmpty) {
+          Map<String, dynamic> lastLesson = realVPlan.last;
+          if (lastLesson['end'] != null) {
+            double lastLessonEndTime = (toTimeOfDay(lastLesson['end']).hour +
+                toTimeOfDay(lastLesson['end']).minute / 60);
+            afterSchool = (currentTime.hour + (currentTime.minute / 60)) >
+                lastLessonEndTime;
+          }
+        } else {
+          afterSchool = true;
+        }
+
+        if (afterSchool) {
+          // Determine the next school day
+          DateTime nextDay = now.add(Duration(days: 1));
+          while (nextDay.weekday == DateTime.saturday ||
+              nextDay.weekday == DateTime.sunday) {
+            nextDay = nextDay.add(const Duration(days: 1));
+          }
+
           try {
-            DateTime today = DateTime.now();
-
-            // Nächsten Schultag bestimmen (Wochenende überspringen)
-            DateTime nextDay = today.add(Duration(days: 1));
-            while (nextDay.weekday == DateTime.saturday ||
-                nextDay.weekday == DateTime.sunday) {
-              nextDay = nextDay.add(const Duration(days: 1));
-            }
-
             dynamic nextDayVplan = await VPlanAPI().getLessonsByDate(
               date: nextDay,
               classId: widget.classId,
@@ -557,7 +568,6 @@ class _ClassWidgetState extends State<ClassWidget> {
             if (nextDayVplan != null &&
                 nextDayVplan['data'] != null &&
                 nextDayVplan['data'].isNotEmpty) {
-
               // Filter hidden courses from the next day's lessons
               List<dynamic> nextDayRealVPlan = [];
               for (var i = 0; i < nextDayVplan['data'].length; i++) {
@@ -571,33 +581,19 @@ class _ClassWidgetState extends State<ClassWidget> {
               }
 
               if (nextDayRealVPlan.isNotEmpty) {
-                // Use the first lesson of the next school day
                 nextLesson = nextDayRealVPlan.first;
-              } else if (nextDay.weekday == DateTime.monday) {
-                // Freitag nach Schulschluss: kein Plan für Montag verfügbar
-                // -> Wochenende anzeigen.
-                nextLesson = {'weekend': true};
               } else {
-                nextLesson = {};
+                // Plan exists but all lessons are hidden or empty
+                nextLesson = {'weekend': true};
               }
-            } else if (nextDay.weekday == DateTime.monday) {
-              nextLesson = {'weekend': true};
             } else {
-              nextLesson = {};
+              // No plan available for next school day -> show weekend
+              nextLesson = {'weekend': true};
             }
           } catch (e) {
-            print('Error fetching next day lessons: $e');
-            nextLesson = {};
+            // Error loading next day plan -> show weekend
+            nextLesson = {'weekend': true};
           }
-        } else {
-          nextLesson = {};
-        }
-      } else {
-        // Samstag/Sonntag: die nächste Stunde ist erst am Montag.
-        DateTime now = DateTime.now();
-        if (now.weekday == DateTime.saturday ||
-            now.weekday == DateTime.sunday) {
-          nextLesson = {'weekend': true};
         } else {
           nextLesson = {};
         }
@@ -635,8 +631,15 @@ class _ClassWidgetState extends State<ClassWidget> {
     return Container(
       margin: EdgeInsets.only(left: 5, right: 5, bottom: 5),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ListItem(
+            leading: nextLesson['weekend'] == true
+                ? Icon(
+                    Icons.weekend_rounded,
+                    color: Theme.of(context).focusColor.withValues(alpha: 0.5),
+                  )
+                : null,
             title: Text(
               customName ?? widget.classId,
               style: TextStyle(
@@ -679,41 +682,27 @@ class _ClassWidgetState extends State<ClassWidget> {
             child: Container(
               key: ValueKey(nextLesson),
               width: double.infinity,
+              alignment: Alignment.topCenter,
               child: nextLesson.toString() == '{: loading}'
-                  ? Center(child: LoadingProcess())
+                  ? LoadingProcess()
                   : (nextLesson['weekend'] == true
-                      ? Center(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.weekend_rounded,
-                                color: Theme.of(context)
-                                    .focusColor
-                                    .withValues(alpha: 0.5),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                AppLocalizations.of(context)!.weekend,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 19,
-                                ),
-                              ),
-                            ],
+                      ? SizedBox(
+                          width: double.infinity,
+                          child: Text(
+                            AppLocalizations.of(context)!.weekend,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 19,
+                            ),
                           ),
                         )
                       : (nextLesson.toString() == '{}'
-                          ? Center(
-                              child: Text(
-                                AppLocalizations.of(context)!.noNextLessonFound,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Theme.of(context)
-                                      .focusColor
-                                      .withValues(alpha: 0.5),
-                                ),
+                          ? Text(
+                              AppLocalizations.of(context)!.noNextLessonFound,
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .focusColor
+                                    .withValues(alpha: 0.5),
                               ),
                             )
                           : Row(
@@ -745,13 +734,14 @@ class _ClassWidgetState extends State<ClassWidget> {
                                   ],
                                 ),
                                 SizedBox(
-                                    width:
-                                        MediaQuery.of(context).size.width * 0.3),
+                                    width: MediaQuery.of(context).size.width *
+                                        0.3),
                                 Column(
                                   children: [
                                     Text(''),
                                     Text(
-                                      AppLocalizations.of(context)!.room(nextLesson['place'] ?? ''),
+                                      AppLocalizations.of(context)!
+                                          .room(nextLesson['place'] ?? ''),
                                       style: TextStyle(fontSize: 19),
                                     ),
                                     SizedBox(height: spaceBetween),
@@ -1051,8 +1041,7 @@ class _SelectClassState extends State<SelectClass> {
                     controller: nameController,
                     autofocus: true,
                     decoration: InputDecoration(
-                      hintText:
-                          AppLocalizations.of(context)!.classNameHint,
+                      hintText: AppLocalizations.of(context)!.classNameHint,
                     ),
                   ),
                   actions: [
@@ -1066,8 +1055,8 @@ class _SelectClassState extends State<SelectClass> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () => Navigator.pop(
-                          context, nameController.text.trim()),
+                      onPressed: () =>
+                          Navigator.pop(context, nameController.text.trim()),
                       child: Text(
                         AppLocalizations.of(context)!.save,
                         style: TextStyle(
@@ -1085,8 +1074,35 @@ class _SelectClassState extends State<SelectClass> {
                 await VPlanAPI().setClassName(className, customName);
               }
 
+              // Hide all courses for the new class by default
+              final vplanApi = VPlanAPI();
+              final courses = await vplanApi.getCourses(className);
+              if (courses.isNotEmpty) {
+                final allCourseIds = courses
+                    .map((c) => c['course'] as String)
+                    .where((c) => c != '---')
+                    .toList();
+                await vplanApi.setHiddenCourses(className, allCourseIds);
+              }
+
+              // Add the class to VPlan's list
               this.widget.pop(className);
-              Navigator.pop(context);
+
+              // Replace SelectClass with Courses so the user lands
+              // directly on course selection. Popping Courses later
+              // returns to VPlan.
+              Navigator.pushReplacement(
+                context,
+                PageTransition(
+                  type: PageTransitionType.rightToLeft,
+                  child: Scaffold(
+                    body: Courses(
+                      classId: className,
+                      updateCourses: () async {},
+                    ),
+                  ),
+                ),
+              );
             },
           );
         }),

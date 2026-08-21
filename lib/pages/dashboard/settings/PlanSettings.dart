@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:expandiware/l10n/app_localizations.dart';
+import 'package:page_transition/page_transition.dart';
 
 import '../../../models/ListPage.dart';
+import './Lessons.dart';
 
 class PlanSettings extends StatefulWidget {
   @override
@@ -183,6 +185,52 @@ class _PlanSettingsState extends State<PlanSettings> {
                     ),
                     value: _hidePersons,
                     onChanged: _toggleHidePersons,
+                  ),
+                ),
+              ),
+            ),
+            Material(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              child: Container(
+                margin: EdgeInsets.all(10),
+                child: Center(
+                  child: ListTile(
+                    leading: Container(
+                      margin: EdgeInsets.all(4),
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Icon(Icons.schedule_rounded),
+                    ),
+                    title: Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Text(
+                        l10n.lessonTimes,
+                        style: TextStyle(
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    subtitle: Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Text(
+                        l10n.lessonTimesSubtitle,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w100,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                    trailing: Icon(Icons.arrow_forward_ios_rounded, size: 18),
+                    onTap: () => Navigator.push(
+                      context,
+                      PageTransition(
+                        type: PageTransitionType.rightToLeft,
+                        child: Lessons(),
+                      ),
+                    ),
                   ),
                 ),
               ),

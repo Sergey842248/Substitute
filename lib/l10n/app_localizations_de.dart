@@ -519,4 +519,30 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get done => 'Erledigt';
+
+  @override
+  String get time => 'Zeit';
+
+  @override
+  String get hour => 'Stunde';
+
+  @override
+  String get fullDay => 'Ganzer Tag';
+
+  @override
+  String get fullDayMessage =>
+      'Alle Stunden dieses Tages ohne Zeitfilter anzeigen.';
+
+  @override
+  String get selectDate => 'Tippen, um ein Datum zu wählen';
+
+  @override
+  String get selectTime => 'Tippen, um eine Uhrzeit zu wählen';
+
+  @override
+  String get lessonTimes => 'Stundenzeiten';
+
+  @override
+  String get lessonTimesSubtitle =>
+      'Zeiten der einzelnen Unterrichtsstunden manuell einstellen';
 }

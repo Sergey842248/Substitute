@@ -1,14 +1,19 @@
+import 'dart:convert';
+
 import 'package:expandiware/models/ListItem.dart';
 import 'package:expandiware/models/ListPage.dart';
-import 'package:expandiware/models/LoadingProcess.dart';
 import 'package:expandiware/models/ProcessBar.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:expandiware/l10n/app_localizations.dart';
-import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 
 import '../vplan/VPlanAPI.dart';
 
+/// Raumplan: Zeigt alle Räume und deren Belegung für einen bestimmten Tag
+/// und eine bestimmte Uhrzeit bzw. Stunde. Der Nutzer kann wählen zwischen
+/// einer konkreten Uhrzeit (Date+Time-Picker), einer Schulstunde (1.–10.)
+/// oder dem gesamten Tag (ohne Zeitfilter).
 class FindRoom extends StatefulWidget {
   const FindRoom({Key? key}) : super(key: key);
 
@@ -21,8 +26,17 @@ class _FindRoomState extends State<FindRoom> {
   bool getDataExecuted = false;
   String loadText = '';
 
-  int _selectedDay = 0; // 0 for today, 1 for tomorrow
-  bool _tomorrowPlanAvailable = false;
+  // Date selection
+  DateTime _selectedDate = DateTime.now();
+
+  // Time mode: null = full day, TimeOfDay = specific time
+  TimeOfDay? _selectedTime;
+
+  // Hour mode: null = use time, int = lesson number (1, 2, 3, ...)
+  int? _selectedHour;
+
+  // Lesson times loaded from settings
+  List<Map<String, dynamic>> _lessonTimes = [];
 
   int process = 0;
   int totalSteps = 10;
@@ -33,6 +47,35 @@ class _FindRoomState extends State<FindRoom> {
 
   double toDouble(TimeOfDay myTime) => myTime.hour + myTime.minute / 60.0;
 
+  /// Returns the effective TimeOfDay to filter rooms by.
+  /// If a specific hour is selected, uses the lesson's start time.
+  /// If a specific time is selected, uses that.
+  /// If full day, returns null.
+  TimeOfDay? get _effectiveTime {
+    if (_selectedHour != null && _lessonTimes.isNotEmpty) {
+      int idx = _selectedHour! - 1;
+      if (idx >= 0 && idx < _lessonTimes.length) {
+        String start = _lessonTimes[idx]['start'] ?? '';
+        return _parseTimeOfDay(start);
+      }
+    }
+    return _selectedTime;
+  }
+
+  TimeOfDay? _parseTimeOfDay(String time) {
+    try {
+      time = time.replaceAll('TimeOfDay(', '').replaceAll(')', '');
+      List<String> parts = time.split(':');
+      if (parts.length == 2) {
+        return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  /// Returns true if we are in full-day mode (no time/hour filter).
+  bool get _isFullDay => _selectedTime == null && _selectedHour == null;
+
   void getData() async {
     getDataExecuted = true;
     if (mounted) {
@@ -42,53 +85,39 @@ class _FindRoomState extends State<FindRoom> {
       });
     }
 
-    VPlanAPI vplanAPI = VPlanAPI();
-
-    // Check if tomorrow's plan is available
-    try {
-      final tomorrow = DateTime.now().add(const Duration(days: 1));
-      final tomorrowPlan = await vplanAPI.getVPlanJSON(
-        Uri.parse(await vplanAPI.getURL(tomorrow)),
-        tomorrow,
-      );
-      if (tomorrowPlan != null &&
-          tomorrowPlan['error'] == null &&
-          tomorrowPlan.isNotEmpty) {
-        if (mounted) {
-          setState(() {
-            _tomorrowPlanAvailable = true;
-          });
-        }
+    // Load lesson times from settings
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? lessonTimesJson = prefs.getString('lessontimes');
+    if (lessonTimesJson != null && lessonTimesJson.isNotEmpty) {
+      try {
+        List<dynamic> decoded = jsonDecode(lessonTimesJson);
+        _lessonTimes = decoded.cast<Map<String, dynamic>>();
+      } catch (e) {
+        _lessonTimes = [];
       }
-    } catch (e) {
-      // Tomorrow's plan not available
     }
 
-    final dateToFetch = _selectedDay == 0
-        ? DateTime.now()
-        : DateTime.now().add(const Duration(days: 1));
-    Uri url = Uri.parse(await vplanAPI.getURL(dateToFetch));
+    VPlanAPI vplanAPI = VPlanAPI();
+    Uri url = Uri.parse(await vplanAPI.getURL(_selectedDate));
 
     if (mounted) setState(() => loadText = AppLocalizations.of(context)!.loadingSubstitutionPlan);
-    dynamic _vplanData = await vplanAPI.getVPlanJSON(url, dateToFetch);
+    dynamic _vplanData = await vplanAPI.getVPlanJSON(url, _selectedDate);
     if (mounted) setState(() => loadText = AppLocalizations.of(context)!.substitutionPlanLoaded);
 
     if (_vplanData == null ||
         _vplanData.isEmpty ||
         _vplanData['error'] != null ||
         _vplanData['data'] == null ||
-        !vplanAPI.compareDate(dateToFetch, _vplanData['date'])) {
+        !vplanAPI.compareDate(_selectedDate, _vplanData['date'])) {
       if (mounted) {
         setState(() {
-          loadText = _selectedDay == 0
-              ? AppLocalizations.of(context)!.noSubstitutionPlanToday
-              : AppLocalizations.of(context)!.noSubstitutionPlanTomorrow;
+          loadText = AppLocalizations.of(context)!.noPlanForThisDay;
         });
       }
       return;
     }
 
-    // --- Get all rooms ---
+    // --- Get all rooms from plan data ---
     List<int> rooms = [];
     if (_vplanData['data']['Klassen'] != null &&
         _vplanData['data']['Klassen']['Kl'] != null) {
@@ -111,17 +140,35 @@ class _FindRoomState extends State<FindRoom> {
         }
       }
     }
+
+    // Merge with previously cached rooms so ALL known rooms are shown
+    SharedPreferences prefs2 = await SharedPreferences.getInstance();
+    List<int> cachedRooms = (prefs2.getStringList('cachedRooms') ?? [])
+        .map((e) => int.tryParse(e) ?? -1)
+        .where((e) => e >= 0)
+        .toList();
+    for (var r in cachedRooms) {
+      if (!rooms.contains(r)) rooms.add(r);
+    }
+    // Save merged list for next time
+    await prefs2.setStringList(
+      'cachedRooms',
+      rooms.map((e) => e.toString()).toList(),
+    );
+
     rooms.sort();
     // --- All rooms got ---
 
     List<int> usedRooms = [];
-    if (_selectedDay == 0 &&
+    if (!_isFullDay &&
         _vplanData['data']['Klassen'] != null &&
         _vplanData['data']['Klassen']['Kl'] != null) {
-      // Only check for currently used rooms for today
+      // Only check for currently used rooms when a time/hour is selected
       if (mounted) setState(() => loadText = AppLocalizations.of(context)!.browsingPlan);
       totalSteps = _vplanData['data']['Klassen']['Kl'].length;
       process = 0;
+
+      TimeOfDay filterTime = _effectiveTime ?? TimeOfDay.now();
 
       for (var cl in _vplanData['data']['Klassen']['Kl']) {
         if (mounted) setState(() => process++);
@@ -132,17 +179,16 @@ class _FindRoomState extends State<FindRoom> {
 
             int bhours = int.parse((lesson['Beginn'] as String).split(':')[0]);
             int bminutes =
-            int.parse((lesson['Beginn'] as String).split(':')[1]);
+                int.parse((lesson['Beginn'] as String).split(':')[1]);
 
             int ehours = int.parse((lesson['Ende'] as String).split(':')[0]);
             int eminutes = int.parse((lesson['Ende'] as String).split(':')[1]);
 
             TimeOfDay _begin = TimeOfDay(hour: bhours, minute: bminutes);
             TimeOfDay _end = TimeOfDay(hour: ehours, minute: eminutes);
-            TimeOfDay _now = initTime; // Use selected time
 
-            if (toDouble(_now) >= toDouble(_begin) &&
-                toDouble(_now) <= toDouble(_end)) {
+            if (toDouble(filterTime) >= toDouble(_begin) &&
+                toDouble(filterTime) <= toDouble(_end)) {
               String? room = lesson['Ra'];
               if (room != null) {
                 String editRoom = room
@@ -299,12 +345,12 @@ class _FindRoomState extends State<FindRoom> {
                             children: [
                               roomData.isEmpty
                                   ? Text(
-                                '...',
-                                textAlign: TextAlign.center,
-                              )
+                                      '...',
+                                      textAlign: TextAlign.center,
+                                    )
                                   : SizedBox(),
                               ...roomData.map(
-                                    (e) => ListItem(
+                                (e) => ListItem(
                                   onClick: () {},
                                   color: e['info'] == null
                                       ? null
@@ -316,12 +362,12 @@ class _FindRoomState extends State<FindRoom> {
                                   title: Container(
                                     alignment: Alignment.centerLeft,
                                     width:
-                                    MediaQuery.of(context).size.width * 0.1,
+                                        MediaQuery.of(context).size.width * 0.1,
                                     child: Row(
                                       mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                          MainAxisAlignment.spaceBetween,
                                       crossAxisAlignment:
-                                      CrossAxisAlignment.center,
+                                          CrossAxisAlignment.center,
                                       children: [
                                         Text(
                                           printValue(e['lesson']),
@@ -329,9 +375,9 @@ class _FindRoomState extends State<FindRoom> {
                                         ),
                                         Column(
                                           mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                              MainAxisAlignment.center,
                                           crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Row(
                                               children: [
@@ -363,11 +409,11 @@ class _FindRoomState extends State<FindRoom> {
                                   subtitle: e['info'] == null
                                       ? null
                                       : Text(
-                                    '${e['info']}',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                          '${e['info']}',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                 ),
                               )
                             ],
@@ -392,60 +438,205 @@ class _FindRoomState extends State<FindRoom> {
     return value;
   }
 
-  setTime(BuildContext context) async {
-    final newTime = await showDialog<TimeOfDay>(
+  /// Shows the combined date/time/hour selection dialog.
+  void _showSelectionDialog(BuildContext context) async {
+    DateTime tempDate = _selectedDate;
+    TimeOfDay? tempTime = _selectedTime;
+    int? tempHour = _selectedHour;
+
+    await showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (context, setDialogState) {
+            String dateStr = DateFormat('dd.MM.yyyy').format(tempDate);
             return AlertDialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
               title: Text(AppLocalizations.of(context)!.chooseTimeAndDay),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_tomorrowPlanAvailable)
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Date picker button
+                    ListTile(
+                      leading: Icon(Icons.calendar_today_rounded),
+                      title: Text(dateStr),
+                      subtitle: Text(AppLocalizations.of(context)!.selectDate),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: tempDate,
+                          firstDate: DateTime.now().subtract(Duration(days: 30)),
+                          lastDate: DateTime.now().add(Duration(days: 30)),
+                        );
+                        if (picked != null) {
+                          setDialogState(() {
+                            tempDate = picked;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    // Mode toggle: Time / Hour / Full Day
                     ToggleButtons(
                       borderRadius: BorderRadius.circular(20),
-                      isSelected: [_selectedDay == 0, _selectedDay == 1],
+                      isSelected: [
+                        tempHour == null && tempTime != null,
+                        tempHour != null,
+                        tempHour == null && tempTime == null,
+                      ],
                       onPressed: (index) {
-                        setState(() {
-                          _selectedDay = index;
+                        setDialogState(() {
+                          if (index == 0) {
+                            // Time mode
+                            tempHour = null;
+                            tempTime = tempTime ?? TimeOfDay.now();
+                          } else if (index == 1) {
+                            // Hour mode
+                            tempTime = null;
+                            tempHour = tempHour ?? 1;
+                          } else {
+                            // Full day mode
+                            tempHour = null;
+                            tempTime = null;
+                          }
                         });
                       },
                       children: [
                         Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Text(AppLocalizations.of(context)!.today),
+                          padding: EdgeInsets.symmetric(horizontal: 10.0),
+                          child: Text(AppLocalizations.of(context)!.time),
                         ),
                         Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Text(AppLocalizations.of(context)!.tomorrow),
+                          padding: EdgeInsets.symmetric(horizontal: 10.0),
+                          child: Text(AppLocalizations.of(context)!.hour),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 10.0),
+                          child: Text(AppLocalizations.of(context)!.fullDay),
                         ),
                       ],
                     ),
-                  const SizedBox(height: 10),
-                  TimePickerSpinner(
-                    time: DateTime(DateTime.now().year, DateTime.now().month,
-                        DateTime.now().day, initTime.hour, initTime.minute),
-                    is24HourMode: false,
-                    isShowSeconds: false,
-                    normalTextStyle: const TextStyle(fontSize: 18),
-                    highlightedTextStyle: TextStyle(
-                        fontSize: 24, color: Theme.of(context).primaryColor),
-                    spacing: 20,
-                    itemHeight: 60,
-                    isForce2Digits: true,
-                    onTimeChange: (DateTime newTime) {
-                      setState(() {
-                        initTime = TimeOfDay(
-                            hour: newTime.hour, minute: newTime.minute);
-                      });
-                    },
-                  ),
-                ],
+                    const SizedBox(height: 15),
+                    // Time picker (when in time mode)
+                    if (tempHour == null && tempTime != null)
+                      ListTile(
+                        leading: Icon(Icons.access_time_rounded),
+                        title: Text(
+                          '${tempTime!.hour.toString().padLeft(2, '0')}:${tempTime!.minute.toString().padLeft(2, '0')}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Text(AppLocalizations.of(context)!.selectTime),
+                        onTap: () async {
+                          final picked = await showTimePicker(
+                            context: context,
+                            initialTime: tempTime!,
+                          );
+                          if (picked != null) {
+                            setDialogState(() {
+                              tempTime = picked;
+                            });
+                          }
+                        },
+                      ),
+                    // Hour picker (when in hour mode)
+                    if (tempHour != null)
+                      Column(
+                        children: [
+                          // Default lesson times from settings
+                          if (_lessonTimes.isNotEmpty)
+                            ...List.generate(_lessonTimes.length, (index) {
+                              int lessonNum = index + 1;
+                              String start = _lessonTimes[index]['start'] ?? '';
+                              String end = _lessonTimes[index]['end'] ?? '';
+                              String startParsed = '';
+                              String endParsed = '';
+                              try {
+                                startParsed = _parseTimeOfDay(start)
+                                    ?.toString()
+                                    .replaceAll('TimeOfDay(', '')
+                                    .replaceAll(')', '') ?? '';
+                                endParsed = _parseTimeOfDay(end)
+                                    ?.toString()
+                                    .replaceAll('TimeOfDay(', '')
+                                    .replaceAll(')', '') ?? '';
+                              } catch (e) {}
+                              return ListTile(
+                                leading: Icon(
+                                  tempHour == lessonNum
+                                      ? Icons.radio_button_checked
+                                      : Icons.radio_button_unchecked,
+                                  color: tempHour == lessonNum
+                                      ? Theme.of(context).primaryColor
+                                      : null,
+                                ),
+                                title: Text(
+                                  '$lessonNum. ${AppLocalizations.of(context)!.hour}',
+                                  style: TextStyle(
+                                    fontWeight: tempHour == lessonNum
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
+                                ),
+                                subtitle: (startParsed.isNotEmpty && endParsed.isNotEmpty)
+                                    ? Text('$startParsed – $endParsed')
+                                    : null,
+                                onTap: () {
+                                  setDialogState(() {
+                                    tempHour = lessonNum;
+                                  });
+                                },
+                              );
+                            }),
+                          // If no lesson times configured, show generic number picker
+                          if (_lessonTimes.isEmpty)
+                            for (int i = 1; i <= 10; i++)
+                              ListTile(
+                                leading: Icon(
+                                  tempHour == i
+                                      ? Icons.radio_button_checked
+                                      : Icons.radio_button_unchecked,
+                                  color: tempHour == i
+                                      ? Theme.of(context).primaryColor
+                                      : null,
+                                ),
+                                title: Text(
+                                  '$i. ${AppLocalizations.of(context)!.hour}',
+                                  style: TextStyle(
+                                    fontWeight: tempHour == i
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
+                                ),
+                                onTap: () {
+                                  setDialogState(() {
+                                    tempHour = i;
+                                  });
+                                },
+                              ),
+                        ],
+                      ),
+                    // Full day message
+                    if (tempHour == null && tempTime == null)
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          AppLocalizations.of(context)!.fullDayMessage,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Theme.of(context)
+                                .focusColor
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -454,37 +645,57 @@ class _FindRoomState extends State<FindRoom> {
                 ),
                 TextButton(
                   child: Text(AppLocalizations.of(context)!.ok),
-                  onPressed: () => Navigator.of(context).pop(initTime),
+                  onPressed: () {
+                    Navigator.of(context).pop({
+                      'date': tempDate,
+                      'time': tempTime,
+                      'hour': tempHour,
+                    });
+                  },
                 ),
               ],
             );
           },
         );
       },
-    );
-
-    if (newTime != null) {
-      initTime = newTime;
-      getData();
-      if (mounted) setState(() {});
-    }
+    ).then((result) {
+      if (result != null) {
+        setState(() {
+          _selectedDate = result['date'];
+          _selectedTime = result['time'];
+          _selectedHour = result['hour'];
+        });
+        getData();
+      }
+    });
   }
 
-  TimeOfDay initTime = TimeOfDay.now();
+  /// Builds the display text for the current selection.
+  String _buildTitleTime() {
+    String dateStr = DateFormat('dd.MM.yyyy').format(_selectedDate);
+    if (_isFullDay) {
+      return '$dateStr – ${AppLocalizations.of(context)!.fullDay}';
+    } else if (_selectedHour != null) {
+      return '$dateStr – ${_selectedHour}. ${AppLocalizations.of(context)!.hour}';
+    } else if (_selectedTime != null) {
+      String timeStr =
+          '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}';
+      return '$dateStr – $timeStr';
+    }
+    return dateStr;
+  }
 
   @override
   Widget build(BuildContext context) {
-    String time =
-        '${initTime.hour <= 9 ? '0${initTime.hour}' : initTime.hour}:${initTime.minute <= 9 ? '0${initTime.minute}' : initTime.minute}';
     if (!getDataExecuted) getData();
     return Container(
       child: ListPage(
-        title: AppLocalizations.of(context)!.freeRoomsTitle(time),
+        title: '${AppLocalizations.of(context)!.roomPlan}\n${_buildTitleTime()}',
         smallTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.update),
-            onPressed: () => setTime(context),
+            onPressed: () => _showSelectionDialog(context),
           ),
           IconButton(
             onPressed: () => getData(),
@@ -494,77 +705,78 @@ class _FindRoomState extends State<FindRoom> {
         children: [
           loadText != ''
               ? Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                loadText,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w400,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 5),
-              Text(
-                AppLocalizations.of(context)!.processCanTakeSeconds,
-                style: TextStyle(fontSize: 11),
-              ),
-              const SizedBox(height: 15),
-              ProcessBar(
-                slow: true,
-                width: MediaQuery.of(context).size.width * 0.6,
-                totalSteps: totalSteps,
-                currentStep: process,
-              )
-            ],
-          )
-              : data == []
-              ? SizedBox(
-            width: 100,
-            height: 200,
-            child: Text(AppLocalizations.of(context)!.loading),
-          )
-              : GridView.count(
-            crossAxisCount: 3,
-            childAspectRatio: 3 / 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              ...(data as List).map(
-                    (e) => InkWell(
-                  onTap: () async => roomInfo(
-                    context,
-                    e['room_lessons'],
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    margin: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      color: Theme.of(context).colorScheme.surface,
-                      border: e['open']
-                          ? Border.all(
-                        color: Theme.of(context).primaryColor,
-                      )
-                          : null,
-                    ),
-                    child: Center(
-                      child: Text(
-                        e['used_this_day']
-                            ? '${e['room']}'
-                            : '(${e['room']})',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      loadText,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w400,
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+                    const SizedBox(height: 5),
+                    Text(
+                      AppLocalizations.of(context)!.processCanTakeSeconds,
+                      style: TextStyle(fontSize: 11),
+                    ),
+                    const SizedBox(height: 15),
+                    ProcessBar(
+                      slow: true,
+                      width: MediaQuery.of(context).size.width * 0.6,
+                      totalSteps: totalSteps,
+                      currentStep: process,
+                    )
+                  ],
+                )
+              : data == []
+                  ? SizedBox(
+                      width: 100,
+                      height: 200,
+                      child: Text(AppLocalizations.of(context)!.loading),
+                    )
+                  : GridView.count(
+                      crossAxisCount: 3,
+                      childAspectRatio: 3 / 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                          ...(data as List).map(
+                            (e) => InkWell(
+                              onTap: () async => roomInfo(
+                                context,
+                                e['room_lessons'],
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                margin: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(20),
+                                  color: Theme.of(context).colorScheme.surface,
+                                  border: e['open']
+                                      ? Border.all(
+                                          color:
+                                              Theme.of(context).primaryColor,
+                                        )
+                                      : null,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    e['used_this_day']
+                                        ? '${e['room']}'
+                                        : '(${e['room']})',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                    ),
         ],
       ),
     );

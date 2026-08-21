@@ -1033,6 +1033,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Done'**
   String get done;
+
+  /// No description provided for @time.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get time;
+
+  /// No description provided for @hour.
+  ///
+  /// In en, this message translates to:
+  /// **'Hour'**
+  String get hour;
+
+  /// No description provided for @fullDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Full day'**
+  String get fullDay;
+
+  /// No description provided for @fullDayMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all lessons for this day without filtering by time.'**
+  String get fullDayMessage;
+
+  /// No description provided for @selectDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to select a date'**
+  String get selectDate;
+
+  /// No description provided for @selectTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to select a time'**
+  String get selectTime;
+
+  /// No description provided for @lessonTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'Lesson times'**
+  String get lessonTimes;
+
+  /// No description provided for @lessonTimesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manually set the times for each lesson'**
+  String get lessonTimesSubtitle;
 }
 
 class _AppLocalizationsDelegate

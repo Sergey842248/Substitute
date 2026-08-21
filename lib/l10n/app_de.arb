@@ -253,5 +253,13 @@
             }
         }
     },
-    "done": "Erledigt"
+    "done": "Erledigt",
+    "time": "Zeit",
+    "hour": "Stunde",
+    "fullDay": "Ganzer Tag",
+    "fullDayMessage": "Alle Stunden dieses Tages ohne Zeitfilter anzeigen.",
+    "selectDate": "Tippen, um ein Datum zu wählen",
+    "selectTime": "Tippen, um eine Uhrzeit zu wählen",
+    "lessonTimes": "Stundenzeiten",
+    "lessonTimesSubtitle": "Zeiten der einzelnen Unterrichtsstunden manuell einstellen"
 }

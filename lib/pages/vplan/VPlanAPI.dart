@@ -112,6 +112,34 @@ class VPlanAPI {
     await prefs.setString('hiddenSubjectsByClass', jsonEncode(byClass));
   }
 
+  /// Setzt die ausgeblendeten Kurse einer Klasse auf eine bestimmte Liste.
+  /// Ermöglicht effiziente Bulk-Operationen statt einzelner Aufrufe.
+  Future<void> setHiddenCourses(String classId, List<String> courses) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    Map<String, dynamic> byClass = _decodeHiddenByClass(prefs);
+    byClass[classId] = courses;
+    await prefs.setString('hiddenSubjectsByClass', jsonEncode(byClass));
+  }
+
+  // --- Class initialization tracking ---
+
+  Map<String, dynamic> _decodeInitializedClasses(SharedPreferences prefs) {
+    String? data = prefs.getString('initializedClasses');
+    if (data == null || data.isEmpty) return {};
+    try {
+      return jsonDecode(data) as Map<String, dynamic>;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  Future<void> markClassInitialized(String classId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    Map<String, dynamic> initialized = _decodeInitializedClasses(prefs);
+    initialized[classId] = true;
+    await prefs.setString('initializedClasses', jsonEncode(initialized));
+  }
+
   /// Benutzerdefinierte Namen für die Favoriten-Klassen.
   ///
   /// Format: 'classNames' = JSON-Map { classId: customName }

@@ -253,5 +253,13 @@
             }
         }
     },
-    "done": "Done"
+    "done": "Done",
+    "time": "Time",
+    "hour": "Hour",
+    "fullDay": "Full day",
+    "fullDayMessage": "Show all lessons for this day without filtering by time.",
+    "selectDate": "Tap to select a date",
+    "selectTime": "Tap to select a time",
+    "lessonTimes": "Lesson times",
+    "lessonTimesSubtitle": "Manually set the times for each lesson"
 }
