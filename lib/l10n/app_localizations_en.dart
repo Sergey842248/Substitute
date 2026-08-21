@@ -152,6 +152,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nextHour => 'next hour';
 
   @override
+  String get weekend => 'Weekend';
+
+  @override
   String room(String room) {
     return 'Room $room';
   }

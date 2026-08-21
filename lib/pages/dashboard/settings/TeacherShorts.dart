@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:expandiware/l10n/app_localizations.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -129,7 +129,7 @@ class _TeacherShortsState extends State<TeacherShorts> {
                     margin: EdgeInsets.all(5),
                     padding: EdgeInsets.all(15),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).backgroundColor,
+                      color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Center(
@@ -176,12 +176,12 @@ class _TeacherShortsState extends State<TeacherShorts> {
                         duration: const Duration(milliseconds: 400),
                         padding: EdgeInsets.all(15),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).backgroundColor,
+                          color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: e['currently_added']
                                 ? Theme.of(context).primaryColor
-                                : Theme.of(context).backgroundColor,
+                                : Theme.of(context).colorScheme.surface,
                           ),
                         ),
                         child: Center(

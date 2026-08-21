@@ -230,7 +230,7 @@ class _CalcTriangleState extends State<CalcTriangle> {
             (e) {
               return ListItem(
                 color: values[e['value']] != '?'
-                    ? Theme.of(context).backgroundColor.withOpacity(0.3)
+                    ? Theme.of(context).colorScheme.surface.withValues(alpha: 0.3)
                     : null,
                 shadow: e['edit'] ? true : false,
                 leading: Container(
@@ -314,7 +314,7 @@ class _CalcTriangleState extends State<CalcTriangle> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            color: Theme.of(context).backgroundColor.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.3),
             onClick: () {},
           ),
           ListItem(
@@ -325,7 +325,7 @@ class _CalcTriangleState extends State<CalcTriangle> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            color: Theme.of(context).backgroundColor.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.3),
             onClick: () {},
           ),
           ListItem(
@@ -336,7 +336,7 @@ class _CalcTriangleState extends State<CalcTriangle> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            color: Theme.of(context).backgroundColor.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.3),
             onClick: () {},
           ),
           ListItem(
@@ -347,7 +347,7 @@ class _CalcTriangleState extends State<CalcTriangle> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            color: Theme.of(context).backgroundColor.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.3),
             onClick: () {},
           ),
           ListItem(
@@ -358,7 +358,7 @@ class _CalcTriangleState extends State<CalcTriangle> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            color: Theme.of(context).backgroundColor.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.3),
             onClick: () {},
           ),
           ListItem(
@@ -369,7 +369,7 @@ class _CalcTriangleState extends State<CalcTriangle> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            color: Theme.of(context).backgroundColor.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.3),
             onClick: () {},
           ),
         ],

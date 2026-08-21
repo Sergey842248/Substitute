@@ -31,7 +31,7 @@ class _ProcessBarState extends State<ProcessBar> {
           height: height,
           width: widget.width,
           decoration: BoxDecoration(
-            color: Theme.of(context).backgroundColor,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: const BorderRadius.all(Radius.circular(100)),
           ),
         ),

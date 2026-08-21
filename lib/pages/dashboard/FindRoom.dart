@@ -4,7 +4,7 @@ import 'package:expandiware/models/LoadingProcess.dart';
 import 'package:expandiware/models/ProcessBar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:expandiware/l10n/app_localizations.dart';
 import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
 
 import '../vplan/VPlanAPI.dart';
@@ -264,7 +264,7 @@ class _FindRoomState extends State<FindRoom> {
                   height: 5,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(100),
-                    color: Theme.of(context).backgroundColor,
+                    color: Theme.of(context).colorScheme.surface,
                   ),
                 ),
               ),
@@ -542,7 +542,7 @@ class _FindRoomState extends State<FindRoom> {
                     margin: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
-                      color: Theme.of(context).backgroundColor,
+                      color: Theme.of(context).colorScheme.surface,
                       border: e['open']
                           ? Border.all(
                         color: Theme.of(context).primaryColor,

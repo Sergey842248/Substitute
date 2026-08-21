@@ -7,22 +7,18 @@ class ListPage extends StatefulWidget {
     this.smallTitle,
     required this.children,
     this.actions,
-    this.animate,
     this.canclePage,
     this.onPop,
     this.onTitleClick,
-    this.onRefresh,
   }) : super(key: key);
 
   final String title;
   final Function? onTitleClick;
   bool? smallTitle;
-  bool? animate;
   bool? canclePage;
   Function? onPop;
   final List<Widget> children;
   List<Widget>? actions;
-  final Future<void> Function()? onRefresh;
 
   @override
   State<ListPage> createState() => _ListPageState();
@@ -37,8 +33,8 @@ class _ListPageState extends State<ListPage> {
   void initState() {
     super.initState();
     controller.addListener(() {
-      if (controller.offset == 0) return;
-      if (controller.offset < 0) {
+      // Kopfzeile wieder einblenden, sobald wieder ganz oben angekommen ist.
+      if (controller.offset <= 0) {
         topHeight = -10;
       } else {
         topHeight = 0;
@@ -51,7 +47,6 @@ class _ListPageState extends State<ListPage> {
   Widget build(BuildContext context) {
     if (topHeight == -10) topHeight = MediaQuery.of(context).size.height * 0.1;
     widget.actions ??= [];
-    widget.animate ??= false;
     widget.smallTitle ??= false;
     widget.onPop ??= () => Navigator.pop(context);
 
@@ -61,15 +56,17 @@ class _ListPageState extends State<ListPage> {
       backIcon = Icons.clear_rounded;
     }
 
-    return SafeArea(
-      child: Container(
-        child: Stack(
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: SafeArea(
+        child: Container(
+          child: Stack(
           children: [
             // HEADER mit konkaven Ecken
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               alignment: Alignment.topCenter,
-              color: Theme.of(context).backgroundColor,
+              color: Theme.of(context).colorScheme.surface,
               height: topHeight,
               child: Stack(
                 clipBehavior: Clip.none,
@@ -86,59 +83,68 @@ class _ListPageState extends State<ListPage> {
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                InkWell(
-                                  onTap: () => widget.onPop!(),
-                                  child: Container(
-                                    alignment: Alignment.center,
-                                    padding: const EdgeInsets.all(9),
-                                    decoration: BoxDecoration(
-                                      borderRadius: const BorderRadius.all(
-                                        Radius.circular(100),
-                                      ),
-                                      color: Theme.of(context).dividerColor,
-                                    ),
-                                    child: Icon(
-                                      backIcon,
-                                      size: 19,
-                                      color: Theme.of(context).splashColor,
-                                    ),
+                            InkWell(
+                              onTap: () => widget.onPop!(),
+                              child: Container(
+                                alignment: Alignment.center,
+                                padding: const EdgeInsets.all(9),
+                                decoration: BoxDecoration(
+                                  borderRadius: const BorderRadius.all(
+                                    Radius.circular(100),
                                   ),
+                                  color: Theme.of(context).dividerColor,
                                 ),
-                                SizedBox(width: 30),
-                                AnimatedOpacity(
-                                  duration: Duration(
-                                      milliseconds: topHeight == 0 ? 700 : 100),
-                                  opacity: topHeight == 0 ? 0 : 1,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      if (widget.onTitleClick != null) {
-                                        widget.onTitleClick!();
-                                      }
-                                    },
-                                    child: Container(
-                                      child: Text(
-                                        widget.title,
-                                        style: TextStyle(
-                                          fontSize:
-                                          widget.smallTitle! ? 22 : 30,
-                                          fontWeight: FontWeight.bold,
-                                          fontFamily: 'Questrial',
+                                child: Icon(
+                                  backIcon,
+                                  size: 19,
+                                  color: Theme.of(context).splashColor,
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  // Der Titel nimmt den restlichen Platz ein, die
+                                  // Aktions-Buttons werden dadurch rechtsbündig
+                                  // am rechten Rand angezeigt.
+                                  Expanded(
+                                    child: AnimatedOpacity(
+                                      duration: Duration(
+                                          milliseconds: topHeight == 0 ? 700 : 100),
+                                      opacity: topHeight == 0 ? 0 : 1,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          if (widget.onTitleClick != null) {
+                                            widget.onTitleClick!();
+                                          }
+                                        },
+                                        child: Text(
+                                          widget.title,
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: widget.smallTitle! ? 2 : 1,
+                                          style: TextStyle(
+                                            fontSize:
+                                            widget.smallTitle! ? 22 : 30,
+                                            fontWeight: FontWeight.bold,
+                                            fontFamily: 'Questrial',
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
-                                )
-                              ],
-                            ),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: widget.actions!,
+                                  if (widget.actions!.isNotEmpty)
+                                    SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      reverse: true,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: widget.actions!,
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
                             SizedBox(width: 5),
                           ],
@@ -155,7 +161,7 @@ class _ListPageState extends State<ListPage> {
                       width: cornerRadius,
                       height: cornerRadius,
                       decoration: BoxDecoration(
-                        color: Theme.of(context).backgroundColor,
+                        color: Theme.of(context).colorScheme.surface,
                       ),
                       child: Container(
                         decoration: BoxDecoration(
@@ -176,7 +182,7 @@ class _ListPageState extends State<ListPage> {
                       width: cornerRadius,
                       height: cornerRadius,
                       decoration: BoxDecoration(
-                        color: Theme.of(context).backgroundColor,
+                        color: Theme.of(context).colorScheme.surface,
                       ),
                       child: Container(
                         decoration: BoxDecoration(
@@ -193,10 +199,16 @@ class _ListPageState extends State<ListPage> {
             ),
 
             // Collapsed Header Title
-            AnimatedOpacity(
-              duration: Duration(milliseconds: topHeight == 0 ? 700 : 100),
-              opacity: topHeight == 0 ? 1 : 0,
-              child: Container(
+            // IgnorePointer: solange die Kopfzeile erweitert ist (topHeight
+            // != 0), ist dieser Titel unsichtbar und darf keine Taps
+            // abfangen - sonst wuerden die Buttons der erweiterten Kopfzeile
+            // (Refresh, Einstellungen, Pfeile) nie einen Tap bekommen.
+            IgnorePointer(
+              ignoring: topHeight != 0,
+              child: AnimatedOpacity(
+                duration: Duration(milliseconds: topHeight == 0 ? 700 : 100),
+                opacity: topHeight == 0 ? 1 : 0,
+                child: Container(
                 alignment: Alignment.topLeft,
                 margin: const EdgeInsets.all(20),
                 child: Row(
@@ -220,23 +232,28 @@ class _ListPageState extends State<ListPage> {
                       ),
                     ),
                     SizedBox(width: 20),
-                    GestureDetector(
-                      onTap: () {
-                        if (widget.onTitleClick != null) {
-                          widget.onTitleClick!();
-                        }
-                      },
-                      child: Text(
-                        widget.title,
-                        style: TextStyle(
-                          fontSize: 23,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: 'Questrial',
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          if (widget.onTitleClick != null) {
+                            widget.onTitleClick!();
+                          }
+                        },
+                        child: Text(
+                          widget.title,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: widget.smallTitle! ? 2 : 1,
+                          style: TextStyle(
+                            fontSize: 23,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Questrial',
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
+              ),
               ),
             ),
 
@@ -268,50 +285,21 @@ class _ListPageState extends State<ListPage> {
           ],
         ),
       ),
+      ),
     );
   }
 
   Widget _buildContent() {
-    Widget listView = ListView(
+    // Ein einzelner, stabiler ListView (kein AnimatedSwitcher): Die Liste
+    // wird beim Neuladen nicht neu erstellt, dadurch bleibt die
+    // Scroll-Position erhalten und es kann kein zweiter ScrollView denselben
+    // Controller nutzen.
+    return ListView(
       controller: controller,
       physics: const BouncingScrollPhysics(
         parent: AlwaysScrollableScrollPhysics(),
       ),
       children: widget.children,
     );
-
-    if (widget.animate!) {
-      listView = AnimatedSwitcher(
-        duration: Duration(milliseconds: 500),
-        transitionBuilder: (child, animation) => SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 2),
-            end: const Offset(0, 0),
-          ).animate(animation),
-          child: child,
-        ),
-        child: ListView(
-          key: ValueKey(widget.children),
-          controller: controller,
-          physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics(),
-          ),
-          children: widget.children,
-        ),
-      );
-    }
-
-    if (widget.onRefresh != null) {
-      return RefreshIndicator(
-        onRefresh: widget.onRefresh!,
-        displacement: 0,
-        strokeWidth: 0,
-        color: Colors.transparent,
-        backgroundColor: Colors.transparent,
-        child: listView,
-      );
-    }
-
-    return listView;
   }
 }

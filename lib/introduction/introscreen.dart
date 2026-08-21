@@ -9,8 +9,12 @@ import 'introTiles.dart';
 Color darken(Color c, [int percent = 10]) {
   assert(1 <= percent && percent <= 100);
   var f = 1 - percent / 100;
-  return Color.fromARGB(c.alpha, (c.red * f).round(), (c.green * f).round(),
-      (c.blue * f).round());
+  return Color.from(
+    alpha: c.a,
+    red: (c.r * f).clamp(0.0, 1.0),
+    green: (c.g * f).clamp(0.0, 1.0),
+    blue: (c.b * f).clamp(0.0, 1.0),
+  );
 }
 
 class Introduction extends StatefulWidget {
@@ -47,8 +51,10 @@ class _IntroductionState extends State<Introduction> {
         dividerColor: dividerColor,
         focusColor: Colors.white,
         indicatorColor: indicatorColor,
-        errorColor: Color.fromARGB(158, 119, 18, 18),
-        backgroundColor: darken(backgroundColor, 5), //Color(0xff161B28),
+        colorScheme: ColorScheme.dark(
+          error: Color.fromARGB(158, 119, 18, 18),
+          surface: darken(backgroundColor, 5),
+        ),
         scaffoldBackgroundColor: darken(backgroundColor, scaffoldBGDark),
         splashColor: Colors.white,
       ),
@@ -58,9 +64,11 @@ class _IntroductionState extends State<Introduction> {
         primaryColor: primarySwatchLight,
         indicatorColor: indicatorColorLight,
         focusColor: Colors.black,
-        errorColor: Color.fromARGB(158, 119, 18, 18),
         dividerColor: dividerColorLight,
-        backgroundColor: backgroundColorLight, //Color(0xffe7e7e7),
+        colorScheme: ColorScheme.light(
+          error: Color.fromARGB(158, 119, 18, 18),
+          surface: backgroundColorLight,
+        ),
         scaffoldBackgroundColor: Colors.white,
         splashColor: Colors.black,
       ),
@@ -121,7 +129,10 @@ class _IntroState extends State<Intro> {
             left: -MediaQuery.of(context).size.width * pageCount,
             child: SvgPicture.asset(
               'assets/img/wave.svg',
-              color: Theme.of(context).primaryColor.withOpacity(0.1),
+              colorFilter: ColorFilter.mode(
+                Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                BlendMode.srcIn,
+              ),
               width: MediaQuery.of(context).size.width * pages.length * 2,
             ),
           ),

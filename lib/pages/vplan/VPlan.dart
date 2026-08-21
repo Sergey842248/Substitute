@@ -3,7 +3,7 @@ import 'package:expandiware/models/ListPage.dart';
 import 'package:expandiware/pages/dashboard/settings/Lessons.dart';
 import 'package:expandiware/pages/vplan/VPlanAPI.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:expandiware/l10n/app_localizations.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -36,15 +36,21 @@ class _VPlanState extends State<VPlan> {
     classes = [];
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
 
     List<String>? prefClasses = prefs.getStringList('classes');
     if (prefClasses == null) {
       prefClasses = [];
     }
 
-    for (int i = 0; i < prefClasses.length; i++) {
-      listKey.currentState!.insertItem(i);
-      classes.add(prefClasses[i]);
+    final listState = listKey.currentState;
+    if (listState != null) {
+      for (int i = 0; i < prefClasses.length; i++) {
+        listState.insertItem(i);
+        classes.add(prefClasses[i]);
+      }
+    } else {
+      classes.addAll(prefClasses);
     }
 
     // One-time migration: older versions stored 'hidePersons' with a default
@@ -55,11 +61,13 @@ class _VPlanState extends State<VPlan> {
     }
     hidePersons = prefs.getBool('hidePersons') ?? false;
     persons = await VPlanAPI().getPersons();
+    if (!mounted) return;
     setState(() {});
 
     String? username = prefs.getString('vplanUsername');
 
     if (classes.length == 0 && (username == null || username == '')) {
+      if (!mounted) return;
       showDialog(
         context: context,
         builder: (context) {
@@ -67,7 +75,7 @@ class _VPlanState extends State<VPlan> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(25),
             ),
-            backgroundColor: Theme.of(context).backgroundColor,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             title: Text(
               AppLocalizations.of(context)!.addNewClass,
               textAlign: TextAlign.center,
@@ -164,7 +172,7 @@ class _VPlanState extends State<VPlan> {
                     person['classId'],
                     style: TextStyle(
                       fontSize: 14,
-                      color: Theme.of(context).focusColor.withOpacity(0.7),
+                      color: Theme.of(context).focusColor.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -173,7 +181,7 @@ class _VPlanState extends State<VPlan> {
                 onPressed: () => _deletePerson(person),
                 icon: Icon(
                   Icons.delete_rounded,
-                  color: Theme.of(context).focusColor.withOpacity(0.5),
+                  color: Theme.of(context).focusColor.withValues(alpha: 0.5),
                 ),
               ),
               onClick: () {
@@ -237,7 +245,7 @@ class _VPlanState extends State<VPlan> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(25),
         ),
-        backgroundColor: Theme.of(context).backgroundColor,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         title: Text(
           AppLocalizations.of(context)!.personName,
           textAlign: TextAlign.center,
@@ -432,7 +440,7 @@ class _ClassWidgetState extends State<ClassWidget> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(25),
         ),
-        backgroundColor: Theme.of(context).backgroundColor,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         title: Text(
           AppLocalizations.of(context)!.renameClass,
           textAlign: TextAlign.center,
@@ -479,7 +487,8 @@ class _ClassWidgetState extends State<ClassWidget> {
 
     for (var i = 0; i < vplan['data'].length; i++) {
       bool add = !vplanAPI.isLessonHidden(vplan['data'][i], hiddenCourses) &&
-          vplan['data'][i]['course'] != '---';
+          vplan['data'][i]['course'] != '---' &&
+          vplan['data'][i]['lesson'] != null;
       if (add) {
         realVPlan.add(vplan['data'][i]);
       }
@@ -502,10 +511,10 @@ class _ClassWidgetState extends State<ClassWidget> {
     for (var i = 0; i < realVPlan.length; i++) {
       Map<String, dynamic> lesson = realVPlan[i];
 
+      // Einträge ohne Beginn-Zeit sind keine brauchbaren Stunden - sie
+      // überspringen statt die ganze Vorschau abzubrechen.
       if (lesson['begin'] == null) {
-        nextLesson = {};
-        setState(() {});
-        return;
+        continue;
       }
 
       double difference = (toTimeOfDay(lesson['begin']).hour +
@@ -532,39 +541,47 @@ class _ClassWidgetState extends State<ClassWidget> {
           // Current time is after last lesson, so get first lesson of next day
           try {
             DateTime today = DateTime.now();
-            DateTime tomorrow = today.add(Duration(days: 1));
 
-            // Skip weekend if today is Friday
-            if (today.weekday == 5) { // Friday
-              tomorrow = today.add(Duration(days: 3));
+            // Nächsten Schultag bestimmen (Wochenende überspringen)
+            DateTime nextDay = today.add(Duration(days: 1));
+            while (nextDay.weekday == DateTime.saturday ||
+                nextDay.weekday == DateTime.sunday) {
+              nextDay = nextDay.add(const Duration(days: 1));
             }
 
-            dynamic tomorrowVplan = await VPlanAPI().getLessonsByDate(
-              date: tomorrow,
+            dynamic nextDayVplan = await VPlanAPI().getLessonsByDate(
+              date: nextDay,
               classId: widget.classId,
             );
 
-            if (tomorrowVplan != null &&
-                tomorrowVplan['data'] != null &&
-                tomorrowVplan['data'].isNotEmpty) {
+            if (nextDayVplan != null &&
+                nextDayVplan['data'] != null &&
+                nextDayVplan['data'].isNotEmpty) {
 
-              // Filter hidden courses from tomorrow's lessons
-              List<dynamic> tomorrowRealVPlan = [];
-              for (var i = 0; i < tomorrowVplan['data'].length; i++) {
+              // Filter hidden courses from the next day's lessons
+              List<dynamic> nextDayRealVPlan = [];
+              for (var i = 0; i < nextDayVplan['data'].length; i++) {
                 bool add = !vplanAPI.isLessonHidden(
-                        tomorrowVplan['data'][i], hiddenCourses) &&
-                    tomorrowVplan['data'][i]['course'] != '---';
+                        nextDayVplan['data'][i], hiddenCourses) &&
+                    nextDayVplan['data'][i]['course'] != '---' &&
+                    nextDayVplan['data'][i]['lesson'] != null;
                 if (add) {
-                  tomorrowRealVPlan.add(tomorrowVplan['data'][i]);
+                  nextDayRealVPlan.add(nextDayVplan['data'][i]);
                 }
               }
 
-              if (tomorrowRealVPlan.isNotEmpty) {
-                // Use the first lesson of tomorrow
-                nextLesson = tomorrowRealVPlan.first;
+              if (nextDayRealVPlan.isNotEmpty) {
+                // Use the first lesson of the next school day
+                nextLesson = nextDayRealVPlan.first;
+              } else if (nextDay.weekday == DateTime.monday) {
+                // Freitag nach Schulschluss: kein Plan für Montag verfügbar
+                // -> Wochenende anzeigen.
+                nextLesson = {'weekend': true};
               } else {
                 nextLesson = {};
               }
+            } else if (nextDay.weekday == DateTime.monday) {
+              nextLesson = {'weekend': true};
             } else {
               nextLesson = {};
             }
@@ -576,7 +593,14 @@ class _ClassWidgetState extends State<ClassWidget> {
           nextLesson = {};
         }
       } else {
-        nextLesson = {};
+        // Samstag/Sonntag: die nächste Stunde ist erst am Montag.
+        DateTime now = DateTime.now();
+        if (now.weekday == DateTime.saturday ||
+            now.weekday == DateTime.sunday) {
+          nextLesson = {'weekend': true};
+        } else {
+          nextLesson = {};
+        }
       }
     }
 
@@ -627,7 +651,7 @@ class _ClassWidgetState extends State<ClassWidget> {
                   onPressed: _renameClass,
                   icon: Icon(
                     Icons.edit_rounded,
-                    color: Theme.of(context).focusColor.withOpacity(0.5),
+                    color: Theme.of(context).focusColor.withValues(alpha: 0.5),
                   ),
                   tooltip: AppLocalizations.of(context)!.renameClass,
                 ),
@@ -635,7 +659,7 @@ class _ClassWidgetState extends State<ClassWidget> {
                   onPressed: widget.onDelete,
                   icon: Icon(
                     Icons.delete_rounded,
-                    color: Theme.of(context).focusColor.withOpacity(0.5),
+                    color: Theme.of(context).focusColor.withValues(alpha: 0.5),
                   ),
                 ),
               ],
@@ -657,69 +681,93 @@ class _ClassWidgetState extends State<ClassWidget> {
               width: double.infinity,
               child: nextLesson.toString() == '{: loading}'
                   ? Center(child: LoadingProcess())
-                  : (nextLesson.toString() == '{}'
+                  : (nextLesson['weekend'] == true
                       ? Center(
-                          child: Text(
-                            AppLocalizations.of(context)!.noNextLessonFound,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Theme.of(context)
-                                  .focusColor
-                                  .withOpacity(0.5),
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.weekend_rounded,
+                                color: Theme.of(context)
+                                    .focusColor
+                                    .withValues(alpha: 0.5),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                AppLocalizations.of(context)!.weekend,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 19,
+                                ),
+                              ),
+                            ],
                           ),
                         )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Column(
+                      : (nextLesson.toString() == '{}'
+                          ? Center(
+                              child: Text(
+                                AppLocalizations.of(context)!.noNextLessonFound,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Theme.of(context)
+                                      .focusColor
+                                      .withValues(alpha: 0.5),
+                                ),
+                              ),
+                            )
+                          : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  AppLocalizations.of(context)!.nextHour,
-                                  style: TextStyle(
-                                    color: Theme.of(context)
-                                        .focusColor
-                                        .withOpacity(0.5),
-                                  ),
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      AppLocalizations.of(context)!.nextHour,
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .focusColor
+                                            .withValues(alpha: 0.5),
+                                      ),
+                                    ),
+                                    SizedBox(height: spaceBetween),
+                                    Text(
+                                      nextLesson['lesson'] ?? '',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 21,
+                                      ),
+                                    ),
+                                    SizedBox(height: spaceBetween),
+                                    Text(nextLesson['teacher'] ?? ''),
+                                  ],
                                 ),
-                                SizedBox(height: spaceBetween),
-                                Text(
-                                  nextLesson['lesson'] ?? '',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 21,
-                                  ),
+                                SizedBox(
+                                    width:
+                                        MediaQuery.of(context).size.width * 0.3),
+                                Column(
+                                  children: [
+                                    Text(''),
+                                    Text(
+                                      AppLocalizations.of(context)!.room(nextLesson['place'] ?? ''),
+                                      style: TextStyle(fontSize: 19),
+                                    ),
+                                    SizedBox(height: spaceBetween),
+                                    Text(
+                                        '${nextLesson['begin'] != null ? printTime(toTimeOfDay(nextLesson['begin']).hour, toTimeOfDay(nextLesson['begin']).minute) : ''} - ${nextLesson['end'] != null ? printTime(toTimeOfDay(nextLesson['end']).hour, toTimeOfDay(nextLesson['end']).minute) : ''}'),
+                                  ],
                                 ),
-                                SizedBox(height: spaceBetween),
-                                Text(nextLesson['teacher'] ?? ''),
                               ],
-                            ),
-                            SizedBox(
-                                width: MediaQuery.of(context).size.width * 0.3),
-                            Column(
-                              children: [
-                                Text(''),
-                                Text(
-                                  AppLocalizations.of(context)!.room(nextLesson['place'] ?? ''),
-                                  style: TextStyle(fontSize: 19),
-                                ),
-                                SizedBox(height: spaceBetween),
-                                Text(
-                                    '${nextLesson['begin'] != null ? printTime(toTimeOfDay(nextLesson['begin']).hour, toTimeOfDay(nextLesson['begin']).minute) : ''} - ${nextLesson['end'] != null ? printTime(toTimeOfDay(nextLesson['end']).hour, toTimeOfDay(nextLesson['end']).minute) : ''}'),
-                              ],
-                            ),
-                          ],
-                        )),
+                            ))),
               padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(25),
                   bottomRight: Radius.circular(25),
                 ),
-                color: Theme.of(context).backgroundColor,
+                color: Theme.of(context).colorScheme.surface,
               ),
             ),
           ),
@@ -751,9 +799,12 @@ class _SelectClassState extends State<SelectClass> {
     // Prüfe, ob Zugangsdaten vorhanden sind
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? username = prefs.getString('vplanUsername');
-    
+
+    if (!mounted) return;
+
     if (username == null || username == '') {
       // Zeige Login-Dialog wenn keine Zugangsdaten vorhanden sind
+      if (!mounted) return;
       showDialog(
         context: context,
         builder: (context) {
@@ -761,7 +812,7 @@ class _SelectClassState extends State<SelectClass> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(25),
             ),
-            backgroundColor: Theme.of(context).backgroundColor,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             title: Text(
               AppLocalizations.of(context)!.addNewClass,
               textAlign: TextAlign.center,
@@ -808,11 +859,11 @@ class _SelectClassState extends State<SelectClass> {
       );
       return; // Stoppe weitere Ausführung wenn keine Zugangsdaten vorhanden sind
     }
-    
+
     // Wenn Zugangsdaten vorhanden sind, lade die Klassen
     VPlanAPI vplanAPI = new VPlanAPI();
     classes = await vplanAPI.getClassList();
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   @override
@@ -847,7 +898,7 @@ class _SelectClassState extends State<SelectClass> {
           extraWidget = Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(100),
-              color: Theme.of(context).backgroundColor,
+              color: Theme.of(context).colorScheme.surface,
             ),
             margin: EdgeInsets.only(
               left: MediaQuery.of(context).size.width * 0.37,
@@ -898,7 +949,6 @@ class _SelectClassState extends State<SelectClass> {
       }
       return ListPage(
         title: AppLocalizations.of(context)!.classSelection,
-        animate: true,
         actions: [
           IconButton(
             onPressed: () => getClasses(),
@@ -936,7 +986,6 @@ class _SelectClassState extends State<SelectClass> {
     }
     return ListPage(
       title: AppLocalizations.of(context)!.selectClassTitle,
-      animate: true,
       children: [
         classes.length == 0
             ? Center(
@@ -992,7 +1041,7 @@ class _SelectClassState extends State<SelectClass> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25),
                   ),
-                  backgroundColor: Theme.of(context).backgroundColor,
+                  backgroundColor: Theme.of(context).colorScheme.surface,
                   title: Text(
                     AppLocalizations.of(context)!.nameClass,
                     textAlign: TextAlign.center,

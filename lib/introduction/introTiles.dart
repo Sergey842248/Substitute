@@ -35,7 +35,7 @@ Widget title(BuildContext context) => Container(
           Text(
             'initialisiere App...',
             style: TextStyle(
-              color: Theme.of(context).focusColor.withOpacity(0.5),
+              color: Theme.of(context).focusColor.withValues(alpha: 0.5),
             ),
           ), */
           Text(

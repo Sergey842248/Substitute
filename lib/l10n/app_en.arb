@@ -58,6 +58,7 @@
     "selectClass": "Select a class",
     "noNextLessonFound": "No next lesson found",
     "nextHour": "next hour",
+    "weekend": "Weekend",
     "room": "Room {room}",
     "@room": {
         "placeholders": {

@@ -224,7 +224,7 @@ class _LessonsState extends State<Lessons> {
                   actionButton: IconButton(
                     icon: Icon(
                       Icons.delete,
-                      color: Theme.of(context).focusColor.withOpacity(0.5),
+                      color: Theme.of(context).focusColor.withValues(alpha: 0.5),
                       size: 18,
                     ),
                     onPressed: () {

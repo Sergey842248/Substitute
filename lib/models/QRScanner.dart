@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
-class QRScanner extends StatelessWidget {
+class QRScanner extends StatefulWidget {
   QRScanner({
     Key? key,
     required this.setData,
@@ -9,47 +9,38 @@ class QRScanner extends StatelessWidget {
 
   final Function(String?) setData;
 
-  Barcode? result;
-  QRViewController? controller;
-  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+  @override
+  State<QRScanner> createState() => _QRScannerState();
+}
 
-  void _onQRViewCreated(QRViewController controller, context) {
-    this.controller = controller;
-    controller.scannedDataStream.listen((scanData) {
-      result = scanData;
-      setData(result!.code);
-      Navigator.pop(context);
-    });
-  }
+class _QRScannerState extends State<QRScanner> {
+  MobileScannerController? controller;
+  bool _hasPopped = false;
 
-  void _onPermissionSet(BuildContext context, QRViewController ctrl, bool p) {
-    if (!p) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('no permission')),
-      );
-    }
+  @override
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
+      body: SizedBox(
         height: double.infinity,
         width: double.infinity,
         child: Stack(
           children: [
-            QRView(
-              key: qrKey,
-              onQRViewCreated: (controller) =>
-                  _onQRViewCreated(controller, context),
-              overlay: QrScannerOverlayShape(
-                borderColor: Theme.of(context).primaryColor,
-                borderRadius: 10,
-                borderLength: 30,
-                borderWidth: 5,
-                cutOutSize: MediaQuery.of(context).size.width * 0.7,
-              ),
-              onPermissionSet: (ctrl, p) => _onPermissionSet(context, ctrl, p),
+            MobileScanner(
+              onDetect: (capture) {
+                if (_hasPopped) return;
+                final barcode = capture.barcodes.first;
+                if (barcode.rawValue != null) {
+                  _hasPopped = true;
+                  widget.setData(barcode.rawValue);
+                  Navigator.pop(context);
+                }
+              },
             ),
             // infotext
             Align(
@@ -99,7 +90,7 @@ class QRScanner extends StatelessWidget {
                   ),
                 ),
               ),
-            )
+            ),
           ],
         ),
       ),

@@ -3,10 +3,10 @@ description: A extended version of indiware.
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.0+1
+version: 3.7.14+3714
 
 environment:
-  sdk: ">=2.12.0 <3.1.0"
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -14,28 +14,29 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   cupertino_icons: ^1.0.2
-  animations: ^2.0.0
+  animations: ^3.0.0
   page_transition: ^2.0.2
-  shared_preferences: ^2.0.6
-  xml2json: ^5.0.0
-  xml: ^5.3.1
+  shared_preferences: ^2.2.0
+  xml2json: ^6.0.0
+  xml: ^7.0.1
   http_auth: ^1.0.0
-  flutter_svg: ^0.22.0
-  device_info: ^2.0.2
-  pretty_qr_code: ^2.0.2
-  qr_code_scanner: ^1.0.1
-  url_launcher: ^6.0.10
+  flutter_svg: ^2.0.0
+  device_info_plus: ^13.2.0
+  pretty_qr_code: ^3.6.0
+  url_launcher: ^6.1.0
   flutter_background_service: ^5.0.5
   flutter_background_service_android: ^6.3.0
-  awesome_notifications: ^0.6.16
-  lottie: ^1.2.1
-  fluttertoast: ^8.0.8
-  share_plus: ^6.3.0
-  introduction_screen: ^3.0.0
+  awesome_notifications: ^0.12.1
+  lottie: ^3.5.1
+  fluttertoast: ^10.0.0
+  share_plus: ^13.3.0
+  introduction_screen: ^4.0.0
   angles: ^2.1.1
-  intl: ^0.17.0
+  intl: ^0.20.0
   flutter_time_picker_spinner: ^2.0.0
-  package_info_plus: ^1.4.2
+  package_info_plus: ^10.2.1
+  http: ^1.0.0
+  mobile_scanner: ^7.4.0
 
 dev_dependencies:
   flutter_test:

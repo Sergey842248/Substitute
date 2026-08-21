@@ -1,6 +1,6 @@
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:expandiware/l10n/app_localizations.dart';
 
 import '../../models/ListItem.dart';
 import 'package:expandiware/models/ListPage.dart';
@@ -52,7 +52,7 @@ class Dashboard extends StatelessWidget {
       child: Scrollbar(
         thickness: 3,
         radius: Radius.circular(100),
-        isAlwaysShown: true,
+        thumbVisibility: true,
         controller: ScrollController(),
         child: ListView(
           physics: BouncingScrollPhysics(),

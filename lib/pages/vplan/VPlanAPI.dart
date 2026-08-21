@@ -280,20 +280,24 @@ class VPlanAPI {
     return false;
   }
 
-  void removePlanByDate(String date) async {
-    this.cleanVplanOfflineData();
+  Future<void> removePlanByDate(String date) async {
+    await this.cleanVplanOfflineData();
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    List<dynamic> vplanData = [];
-    prefs
-        .getStringList('offlineVPData')!
-        .map((e) => vplanData.add(jsonDecode(e)));
+    List<String>? stored = prefs.getStringList('offlineVPData');
+    if (stored == null || stored.isEmpty) return;
 
     List<String> newVplanData = [];
-    for (int i = 0; i < vplanData.length; i++) {
-      if (vplanData[i]['date'] != date) {
-        newVplanData.add(jsonEncode(vplanData[i]));
+    for (int i = 0; i < stored.length; i++) {
+      dynamic entry;
+      try {
+        entry = jsonDecode(stored[i]);
+      } catch (e) {
+        continue;
+      }
+      if (entry['date'] != date) {
+        newVplanData.add(stored[i]);
       }
     }
     prefs.setStringList('offlineVPData', newVplanData);
@@ -1200,7 +1204,7 @@ class VPlanAPI {
     if (vplanData != null && vplanData['courses'] != null) {
       List<dynamic> courses = vplanData['courses'];
       for (int i = 0; i < courses.length; i++) {
-        String teacher = courses[i]['teacher'];
+        String? teacher = courses[i]['teacher']?.toString();
         if (teacher != null && teacher.isNotEmpty && !allTeachers.contains(teacher)) {
           allTeachers.add(teacher);
         }

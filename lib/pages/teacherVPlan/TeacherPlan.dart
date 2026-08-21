@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:expandiware/l10n/app_localizations.dart';
 
 import '../vplan/VPlanAPI.dart';
 import '../../models/ListItem.dart';
@@ -175,14 +175,14 @@ class _TeacherPlanState extends State<TeacherPlan> {
                       Icon(
                         Icons.event_busy,
                         size: 48,
-                        color: Theme.of(context).focusColor.withOpacity(0.5),
+                        color: Theme.of(context).focusColor.withValues(alpha: 0.5),
                       ),
                       SizedBox(height: 16),
                       Text(
                         'No classes found',
                         style: TextStyle(
                           fontSize: 18,
-                          color: Theme.of(context).focusColor.withOpacity(0.7),
+                          color: Theme.of(context).focusColor.withValues(alpha: 0.7),
                         ),
                       ),
                       SizedBox(height: 8),
@@ -191,7 +191,7 @@ class _TeacherPlanState extends State<TeacherPlan> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Theme.of(context).focusColor.withOpacity(0.5),
+                          color: Theme.of(context).focusColor.withValues(alpha: 0.5),
                         ),
                       ),
                     ],

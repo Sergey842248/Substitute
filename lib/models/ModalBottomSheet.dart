@@ -29,7 +29,7 @@ class ModalBottomSheet extends StatelessWidget {
           topLeft: Radius.circular(40),
           topRight: Radius.circular(40),
         ),
-        color: Theme.of(context).backgroundColor,
+        color: Theme.of(context).colorScheme.surface,
       ),
       child: Container(
         width: double.infinity,

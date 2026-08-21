@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:expandiware/models/InputField.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:expandiware/l10n/app_localizations.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -88,7 +88,7 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
             borderRadius: const BorderRadius.all(
               Radius.circular(20),
             ),
-            color: Theme.of(context).backgroundColor,
+            color: Theme.of(context).colorScheme.surface,
           ),
           child: InkWell(
             onTap: () async {
@@ -147,7 +147,7 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
                     ),
-                    backgroundColor: Theme.of(context).backgroundColor,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
                     title: Text(
                       AppLocalizations.of(context)!.addNewClass,
                       textAlign: TextAlign.center,
@@ -263,7 +263,7 @@ class _TeacherListState extends State<TeacherList> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(25),
             ),
-            backgroundColor: Theme.of(context).backgroundColor,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             title: Text(
               AppLocalizations.of(context)!.addNewClass,
               textAlign: TextAlign.center,
@@ -384,14 +384,14 @@ class _TeacherListState extends State<TeacherList> {
                       Icon(
                         Icons.search_off,
                         size: 48,
-                        color: Theme.of(context).focusColor.withOpacity(0.5),
+                        color: Theme.of(context).focusColor.withValues(alpha: 0.5),
                       ),
                       SizedBox(height: 16),
                       Text(
                         AppLocalizations.of(context)!.noTeachersFound,
                         style: TextStyle(
                           fontSize: 16,
-                          color: Theme.of(context).focusColor.withOpacity(0.7),
+                          color: Theme.of(context).focusColor.withValues(alpha: 0.7),
                         ),
                       ),
                     ]
@@ -424,7 +424,7 @@ class _TeacherListState extends State<TeacherList> {
                           horizontal: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).backgroundColor,
+                          color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Center(

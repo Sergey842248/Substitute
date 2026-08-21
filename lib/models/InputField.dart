@@ -22,7 +22,7 @@ class InputField extends StatelessWidget {
         borderRadius: const BorderRadius.all(
           Radius.circular(20),
         ),
-        color: Theme.of(context).backgroundColor,
+        color: Theme.of(context).colorScheme.surface,
       ),
       child: Center(
         child: TextFormField(

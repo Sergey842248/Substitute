@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:expandiware/models/Button.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:expandiware/l10n/app_localizations.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -152,7 +152,7 @@ class _VPlanLoginState extends State<VPlanLogin> {
                       topLeft: Radius.circular(40),
                       topRight: Radius.circular(40),
                     ),
-                    color: Theme.of(context).backgroundColor,
+                    color: Theme.of(context).colorScheme.surface,
                   ),
                   child: Container(
                     width: double.infinity,
@@ -278,7 +278,7 @@ class _VPlanLoginState extends State<VPlanLogin> {
                           Container(
                             height: 1.4,
                             color:
-                                Theme.of(context).focusColor.withOpacity(0.3),
+                                Theme.of(context).focusColor.withValues(alpha: 0.3),
                             width: MediaQuery.of(context).size.width * 0.2,
                           ),
                           Text(
@@ -288,13 +288,13 @@ class _VPlanLoginState extends State<VPlanLogin> {
                             style: TextStyle(
                               color: Theme.of(context)
                                   .focusColor
-                                  .withOpacity(0.85),
+                                  .withValues(alpha: 0.85),
                             ),
                           ),
                           Container(
                             height: 1.4,
                             color:
-                                Theme.of(context).focusColor.withOpacity(0.3),
+                                Theme.of(context).focusColor.withValues(alpha: 0.3),
                             width: MediaQuery.of(context).size.width * 0.2,
                           ),
                         ],

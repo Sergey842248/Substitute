@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:expandiware/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:expandiware/pages/dashboard/SickTrack.dart';
@@ -24,7 +24,9 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.text('Sick-Track'), findsOneWidget);
+    // Der Titel erscheint in der erweiterten und in der eingeklappten
+    // Kopfzeile von ListPage (nur eine davon ist sichtbar).
+    expect(find.text('Sick-Track'), findsWidgets);
     expect(find.text('No sick periods yet. Add one to see which lessons you missed.'), findsOneWidget);
     // "Add" button should be visible (FAB in actions)
     expect(find.byIcon(Icons.add_rounded), findsOneWidget);
@@ -40,7 +42,9 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.text('Add sick period'), findsOneWidget);
+    // Der Titel erscheint in der erweiterten und in der eingeklappten
+    // Kopfzeile von ListPage (nur eine davon ist sichtbar).
+    expect(find.text('Add sick period'), findsWidgets);
     expect(find.text('Select courses'), findsOneWidget);
     expect(find.text('Select sick days'), findsOneWidget);
   });

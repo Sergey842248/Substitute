@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:expandiware/l10n/app_localizations.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -106,7 +106,7 @@ class _SickTrackState extends State<SickTrack> {
             courses.join(', '),
             style: TextStyle(
               fontSize: 14,
-              color: Theme.of(context).focusColor.withOpacity(0.7),
+              color: Theme.of(context).focusColor.withValues(alpha: 0.7),
             ),
           ),
           SizedBox(height: 2),
@@ -115,7 +115,7 @@ class _SickTrackState extends State<SickTrack> {
             '${days.map((d) => formatDay(d.toString())).join(', ')}',
             style: TextStyle(
               fontSize: 13,
-              color: Theme.of(context).focusColor.withOpacity(0.5),
+              color: Theme.of(context).focusColor.withValues(alpha: 0.5),
             ),
           ),
         ],
@@ -139,7 +139,7 @@ class _SickTrackState extends State<SickTrack> {
                     style: TextStyle(
                       fontSize: 14,
                       color:
-                          Theme.of(context).focusColor.withOpacity(0.5),
+                          Theme.of(context).focusColor.withValues(alpha: 0.5),
                     ),
                   ),
                 )
@@ -175,7 +175,7 @@ class _SickTrackState extends State<SickTrack> {
                                       ? Colors.green
                                       : Theme.of(context)
                                           .focusColor
-                                          .withOpacity(0.5),
+                                          .withValues(alpha: 0.5),
                                 ),
                                 SizedBox(width: 6),
                                 Expanded(
@@ -189,7 +189,7 @@ class _SickTrackState extends State<SickTrack> {
                                       fontSize: 14,
                                       color: Theme.of(context)
                                           .focusColor
-                                          .withOpacity(0.8),
+                                          .withValues(alpha: 0.8),
                                     ),
                                   ),
                                 ),
@@ -205,7 +205,7 @@ class _SickTrackState extends State<SickTrack> {
         onPressed: () => _deleteEntry(entry),
         icon: Icon(
           Icons.delete_rounded,
-          color: Theme.of(context).focusColor.withOpacity(0.5),
+          color: Theme.of(context).focusColor.withValues(alpha: 0.5),
         ),
       ),
       onClick: () {},
@@ -216,7 +216,6 @@ class _SickTrackState extends State<SickTrack> {
   Widget build(BuildContext context) {
     return ListPage(
       title: AppLocalizations.of(context)!.sickTrack,
-      animate: true,
       actions: [
         IconButton(
           onPressed: _openEditor,
@@ -234,7 +233,7 @@ class _SickTrackState extends State<SickTrack> {
               Icon(
                 Icons.sick_rounded,
                 size: 60,
-                color: Theme.of(context).focusColor.withOpacity(0.3),
+                color: Theme.of(context).focusColor.withValues(alpha: 0.3),
               ),
               SizedBox(height: 15),
               Text(
@@ -242,7 +241,7 @@ class _SickTrackState extends State<SickTrack> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 15,
-                  color: Theme.of(context).focusColor.withOpacity(0.6),
+                  color: Theme.of(context).focusColor.withValues(alpha: 0.6),
                 ),
               ),
               Button(
@@ -292,7 +291,7 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
 
     final String? result = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: Theme.of(context).backgroundColor,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
@@ -379,7 +378,7 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        backgroundColor: Theme.of(context).backgroundColor,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         title: Text(
           AppLocalizations.of(context)!.selectClassTitle,
           textAlign: TextAlign.center,
@@ -492,7 +491,7 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
             sourceLabel ??
                 AppLocalizations.of(context)!.selectClassOrPersonHint,
             style: TextStyle(
-              color: Theme.of(context).focusColor.withOpacity(0.6),
+              color: Theme.of(context).focusColor.withValues(alpha: 0.6),
             ),
           ),
           onClick: _pickSource,
@@ -511,7 +510,7 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
             child: Text(
               AppLocalizations.of(context)!.selectClassOrPersonHint,
               style: TextStyle(
-                color: Theme.of(context).focusColor.withOpacity(0.5),
+                color: Theme.of(context).focusColor.withValues(alpha: 0.5),
               ),
             ),
           )
@@ -523,7 +522,7 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
             child: Text(
               AppLocalizations.of(context)!.couldNotLoadVPlanData,
               style: TextStyle(
-                color: Theme.of(context).focusColor.withOpacity(0.5),
+                color: Theme.of(context).focusColor.withValues(alpha: 0.5),
               ),
             ),
           )
@@ -570,7 +569,7 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
             child: Text(
               AppLocalizations.of(context)!.noSickDaysSelected,
               style: TextStyle(
-                color: Theme.of(context).focusColor.withOpacity(0.5),
+                color: Theme.of(context).focusColor.withValues(alpha: 0.5),
               ),
             ),
           )

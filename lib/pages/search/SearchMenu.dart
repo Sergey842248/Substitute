@@ -1,7 +1,7 @@
 import 'package:animations/animations.dart';
 import 'package:expandiware/models/ListItem.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:expandiware/l10n/app_localizations.dart';
 
 import '../dashboard/FindRoom.dart';
 import '../dashboard/RoomPlan.dart';
@@ -52,7 +52,7 @@ class SearchMenu extends StatelessWidget {
       child: Scrollbar(
         thickness: 3,
         radius: const Radius.circular(100),
-        isAlwaysShown: true,
+        thumbVisibility: true,
         controller: ScrollController(),
         child: ListView(
           physics: const BouncingScrollPhysics(),

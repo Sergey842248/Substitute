@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:expandiware/l10n/app_localizations.dart';
 
 import '../../../models/ListItem.dart';
 import '../../../models/ListPage.dart';
@@ -158,7 +158,7 @@ class _NotificationsState extends State<Notifications> {
               actionButton: Switch.adaptive(
                 value: _automaticLoad,
                 onChanged: (change) => changeAutomaticLoad(),
-                activeColor: Theme.of(context).accentColor,
+                activeColor: Theme.of(context).colorScheme.secondary,
               ),
             ),
             ListItem(
@@ -173,7 +173,7 @@ class _NotificationsState extends State<Notifications> {
               actionButton: Switch.adaptive(
                 value: _intiligentNotification,
                 onChanged: (change) => changeNotification(),
-                activeColor: Theme.of(context).accentColor,
+                activeColor: Theme.of(context).colorScheme.secondary,
               ),
             ),
             ListItem(
@@ -194,7 +194,7 @@ class _NotificationsState extends State<Notifications> {
                   restartBackgroundSevice();
                 },
                 value: _prefClass,
-                dropdownColor: Theme.of(context).backgroundColor,
+                dropdownColor: Theme.of(context).colorScheme.surface,
                 icon: Padding(
                   padding: const EdgeInsets.all(4),
                   child: Icon(
@@ -265,7 +265,7 @@ class _NotificationsState extends State<Notifications> {
               actionButton: Switch.adaptive(
                 value: _remindDayBefore,
                 onChanged: (change) => changeRemindDayBefore(),
-                activeColor: Theme.of(context).accentColor,
+                activeColor: Theme.of(context).colorScheme.secondary,
               ),
             ), */
             // ---------------------
@@ -318,12 +318,12 @@ class _NotificationsState extends State<Notifications> {
                                     : '${(_interval ?? 300) ~/ 60}min',
                                 divisions: _isHours ? 24 : 60,
                                 activeColor: Theme.of(context)
-                                    .accentColor
-                                    .withOpacity(0.8),
+                                    .colorScheme.secondary
+                                    .withValues(alpha: 0.8),
                                 inactiveColor: Theme.of(context)
-                                    .accentColor
-                                    .withOpacity(0.1),
-                                thumbColor: Theme.of(context).accentColor,
+                                    .colorScheme.secondary
+                                    .withValues(alpha: 0.1),
+                                thumbColor: Theme.of(context).colorScheme.secondary,
                               ),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -337,7 +337,7 @@ class _NotificationsState extends State<Notifications> {
                                       });
                                     },
                                     activeColor:
-                                        Theme.of(context).accentColor,
+                                        Theme.of(context).colorScheme.secondary,
                                   ),
                                   Text(AppLocalizations.of(context)!.hours),
                                 ],
@@ -353,7 +353,7 @@ class _NotificationsState extends State<Notifications> {
                         child: Text('OK'),
                       ),
                     ],
-                    backgroundColor: Theme.of(context).backgroundColor,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
                   ),
                 ),
               ),
@@ -378,7 +378,7 @@ class _NotificationsState extends State<Notifications> {
               actionButton: Switch.adaptive(
                 value: _remindOnlyChange,
                 onChanged: (change) => changeRemindOnlyChange(),
-                activeColor: Theme.of(context).accentColor,
+                activeColor: Theme.of(context).colorScheme.secondary,
               ),
             ),
           ],

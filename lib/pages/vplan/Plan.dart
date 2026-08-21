@@ -1,7 +1,7 @@
 import 'package:animations/animations.dart';
 import 'package:expandiware/models/Button.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:expandiware/l10n/app_localizations.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart';
@@ -158,7 +158,7 @@ class _PlanState extends State<Plan> {
     bool dayOver = false;
     if (_lessons['data'].isNotEmpty) {
       var lastLesson = _lessons['data'].last;
-      String endTimeStr = lastLesson['end'];
+      String? endTimeStr = lastLesson['end']?.toString();
       if (endTimeStr != null && endTimeStr != '---') {
         try {
           List<String> parts = endTimeStr.split(':');
@@ -315,8 +315,6 @@ class _PlanState extends State<Plan> {
       }
       return ListPage(
         title: headerTitle,
-        animate: true,
-        onRefresh: () => getData(),
         actions: [
           IconButton(
             onPressed: () => getData(),
@@ -391,63 +389,51 @@ class _PlanState extends State<Plan> {
         );
       },
        title: '$headerTitle\n$displayDate',
-      animate: true,
       smallTitle: true,
-      onRefresh: () {
-        VPlanAPI().removePlanByDate(data['data']['date']);
-        return getData();
-      },
       actions: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            IconButton(
-              onPressed: () {
-                VPlanAPI().removePlanByDate(data['data']['date']);
-                getData();
-              },
-              icon: Icon(Icons.refresh, size: 20),
+        IconButton(
+          onPressed: () async {
+            await VPlanAPI().removePlanByDate(data['data']['date']);
+            getData();
+          },
+          icon: Icon(Icons.refresh, size: 20),
+        ),
+        // courses
+        OpenContainer(
+          closedColor: Colors.transparent,
+          closedElevation: 0,
+          openColor: Theme.of(context).scaffoldBackgroundColor,
+          closedBuilder: (context, openContainer) => IconButton(
+            onPressed: openContainer,
+            icon: Icon(
+              Icons.settings_rounded,
+              size: 20,
             ),
-            // courses
-            OpenContainer(
-              closedColor: Colors.transparent,
-              closedElevation: 0,
-              openColor: Theme.of(context).scaffoldBackgroundColor,
-              closedBuilder: (context, openContainer) => IconButton(
-                onPressed: openContainer,
-                icon: Icon(
-                  Icons.settings_rounded,
-                  size: 20,
+          ),
+          openBuilder: (context, closeContainer) => widget.person != null
+              ? PersonCourses(
+                  classId: widget.classId,
+                  person: widget.person!,
+                  isNew: false,
+                  onSaved: (courses) {
+                    setState(() {
+                      widget.person!['courses'] = courses;
+                    });
+                    getData();
+                  },
+                )
+              : Courses(
+                  classId: widget.classId,
+                  updateCourses: () => getData(),
                 ),
-              ),
-              openBuilder: (context, closeContainer) => widget.person != null
-                  ? PersonCourses(
-                      classId: widget.classId,
-                      person: widget.person!,
-                      isNew: false,
-                      onSaved: (courses) {
-                        setState(() {
-                          widget.person!['courses'] = courses;
-                        });
-                        getData();
-                      },
-                    )
-                  : Courses(
-                      classId: widget.classId,
-                      updateCourses: () => getData(),
-                    ),
-            ),
-            // courses
-            IconButton(
-              onPressed: () => newVP(false),
-              icon: Icon(Icons.arrow_back),
-            ),
-            IconButton(
-              onPressed: () => newVP(true),
-              icon: Icon(Icons.arrow_forward),
-            ),
-          ],
+        ),
+        IconButton(
+          onPressed: () => newVP(false),
+          icon: Icon(Icons.arrow_back),
+        ),
+        IconButton(
+          onPressed: () => newVP(true),
+          icon: Icon(Icons.arrow_forward),
         ),
       ],
       children: [
@@ -730,8 +716,8 @@ class _CoursesState extends State<Courses> {
             ...courses.map(
               (e) => ListItem(
                 color: e['show']
-                    ? Theme.of(context).backgroundColor
-                    : Theme.of(context).backgroundColor.withOpacity(0.4),
+                    ? Theme.of(context).colorScheme.surface
+                    : Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
                 title: IntrinsicHeight(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -922,8 +908,8 @@ class _PersonCoursesState extends State<PersonCourses> {
                 final bool isShown = shown.contains(e['course']);
                 return ListItem(
                   color: isShown
-                      ? Theme.of(context).backgroundColor
-                      : Theme.of(context).backgroundColor.withOpacity(0.4),
+                      ? Theme.of(context).colorScheme.surface
+                      : Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
                   title: IntrinsicHeight(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,

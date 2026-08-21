@@ -2,7 +2,7 @@ import 'package:expandiware/models/ListItem.dart';
 import 'package:expandiware/models/ListPage.dart';
 import 'package:expandiware/models/LoadingProcess.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:expandiware/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
 import '../vplan/VPlanAPI.dart';
@@ -232,7 +232,6 @@ class _RoomPlanState extends State<RoomPlan> {
     return ListPage(
       title: '${selectedRoom ?? '...'}\n$displayDate',
       smallTitle: true,
-      animate: true,
       actions: [
         IconButton(
           icon: const Icon(Icons.sync_rounded),
@@ -285,14 +284,13 @@ class _RoomPlanState extends State<RoomPlan> {
           )
         else ...[
           // Raum-Auswahl
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            decoration: BoxDecoration(
-              color: Theme.of(context).backgroundColor,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
+          Material(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
                 value: selectedRoom,
                 isExpanded: true,
                 icon: const Icon(Icons.arrow_drop_down_rounded),
@@ -318,6 +316,7 @@ class _RoomPlanState extends State<RoomPlan> {
                   loadRoomLessons();
                 },
                 hint: Text(AppLocalizations.of(context)!.selectRoom),
+                ),
               ),
             ),
           ),

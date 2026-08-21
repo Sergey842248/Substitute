@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:expandiware/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lottie/lottie.dart';
 
@@ -136,7 +136,7 @@ class Analysis {
           (e) => ListItem(
             margin: 10,
             padding: 15,
-            color: Theme.of(context).backgroundColor,
+            color: Theme.of(context).colorScheme.surface,
             title: Text(
               AppLocalizations.of(context)!.teacherLabel(e['name']),
               style: TextStyle(fontWeight: FontWeight.bold),

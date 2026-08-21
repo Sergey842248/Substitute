@@ -368,6 +368,12 @@ abstract class AppLocalizations {
   /// **'next hour'**
   String get nextHour;
 
+  /// No description provided for @weekend.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekend'**
+  String get weekend;
+
   /// No description provided for @room.
   ///
   /// In en, this message translates to:

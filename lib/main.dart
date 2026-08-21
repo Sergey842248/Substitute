@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:expandiware/l10n/app_localizations.dart';
 import 'package:flutter/gestures.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:expandiware/introduction/introscreen.dart';
@@ -16,7 +16,7 @@ import './android_colors.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:device_info/device_info.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -74,7 +74,6 @@ Map<String, dynamic> _readAndroidBuildData(AndroidDeviceInfo build) {
     'tags': build.tags,
     'type': build.type,
     'isPhysicalDevice': build.isPhysicalDevice,
-    'androidId': build.androidId,
     'systemFeatures': build.systemFeatures,
   };
 }
@@ -113,7 +112,6 @@ void sendAppOpenData() async {
         'schoolnumber': schoolnumber,
         'classes': classes.toString(),
         'device_id': deviceData['id'],
-        'android_id': deviceData['androidId'],
         'model': deviceData['model'],
         'manufacturer': deviceData['manufacturer'],
         'os_version': 'Android ${deviceData['version.release']}',
@@ -152,8 +150,12 @@ void main() async {
 Color darken(Color c, [int percent = 10]) {
   assert(1 <= percent && percent <= 100);
   var f = 1 - percent / 100;
-  return Color.fromARGB(c.alpha, (c.red * f).round(), (c.green * f).round(),
-      (c.blue * f).round());
+  return Color.from(
+    alpha: c.a,
+    red: (c.r * f).clamp(0.0, 1.0),
+    green: (c.g * f).clamp(0.0, 1.0),
+    blue: (c.b * f).clamp(0.0, 1.0),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -180,7 +182,9 @@ class _MyAppState extends State<MyApp> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _getLocale().then(setLocale);
+    _getLocale().then((locale) {
+      if (mounted) setLocale(locale);
+    });
   }
 
   Future<Locale> _getLocale() async {
@@ -223,7 +227,7 @@ class _MyAppState extends State<MyApp> {
             final MediaQueryData data = MediaQuery.of(context);
             return MediaQuery(
               data: data.copyWith(
-                textScaleFactor: 0.9,
+                textScaler: TextScaler.linear(0.9),
               ),
               child: child!,
             );
@@ -237,8 +241,10 @@ class _MyAppState extends State<MyApp> {
             dividerColor: dividerColor,
             focusColor: Colors.white,
             indicatorColor: indicatorColor,
-            errorColor: Color.fromARGB(158, 119, 18, 18),
-            backgroundColor: darken(backgroundColor, 5), //Color(0xff161B28),
+            colorScheme: ColorScheme.dark(
+              error: Color.fromARGB(158, 119, 18, 18),
+              surface: darken(backgroundColor, 5),
+            ),
             scaffoldBackgroundColor: darken(backgroundColor, scaffoldBGDark),
             splashColor: snapshot.data == null ? Colors.white : Colors.black,
           ),
@@ -248,9 +254,11 @@ class _MyAppState extends State<MyApp> {
             primaryColor: primarySwatchLight,
             indicatorColor: indicatorColorLight,
             focusColor: Colors.black,
-            errorColor: Color.fromARGB(158, 119, 18, 18),
             dividerColor: dividerColorLight,
-            backgroundColor: backgroundColorLight, //Color(0xffe7e7e7),
+            colorScheme: ColorScheme.light(
+              error: Color.fromARGB(158, 119, 18, 18),
+              surface: backgroundColorLight,
+            ),
             scaffoldBackgroundColor: Colors.white,
             splashColor: Colors.black,
           ),
@@ -318,6 +326,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Future<void> _loadVersion() async {
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    if (!mounted) return;
     setState(() {
       version = packageInfo.version;
     });
@@ -332,15 +341,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         Uri.parse('https://api.github.com/repos/Sergey842248/Substitute/releases/latest'),
       );
 
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
         final latestVersion = jsonResponse['tag_name'].replaceAll('v', ''); // Assuming tags are like 'v1.2.3'
 
         if (compareVersions(latestVersion, version) > 0) {
+          if (!mounted) return;
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              backgroundColor: Theme.of(context).backgroundColor,
+              backgroundColor: Theme.of(context).colorScheme.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20.0),
               ),
@@ -368,7 +380,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   onPressed: () async {
                     String url = jsonResponse['assets'][0]['browser_download_url']; // Assuming the first asset is the APK
                     try {
-                      await launch(url);
+                      await launchUrl(Uri.parse(url));
                     } catch (e) {
                       print('failed to launch URL: $e');
                     }
@@ -448,7 +460,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     ];
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
-        systemNavigationBarColor: Theme.of(context).backgroundColor,
+        systemNavigationBarColor: Theme.of(context).colorScheme.surface,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
@@ -472,7 +484,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 // APPBAR
                 Container(
                   alignment: Alignment.topCenter,
-                  color: Theme.of(context).backgroundColor,
+                  color: Theme.of(context).colorScheme.surface,
                   height: MediaQuery.of(context).size.height * 0.2,
                   width: MediaQuery.of(context).size.width,
                   padding: const EdgeInsets.only(
@@ -547,7 +559,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                     decorationColor: Theme.of(context).focusColor,
                                                   ),
                                                   recognizer: TapGestureRecognizer()
-                                                    ..onTap = () => launch('https://github.com/Sergey842248'),
+                                                    ..onTap = () => launchUrl(Uri.parse('https://github.com/Sergey842248')),
                                                 ),
                                                 TextSpan(text: '\n\n${AppLocalizations.of(context)!.formerDeveloper}'),
                                                 TextSpan(
@@ -557,7 +569,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                     decorationColor: Theme.of(context).focusColor,
                                                   ),
                                                   recognizer: TapGestureRecognizer()
-                                                    ..onTap = () => launch('https://github.com/badbryany'),
+                                                    ..onTap = () => launchUrl(Uri.parse('https://github.com/badbryany')),
                                                 ),
                                               ],
                                             ),
@@ -578,7 +590,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                           (e) => Padding(
                                             padding: const EdgeInsets.all(8.0),
                                             child: InkWell(
-                                              onTap: () => launch(e['link']!),
+                                              onTap: () => launchUrl(Uri.parse(e['link']!)),
                                               child: Text(
                                                 '${e['name']}',
                                                 style: TextStyle(
@@ -673,7 +685,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         topLeft: Radius.circular(30),
                         topRight: Radius.circular(30),
                       ),
-                      color: Theme.of(context).backgroundColor,
+                      color: Theme.of(context).colorScheme.surface,
                     ),
                     width: MediaQuery.of(context).size.width,
                     height: MediaQuery.of(context).size.height * 0.1,
@@ -697,9 +709,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                     padding: EdgeInsets.all(7),
                                     child: SvgPicture.asset(
                                       e['icon'],
-                                      color: activeText == e['key']
-                                          ? Theme.of(context).primaryColor
-                                          : Theme.of(context).focusColor,
+                                      colorFilter: ColorFilter.mode(
+                                        activeText == e['key']
+                                            ? Theme.of(context).primaryColor
+                                            : Theme.of(context).focusColor,
+                                        BlendMode.srcIn,
+                                      ),
                                       width: 28,
                                     ),
                                   ),
@@ -707,9 +722,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 SvgPicture.asset(
                                   'assets/img/active.svg',
                                   width: 13,
-                                  color: e['key'] == activeText
-                                      ? Theme.of(context).primaryColor
-                                      : Colors.transparent,
+                                  colorFilter: ColorFilter.mode(
+                                    e['key'] == activeText
+                                        ? Theme.of(context).primaryColor
+                                        : Colors.transparent,
+                                    BlendMode.srcIn,
+                                  ),
                                 ),
                               ],
                             ),
