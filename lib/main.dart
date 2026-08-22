@@ -97,7 +97,7 @@ class _MyAppState extends State<MyApp> {
 
   Future<Locale> _getLocale() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String languageCode = prefs.getString('languageCode') ?? 'en';
+    String languageCode = prefs.getString('languageCode') ?? 'de';
     return Locale(languageCode, '');
   }
 

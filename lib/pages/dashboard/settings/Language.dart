@@ -22,7 +22,7 @@ class _LanguageState extends State<Language> {
   Future<void> _loadCurrentLanguage() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      _currentLanguage = prefs.getString('languageCode') ?? 'en';
+      _currentLanguage = prefs.getString('languageCode') ?? 'de';
     });
   }
 
