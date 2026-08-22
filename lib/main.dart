@@ -21,6 +21,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lottie/lottie.dart';
 
 import 'dart:convert';
+import 'dart:io';
 
 /* pages */
 import 'pages/vplan/VPlan.dart';
@@ -243,6 +244,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   void checkForUpdates(BuildContext context) async {
     if (_hasCheckedForUpdates || version == 'loading...') return; // Check only once per app open
+    if (!kIsWeb && !Platform.isAndroid) return; // Only show update dialog on Android
     _hasCheckedForUpdates = true;
     try {
       final response = await http.get(
