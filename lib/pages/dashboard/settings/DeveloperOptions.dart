@@ -37,13 +37,6 @@ class _DeveloperOptionsState extends State<DeveloperOptions> {
   Widget build(BuildContext context) {
     List<dynamic> options = [
       {
-        'title': 'Disable developer options',
-        'actionText': 'Disable',
-        'action': () => SharedPreferences.getInstance().then(
-              (instance) => instance.setBool('developerOptions', false),
-            ),
-      },
-      {
         'title': 'Delete offline substitution plan',
         'actionText': 'Delete',
         'action': widget.deleteOfflineData,
