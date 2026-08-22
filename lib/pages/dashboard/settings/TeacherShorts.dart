@@ -11,6 +11,7 @@ import 'package:page_transition/page_transition.dart';
 import '../../../models/InputField.dart';
 import '../../../models/ListPage.dart';
 import '../../vplan/VPlanAPI.dart';
+import '../../../services/SchoolStorage.dart';
 
 class TeacherShorts extends StatefulWidget {
   TeacherShorts({Key? key}) : super(key: key);
@@ -25,9 +26,9 @@ class _TeacherShortsState extends State<TeacherShorts> {
   getData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String> teacherShorts = await VPlanAPI().getTeachers();
+    final String key = SchoolStorage.scopedKey(prefs, 'teacherShorts');
 
-    if (prefs.getString('teacherShorts') == null ||
-        prefs.getString('teacherShorts') == '') {
+    if (prefs.getString(key) == null || prefs.getString(key) == '') {
       List<dynamic> addList = [];
       for (int i = 0; i < teacherShorts.length; i++) {
         addList.add({
@@ -35,11 +36,10 @@ class _TeacherShortsState extends State<TeacherShorts> {
           'realName': '',
         });
       }
-      prefs.setString('teacherShorts', jsonEncode(addList));
+      prefs.setString(key, jsonEncode(addList));
     }
 
-    List<dynamic> teacherShortConvert =
-        jsonDecode(prefs.getString('teacherShorts')!);
+    List<dynamic> teacherShortConvert = jsonDecode(prefs.getString(key)!);
 
     for (int i = 0; i < teacherShorts.length; i++) {
       teachers.add({
@@ -70,7 +70,8 @@ class _TeacherShortsState extends State<TeacherShorts> {
           IconButton(
             onPressed: () async {
               SharedPreferences prefs = await SharedPreferences.getInstance();
-              String teacherShorts = prefs.getString("teacherShorts")!;
+              String teacherShorts =
+                  prefs.getString(SchoolStorage.scopedKey(prefs, "teacherShorts"))!;
 
               Navigator.push(
                 context,
@@ -95,7 +96,7 @@ class _TeacherShortsState extends State<TeacherShorts> {
                         await SharedPreferences.getInstance();
 
                     List<dynamic> currentTeacherShorts =
-                        jsonDecode(prefs.getString('teacherShorts')!);
+                        jsonDecode(prefs.getString(SchoolStorage.scopedKey(prefs, 'teacherShorts'))!);
 
                     List<dynamic> sharedTeacherShorts = jsonDecode(result);
 
@@ -158,8 +159,9 @@ class _TeacherShortsState extends State<TeacherShorts> {
                         String value =
                             (e['controller'] as TextEditingController).text;
 
-                        List<dynamic> _teacherShorts =
-                            jsonDecode(prefs.getString('teacherShorts')!);
+                        List<dynamic> _teacherShorts = jsonDecode(
+                            prefs.getString(SchoolStorage.scopedKey(
+                                prefs, 'teacherShorts'))!);
 
                         for (int i = 0; i < _teacherShorts.length; i++) {
                           if (_teacherShorts[i]['short'] == e['short']) {
@@ -167,7 +169,7 @@ class _TeacherShortsState extends State<TeacherShorts> {
                           }
                         }
                         prefs.setString(
-                          'teacherShorts',
+                          SchoolStorage.scopedKey(prefs, 'teacherShorts'),
                           jsonEncode(_teacherShorts),
                         );
                         setState(() => e['currently_added'] = true);
@@ -186,7 +188,9 @@ class _TeacherShortsState extends State<TeacherShorts> {
                         ),
                         child: Center(
                           child: Text(
-                            e['currently_added'] ? AppLocalizations.of(context)!.saved : AppLocalizations.of(context)!.save,
+                            e['currently_added']
+                                ? AppLocalizations.of(context)!.saved
+                                : AppLocalizations.of(context)!.save,
                             style: TextStyle(
                               fontWeight: FontWeight.w500,
                               fontSize: 14,

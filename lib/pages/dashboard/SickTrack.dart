@@ -7,6 +7,7 @@ import '../../models/Button.dart';
 import '../../models/ListItem.dart';
 import '../../models/ListPage.dart';
 import '../../models/LoadingProcess.dart';
+import '../../services/SchoolStorage.dart';
 import '../vplan/VPlanAPI.dart';
 
 class SickTrack extends StatefulWidget {
@@ -41,8 +42,7 @@ class _SickTrackState extends State<SickTrack> {
   }
 
   Future<void> _computeMissed(Map<String, dynamic> entry) async {
-    List<Map<String, dynamic>> missed =
-        await vplanAPI.getMissedLessons(entry);
+    List<Map<String, dynamic>> missed = await vplanAPI.getMissedLessons(entry);
     if (!mounted) return;
     setState(() {
       missedCache[entry['id']] = missed;
@@ -285,7 +285,8 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
 
   Future<void> _pickSource() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String> classes = prefs.getStringList('classes') ?? [];
+    List<String> classes =
+        prefs.getStringList(SchoolStorage.scopedKey(prefs, 'classes')) ?? [];
     Map<String, String> classNames = await vplanAPI.getClassNames();
     List<Map<String, dynamic>> persons = await vplanAPI.getPersons();
 
@@ -304,7 +305,8 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
               padding: const EdgeInsets.all(16),
               child: Text(
                 AppLocalizations.of(context)!.selectClassOrPerson,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
             ...persons.map(
@@ -417,15 +419,13 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
         // (alle Kurse der Klasse minus die im Vertretungsplan
         // ausgeblendeten). Im Sick Tracker kann die Auswahl danach nur
         // noch feinjustiert werden.
-        List<String> hidden =
-            await vplanAPI.getHiddenCourses(_classId);
+        List<String> hidden = await vplanAPI.getHiddenCourses(_classId);
         selected = courses
             .map((c) => c['course']?.toString() ?? '')
             .where((c) => !hidden.contains(c))
             .toSet();
       } else {
-        selected =
-            courses.map((c) => c['course']?.toString() ?? '').toSet();
+        selected = courses.map((c) => c['course']?.toString() ?? '').toSet();
       }
     }
     if (!mounted) return;

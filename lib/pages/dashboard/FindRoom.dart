@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 
 import '../vplan/VPlanAPI.dart';
+import '../../services/SchoolStorage.dart';
 
 /// Raumplan: Zeigt alle Räume und deren Belegung für einen bestimmten Tag
 /// und eine bestimmte Uhrzeit bzw. Stunde. Der Nutzer kann wählen zwischen
@@ -67,7 +68,8 @@ class _FindRoomState extends State<FindRoom> {
       time = time.replaceAll('TimeOfDay(', '').replaceAll(')', '');
       List<String> parts = time.split(':');
       if (parts.length == 2) {
-        return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+        return TimeOfDay(
+            hour: int.parse(parts[0]), minute: int.parse(parts[1]));
       }
     } catch (e) {}
     return null;
@@ -87,7 +89,8 @@ class _FindRoomState extends State<FindRoom> {
 
     // Load lesson times from settings
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? lessonTimesJson = prefs.getString('lessontimes');
+    String? lessonTimesJson =
+        prefs.getString(SchoolStorage.scopedKey(prefs, 'lessontimes'));
     if (lessonTimesJson != null && lessonTimesJson.isNotEmpty) {
       try {
         List<dynamic> decoded = jsonDecode(lessonTimesJson);
@@ -100,9 +103,13 @@ class _FindRoomState extends State<FindRoom> {
     VPlanAPI vplanAPI = VPlanAPI();
     Uri url = Uri.parse(await vplanAPI.getURL(_selectedDate));
 
-    if (mounted) setState(() => loadText = AppLocalizations.of(context)!.loadingSubstitutionPlan);
+    if (mounted)
+      setState(() =>
+          loadText = AppLocalizations.of(context)!.loadingSubstitutionPlan);
     dynamic _vplanData = await vplanAPI.getVPlanJSON(url, _selectedDate);
-    if (mounted) setState(() => loadText = AppLocalizations.of(context)!.substitutionPlanLoaded);
+    if (mounted)
+      setState(() =>
+          loadText = AppLocalizations.of(context)!.substitutionPlanLoaded);
 
     if (_vplanData == null ||
         _vplanData.isEmpty ||
@@ -143,16 +150,18 @@ class _FindRoomState extends State<FindRoom> {
 
     // Merge with previously cached rooms so ALL known rooms are shown
     SharedPreferences prefs2 = await SharedPreferences.getInstance();
-    List<int> cachedRooms = (prefs2.getStringList('cachedRooms') ?? [])
-        .map((e) => int.tryParse(e) ?? -1)
-        .where((e) => e >= 0)
-        .toList();
+    List<int> cachedRooms =
+        (prefs2.getStringList(SchoolStorage.scopedKey(prefs2, 'cachedRooms')) ??
+                [])
+            .map((e) => int.tryParse(e) ?? -1)
+            .where((e) => e >= 0)
+            .toList();
     for (var r in cachedRooms) {
       if (!rooms.contains(r)) rooms.add(r);
     }
     // Save merged list for next time
     await prefs2.setStringList(
-      'cachedRooms',
+      SchoolStorage.scopedKey(prefs2, 'cachedRooms'),
       rooms.map((e) => e.toString()).toList(),
     );
 
@@ -164,7 +173,8 @@ class _FindRoomState extends State<FindRoom> {
         _vplanData['data']['Klassen'] != null &&
         _vplanData['data']['Klassen']['Kl'] != null) {
       // Only check for currently used rooms when a time/hour is selected
-      if (mounted) setState(() => loadText = AppLocalizations.of(context)!.browsingPlan);
+      if (mounted)
+        setState(() => loadText = AppLocalizations.of(context)!.browsingPlan);
       totalSteps = _vplanData['data']['Klassen']['Kl'].length;
       process = 0;
 
@@ -210,7 +220,8 @@ class _FindRoomState extends State<FindRoom> {
       usedRooms.sort();
     }
 
-    if (mounted) setState(() => loadText = AppLocalizations.of(context)!.analysingRooms);
+    if (mounted)
+      setState(() => loadText = AppLocalizations.of(context)!.analysingRooms);
     totalSteps = rooms.length;
     process = 0;
     List<dynamic> allRooms = [];
@@ -218,7 +229,8 @@ class _FindRoomState extends State<FindRoom> {
       if (mounted) {
         setState(() {
           process++;
-          loadText = AppLocalizations.of(context)!.checkRoom(rooms[i].toString());
+          loadText =
+              AppLocalizations.of(context)!.checkRoom(rooms[i].toString());
         });
       }
 
@@ -323,7 +335,8 @@ class _FindRoomState extends State<FindRoom> {
                     Text(
                       roomData.isNotEmpty
                           ? AppLocalizations.of(context)!.lessonsInThisRoom
-                          : AppLocalizations.of(context)!.todayNoLessonsInThisRoom,
+                          : AppLocalizations.of(context)!
+                              .todayNoLessonsInThisRoom,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
@@ -468,7 +481,8 @@ class _FindRoomState extends State<FindRoom> {
                         final picked = await showDatePicker(
                           context: context,
                           initialDate: tempDate,
-                          firstDate: DateTime.now().subtract(Duration(days: 30)),
+                          firstDate:
+                              DateTime.now().subtract(Duration(days: 30)),
                           lastDate: DateTime.now().add(Duration(days: 30)),
                         );
                         if (picked != null) {
@@ -531,7 +545,8 @@ class _FindRoomState extends State<FindRoom> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        subtitle: Text(AppLocalizations.of(context)!.selectTime),
+                        subtitle:
+                            Text(AppLocalizations.of(context)!.selectTime),
                         onTap: () async {
                           final picked = await showTimePicker(
                             context: context,
@@ -558,13 +573,15 @@ class _FindRoomState extends State<FindRoom> {
                               String endParsed = '';
                               try {
                                 startParsed = _parseTimeOfDay(start)
-                                    ?.toString()
-                                    .replaceAll('TimeOfDay(', '')
-                                    .replaceAll(')', '') ?? '';
+                                        ?.toString()
+                                        .replaceAll('TimeOfDay(', '')
+                                        .replaceAll(')', '') ??
+                                    '';
                                 endParsed = _parseTimeOfDay(end)
-                                    ?.toString()
-                                    .replaceAll('TimeOfDay(', '')
-                                    .replaceAll(')', '') ?? '';
+                                        ?.toString()
+                                        .replaceAll('TimeOfDay(', '')
+                                        .replaceAll(')', '') ??
+                                    '';
                               } catch (e) {}
                               return ListTile(
                                 leading: Icon(
@@ -583,7 +600,8 @@ class _FindRoomState extends State<FindRoom> {
                                         : FontWeight.normal,
                                   ),
                                 ),
-                                subtitle: (startParsed.isNotEmpty && endParsed.isNotEmpty)
+                                subtitle: (startParsed.isNotEmpty &&
+                                        endParsed.isNotEmpty)
                                     ? Text('$startParsed – $endParsed')
                                     : null,
                                 onTap: () {
@@ -690,7 +708,8 @@ class _FindRoomState extends State<FindRoom> {
     if (!getDataExecuted) getData();
     return Container(
       child: ListPage(
-        title: '${AppLocalizations.of(context)!.roomPlan}\n${_buildTitleTime()}',
+        title:
+            '${AppLocalizations.of(context)!.roomPlan}\n${_buildTitleTime()}',
         smallTitle: true,
         actions: [
           IconButton(
@@ -742,40 +761,39 @@ class _FindRoomState extends State<FindRoom> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       children: [
-                          ...(data as List).map(
-                            (e) => InkWell(
-                              onTap: () async => roomInfo(
-                                context,
-                                e['room_lessons'],
+                        ...(data as List).map(
+                          (e) => InkWell(
+                            onTap: () async => roomInfo(
+                              context,
+                              e['room_lessons'],
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              margin: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                color: Theme.of(context).colorScheme.surface,
+                                border: e['open']
+                                    ? Border.all(
+                                        color: Theme.of(context).primaryColor,
+                                      )
+                                    : null,
                               ),
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                margin: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(20),
-                                  color: Theme.of(context).colorScheme.surface,
-                                  border: e['open']
-                                      ? Border.all(
-                                          color:
-                                              Theme.of(context).primaryColor,
-                                        )
-                                      : null,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    e['used_this_day']
-                                        ? '${e['room']}'
-                                        : '(${e['room']})',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                    ),
+                              child: Center(
+                                child: Text(
+                                  e['used_this_day']
+                                      ? '${e['room']}'
+                                      : '(${e['room']})',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                        ],
+                        ),
+                      ],
                     ),
         ],
       ),

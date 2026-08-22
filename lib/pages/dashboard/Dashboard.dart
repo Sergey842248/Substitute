@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 
@@ -9,6 +8,7 @@ import 'package:animations/animations.dart';
 
 import './Settings.dart';
 import './SickTrack.dart';
+import './Schools.dart';
 
 class Dashboard extends StatelessWidget {
   double margin = 8;
@@ -33,6 +33,15 @@ class Dashboard extends StatelessWidget {
         'title': AppLocalizations.of(context)!.settingsTitle,
         'subtitle': AppLocalizations.of(context)!.settingsSubtitle,
         'link': Settings(),
+      },
+      {
+        'icon': Icon(
+          Icons.school_rounded,
+          color: Theme.of(context).focusColor,
+        ),
+        'title': 'Schulen',
+        'subtitle': 'Schulbereiche und Zugangsdaten wechseln',
+        'link': const Schools(),
       },
     ];
     return Container(

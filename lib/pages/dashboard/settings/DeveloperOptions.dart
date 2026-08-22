@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 import '../../../models/ListPage.dart';
+import '../../../services/SchoolStorage.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -10,7 +11,7 @@ class DeveloperOptions extends StatefulWidget {
   void deleteOfflineData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    prefs.setStringList('offlineVPData', []);
+    prefs.setStringList(SchoolStorage.scopedKey(prefs, 'offlineVPData'), []);
   }
 
   @override
@@ -52,7 +53,7 @@ class _DeveloperOptionsState extends State<DeveloperOptions> {
         'actionText': 'Remove',
         'action': () async {
           SharedPreferences prefs = await SharedPreferences.getInstance();
-          prefs.setString('teacherShorts', '');
+          prefs.setString(SchoolStorage.scopedKey(prefs, 'teacherShorts'), '');
         },
       },
       {
@@ -80,7 +81,7 @@ class _DeveloperOptionsState extends State<DeveloperOptions> {
         'actionText': 'Delete',
         'action': () async {
           SharedPreferences prefs = await SharedPreferences.getInstance();
-          prefs.setString('lesson times', '[]');
+          prefs.setString(SchoolStorage.scopedKey(prefs, 'lessontimes'), '[]');
         },
       },
       {

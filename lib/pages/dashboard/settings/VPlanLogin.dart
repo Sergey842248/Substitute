@@ -13,6 +13,7 @@ import '../../../models/InputField.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import '../../../models/QRScanner.dart';
 import '../../../main.dart';
+import '../../../services/SchoolStorage.dart';
 
 class VPlanLogin extends StatefulWidget {
   @override
@@ -40,22 +41,27 @@ class _VPlanLoginState extends State<VPlanLogin> {
 
   void getLoginData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String schoolnumberKey =
+        SchoolStorage.scopedKey(prefs, 'vplanSchoolnumber');
+    final String usernameKey = SchoolStorage.scopedKey(prefs, 'vplanUsername');
+    final String passwordKey = SchoolStorage.scopedKey(prefs, 'vplanPassword');
+    final String customUrlKey = SchoolStorage.scopedKey(prefs, 'customUrl');
 
-    schoolnumberController.text = prefs.getString('vplanSchoolnumber') == null
+    schoolnumberController.text = prefs.getString(schoolnumberKey) == null
         ? ''
-        : prefs.getString('vplanSchoolnumber')!;
+        : prefs.getString(schoolnumberKey)!;
 
-    usernameController.text = prefs.getString('vplanUsername') == null
+    usernameController.text = prefs.getString(usernameKey) == null
         ? ''
-        : prefs.getString('vplanUsername')!;
+        : prefs.getString(usernameKey)!;
 
-    passwordController.text = prefs.getString('vplanPassword') == null
+    passwordController.text = prefs.getString(passwordKey) == null
         ? ''
-        : prefs.getString('vplanPassword')!;
+        : prefs.getString(passwordKey)!;
 
-    customUrlController.text = prefs.getString('customUrl') == null
+    customUrlController.text = prefs.getString(customUrlKey) == null
         ? ''
-        : prefs.getString('customUrl')!;
+        : prefs.getString(customUrlKey)!;
 
     if (customUrlController.text != '') {
       setState(() => customUrlField = true);
@@ -70,17 +76,21 @@ class _VPlanLoginState extends State<VPlanLogin> {
     } catch (e) {
       return;
     }
-    prefs.setString('vplanSchoolnumber', jsonData['schoolnumber']);
-    prefs.setString('vplanUsername', jsonData['username']);
-    prefs.setString('vplanPassword', jsonData['password']);
+    prefs.setString(SchoolStorage.scopedKey(prefs, 'vplanSchoolnumber'),
+        jsonData['schoolnumber']);
+    prefs.setString(
+        SchoolStorage.scopedKey(prefs, 'vplanUsername'), jsonData['username']);
+    prefs.setString(
+        SchoolStorage.scopedKey(prefs, 'vplanPassword'), jsonData['password']);
 
-    prefs.setString('customUrl', jsonData['customUrl']);
+    prefs.setString(
+        SchoolStorage.scopedKey(prefs, 'customUrl'), jsonData['customUrl']);
 
     schoolnumberController.text = jsonData['schoolnumber'];
     usernameController.text = jsonData['username'];
     passwordController.text = jsonData['password'];
 
-    passwordController.text = jsonData['customUrl'];
+    customUrlController.text = jsonData['customUrl'];
   }
 
   bool customUrlField = false;
@@ -118,8 +128,9 @@ class _VPlanLoginState extends State<VPlanLogin> {
     );
 
     if (customUrlField) {
-      _inputs =
-          InputField(controller: customUrlController, labelText: AppLocalizations.of(context)!.selfHost);
+      _inputs = InputField(
+          controller: customUrlController,
+          labelText: AppLocalizations.of(context)!.selfHost);
     }
 
     return Scaffold(
@@ -129,11 +140,19 @@ class _VPlanLoginState extends State<VPlanLogin> {
           IconButton(
             onPressed: () async {
               SharedPreferences prefs = await SharedPreferences.getInstance();
-              String schoolnumber = prefs.getString("vplanSchoolnumber")!;
-              String vplanUsername = prefs.getString("vplanUsername")!;
-              String vplanPassword = prefs.getString("vplanPassword")!;
+              String schoolnumber = prefs.getString(
+                      SchoolStorage.scopedKey(prefs, "vplanSchoolnumber")) ??
+                  '';
+              String vplanUsername = prefs.getString(
+                      SchoolStorage.scopedKey(prefs, "vplanUsername")) ??
+                  '';
+              String vplanPassword = prefs.getString(
+                      SchoolStorage.scopedKey(prefs, "vplanPassword")) ??
+                  '';
 
-              String customUrl = prefs.getString("customUrl")!;
+              String customUrl = prefs
+                      .getString(SchoolStorage.scopedKey(prefs, "customUrl")) ??
+                  '';
 
               dynamic data = {
                 'schoolnumber': schoolnumber,
@@ -277,8 +296,9 @@ class _VPlanLoginState extends State<VPlanLogin> {
                         children: [
                           Container(
                             height: 1.4,
-                            color:
-                                Theme.of(context).focusColor.withValues(alpha: 0.3),
+                            color: Theme.of(context)
+                                .focusColor
+                                .withValues(alpha: 0.3),
                             width: MediaQuery.of(context).size.width * 0.2,
                           ),
                           Text(
@@ -293,8 +313,9 @@ class _VPlanLoginState extends State<VPlanLogin> {
                           ),
                           Container(
                             height: 1.4,
-                            color:
-                                Theme.of(context).focusColor.withValues(alpha: 0.3),
+                            color: Theme.of(context)
+                                .focusColor
+                                .withValues(alpha: 0.3),
                             width: MediaQuery.of(context).size.width * 0.2,
                           ),
                         ],
@@ -311,26 +332,28 @@ class _VPlanLoginState extends State<VPlanLogin> {
                         await SharedPreferences.getInstance();
 
                     prefs.setString(
-                      'vplanSchoolnumber',
+                      SchoolStorage.scopedKey(prefs, 'vplanSchoolnumber'),
                       schoolnumberController.text.toString(),
                     );
                     prefs.setString(
-                      'vplanUsername',
+                      SchoolStorage.scopedKey(prefs, 'vplanUsername'),
                       usernameController.text.toString(),
                     );
                     prefs.setString(
-                      'vplanPassword',
+                      SchoolStorage.scopedKey(prefs, 'vplanPassword'),
                       passwordController.text.toString(),
                     );
                     if (!customUrlField) {
-                      prefs.setString("customUrl", '');
+                      prefs.setString(
+                          SchoolStorage.scopedKey(prefs, "customUrl"), '');
                     } else {
                       prefs.setString(
-                        "customUrl",
+                        SchoolStorage.scopedKey(prefs, "customUrl"),
                         customUrlController.text.toString(),
                       );
                     }
-                    Fluttertoast.showToast(msg: AppLocalizations.of(context)!.credsSaved);
+                    Fluttertoast.showToast(
+                        msg: AppLocalizations.of(context)!.credsSaved);
                     // Always navigate back to VPlan tab after saving credentials
                     // This fixes the issue where classes load infinitely after adding credentials
                     Navigator.of(context).pushAndRemoveUntil(

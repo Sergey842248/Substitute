@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http_auth/http_auth.dart' as http_auth;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:substitute/services/SchoolStorage.dart';
 import 'package:xml2json/xml2json.dart';
 import 'package:xml/xml.dart';
 
@@ -16,13 +17,18 @@ class VPlanAPI {
   bool _isDemoMode = false;
   bool get isDemoMode => _isDemoMode;
 
+  String _prefKey(SharedPreferences prefs, String key) {
+    return SchoolStorage.scopedKey(prefs, key);
+  }
+
   Future<void> login() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     // Detect demo mode: Schulnummer 123456, Benutzer user, Passwort password
-    final sn = prefs.getString("vplanSchoolnumber") ?? '';
-    final un = prefs.getString("vplanUsername") ?? '';
-    final pw = prefs.getString("vplanPassword") ?? '';
+    final sn = prefs.getString(_prefKey(prefs, "vplanSchoolnumber")) ?? '';
+    final un = prefs.getString(_prefKey(prefs, "vplanUsername")) ?? '';
+    final pw = prefs.getString(_prefKey(prefs, "vplanPassword")) ?? '';
+    final customUrl = prefs.getString(_prefKey(prefs, 'customUrl')) ?? '';
     if (sn == "123456" && un == "user" && pw == "password") {
       _isDemoMode = true;
       schoolnumber = 123456;
@@ -32,13 +38,18 @@ class VPlanAPI {
     }
     _isDemoMode = false;
 
-    if (prefs.getString('customUrl') != null &&
-        prefs.getString('customUrl') != '') {
+    if (customUrl != '') {
       return;
     }
-    schoolnumber = int.parse(prefs.getString("vplanSchoolnumber")!);
-    vplanUsername = prefs.getString("vplanUsername")!;
-    vplanPassword = prefs.getString("vplanPassword")!;
+    if (sn == '' || un == '' || pw == '') {
+      schoolnumber = 0;
+      vplanUsername = un;
+      vplanPassword = pw;
+      return;
+    }
+    schoolnumber = int.parse(sn);
+    vplanUsername = un;
+    vplanPassword = pw;
   }
 
   Future<dynamic> getClassList() async {
@@ -70,7 +81,7 @@ class VPlanAPI {
   ///
   /// Format: 'hiddenSubjectsByClass' = JSON-Map { classId: [course, ...] }
   Map<String, dynamic> _decodeHiddenByClass(SharedPreferences prefs) {
-    String? data = prefs.getString('hiddenSubjectsByClass');
+    String? data = prefs.getString(_prefKey(prefs, 'hiddenSubjectsByClass'));
     if (data == null || data.isEmpty) return {};
     try {
       return jsonDecode(data) as Map<String, dynamic>;
@@ -84,17 +95,18 @@ class VPlanAPI {
   /// Klassen nichts ändert. Neu hinzugefügte Klassen starten leer (alle
   /// Kurse sichtbar).
   Future<void> _migrateHiddenCourses(SharedPreferences prefs) async {
-    if (prefs.containsKey('hiddenSubjectsByClass')) return;
-    List<String>? old = prefs.getStringList('hiddenSubjects');
-    List<String>? classes = prefs.getStringList('classes');
+    if (prefs.containsKey(_prefKey(prefs, 'hiddenSubjectsByClass'))) return;
+    List<String>? old = prefs.getStringList(_prefKey(prefs, 'hiddenSubjects'));
+    List<String>? classes = prefs.getStringList(_prefKey(prefs, 'classes'));
     Map<String, dynamic> byClass = {};
     if (old != null && old.isNotEmpty && classes != null) {
       for (String c in classes) {
         byClass[c] = List<String>.from(old);
       }
     }
-    await prefs.setString('hiddenSubjectsByClass', jsonEncode(byClass));
-    await prefs.remove('hiddenSubjects');
+    await prefs.setString(
+        _prefKey(prefs, 'hiddenSubjectsByClass'), jsonEncode(byClass));
+    await prefs.remove(_prefKey(prefs, 'hiddenSubjects'));
   }
 
   Future<void> addHiddenCourse(String classId, String lesson) async {
@@ -110,7 +122,8 @@ class VPlanAPI {
     }
     byClass[classId] = hidden;
 
-    await prefs.setString('hiddenSubjectsByClass', jsonEncode(byClass));
+    await prefs.setString(
+        _prefKey(prefs, 'hiddenSubjectsByClass'), jsonEncode(byClass));
   }
 
   Future<void> removeHiddenCourse(String classId, String course) async {
@@ -121,7 +134,8 @@ class VPlanAPI {
     hidden.remove(course);
     byClass[classId] = hidden;
 
-    await prefs.setString('hiddenSubjectsByClass', jsonEncode(byClass));
+    await prefs.setString(
+        _prefKey(prefs, 'hiddenSubjectsByClass'), jsonEncode(byClass));
   }
 
   /// Entfernt die gespeicherten ausgeblendeten Kurse einer Klasse. Wird
@@ -131,7 +145,8 @@ class VPlanAPI {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     Map<String, dynamic> byClass = _decodeHiddenByClass(prefs);
     byClass.remove(classId);
-    await prefs.setString('hiddenSubjectsByClass', jsonEncode(byClass));
+    await prefs.setString(
+        _prefKey(prefs, 'hiddenSubjectsByClass'), jsonEncode(byClass));
   }
 
   /// Setzt die ausgeblendeten Kurse einer Klasse auf eine bestimmte Liste.
@@ -140,13 +155,14 @@ class VPlanAPI {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     Map<String, dynamic> byClass = _decodeHiddenByClass(prefs);
     byClass[classId] = courses;
-    await prefs.setString('hiddenSubjectsByClass', jsonEncode(byClass));
+    await prefs.setString(
+        _prefKey(prefs, 'hiddenSubjectsByClass'), jsonEncode(byClass));
   }
 
   // --- Class initialization tracking ---
 
   Map<String, dynamic> _decodeInitializedClasses(SharedPreferences prefs) {
-    String? data = prefs.getString('initializedClasses');
+    String? data = prefs.getString(_prefKey(prefs, 'initializedClasses'));
     if (data == null || data.isEmpty) return {};
     try {
       return jsonDecode(data) as Map<String, dynamic>;
@@ -159,14 +175,15 @@ class VPlanAPI {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     Map<String, dynamic> initialized = _decodeInitializedClasses(prefs);
     initialized[classId] = true;
-    await prefs.setString('initializedClasses', jsonEncode(initialized));
+    await prefs.setString(
+        _prefKey(prefs, 'initializedClasses'), jsonEncode(initialized));
   }
 
   /// Benutzerdefinierte Namen für die Favoriten-Klassen.
   ///
   /// Format: 'classNames' = JSON-Map { classId: customName }
   Map<String, dynamic> _decodeClassNames(SharedPreferences prefs) {
-    String? data = prefs.getString('classNames');
+    String? data = prefs.getString(_prefKey(prefs, 'classNames'));
     if (data == null || data.isEmpty) return {};
     try {
       return jsonDecode(data) as Map<String, dynamic>;
@@ -200,7 +217,7 @@ class VPlanAPI {
     } else {
       names[classId] = name.trim();
     }
-    await prefs.setString('classNames', jsonEncode(names));
+    await prefs.setString(_prefKey(prefs, 'classNames'), jsonEncode(names));
   }
 
   /// Entfernt den gespeicherten Namen einer Klasse. Wird beim Löschen einer
@@ -211,7 +228,7 @@ class VPlanAPI {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     Map<String, dynamic> names = _decodeClassNames(prefs);
     names.remove(classId);
-    await prefs.setString('classNames', jsonEncode(names));
+    await prefs.setString(_prefKey(prefs, 'classNames'), jsonEncode(names));
   }
 
   Future<List<String>> getHiddenCourses(String classId) async {
@@ -253,7 +270,7 @@ class VPlanAPI {
 
   Future<List<Map<String, dynamic>>> getPersons() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? data = prefs.getString('persons');
+    String? data = prefs.getString(_prefKey(prefs, 'persons'));
     if (data == null || data.isEmpty) {
       return [];
     }
@@ -268,7 +285,7 @@ class VPlanAPI {
 
   Future<void> savePersons(List<Map<String, dynamic>> persons) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('persons', jsonEncode(persons));
+    prefs.setString(_prefKey(prefs, 'persons'), jsonEncode(persons));
   }
 
   Future<void> addPerson(Map<String, dynamic> person) async {
@@ -277,7 +294,8 @@ class VPlanAPI {
     await savePersons(persons);
   }
 
-  Future<void> updatePersonCourses(String personId, List<String> courses) async {
+  Future<void> updatePersonCourses(
+      String personId, List<String> courses) async {
     List<Map<String, dynamic>> persons = await getPersons();
     for (int i = 0; i < persons.length; i++) {
       if (persons[i]['id'] == personId) {
@@ -310,14 +328,14 @@ class VPlanAPI {
 
   Future<dynamic> searchForOfflineData(DateTime vpDate) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (prefs.getStringList('offlineVPData') == null ||
-        prefs.getStringList('offlineVPData') == []) {
+    if (prefs.getStringList(_prefKey(prefs, 'offlineVPData')) == null ||
+        prefs.getStringList(_prefKey(prefs, 'offlineVPData')) == []) {
       return false;
     }
     List<dynamic> jsonData = [];
 
     jsonData = prefs
-        .getStringList('offlineVPData')!
+        .getStringList(_prefKey(prefs, 'offlineVPData'))!
         .map((e) => jsonDecode(e))
         .toList();
 
@@ -335,7 +353,8 @@ class VPlanAPI {
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    List<String>? stored = prefs.getStringList('offlineVPData');
+    List<String>? stored =
+        prefs.getStringList(_prefKey(prefs, 'offlineVPData'));
     if (stored == null || stored.isEmpty) return;
 
     List<String> newVplanData = [];
@@ -350,12 +369,13 @@ class VPlanAPI {
         newVplanData.add(stored[i]);
       }
     }
-    prefs.setStringList('offlineVPData', newVplanData);
+    prefs.setStringList(_prefKey(prefs, 'offlineVPData'), newVplanData);
   }
 
   Future<dynamic> getAllOfflineData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String>? offlineVPData = prefs.getStringList('offlineVPData');
+    List<String>? offlineVPData =
+        prefs.getStringList(_prefKey(prefs, 'offlineVPData'));
 
     if (offlineVPData == null) {
       return [];
@@ -370,16 +390,16 @@ class VPlanAPI {
     if (_isDemoMode) return; // No background refresh needed in demo mode
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    
+
     // Get all student classes
-    List<String>? classes = prefs.getStringList('classes');
+    List<String>? classes = prefs.getStringList(_prefKey(prefs, 'classes'));
     if (classes == null || classes.isEmpty) return;
-    
+
     // Get the URL for today's plan
     String urlString = await getDayURL();
     Uri url = Uri.parse(urlString);
     DateTime today = DateTime.now();
-    
+
     // Refresh each class in the background in parallel (force refresh to get latest data)
     await Future.wait(classes.map((classId) async {
       try {
@@ -413,7 +433,8 @@ class VPlanAPI {
     return returnData;
   }
 
-  Future<dynamic> getVPlanJSON(Uri url, DateTime vpDate, {bool forceRefresh = false}) async {
+  Future<dynamic> getVPlanJSON(Uri url, DateTime vpDate,
+      {bool forceRefresh = false}) async {
     // Check demo mode FIRST to avoid any caching/network interference
     await login();
 
@@ -429,14 +450,17 @@ class VPlanAPI {
 
     // Check TTL cache first unless force refresh is requested
     if (!forceRefresh) {
-      String cacheKey = 'vplan_cache_${vpDate.year}-${vpDate.month.toString().padLeft(2, '0')}-${vpDate.day.toString().padLeft(2, '0')}';
-      String? cachedData = prefs.getString(cacheKey);
-      int? cacheTime = prefs.getInt('${cacheKey}_time');
-      
+      String cacheKey =
+          'vplan_cache_${vpDate.year}-${vpDate.month.toString().padLeft(2, '0')}-${vpDate.day.toString().padLeft(2, '0')}';
+      String scopedCacheKey = _prefKey(prefs, cacheKey);
+      String? cachedData = prefs.getString(scopedCacheKey);
+      int? cacheTime = prefs.getInt('${scopedCacheKey}_time');
+
       if (cachedData != null && cacheTime != null) {
-        int cacheTTL = prefs.getInt('vplanCacheTTL') ?? 300; // 5 minutes default
+        int cacheTTL =
+            prefs.getInt('vplanCacheTTL') ?? 300; // 5 minutes default
         int currentTime = DateTime.now().millisecondsSinceEpoch;
-        
+
         if (currentTime - cacheTime < cacheTTL * 1000) {
           print('Using cached data for ${vpDate.toString().split(' ')[0]}');
           return jsonDecode(cachedData);
@@ -451,21 +475,22 @@ class VPlanAPI {
     Xml2Json xml2json = Xml2Json();
     var client;
 
-    if (prefs.getString('customUrl') != null &&
-        prefs.getString('customUrl') != '') {
+    if (prefs.getString(_prefKey(prefs, 'customUrl')) != null &&
+        prefs.getString(_prefKey(prefs, 'customUrl')) != '') {
       if (url.toString().contains('PlanKl')) {
         // For dated requests, append the path to customUrl
         String path = url.path;
-        url = Uri.parse(prefs.getString('customUrl')! + path);
+        url = Uri.parse(prefs.getString(_prefKey(prefs, 'customUrl'))! + path);
       } else {
-        url = Uri.parse(prefs.getString('customUrl')! + 'mobdaten/Klassen.xml');
+        url = Uri.parse(prefs.getString(_prefKey(prefs, 'customUrl'))! +
+            'mobdaten/Klassen.xml');
       }
     } else {
       client = http_auth.BasicAuthClient(vplanUsername, vplanPassword);
     }
     try {
-      return ((prefs.getString('customUrl') != null &&
-                  prefs.getString('customUrl') != '')
+      return ((prefs.getString(_prefKey(prefs, 'customUrl')) != null &&
+                  prefs.getString(_prefKey(prefs, 'customUrl')) != '')
               ? http.Client()
               : client)
           .get(url)
@@ -536,7 +561,7 @@ class VPlanAPI {
         for (int i = 0; i < classes.length; i++) {
           String classId = classes.elementAt(i).getElement('Kurz')!.innerText;
           roomChanges[classId] = {};
-          
+
           XmlElement? pl = classes.elementAt(i).getElement('Pl');
           if (pl != null) {
             Iterable<XmlElement> stunden = pl.findAllElements('Std');
@@ -554,8 +579,7 @@ class VPlanAPI {
         /* NEW XML PARSER */
 
         var infoList = ziZeilen.map((e) => e.innerText).toList();
-        var lastNotEmpty =
-            infoList.lastIndexWhere((s) => s.trim().isNotEmpty);
+        var lastNotEmpty = infoList.lastIndexWhere((s) => s.trim().isNotEmpty);
         if (lastNotEmpty != -1) {
           infoList = infoList.sublist(0, lastNotEmpty + 1);
         }
@@ -569,7 +593,8 @@ class VPlanAPI {
           'roomChanges': roomChanges,
         });
         //-------------------------------------
-        List<String>? stringData = prefs.getStringList('offlineVPData');
+        List<String>? stringData =
+            prefs.getStringList(_prefKey(prefs, 'offlineVPData'));
         stringData ??= [];
 
         // check if vplan already exist
@@ -588,7 +613,7 @@ class VPlanAPI {
           // print('plan already exist...');
         }
 
-        prefs.setStringList('offlineVPData', stringData);
+        prefs.setStringList(_prefKey(prefs, 'offlineVPData'), stringData);
         //print(prefs.getStringList('offlineVPData'));
         //-------------------------------------
 
@@ -646,13 +671,15 @@ class VPlanAPI {
 
     var jsonVPlan =
         pureVPlan['data']['Klassen']['Kl']; //get the XML data of the URL
-    
+
     Map<String, bool>? classRoomChanges;
     if (pureVPlan['roomChanges']?[classId] != null) {
-      classRoomChanges = Map<String, bool>.from(pureVPlan['roomChanges'][classId]);
+      classRoomChanges =
+          Map<String, bool>.from(pureVPlan['roomChanges'][classId]);
     }
 
-    List<dynamic> lessons = await parseVPlanXML(jsonVPlan, classId, classRoomChanges);
+    List<dynamic> lessons =
+        await parseVPlanXML(jsonVPlan, classId, classRoomChanges);
     return {
       'date': pureVPlan['date'],
       'week': pureVPlan['week'],
@@ -671,7 +698,8 @@ class VPlanAPI {
     return 'https://www.stundenplan24.de/${this.schoolnumber}/mobil/mobdaten/Klassen.xml';
   }
 
-  Future<List<dynamic>> parseVPlanXML(dynamic jsonVPlan, String classId, [Map<String, bool>? roomChanges]) async {
+  Future<List<dynamic>> parseVPlanXML(dynamic jsonVPlan, String classId,
+      [Map<String, bool>? roomChanges]) async {
     List<dynamic> _outpuLessons = [];
 
     if (jsonVPlan == null) {
@@ -707,7 +735,6 @@ class VPlanAPI {
       }
     }
 
-
     _outpuLessons.sort((a, b) => a['count'].compareTo(b['count']));
 
     return _outpuLessons;
@@ -742,10 +769,12 @@ class VPlanAPI {
 
     Map<String, bool>? classRoomChanges;
     if (pureVPlan['roomChanges']?[classId] != null) {
-      classRoomChanges = Map<String, bool>.from(pureVPlan['roomChanges'][classId]);
+      classRoomChanges =
+          Map<String, bool>.from(pureVPlan['roomChanges'][classId]);
     }
 
-    List<dynamic> lessons = await parseVPlanXML(jsonVPlan, classId, classRoomChanges);
+    List<dynamic> lessons =
+        await parseVPlanXML(jsonVPlan, classId, classRoomChanges);
     return {
       'date': pureVPlan['date'],
       'week': pureVPlan['week'],
@@ -916,11 +945,11 @@ class VPlanAPI {
   Future<List<String>> getClasses() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    if (prefs.getStringList('classes') == null) {
-      prefs.setStringList('classes', []);
+    if (prefs.getStringList(_prefKey(prefs, 'classes')) == null) {
+      prefs.setStringList(_prefKey(prefs, 'classes'), []);
     }
 
-    return prefs.getStringList('classes')!;
+    return prefs.getStringList(_prefKey(prefs, 'classes'))!;
   }
 
   // --- Sick-Track (Krankheitstracker) ---
@@ -932,7 +961,7 @@ class VPlanAPI {
 
   Future<List<Map<String, dynamic>>> getSickTrackEntries() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? data = prefs.getString('sickTrack');
+    String? data = prefs.getString(_prefKey(prefs, 'sickTrack'));
     if (data == null || data.isEmpty) {
       return [];
     }
@@ -947,7 +976,7 @@ class VPlanAPI {
 
   Future<void> saveSickTrackEntries(List<Map<String, dynamic>> entries) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('sickTrack', jsonEncode(entries));
+    prefs.setString(_prefKey(prefs, 'sickTrack'), jsonEncode(entries));
   }
 
   Future<void> addSickTrackEntry(Map<String, dynamic> entry) async {
@@ -1117,8 +1146,7 @@ class VPlanAPI {
 
       // Kurse, deren Unterschrift bereits als erledigt markiert wurde,
       // bekommen für diesen Eintrag kein Stiftsymbol mehr.
-      Set<String> done =
-          await getDoneSignatures(entry['id'].toString());
+      Set<String> done = await getDoneSignatures(entry['id'].toString());
       courses = courses.where((c) => !done.contains(c)).toList();
       if (courses.isEmpty) continue;
 
@@ -1212,8 +1240,8 @@ class VPlanAPI {
         // Kurse ohne verpasste Stunde (z.B. weil sie am Krankheitstag gar
         // keine Stunde hatten) nicht.
         if (count == null || count <= 0) continue;
-        Map<String, dynamic> details = missed[c] ??=
-            {'count': 0, 'entryIds': <String>[]};
+        Map<String, dynamic> details =
+            missed[c] ??= {'count': 0, 'entryIds': <String>[]};
         details['count'] = (details['count'] as int) + count;
         (details['entryIds'] as List).add(entry['id'].toString());
       }
@@ -1227,7 +1255,8 @@ class VPlanAPI {
 
   Future<void> cleanVplanOfflineData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String>? offlineVPData = prefs.getStringList('offlineVPData');
+    List<String>? offlineVPData =
+        prefs.getStringList(_prefKey(prefs, 'offlineVPData'));
 
     if (offlineVPData == null || offlineVPData == []) {
       return;
@@ -1265,7 +1294,7 @@ class VPlanAPI {
       if (addIt) cleanedPlan.add(vplanData[i]);
     }
     prefs.setStringList(
-      'offlineVPData',
+      _prefKey(prefs, 'offlineVPData'),
       cleanedPlan.map((e) => jsonEncode(e)).toList(),
     );
   }
@@ -1290,7 +1319,9 @@ class VPlanAPI {
       List<dynamic> courses = vplanData['courses'];
       for (int i = 0; i < courses.length; i++) {
         String? teacher = courses[i]['teacher']?.toString();
-        if (teacher != null && teacher.isNotEmpty && !allTeachers.contains(teacher)) {
+        if (teacher != null &&
+            teacher.isNotEmpty &&
+            !allTeachers.contains(teacher)) {
           allTeachers.add(teacher);
         }
       }
@@ -1300,10 +1331,12 @@ class VPlanAPI {
     allTeachers.sort();
 
     // Check if we have stored teacher data
-    if (prefs.getString('teacherShorts') != null &&
-        prefs.getString('teacherShorts') != '') {
-      List<dynamic> storedTeachers = jsonDecode(prefs.getString('teacherShorts')!);
-      List<String> storedShorts = storedTeachers.map((teacher) => teacher['short'] as String).toList();
+    if (prefs.getString(_prefKey(prefs, 'teacherShorts')) != null &&
+        prefs.getString(_prefKey(prefs, 'teacherShorts')) != '') {
+      List<dynamic> storedTeachers =
+          jsonDecode(prefs.getString(_prefKey(prefs, 'teacherShorts'))!);
+      List<String> storedShorts =
+          storedTeachers.map((teacher) => teacher['short'] as String).toList();
 
       // Add any new teachers from courses to stored data
       bool hasNewTeachers = false;
@@ -1316,17 +1349,21 @@ class VPlanAPI {
 
       // Save updated list if new teachers were added
       if (hasNewTeachers) {
-        prefs.setString('teacherShorts', jsonEncode(storedTeachers));
+        prefs.setString(
+            _prefKey(prefs, 'teacherShorts'), jsonEncode(storedTeachers));
       }
 
-      return storedTeachers.map((teacher) => teacher['short'] as String).toList();
+      return storedTeachers
+          .map((teacher) => teacher['short'] as String)
+          .toList();
     } else {
       // No stored data exists, store all teachers from courses
       List<dynamic> newStoredTeachers = [];
       for (String teacher in allTeachers) {
         newStoredTeachers.add({'short': teacher, 'realName': ''});
       }
-      prefs.setString('teacherShorts', jsonEncode(newStoredTeachers));
+      prefs.setString(
+          _prefKey(prefs, 'teacherShorts'), jsonEncode(newStoredTeachers));
       return allTeachers;
     }
   }
@@ -1340,10 +1377,12 @@ class VPlanAPI {
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    if (prefs.getString('teacherShorts') == null ||
-        prefs.getString('teacherShorts') == '') return teacherShort;
+    if (prefs.getString(_prefKey(prefs, 'teacherShorts')) == null ||
+        prefs.getString(_prefKey(prefs, 'teacherShorts')) == '')
+      return teacherShort;
 
-    List<dynamic> teacherShorts = jsonDecode(prefs.getString('teacherShorts')!);
+    List<dynamic> teacherShorts =
+        jsonDecode(prefs.getString(_prefKey(prefs, 'teacherShorts'))!);
 
     for (int i = 0; i < teacherShorts.length; i++) {
       if (teacherShorts[i]['short'] == teacherShort) {

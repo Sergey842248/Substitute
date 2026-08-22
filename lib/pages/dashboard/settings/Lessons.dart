@@ -5,6 +5,7 @@ import 'dart:convert';
 
 import '../../../models/ListItem.dart';
 import '../../../models/ListPage.dart';
+import '../../../services/SchoolStorage.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -80,10 +81,11 @@ class _LessonsState extends State<Lessons> {
 
   getData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (prefs.getString('lessontimes') == null) {
-      prefs.setString('lessontimes', '[]');
+    final String key = SchoolStorage.scopedKey(prefs, 'lessontimes');
+    if (prefs.getString(key) == null) {
+      prefs.setString(key, '[]');
     }
-    lessons = jsonDecode(prefs.getString('lessontimes')!);
+    lessons = jsonDecode(prefs.getString(key)!);
     setState(() {});
   }
 
@@ -108,7 +110,7 @@ class _LessonsState extends State<Lessons> {
               Navigator.pop(context);
               setState(() {});
             },
-            'child': Text('don\'t save' ),
+            'child': Text('don\'t save'),
           },
           content: Container(
             margin: EdgeInsets.only(
@@ -136,7 +138,8 @@ class _LessonsState extends State<Lessons> {
 
   save() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('lessontimes', jsonEncode(lessons));
+    prefs.setString(
+        SchoolStorage.scopedKey(prefs, 'lessontimes'), jsonEncode(lessons));
 
     saved = true;
     setState(() {});
@@ -224,7 +227,8 @@ class _LessonsState extends State<Lessons> {
                   actionButton: IconButton(
                     icon: Icon(
                       Icons.delete,
-                      color: Theme.of(context).focusColor.withValues(alpha: 0.5),
+                      color:
+                          Theme.of(context).focusColor.withValues(alpha: 0.5),
                       size: 18,
                     ),
                     onPressed: () {

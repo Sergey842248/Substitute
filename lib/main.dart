@@ -28,6 +28,7 @@ import 'pages/vplan/VPlan.dart';
 import 'pages/vplan/VPlanAPI.dart';
 import 'pages/dashboard/Dashboard.dart';
 import 'pages/search/SearchMenu.dart';
+import 'services/SchoolStorage.dart';
 
 /// Compares two version strings (e.g. '3.7.10') numerically segment by segment.
 /// Returns < 0 if [a] is older, 0 if equal, > 0 if [a] is newer.
@@ -46,6 +47,7 @@ int compareVersions(String a, String b) {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SharedPreferences prefs = await SharedPreferences.getInstance();
+  await SchoolStorage.ensureInitialized(prefs);
 
   if (prefs.getBool('firstTime') == null ||
       prefs.getBool('firstTime') == true) {
@@ -210,7 +212,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     eastereggController = AnimationController(vsync: this);
     // Set initial tab based on constructor parameter, default to vplanStudents
     activeText = widget.initialTab ?? 'vplanStudents';
-    
+
     // Refresh all VPlans in the background when app opens
     _refreshAllPlans();
   }
@@ -247,19 +249,23 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   void checkForUpdates(BuildContext context) async {
-    if (_hasCheckedForUpdates || version == 'loading...') return; // Check only once per app open
-    if (!kIsWeb && !Platform.isAndroid) return; // Only show update dialog on Android
+    if (_hasCheckedForUpdates || version == 'loading...')
+      return; // Check only once per app open
+    if (!kIsWeb && !Platform.isAndroid)
+      return; // Only show update dialog on Android
     _hasCheckedForUpdates = true;
     try {
       final response = await http.get(
-        Uri.parse('https://api.github.com/repos/Sergey842248/Substitute/releases/latest'),
+        Uri.parse(
+            'https://api.github.com/repos/Sergey842248/Substitute/releases/latest'),
       );
 
       if (!mounted) return;
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-        final latestVersion = jsonResponse['tag_name'].replaceAll('v', ''); // Assuming tags are like 'v1.2.3'
+        final latestVersion = jsonResponse['tag_name']
+            .replaceAll('v', ''); // Assuming tags are like 'v1.2.3'
 
         if (compareVersions(latestVersion, version) > 0) {
           if (!mounted) return;
@@ -277,7 +283,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   Text(AppLocalizations.of(context)!.newVersionAvailable),
                 ],
               ),
-              content: Text(AppLocalizations.of(context)!.newVersionMessage(latestVersion)),
+              content: Text(AppLocalizations.of(context)!
+                  .newVersionMessage(latestVersion)),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
@@ -292,7 +299,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 Button(
                   text: AppLocalizations.of(context)!.download,
                   onPressed: () async {
-                    String url = jsonResponse['assets'][0]['browser_download_url']; // Assuming the first asset is the APK
+                    String url = jsonResponse['assets'][0][
+                        'browser_download_url']; // Assuming the first asset is the APK
                     try {
                       await launchUrl(Uri.parse(url));
                     } catch (e) {
@@ -439,7 +447,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                   context: context,
                                   backgroundColor: Colors.transparent,
                                   builder: (context) => ModalBottomSheet(
-                                    title: AppLocalizations.of(context)!.appInfo,
+                                    title:
+                                        AppLocalizations.of(context)!.appInfo,
                                     bigTitle: true,
                                     extraButton: {
                                       'onTap': () {
@@ -462,28 +471,48 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                             text: TextSpan(
                                               style: const TextStyle(
                                                 fontSize: 17,
-                                                color: Colors.white, // Assuming default text color, adjust if needed
+                                                color: Colors
+                                                    .white, // Assuming default text color, adjust if needed
                                               ),
                                               children: [
-                                                TextSpan(text: AppLocalizations.of(context)!.mainDeveloper),
                                                 TextSpan(
-                                                  text: AppLocalizations.of(context)!.developerName,
+                                                    text: AppLocalizations.of(
+                                                            context)!
+                                                        .mainDeveloper),
+                                                TextSpan(
+                                                  text: AppLocalizations.of(
+                                                          context)!
+                                                      .developerName,
                                                   style: TextStyle(
-                                                    decoration: TextDecoration.underline,
-                                                    decorationColor: Theme.of(context).focusColor,
+                                                    decoration: TextDecoration
+                                                        .underline,
+                                                    decorationColor:
+                                                        Theme.of(context)
+                                                            .focusColor,
                                                   ),
                                                   recognizer: TapGestureRecognizer()
-                                                    ..onTap = () => launchUrl(Uri.parse('https://github.com/Sergey842248')),
+                                                    ..onTap = () => launchUrl(
+                                                        Uri.parse(
+                                                            'https://github.com/Sergey842248')),
                                                 ),
-                                                TextSpan(text: '\n\n${AppLocalizations.of(context)!.formerDeveloper}'),
                                                 TextSpan(
-                                                  text: AppLocalizations.of(context)!.formerDeveloperName,
+                                                    text:
+                                                        '\n\n${AppLocalizations.of(context)!.formerDeveloper}'),
+                                                TextSpan(
+                                                  text: AppLocalizations.of(
+                                                          context)!
+                                                      .formerDeveloperName,
                                                   style: TextStyle(
-                                                    decoration: TextDecoration.underline,
-                                                    decorationColor: Theme.of(context).focusColor,
+                                                    decoration: TextDecoration
+                                                        .underline,
+                                                    decorationColor:
+                                                        Theme.of(context)
+                                                            .focusColor,
                                                   ),
                                                   recognizer: TapGestureRecognizer()
-                                                    ..onTap = () => launchUrl(Uri.parse('https://github.com/badbryany')),
+                                                    ..onTap = () => launchUrl(
+                                                        Uri.parse(
+                                                            'https://github.com/badbryany')),
                                                 ),
                                               ],
                                             ),
@@ -491,12 +520,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                         ),
                                         ...[
                                           {
-                                            'name': AppLocalizations.of(context)!.openIssue,
+                                            'name':
+                                                AppLocalizations.of(context)!
+                                                    .openIssue,
                                             'link':
                                                 'https://www.github.com/Sergey842248/Substitute/issues/new?template=bug_report.yml',
                                           },
                                           {
-                                            'name': AppLocalizations.of(context)!.github,
+                                            'name':
+                                                AppLocalizations.of(context)!
+                                                    .github,
                                             'link':
                                                 'https://www.github.com/Sergey842248/Substitute',
                                           }
@@ -504,7 +537,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                           (e) => Padding(
                                             padding: const EdgeInsets.all(8.0),
                                             child: InkWell(
-                                              onTap: () => launchUrl(Uri.parse(e['link']!)),
+                                              onTap: () => launchUrl(
+                                                  Uri.parse(e['link']!)),
                                               child: Text(
                                                 '${e['name']}',
                                                 style: TextStyle(
@@ -522,7 +556,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                         Padding(
                                           padding: const EdgeInsets.all(8.0),
                                           child: Text(
-                                            AppLocalizations.of(context)!.version(version),
+                                            AppLocalizations.of(context)!
+                                                .version(version),
                                             style: const TextStyle(
                                               fontSize: 17,
                                               fontWeight: FontWeight.bold,

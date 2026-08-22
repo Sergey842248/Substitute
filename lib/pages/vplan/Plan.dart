@@ -8,6 +8,7 @@ import 'package:page_transition/page_transition.dart';
 import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:substitute/services/SchoolStorage.dart';
 
 import '../../models/ListItem.dart';
 import '../../models/ListPage.dart';
@@ -38,7 +39,8 @@ class _PlanState extends State<Plan> {
       // Get current date from data if available, otherwise use today's date
       DateTime currentDate;
       if (data is Map && data['data'] != null && data['data']['date'] != null) {
-        currentDate = VPlanAPI().parseStringDatatoDateTime(data['data']['date']);
+        currentDate =
+            VPlanAPI().parseStringDatatoDateTime(data['data']['date']);
       } else {
         currentDate = DateTime.now();
       }
@@ -51,31 +53,33 @@ class _PlanState extends State<Plan> {
       DateTime newDate;
       if (nextDay) {
         int days = 1;
-        if (currentDate.weekday == 5) { // Friday
+        if (currentDate.weekday == 5) {
+          // Friday
           days = 3; // Skip weekend
         }
         newDate = currentDate.add(Duration(days: days));
       } else {
         int days = 1;
-        if (currentDate.weekday == 1) { // Monday
+        if (currentDate.weekday == 1) {
+          // Monday
           days = 3; // Skip weekend
         }
         newDate = currentDate.subtract(Duration(days: days));
       }
 
-    // Get lessons for the new date
-    dynamic newData = await VPlanAPI().getLessonsByDate(
-      date: newDate,
-      classId: widget.classId,
-    );
+      // Get lessons for the new date
+      dynamic newData = await VPlanAPI().getLessonsByDate(
+        date: newDate,
+        classId: widget.classId,
+      );
 
-    setState(() {
-      data = {
-        'data': newData,
-        'info': newData['info'],
-      };
-    });
-    _loadMissedCourses();
+      setState(() {
+        data = {
+          'data': newData,
+          'info': newData['info'],
+        };
+      });
+      _loadMissedCourses();
     } catch (e) {
       print('Error loading plan for new date: $e');
       // If there's an error, try to reload current data
@@ -89,9 +93,7 @@ class _PlanState extends State<Plan> {
   /// denen das Symbol stammt – um die Unterschrift als erledigt markieren zu
   /// können.
   Future<void> _loadMissedCourses() async {
-    if (data is Map &&
-        data['data'] != null &&
-        data['data']['date'] != null) {
+    if (data is Map && data['data'] != null && data['data']['date'] != null) {
       DateTime date =
           VPlanAPI().parseStringDatatoDateTime(data['data']['date'].toString());
       Map<String, Map<String, dynamic>> missed =
@@ -167,7 +169,8 @@ class _PlanState extends State<Plan> {
           int hour = int.parse(parts[0]);
           int minute = int.parse(parts[1]);
           DateTime now = DateTime.now();
-          DateTime lastEnd = DateTime(now.year, now.month, now.day, hour, minute);
+          DateTime lastEnd =
+              DateTime(now.year, now.month, now.day, hour, minute);
           if (now.isAfter(lastEnd)) {
             dayOver = true;
           }
@@ -181,13 +184,18 @@ class _PlanState extends State<Plan> {
       // Load lessons for the next day
       DateTime tomorrow = DateTime.now().add(Duration(days: 1));
       // Skip weekends
-      if (tomorrow.weekday == 6) { // Saturday
+      if (tomorrow.weekday == 6) {
+        // Saturday
         tomorrow = tomorrow.add(Duration(days: 2)); // Monday
-      } else if (tomorrow.weekday == 7) { // Sunday
+      } else if (tomorrow.weekday == 7) {
+        // Sunday
         tomorrow = tomorrow.add(Duration(days: 1)); // Monday
       }
-      dynamic tomorrowLessons = await VPlanAPI().getLessonsByDate(date: tomorrow, classId: widget.classId);
-      if (tomorrowLessons['error'] == null && tomorrowLessons['data'] != null && tomorrowLessons['data'].isNotEmpty) {
+      dynamic tomorrowLessons = await VPlanAPI()
+          .getLessonsByDate(date: tomorrow, classId: widget.classId);
+      if (tomorrowLessons['error'] == null &&
+          tomorrowLessons['data'] != null &&
+          tomorrowLessons['data'].isNotEmpty) {
         data = {
           'data': tomorrowLessons,
           'info': tomorrowLessons['info'],
@@ -241,8 +249,11 @@ class _PlanState extends State<Plan> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? customName = await vplanAPI.getClassName(widget.classId);
     setState(() {
-      hideLessonTimes = prefs.getBool('hideLessonTimes') ?? true;
-      hideTeacher = prefs.getBool('hideTeacher') ?? false;
+      hideLessonTimes =
+          prefs.getBool(SchoolStorage.scopedKey(prefs, 'hideLessonTimes')) ??
+              true;
+      hideTeacher =
+          prefs.getBool(SchoolStorage.scopedKey(prefs, 'hideTeacher')) ?? false;
       className = customName;
     });
   }
@@ -258,8 +269,8 @@ class _PlanState extends State<Plan> {
     String displayDate = '...';
     // Kopfzeile: oben steht der Name der Person (falls eine ausgewählt
     // wurde) bzw. der benutzerdefinierte Name der Klasse, darunter das Datum.
-    String headerTitle = widget.person?['name']?.toString() ??
-        (className ?? widget.classId);
+    String headerTitle =
+        widget.person?['name']?.toString() ?? (className ?? widget.classId);
     if (data == null) {
       return Text('no substitution plan');
     }
@@ -275,8 +286,7 @@ class _PlanState extends State<Plan> {
           );
           break;
         case 'school-number':
-          errorText =
-              'Wrong school-number or no substitution plan available';
+          errorText = 'Wrong school-number or no substitution plan available';
           extraWidget = Lottie.asset(
             'assets/animations/nodata.json',
             height: 120,
@@ -373,9 +383,9 @@ class _PlanState extends State<Plan> {
             actionsPadding: const EdgeInsets.all(0),
             content: Text(
               weekNumber(VPlanAPI().parseStringDatatoDateTime(
-                          data['data']['date'].toString())) %
-                      2 !=
-                  0
+                              data['data']['date'].toString())) %
+                          2 !=
+                      0
                   ? 'A'
                   : 'B',
               style: TextStyle(fontSize: 18),
@@ -390,7 +400,7 @@ class _PlanState extends State<Plan> {
           ),
         );
       },
-       title: '$headerTitle\n$displayDate',
+      title: '$headerTitle\n$displayDate',
       smallTitle: true,
       actions: [
         IconButton(
@@ -448,9 +458,7 @@ class _PlanState extends State<Plan> {
                 )
               ]
             : _buildLessons(data['data']['data'] as List)),
-        data != 'loading'
-            ? const SizedBox()
-            : const SizedBox(),
+        data != 'loading' ? const SizedBox() : const SizedBox(),
         data != 'loading'
             ? (data['info'] != null &&
                     data['info'].toString() != '' &&
@@ -661,7 +669,8 @@ class _CoursesState extends State<Courses> {
     // On first open for a new class, hide all courses by default
     SharedPreferences prefs = await SharedPreferences.getInstance();
     Map<String, dynamic> initialized = {};
-    String? initData = prefs.getString('initializedClasses');
+    String? initData =
+        prefs.getString(SchoolStorage.scopedKey(prefs, 'initializedClasses'));
     if (initData != null && initData.isNotEmpty) {
       try {
         initialized = Map<String, dynamic>.from(
@@ -671,7 +680,9 @@ class _CoursesState extends State<Courses> {
     bool isFirstOpen = !initialized.containsKey(widget.classId);
     if (isFirstOpen) {
       initialized[widget.classId] = true;
-      await prefs.setString('initializedClasses', jsonEncode(initialized));
+      await prefs.setString(
+          SchoolStorage.scopedKey(prefs, 'initializedClasses'),
+          jsonEncode(initialized));
     }
 
     List<String> hiddenCourses =
@@ -741,9 +752,8 @@ class _CoursesState extends State<Courses> {
             for (int i = 0; i < courses.length; i++) {
               courses[i]['show'] = false;
             }
-            List<String> allCourses = courses
-                .map((c) => c['course'] as String)
-                .toList();
+            List<String> allCourses =
+                courses.map((c) => c['course'] as String).toList();
             await vplanAPI.setHiddenCourses(widget.classId, allCourses);
             setState(() {});
             await widget.updateCourses();
@@ -763,7 +773,10 @@ class _CoursesState extends State<Courses> {
               (e) => ListItem(
                 color: e['show']
                     ? Theme.of(context).colorScheme.surface
-                    : Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
+                    : Theme.of(context)
+                        .colorScheme
+                        .surface
+                        .withValues(alpha: 0.4),
                 title: IntrinsicHeight(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -836,8 +849,7 @@ class _CoursesState extends State<Courses> {
                     await vplanAPI.removeHiddenCourse(
                         widget.classId, e['course']);
                   } else {
-                    await vplanAPI.addHiddenCourse(
-                        widget.classId, e['course']);
+                    await vplanAPI.addHiddenCourse(widget.classId, e['course']);
                   }
                   _debouncedUpdate();
                 },
@@ -853,7 +865,8 @@ class _CoursesState extends State<Courses> {
 class PersonCourses extends StatefulWidget {
   final String classId;
   final Map<String, dynamic> person;
-  final bool isNew; // true: created & added to storage on save, false: updates existing person
+  final bool
+      isNew; // true: created & added to storage on save, false: updates existing person
   final Function(List<String> courses)? onSaved;
 
   const PersonCourses({
@@ -955,7 +968,10 @@ class _PersonCoursesState extends State<PersonCourses> {
                 return ListItem(
                   color: isShown
                       ? Theme.of(context).colorScheme.surface
-                      : Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
+                      : Theme.of(context)
+                          .colorScheme
+                          .surface
+                          .withValues(alpha: 0.4),
                   title: IntrinsicHeight(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -969,8 +985,9 @@ class _PersonCoursesState extends State<PersonCourses> {
                                 e['course'],
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  decoration:
-                                      !isShown ? TextDecoration.lineThrough : null,
+                                  decoration: !isShown
+                                      ? TextDecoration.lineThrough
+                                      : null,
                                   color: !isShown ? Colors.grey : null,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -980,8 +997,9 @@ class _PersonCoursesState extends State<PersonCourses> {
                                 '(${e['teacher']})',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  decoration:
-                                      !isShown ? TextDecoration.lineThrough : null,
+                                  decoration: !isShown
+                                      ? TextDecoration.lineThrough
+                                      : null,
                                   color: !isShown ? Colors.grey : null,
                                   fontSize: 12,
                                 ),
@@ -1005,8 +1023,9 @@ class _PersonCoursesState extends State<PersonCourses> {
                                     key: ValueKey(2),
                                     size: 16,
                                   ),
-                            transitionBuilder: (Widget child, Animation<double> animation) =>
-                                SizeTransition(
+                            transitionBuilder:
+                                (Widget child, Animation<double> animation) =>
+                                    SizeTransition(
                               sizeFactor: animation,
                               child: child,
                             ),

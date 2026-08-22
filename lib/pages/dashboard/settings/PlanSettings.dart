@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/l10n/app_localizations.dart';
+import 'package:substitute/services/SchoolStorage.dart';
 import 'package:page_transition/page_transition.dart';
 
 import '../../../models/ListPage.dart';
@@ -26,20 +27,28 @@ class _PlanSettingsState extends State<PlanSettings> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     // One-time migration: older versions stored 'hidePersons' with a default
     // of OFF. Reset any stored value once so the new default applies.
-    if (!(prefs.getBool('hidePersonsMigrated') ?? false)) {
-      await prefs.remove('hidePersons');
-      await prefs.setBool('hidePersonsMigrated', true);
+    if (!(prefs
+            .getBool(SchoolStorage.scopedKey(prefs, 'hidePersonsMigrated')) ??
+        false)) {
+      await prefs.remove(SchoolStorage.scopedKey(prefs, 'hidePersons'));
+      await prefs.setBool(
+          SchoolStorage.scopedKey(prefs, 'hidePersonsMigrated'), true);
     }
     setState(() {
-      _hideLessonTimes = prefs.getBool('hideLessonTimes') ?? true;
-      _hideTeacher = prefs.getBool('hideTeacher') ?? false;
-      _hidePersons = prefs.getBool('hidePersons') ?? false;
+      _hideLessonTimes =
+          prefs.getBool(SchoolStorage.scopedKey(prefs, 'hideLessonTimes')) ??
+              true;
+      _hideTeacher =
+          prefs.getBool(SchoolStorage.scopedKey(prefs, 'hideTeacher')) ?? false;
+      _hidePersons =
+          prefs.getBool(SchoolStorage.scopedKey(prefs, 'hidePersons')) ?? false;
     });
   }
 
   Future<void> _toggleLessonTimes(bool value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('hideLessonTimes', value);
+    await prefs.setBool(
+        SchoolStorage.scopedKey(prefs, 'hideLessonTimes'), value);
     setState(() {
       _hideLessonTimes = value;
     });
@@ -47,7 +56,7 @@ class _PlanSettingsState extends State<PlanSettings> {
 
   Future<void> _toggleHideTeacher(bool value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('hideTeacher', value);
+    await prefs.setBool(SchoolStorage.scopedKey(prefs, 'hideTeacher'), value);
     setState(() {
       _hideTeacher = value;
     });
@@ -55,7 +64,7 @@ class _PlanSettingsState extends State<PlanSettings> {
 
   Future<void> _toggleHidePersons(bool value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('hidePersons', value);
+    await prefs.setBool(SchoolStorage.scopedKey(prefs, 'hidePersons'), value);
     setState(() {
       _hidePersons = value;
     });
@@ -86,7 +95,9 @@ class _PlanSettingsState extends State<PlanSettings> {
                     title: Padding(
                       padding: EdgeInsets.all(4),
                       child: Text(
-                        _hideLessonTimes ? l10n.hideLessonTimes : l10n.showLessonTimes,
+                        _hideLessonTimes
+                            ? l10n.hideLessonTimes
+                            : l10n.showLessonTimes,
                         style: TextStyle(
                           fontSize: 18,
                         ),
@@ -95,7 +106,9 @@ class _PlanSettingsState extends State<PlanSettings> {
                     subtitle: Padding(
                       padding: EdgeInsets.all(4),
                       child: Text(
-                        _hideLessonTimes ? l10n.hideLessonTimesSubtitle : l10n.showLessonTimesSubtitle,
+                        _hideLessonTimes
+                            ? l10n.hideLessonTimesSubtitle
+                            : l10n.showLessonTimesSubtitle,
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w100,

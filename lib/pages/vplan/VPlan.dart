@@ -11,6 +11,7 @@ import 'package:animations/animations.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:substitute/services/SchoolStorage.dart';
 
 import '../dashboard/settings/VPlanLogin.dart';
 
@@ -38,7 +39,8 @@ class _VPlanState extends State<VPlan> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
 
-    List<String>? prefClasses = prefs.getStringList('classes');
+    List<String>? prefClasses =
+        prefs.getStringList(SchoolStorage.scopedKey(prefs, 'classes'));
     if (prefClasses == null) {
       prefClasses = [];
     }
@@ -55,16 +57,21 @@ class _VPlanState extends State<VPlan> {
 
     // One-time migration: older versions stored 'hidePersons' with a default
     // of OFF. Reset any stored value once so the new default applies.
-    if (!(prefs.getBool('hidePersonsMigrated') ?? false)) {
-      await prefs.remove('hidePersons');
-      await prefs.setBool('hidePersonsMigrated', true);
+    if (!(prefs
+            .getBool(SchoolStorage.scopedKey(prefs, 'hidePersonsMigrated')) ??
+        false)) {
+      await prefs.remove(SchoolStorage.scopedKey(prefs, 'hidePersons'));
+      await prefs.setBool(
+          SchoolStorage.scopedKey(prefs, 'hidePersonsMigrated'), true);
     }
-    hidePersons = prefs.getBool('hidePersons') ?? false;
+    hidePersons =
+        prefs.getBool(SchoolStorage.scopedKey(prefs, 'hidePersons')) ?? false;
     persons = await VPlanAPI().getPersons();
     if (!mounted) return;
     setState(() {});
 
-    String? username = prefs.getString('vplanUsername');
+    String? username =
+        prefs.getString(SchoolStorage.scopedKey(prefs, 'vplanUsername'));
 
     if (classes.length == 0 && (username == null || username == '')) {
       if (!mounted) return;
@@ -352,13 +359,15 @@ class _VPlanState extends State<VPlan> {
                           String classId = classes[index];
                           SharedPreferences prefs =
                               await SharedPreferences.getInstance();
-                          List<String>? newClasses =
-                              prefs.getStringList('classes');
+                          List<String>? newClasses = prefs.getStringList(
+                              SchoolStorage.scopedKey(prefs, 'classes'));
                           if (newClasses == null) {
                             newClasses = [];
                           }
                           newClasses.remove(classId);
-                          prefs.setStringList('classes', newClasses);
+                          prefs.setStringList(
+                              SchoolStorage.scopedKey(prefs, 'classes'),
+                              newClasses);
                           // Auch die gespeicherten Kurs-Auswahlen und den
                           // benutzerdefinierten Namen der Klasse zurücksetzen,
                           // damit eine später erneut hinzugefügte Klasse wieder
@@ -794,7 +803,8 @@ class _SelectClassState extends State<SelectClass> {
   void getClasses() async {
     // Prüfe, ob Zugangsdaten vorhanden sind
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? username = prefs.getString('vplanUsername');
+    String? username =
+        prefs.getString(SchoolStorage.scopedKey(prefs, 'vplanUsername'));
 
     if (!mounted) return;
 
@@ -1021,12 +1031,14 @@ class _SelectClassState extends State<SelectClass> {
               }
               SharedPreferences instance =
                   await SharedPreferences.getInstance();
-              List<String>? _classes = instance.getStringList('classes');
+              List<String>? _classes = instance
+                  .getStringList(SchoolStorage.scopedKey(instance, 'classes'));
               if (_classes == null) {
                 _classes = [];
               }
               _classes.add(className);
-              instance.setStringList('classes', _classes);
+              instance.setStringList(
+                  SchoolStorage.scopedKey(instance, 'classes'), _classes);
 
               // Optional: ask for a custom name for the class
               final TextEditingController nameController =

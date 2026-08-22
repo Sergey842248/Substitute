@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lottie/lottie.dart';
+import 'package:substitute/services/SchoolStorage.dart';
 
 import './VPlanAPI.dart';
 import '../../models/LoadingProcess.dart';
@@ -20,7 +21,8 @@ class _AnalyticsState extends State<Analytics> {
 
   void getData(context) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String>? classes = prefs.getStringList('classes');
+    List<String>? classes =
+        prefs.getStringList(SchoolStorage.scopedKey(prefs, 'classes'));
 
     if (classes == null || classes.isEmpty) {
       setState(() {
@@ -53,7 +55,8 @@ class _AnalyticsState extends State<Analytics> {
 
     if (vplanData['error'] != null) {
       setState(() {
-        content = Center(child: Text(AppLocalizations.of(context)!.couldNotLoadVPlanData));
+        content = Center(
+            child: Text(AppLocalizations.of(context)!.couldNotLoadVPlanData));
       });
       return;
     }
@@ -94,7 +97,9 @@ class Analysis {
 
   Future<Widget> analyseDay(_data, context) async {
     if (_data == null || _data.isEmpty) {
-      return Center(child: Text(AppLocalizations.of(context)!.noDataForAnalysisAvailable));
+      return Center(
+          child:
+              Text(AppLocalizations.of(context)!.noDataForAnalysisAvailable));
     }
 
     List<dynamic> teachers = [];
@@ -126,7 +131,7 @@ class Analysis {
         }
       }
     }
-    
+
     teachers.sort((a, b) => a['name'].compareTo(b['name']));
 
     return ListView(
@@ -148,12 +153,11 @@ class Analysis {
                 ...e['lessons'].map(
                   (lesson) => Padding(
                     padding: const EdgeInsets.only(bottom: 4.0),
-                    child: Text(
-                        AppLocalizations.of(context)!.lessonDetails(
-                          lesson['count'].toString(),
-                          lesson['lesson'],
-                          lesson['place'],
-                        )),
+                    child: Text(AppLocalizations.of(context)!.lessonDetails(
+                      lesson['count'].toString(),
+                      lesson['lesson'],
+                      lesson['place'],
+                    )),
                   ),
                 ),
               ],
