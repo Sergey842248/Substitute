@@ -1,9 +1,9 @@
 import 'dart:math';
 
 import 'package:angles/angles.dart';
-import 'package:expandiware/models/ListItem.dart';
-import 'package:expandiware/models/ListPage.dart';
-import 'package:expandiware/pages/dashboard/math/CalcRegularTriAngle.dart';
+import 'package:substitute/models/ListItem.dart';
+import 'package:substitute/models/ListPage.dart';
+import 'package:substitute/pages/dashboard/math/CalcRegularTriAngle.dart';
 import 'package:flutter/material.dart';
 
 class CalcTriangle extends StatefulWidget {

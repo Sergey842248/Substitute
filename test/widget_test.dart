@@ -2,11 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:expandiware/l10n/app_localizations.dart';
+import 'package:substitute/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:expandiware/pages/dashboard/SickTrack.dart';
-import 'package:expandiware/pages/vplan/VPlanAPI.dart';
+import 'package:substitute/pages/dashboard/SickTrack.dart';
+import 'package:substitute/pages/vplan/VPlanAPI.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

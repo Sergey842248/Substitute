@@ -1,9 +1,9 @@
-import 'package:expandiware/models/Button.dart';
-import 'package:expandiware/models/ListPage.dart';
-import 'package:expandiware/pages/dashboard/settings/Lessons.dart';
-import 'package:expandiware/pages/vplan/VPlanAPI.dart';
+import 'package:substitute/models/Button.dart';
+import 'package:substitute/models/ListPage.dart';
+import 'package:substitute/pages/dashboard/settings/Lessons.dart';
+import 'package:substitute/pages/vplan/VPlanAPI.dart';
 import 'package:flutter/material.dart';
-import 'package:expandiware/l10n/app_localizations.dart';
+import 'package:substitute/l10n/app_localizations.dart';
 import 'dart:async';
 import 'dart:convert';
 

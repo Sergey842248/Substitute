@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:flutter/services.dart';
 
-import 'package:expandiware/models/Button.dart';
+import 'package:substitute/models/Button.dart';
 
 import 'introTiles.dart';
 

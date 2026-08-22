@@ -1,9 +1,9 @@
-name: expandiware
+name: substitute
 description: A extended version of indiware.
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 3.7.14+3714
+version: 3.7.15+3715
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

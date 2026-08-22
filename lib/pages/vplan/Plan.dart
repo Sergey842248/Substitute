@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:animations/animations.dart';
-import 'package:expandiware/models/Button.dart';
+import 'package:substitute/models/Button.dart';
 import 'package:flutter/material.dart';
-import 'package:expandiware/l10n/app_localizations.dart';
+import 'package:substitute/l10n/app_localizations.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart';

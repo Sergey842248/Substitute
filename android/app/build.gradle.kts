@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.expandiware"
+    namespace = "com.example.substitute"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

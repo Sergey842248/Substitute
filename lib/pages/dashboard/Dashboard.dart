@@ -1,9 +1,9 @@
 
 import 'package:flutter/material.dart';
-import 'package:expandiware/l10n/app_localizations.dart';
+import 'package:substitute/l10n/app_localizations.dart';
 
 import '../../models/ListItem.dart';
-import 'package:expandiware/models/ListPage.dart';
+import 'package:substitute/models/ListPage.dart';
 
 import 'package:animations/animations.dart';
 

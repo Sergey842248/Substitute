@@ -1,4 +1,4 @@
-package com.example.expandiware
+package com.example.substitute
 
 import android.os.Build
 import androidx.core.content.res.ResourcesCompat

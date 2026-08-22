@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:expandiware/pages/vplan/VPlanAPI.dart';
+import 'package:substitute/pages/vplan/VPlanAPI.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Formatiert ein Datum als deutschen Datumsstring, wie ihn der

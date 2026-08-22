@@ -1,9 +1,9 @@
-import 'package:expandiware/models/ListItem.dart';
-import 'package:expandiware/pages/dashboard/math/CalcTriangle.dart';
+import 'package:substitute/models/ListItem.dart';
+import 'package:substitute/pages/dashboard/math/CalcTriangle.dart';
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 
-import 'package:expandiware/models/ListPage.dart';
+import 'package:substitute/models/ListPage.dart';
 
 class Maths extends StatelessWidget {
   Maths({Key? key}) : super(key: key);

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:expandiware/main.dart';
+import 'package:substitute/main.dart';
 
 void main() {
   group('compareVersions', () {

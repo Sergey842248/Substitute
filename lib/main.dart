@@ -1,10 +1,10 @@
-import 'package:expandiware/l10n/app_localizations.dart';
+import 'package:substitute/l10n/app_localizations.dart';
 import 'package:flutter/gestures.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:expandiware/introduction/introscreen.dart';
+import 'package:substitute/introduction/introscreen.dart';
 
-import 'package:expandiware/models/Button.dart';
-import 'package:expandiware/models/ModalBottomSheet.dart';
+import 'package:substitute/models/Button.dart';
+import 'package:substitute/models/ModalBottomSheet.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
