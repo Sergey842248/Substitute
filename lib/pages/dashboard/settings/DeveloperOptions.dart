@@ -5,7 +5,6 @@ import 'package:fluttertoast/fluttertoast.dart';
 import '../../../models/ListPage.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
 
 class DeveloperOptions extends StatefulWidget {
   void deleteOfflineData() async {
@@ -50,12 +49,6 @@ class _DeveloperOptionsState extends State<DeveloperOptions> {
         'action': widget.deleteOfflineData,
       },
       {
-        'title': 'Stop Background service',
-        'actionText': 'Stop',
-        'action': () =>
-            FlutterBackgroundService().invoke("stopService"),
-      },
-      {
         'title': 'Clear all SharedPreferences',
         'actionText': 'Clear',
         'action': () => SharedPreferences.getInstance()
@@ -67,14 +60,6 @@ class _DeveloperOptionsState extends State<DeveloperOptions> {
         'action': () async {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           prefs.setString('teacherShorts', '');
-        },
-      },
-      {
-        'title': 'Clear notified dates',
-        'actionText': 'Clear',
-        'action': () async {
-          SharedPreferences prefs = await SharedPreferences.getInstance();
-          prefs.setStringList('notified', []);
         },
       },
       {

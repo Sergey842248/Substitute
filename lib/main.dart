@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:expandiware/l10n/app_localizations.dart';
 import 'package:flutter/gestures.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -16,7 +14,6 @@ import './android_colors.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -24,8 +21,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lottie/lottie.dart';
 
 import 'dart:convert';
-import 'background_service.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
 
 /* pages */
 import 'pages/vplan/VPlan.dart';
@@ -47,87 +42,6 @@ int compareVersions(String a, String b) {
   return 0;
 }
 
-Map<String, dynamic> _readAndroidBuildData(AndroidDeviceInfo build) {
-  return <String, dynamic>{
-    'version.securityPatch': build.version.securityPatch,
-    'version.sdkInt': build.version.sdkInt,
-    'version.release': build.version.release,
-    'version.previewSdkInt': build.version.previewSdkInt,
-    'version.incremental': build.version.incremental,
-    'version.codename': build.version.codename,
-    'version.baseOS': build.version.baseOS,
-    'board': build.board,
-    'bootloader': build.bootloader,
-    'brand': build.brand,
-    'device': build.device,
-    'display': build.display,
-    'fingerprint': build.fingerprint,
-    'hardware': build.hardware,
-    'host': build.host,
-    'id': build.id,
-    'manufacturer': build.manufacturer,
-    'model': build.model,
-    'product': build.product,
-    'supported32BitAbis': build.supported32BitAbis,
-    'supported64BitAbis': build.supported64BitAbis,
-    'supportedAbis': build.supportedAbis,
-    'tags': build.tags,
-    'type': build.type,
-    'isPhysicalDevice': build.isPhysicalDevice,
-    'systemFeatures': build.systemFeatures,
-  };
-}
-
-Map<String, dynamic> _readIosDeviceInfo(IosDeviceInfo data) {
-  return <String, dynamic>{
-    'name': data.name,
-    'systemName': data.systemName,
-    'systemVersion': data.systemVersion,
-    'model': data.model,
-    'localizedModel': data.localizedModel,
-    'identifierForVendor': data.identifierForVendor,
-    'isPhysicalDevice': data.isPhysicalDevice,
-    'utsname.sysname:': data.utsname.sysname,
-    'utsname.nodename:': data.utsname.nodename,
-    'utsname.release:': data.utsname.release,
-    'utsname.version:': data.utsname.version,
-    'utsname.machine:': data.utsname.machine,
-  };
-}
-
-void sendAppOpenData() async {
-  final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
-  Map<String, dynamic> deviceData = <String, dynamic>{};
-  dynamic logindata;
-
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  String? schoolnumber = prefs.getString('vplanSchoolnumber');
-  schoolnumber ??= prefs.getString('customUrl');
-  List<String>? classes = prefs.getStringList('classes');
-  classes ??= [];
-  try {
-    if (Platform.isAndroid) {
-      deviceData = _readAndroidBuildData(await deviceInfoPlugin.androidInfo);
-      logindata = {
-        'schoolnumber': schoolnumber,
-        'classes': classes.toString(),
-        'device_id': deviceData['id'],
-        'model': deviceData['model'],
-        'manufacturer': deviceData['manufacturer'],
-        'os_version': 'Android ${deviceData['version.release']}',
-        'last_security_update': deviceData['version.securityPatch'],
-        'app_open_time': DateTime.now().toString(),
-      };
-    } else if (Platform.isIOS) {
-      deviceData = _readIosDeviceInfo(await deviceInfoPlugin.iosInfo);
-    }
-  } on PlatformException {
-    deviceData = <String, dynamic>{'Error:': 'Failed to get platform version.'};
-  }
-}
-
-
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -138,12 +52,6 @@ void main() async {
     return;
   }
 
-  if (prefs.getBool('automaticLoad') == true ||
-      prefs.getBool('automaticLoad') == null) {
-    print('initialize background service');
-    await initializeService();
-  }
-  if (!kDebugMode) sendAppOpenData();
   runApp(MyApp());
 }
 

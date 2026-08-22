@@ -5,7 +5,6 @@ import 'package:page_transition/page_transition.dart';
 import 'settings/Language.dart';
 import 'settings/VPlanLogin.dart';
 import 'settings/DeveloperOptions.dart';
-import 'settings/Notifications.dart';
 import 'settings/TeacherShorts.dart';
 import 'settings/PlanSettings.dart';
 
@@ -37,12 +36,7 @@ class _SettingsState extends State<Settings> {
         'subtitle': AppLocalizations.of(context)!.credentialsSubtitle,
         'link': VPlanLogin(),
       },
-      {
-        'title': AppLocalizations.of(context)!.notifications,
-        'icon': Icons.notifications_none_rounded,
-        'subtitle': AppLocalizations.of(context)!.notificationsSubtitle,
-        'link': Notifications(),
-      },
+
       {
         'title': AppLocalizations.of(context)!.setTeacherAbbreviations,
         'icon': Icons.people_alt_outlined,

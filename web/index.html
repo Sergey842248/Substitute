@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Substitute">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Substitute">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Substitute</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #1e1f25;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    #loading-container {
+      text-align: center;
+      transition: opacity 0.3s ease;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(175, 105, 238, 0.2);
+      border-top-color: #AF69EE;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px auto;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    #file-protocol-warning {
+      display: none;
+      max-width: 600px;
+      margin: 20px;
+      padding: 24px;
+      background: #2a2b32;
+      border: 1px solid #AF69EE;
+      border-radius: 12px;
+      text-align: left;
+      line-height: 1.6;
+    }
+    #file-protocol-warning h2 {
+      margin-top: 0;
+      color: #AF69EE;
+    }
+    #file-protocol-warning code {
+      background: #1e1f25;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: #f1f1f1;
+    }
+    #file-protocol-warning pre {
+      background: #1e1f25;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      color: #e0e0e0;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading-container">
+    <div class="spinner"></div>
+    <p style="color: #a0a0a0; font-size: 14px;">Substitute wird geladen...</p>
+  </div>
+
+  <div id="file-protocol-warning">
+    <h2>⚠️ Lokaler Webserver erforderlich</h2>
+    <p>
+      Flutter-Webanwendungen können aus Sicherheitsgründen aller modernen Browser (CORS / Same-Origin-Policy) nicht direkt über <code>file://</code> (per Doppelklick auf die Datei) ausgeführt werden.
+    </p>
+    <p><strong>So startest du die Website:</strong></p>
+    <pre><code># Im Projektordner:
+cd build/web
+python3 -m http.server 8080</code></pre>
+    <p>Öffne anschließend in deinem bevorzugten Browser (z. B. Firefox):<br>
+      <a href="http://localhost:8080" style="color: #AF69EE; font-weight: bold;">http://localhost:8080</a>
+    </p>
+  </div>
+
+  <script>
+    if (window.location.protocol === 'file:') {
+      document.getElementById('loading-container').style.display = 'none';
+      document.getElementById('file-protocol-warning').style.display = 'block';
+    }
+  </script>
+  <!--
+    You can customize the "flutter_bootstrap.js" script.
+    This is useful to provide a custom configuration to the Flutter loader
+    or to give the user feedback during the initialization process.
+
+    For more details:
+    * https://docs.flutter.dev/platform-integration/web/initialization
+  -->
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

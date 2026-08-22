@@ -9,7 +9,7 @@ const platform = MethodChannel('com.example.app/colors');
 
 Future<MaterialYouPalette?> getMaterialYouColor() async {
   // Material You colors are available on Android only
-  if (defaultTargetPlatform != TargetPlatform.android) return null;
+  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return null;
 
   SharedPreferences prefs = await SharedPreferences.getInstance();
   if (prefs.getBool('materialyou') == null) prefs.setBool('materialyou', true);
