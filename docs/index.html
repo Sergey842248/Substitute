@@ -1,255 +1,130 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="Substitute">
-    <meta name="theme-color" content="#AF69EE">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <title>Substitute</title>
-    <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css">
-    <link rel=""
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Substitute">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Substitute">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Substitute</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #1e1f25;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    #loading-container {
+      text-align: center;
+      transition: opacity 0.3s ease;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(175, 105, 238, 0.2);
+      border-top-color: #AF69EE;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px auto;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    #file-protocol-warning {
+      display: none;
+      max-width: 600px;
+      margin: 20px;
+      padding: 24px;
+      background: #2a2b32;
+      border: 1px solid #AF69EE;
+      border-radius: 12px;
+      text-align: left;
+      line-height: 1.6;
+    }
+    #file-protocol-warning h2 {
+      margin-top: 0;
+      color: #AF69EE;
+    }
+    #file-protocol-warning code {
+      background: #1e1f25;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: #f1f1f1;
+    }
+    #file-protocol-warning pre {
+      background: #1e1f25;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      color: #e0e0e0;
+    }
+  </style>
 </head>
 <body>
-    <!-- App Bar -->
-    <div class="app-bar">
-        <img src="icons/Icon-192.png" alt="Logo" class="logo">
-        <div class="title">Substitute</div>
-        <div class="courses-btn" onclick="showCoursesModal()" title="Kurse auswählen">
-            <span class="material-icons">filter_list</span>
-        </div>
-        <div class="refresh-btn" onclick="location.reload()">&#x21BB;</div>
-        <div class="menu-btn" onclick="showInfo()">&#x22EE;</div>
-    </div>
+  <div id="loading-container">
+    <div class="spinner"></div>
+    <p style="color: #a0a0a0; font-size: 14px;">Substitute wird geladen...</p>
+  </div>
 
-    <!-- Content -->
-    <div class="content">
-        <div id="tab-vplan" class="tab-content">
-        <div id="persons-container" style="display: none;">
-            <div class="persons-header">
-                <h2 id="persons-title">Personen</h2>
-                <button class="icon-btn" id="add-person-btn" onclick="startAddPerson()" title="Person hinzufügen">
-                    <span class="material-icons">person_add</span>
-                </button>
-            </div>
-            <div id="persons-list"></div>
-        </div>
-        <div id="favorites-container" style="display: none;">
-            <h2 id="favorites-title">Favoriten</h2>
-            <div id="favorites-list"></div>
-        </div>
-        <div id="login-form" class="form-container">
-            <h2>VPlan Anmeldedaten</h2>
-            <input type="number" id="schoolnumber" placeholder="Schulnummer" oninput="autoSaveCredentials()">
-            <input type="text" id="username" placeholder="Benutzername" oninput="autoSaveCredentials()">
-            <input type="password" id="password" placeholder="Passwort" oninput="autoSaveCredentials()">
-            <input type="url" id="customUrl" placeholder="Benutzerdefinierte URL (optional)" style="display: none;" oninput="autoSaveCredentials()">
-            <button onclick="toggleCustomUrl()">Benutzerdefinierte URL verwenden</button>
-            <button onclick="loadClasses()">Klassen laden</button>
-        </div>
+  <div id="file-protocol-warning">
+    <h2>⚠️ Lokaler Webserver erforderlich</h2>
+    <p>
+      Flutter-Webanwendungen können aus Sicherheitsgründen aller modernen Browser (CORS / Same-Origin-Policy) nicht direkt über <code>file://</code> (per Doppelklick auf die Datei) ausgeführt werden.
+    </p>
+    <p><strong>So startest du die Website:</strong></p>
+    <pre><code># Im Projektordner:
+cd build/web
+python3 -m http.server 8080</code></pre>
+    <p>Öffne anschließend in deinem bevorzugten Browser (z. B. Firefox):<br>
+      <a href="http://localhost:8080" style="color: #AF69EE; font-weight: bold;">http://localhost:8080</a>
+    </p>
+  </div>
 
-            <div id="class-list-container" class="class-list">
-                <h2>Wähle eine Klasse</h2>
-                <div id="class-list"></div>
-            </div>
-        </div>
+  <script>
+    if (window.location.protocol === 'file:') {
+      document.getElementById('loading-container').style.display = 'none';
+      document.getElementById('file-protocol-warning').style.display = 'block';
+    }
+  </script>
+  <!--
+    You can customize the "flutter_bootstrap.js" script.
+    This is useful to provide a custom configuration to the Flutter loader
+    or to give the user feedback during the initialization process.
 
-        <div id="tab-teacher" class="tab-content" style="display: none;">
-            <div class="form-container">
-                <h2>Lehrerverwaltung</h2>
-                <p>Hier können Lehrerkürzel verwaltet werden</p>
-                <input type="text" id="teacher-search" placeholder="Suche nach Lehrerkürzel" oninput="filterTeachers()">
-                <div id="teacher-list" class="class-list"></div>
-            </div>
-        </div>
-
-
-
-        <div id="tab-freerooms" class="tab-content" style="display: none;">
-            <div class="form-container">
-                <h2>Räume</h2>
-                <p>Wähle einen Tag und eine Zeit, um freie Räume zu finden.</p>
-                <input type="date" id="freerooms-date">
-                <input type="time" id="freerooms-time">
-                <button onclick="findFreeRooms()">Suchen</button>
-                <div id="freerooms-list" class="class-list"></div>
-            </div>
-        </div>
-
-
-
-
-        <!-- Room Details Modal -->
-        <div id="room-details-modal" class="modal" onclick="closeModal()">
-            <div class="modal-content" onclick="event.stopPropagation()">
-                <h2 id="room-details-title">Raum Details</h2>
-                <div id="room-details-content"></div>
-                <button onclick="closeModal()">Schließen</button>
-            </div>
-        </div>
-
-        <div id="tab-settings" class="tab-content" style="display: none;">
-            <div class="form-container">
-                <h2>Settings</h2>
-                <button onclick="showSettings()">Change your credentials</button>
-                <button onclick="showAnalytics()">Show Analytics</button>
-                <button onclick="showPlanSettings()">Plan Settings</button>
-                <button onclick="showLanguageModal()">Language</button>
-
-                <button onclick="clearData()">Delete Data</button>
-                <div id="settings-info"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Bottom Navigation -->
-    <div class="bottom-nav">
-        <div class="nav-item active" onclick="setTab(0)">
-            <div class="nav-icon">&#xE878;</div>
-                <div>SPlan</div>
-            </div>
-            <div class="nav-item" onclick="setTab(1)">
-                <div class="nav-icon">&#xE7EF;</div>
-                <div>Teachers</div>
-            </div>
-
-            <div class="nav-item" onclick="setTab(2)">
-                <div class="nav-icon">&#xE572;</div>
-                <div>Rooms</div>
-            </div>
-            <div class="nav-item" onclick="setTab(3)">
-                <div class="nav-icon">&#xE8B8;</div>
-                <div>Settings</div>
-        </div>
-    </div>
-
-    <!-- Message Modal -->
-    <div id="message-modal" class="modal" onclick="closeMessageModal()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <p id="message-text"></p>
-            <button onclick="closeMessageModal()">OK</button>
-        </div>
-    </div>
-
-    <!-- Confirm Modal -->
-    <div id="confirm-modal" class="modal" onclick="">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <p id="confirm-text"></p>
-            <button onclick="resolveConfirm(true)">Ja</button>
-            <button onclick="resolveConfirm(false)">Nein</button>
-        </div>
-    </div>
-
-    <!-- Week Modal -->
-    <div id="week-modal" class="modal" onclick="closeModal()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <h2>Woche</h2>
-            <p id="week-text">A</p>
-            <button onclick="closeModal()">Schließen</button>
-        </div>
-    </div>
-
-    <!-- Info Modal -->
-    <div id="info-modal" class="modal" onclick="closeModal()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <h2>App Info</h2>
-            <p>Substitute - Vertretungsplan App</p>
-            <div class="class-item">
-                <a href="https://github.com/Sergey842248/Substitute/issues/new?template=bug_report.yml" style="color: #AF69EE; text-decoration: none;">Report a Bug</a>
-            </div>
-            <div class="class-item">
-                <a href="https://github.com/Sergey842248/Substitute/issues/new?template=feature_request.yml" style="color: #AF69EE; text-decoration: none;">Request a Feature</a>
-            </div>
-            <div class="class-item">
-                <a href="https://github.com/Sergey842248/Substitute/releases/latest" style="color: #AF69EE; text-decoration: none;">Changelog</a>
-            </div>
-            <button onclick="closeModal()">Schließen</button>
-        </div>
-    </div>
-
-    <!-- Courses Modal -->
-    <div id="courses-modal" class="modal" onclick="closeCoursesModal()">
-        <div class="modal-content courses-modal-content" onclick="event.stopPropagation()">
-            <div class="courses-header">
-                <h2 id="courses-modal-title">Kurse</h2>
-                <div class="courses-actions">
-                    <button class="icon-btn" onclick="showAllCourses()" title="Alle anzeigen">
-                        <span class="material-icons">visibility</span>
-                    </button>
-                    <button class="icon-btn" onclick="hideAllCourses()" title="Alle ausblenden">
-                        <span class="material-icons">visibility_off</span>
-                    </button>
-                </div>
-            </div>
-            <div id="courses-list" class="courses-grid"></div>
-            <button id="courses-save-btn" onclick="savePersonCourses()" style="display: none;">Fertig</button>
-            <button onclick="closeCoursesModal()">Schließen</button>
-        </div>
-    </div>
-
-    <!-- Plan Settings Modal -->
-    <div id="plan-settings-modal" class="modal" onclick="closePlanSettingsModal()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <h2 id="plan-settings-title">Plan Settings</h2>
-            <div class="toggle-container">
-                <div class="toggle-row">
-                    <span class="toggle-text" id="lesson-times-label">Hide Lesson Times</span>
-                    <label class="switch">
-                        <input type="checkbox" id="hide-lesson-times" onchange="toggleLessonTimes()">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <p class="toggle-subtitle" id="lesson-times-subtitle">Hide times for individual lessons in the plan</p>
-            </div>
-            <div class="toggle-container">
-                <div class="toggle-row">
-                    <span class="toggle-text" id="teacher-label">Hide Teacher</span>
-                    <label class="switch">
-                        <input type="checkbox" id="hide-teacher" onchange="toggleHideTeacher()">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <p class="toggle-subtitle" id="teacher-subtitle">Hide teacher names in the substitution plan</p>
-            </div>
-            <div class="toggle-container">
-                <div class="toggle-row">
-                    <span class="toggle-text" id="persons-label">Hide Persons</span>
-                    <label class="switch">
-                        <input type="checkbox" id="hide-persons" checked onchange="toggleHidePersons()">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <p class="toggle-subtitle" id="persons-subtitle">Hide the persons section</p>
-            </div>
-            <button onclick="closePlanSettingsModal()" id="plan-settings-close-btn">Schließen</button>
-        </div>
-    </div>
-
-    <!-- Language Modal -->
-    <div id="language-modal" class="modal" onclick="closeLanguageModal()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <h2 id="language-modal-title">Sprache</h2>
-            <div class="language-options">
-                <label class="language-option">
-                    <input type="radio" name="language" value="en" onchange="changeLanguage(this.value)">
-                    <span class="language-radio"></span>
-                    <span class="language-text">English</span>
-                    <span class="material-icons language-icon">language</span>
-                </label>
-                <label class="language-option">
-                    <input type="radio" name="language" value="de" onchange="changeLanguage(this.value)">
-                    <span class="language-radio"></span>
-                    <span class="language-text">Deutsch</span>
-                    <span class="material-icons language-icon">location_on</span>
-                </label>
-            </div>
-            <button onclick="closeLanguageModal()" id="language-close-btn">Schließen</button>
-        </div>
-    </div>
-    <script src="script.js"></script>
+    For more details:
+    * https://docs.flutter.dev/platform-integration/web/initialization
+  -->
+  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
