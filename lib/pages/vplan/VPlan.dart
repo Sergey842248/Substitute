@@ -1080,15 +1080,20 @@ class _SelectClassState extends State<SelectClass> {
                 await VPlanAPI().setClassName(className, customName);
               }
 
-              // Hide all courses for the new class by default
+              // Hide all courses for the new class by default – unless we are
+              // in demo mode, where every subject should be visible so the
+              // substitution plan actually shows lessons.
               final vplanApi = VPlanAPI();
-              final courses = await vplanApi.getCourses(className);
-              if (courses.isNotEmpty) {
-                final allCourseIds = courses
-                    .map((c) => c['course'] as String)
-                    .where((c) => c != '---')
-                    .toList();
-                await vplanApi.setHiddenCourses(className, allCourseIds);
+              await vplanApi.login();
+              if (!vplanApi.isDemoMode) {
+                final courses = await vplanApi.getCourses(className);
+                if (courses.isNotEmpty) {
+                  final allCourseIds = courses
+                      .map((c) => c['course'] as String)
+                      .where((c) => c != '---')
+                      .toList();
+                  await vplanApi.setHiddenCourses(className, allCourseIds);
+                }
               }
 
               // Add the class to VPlan's list

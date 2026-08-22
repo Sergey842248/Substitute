@@ -676,8 +676,12 @@ class _CoursesState extends State<Courses> {
 
     List<String> hiddenCourses =
         await vplanAPI.getHiddenCourses(widget.classId);
-    if (isFirstOpen && hiddenCourses.isEmpty && _courses.isNotEmpty) {
-      // Hide all courses for first-time setup
+    if (isFirstOpen &&
+        !vplanAPI.isDemoMode &&
+        hiddenCourses.isEmpty &&
+        _courses.isNotEmpty) {
+      // Hide all courses for first-time setup (demo mode keeps them
+      // visible so the substitution plan shows real lessons).
       List<String> allCourses = _courses
           .map((c) => c['course'] as String)
           .where((c) => c != '---')

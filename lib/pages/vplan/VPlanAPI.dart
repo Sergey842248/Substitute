@@ -6,13 +6,31 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xml2json/xml2json.dart';
 import 'package:xml/xml.dart';
 
+import 'DemoData.dart';
+
 class VPlanAPI {
   int schoolnumber = 0; // = prefs.getString("vplanSchoolnumber");
   String vplanUsername = ''; // = prefs.getString("vplanUsername");
   String vplanPassword = ''; // = prefs.getString("vplanPassword");
 
+  bool _isDemoMode = false;
+  bool get isDemoMode => _isDemoMode;
+
   Future<void> login() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    // Detect demo mode: Schulnummer 123456, Benutzer user, Passwort password
+    final sn = prefs.getString("vplanSchoolnumber") ?? '';
+    final un = prefs.getString("vplanUsername") ?? '';
+    final pw = prefs.getString("vplanPassword") ?? '';
+    if (sn == "123456" && un == "user" && pw == "password") {
+      _isDemoMode = true;
+      schoolnumber = 123456;
+      vplanUsername = "user";
+      vplanPassword = "password";
+      return;
+    }
+    _isDemoMode = false;
 
     if (prefs.getString('customUrl') != null &&
         prefs.getString('customUrl') != '') {
@@ -24,7 +42,11 @@ class VPlanAPI {
   }
 
   Future<dynamic> getClassList() async {
-    this.login();
+    await this.login();
+
+    if (_isDemoMode) {
+      return DemoData.classes;
+    }
 
     List<String> classList = [];
 
@@ -344,6 +366,9 @@ class VPlanAPI {
   }
 
   Future<void> refreshAllPlansInBackground() async {
+    await login();
+    if (_isDemoMode) return; // No background refresh needed in demo mode
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
     
     // Get all student classes
@@ -367,6 +392,12 @@ class VPlanAPI {
   }
 
   Future<List<dynamic>> getCourses(String classId) async {
+    await login();
+
+    if (_isDemoMode) {
+      return DemoData.getCourses(classId);
+    }
+
     List<dynamic> data = (await getVPlanJSON(
       Uri.parse(await getDayURL()),
       DateTime.now(),
@@ -383,6 +414,16 @@ class VPlanAPI {
   }
 
   Future<dynamic> getVPlanJSON(Uri url, DateTime vpDate, {bool forceRefresh = false}) async {
+    // Check demo mode FIRST to avoid any caching/network interference
+    await login();
+
+    if (_isDemoMode) {
+      if (DemoData.isWeekend(vpDate)) {
+        return DemoData.buildEmptyDayPlan(vpDate);
+      }
+      return DemoData.buildDayPlan(vpDate);
+    }
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<dynamic> data = [];
 
@@ -408,7 +449,6 @@ class VPlanAPI {
     if (offlinePlan != false) return offlinePlan;
 
     Xml2Json xml2json = Xml2Json();
-    await login();
     var client;
 
     if (prefs.getString('customUrl') != null &&
@@ -572,6 +612,17 @@ class VPlanAPI {
     return false;
   }
 
+  /// Returns a well-formed, empty plan for a given date so callers can
+  /// always rely on the 'date'/'data'/'info' keys being present.
+  Map<String, dynamic> _emptyPlan(DateTime date) {
+    return {
+      'date': DemoData.germanDate(date),
+      'week': '',
+      'data': [],
+      'info': [],
+    };
+  }
+
   Future<dynamic> getLessonsForToday(String classId) async {
     await login();
 
@@ -586,8 +637,8 @@ class VPlanAPI {
       return {'error': 'no internet'};
     }
 
-    if (pureVPlan == {}) {
-      return {};
+    if (pureVPlan == null || pureVPlan.isEmpty) {
+      return _emptyPlan(DateTime.now());
     }
     if (pureVPlan['error'] != null) {
       return pureVPlan;
@@ -680,8 +731,8 @@ class VPlanAPI {
       return {'error': 'no internet'};
     }
 
-    if (pureVPlan.toString() == '{}') {
-      return {};
+    if (pureVPlan == null || pureVPlan.isEmpty) {
+      return _emptyPlan(date);
     }
     if (pureVPlan['error'] != null) {
       return pureVPlan;
@@ -1220,6 +1271,12 @@ class VPlanAPI {
   }
 
   Future<List<String>> getTeachers() async {
+    await login();
+
+    if (_isDemoMode) {
+      return DemoData.teacherShorts;
+    }
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     // Get teachers from the courses data (all teachers who teach any course)
@@ -1276,6 +1333,11 @@ class VPlanAPI {
 
   Future<String?> replaceTeacherShort(String? teacherShort) async {
     if (teacherShort == null) return teacherShort;
+
+    if (_isDemoMode) {
+      return DemoData.teacherName(teacherShort) ?? teacherShort;
+    }
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     if (prefs.getString('teacherShorts') == null ||
