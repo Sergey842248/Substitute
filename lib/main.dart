@@ -155,7 +155,9 @@ class _MyAppState extends State<MyApp> {
               surface: darken(backgroundColor, 5),
             ),
             scaffoldBackgroundColor: darken(backgroundColor, scaffoldBGDark),
-            splashColor: snapshot.data == null ? Colors.white : Colors.black,
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            splashFactory: NoSplash.splashFactory,
           ),
           theme: ThemeData(
             fontFamily: 'Poppins',
@@ -169,7 +171,9 @@ class _MyAppState extends State<MyApp> {
               surface: backgroundColorLight,
             ),
             scaffoldBackgroundColor: Colors.white,
-            splashColor: Colors.black,
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            splashFactory: NoSplash.splashFactory,
           ),
           home: Scaffold(
             body: HomePage(),
