@@ -47,9 +47,8 @@ class _PlanSettingsState extends State<PlanSettings> {
     });
   }
 
-  Future<void> _toggleLessonTimes(bool showLessonTimes) async {
+  Future<void> _toggleLessonTimes(bool hideLessonTimes) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    final bool hideLessonTimes = !showLessonTimes;
     await prefs.setBool(
         SchoolStorage.scopedKey(prefs, 'hideLessonTimes'), hideLessonTimes);
     setState(() {
@@ -95,28 +94,28 @@ class _PlanSettingsState extends State<PlanSettings> {
                       ),
                       child: Icon(Icons.access_time_rounded),
                     ),
-                    title: Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Text(
-                        l10n.showLessonTimes,
-                        style: TextStyle(
-                          fontSize: 18,
+                      title: Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Text(
+                          l10n.hideLessonTimes,
+                          style: TextStyle(
+                            fontSize: 18,
+                          ),
                         ),
                       ),
-                    ),
-                    subtitle: Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Text(
-                        l10n.showLessonTimesSubtitle,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w100,
-                          color: Colors.grey,
+                      subtitle: Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Text(
+                          l10n.hideLessonTimesSubtitle,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w100,
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
-                    ),
-                    value: !_hideLessonTimes,
-                    onChanged: _toggleLessonTimes,
+                      value: _hideLessonTimes,
+                      onChanged: _toggleLessonTimes,
                   ),
                 ),
               ),
