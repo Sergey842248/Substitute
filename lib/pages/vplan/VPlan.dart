@@ -432,6 +432,7 @@ class ClassWidget extends StatefulWidget {
 class _ClassWidgetState extends State<ClassWidget> {
   Map<String, dynamic> nextLesson = {'': 'loading'};
   String? customName;
+  bool hideLessonTimes = true;
 
   Future<void> _loadCustomName() async {
     String? name = await VPlanAPI().getClassName(widget.classId);
@@ -507,6 +508,14 @@ class _ClassWidgetState extends State<ClassWidget> {
     List<dynamic> realVPlan = [];
     VPlanAPI vplanAPI = VPlanAPI();
     dynamic vplan;
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      hideLessonTimes =
+          prefs.getBool(SchoolStorage.scopedKey(prefs, 'hideLessonTimes')) ??
+              true;
+    } catch (_) {
+      hideLessonTimes = true;
+    }
     try {
       vplan = await vplanAPI.getLessonsForToday(widget.classId);
     } catch (_) {
@@ -793,7 +802,6 @@ class _ClassWidgetState extends State<ClassWidget> {
                                         0.3),
                                 Column(
                                   children: [
-                                    Text(''),
                                     Text(
                                       AppLocalizations.of(context)!
                                           .room(nextLesson['place'] ?? ''),
@@ -805,13 +813,14 @@ class _ClassWidgetState extends State<ClassWidget> {
                                       ),
                                     ),
                                     SizedBox(height: spaceBetween),
-                                    Text(
-                                        '${nextLesson['begin'] != null ? printTime(_safeToTimeOfDay(nextLesson['begin'])?.hour ?? 0, _safeToTimeOfDay(nextLesson['begin'])?.minute ?? 0) : ''} - ${nextLesson['end'] != null ? printTime(_safeToTimeOfDay(nextLesson['end'])?.hour ?? 0, _safeToTimeOfDay(nextLesson['end'])?.minute ?? 0) : ''}',
-                                        style: TextStyle(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface,
-                                        )),
+                                    if (!hideLessonTimes)
+                                      Text(
+                                          '${nextLesson['begin'] != null ? printTime(_safeToTimeOfDay(nextLesson['begin'])?.hour ?? 0, _safeToTimeOfDay(nextLesson['begin'])?.minute ?? 0) : ''} - ${nextLesson['end'] != null ? printTime(_safeToTimeOfDay(nextLesson['end'])?.hour ?? 0, _safeToTimeOfDay(nextLesson['end'])?.minute ?? 0) : ''}',
+                                          style: TextStyle(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface,
+                                          )),
                                   ],
                                 ),
                               ],
