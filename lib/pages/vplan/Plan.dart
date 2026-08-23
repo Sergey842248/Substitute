@@ -74,6 +74,18 @@ class _PlanState extends State<Plan> {
         classId: widget.classId,
       );
 
+      // Wenn für den neuen Tag kein Plan geladen werden konnte
+      // (z.B. keine Internetverbindung), die Fehlermeldung anzeigen statt
+      // mit einem Cast-Fehler abzustürzen.
+      if (newData is! Map || newData['error'] != null) {
+        if (mounted) {
+          setState(() {
+            data = newData is Map ? newData : {'error': 'no internet'};
+          });
+        }
+        return;
+      }
+
       setState(() {
         data = {
           'data': newData,
