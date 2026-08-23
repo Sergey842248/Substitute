@@ -9,6 +9,8 @@ import 'dart:convert';
 
 import 'package:animations/animations.dart';
 import 'package:page_transition/page_transition.dart';
+
+import '../models/swipe_page_transition.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/services/SchoolStorage.dart';
@@ -109,7 +111,7 @@ class _VPlanState extends State<VPlan> {
                   Navigator.pop(context);
                   Navigator.push(
                     context,
-                    PageTransition(
+                    SwipePageTransition(
                       type: PageTransitionType.rightToLeft,
                       child: VPlanLogin(),
                     ),
@@ -192,7 +194,7 @@ class _VPlanState extends State<VPlan> {
             onClick: () {
               Navigator.push(
                 context,
-                PageTransition(
+                SwipePageTransition(
                   type: PageTransitionType.rightToLeft,
                   child: Scaffold(
                     body: Plan(
@@ -223,7 +225,7 @@ class _VPlanState extends State<VPlan> {
     final completer = Completer<String?>();
     await Navigator.push(
       context,
-      PageTransition(
+      SwipePageTransition(
         type: PageTransitionType.rightToLeft,
         child: Scaffold(
           body: SelectClass(
@@ -289,7 +291,7 @@ class _VPlanState extends State<VPlan> {
     };
     await Navigator.push(
       context,
-      PageTransition(
+      SwipePageTransition(
         type: PageTransitionType.rightToLeft,
         child: Scaffold(
           body: PersonCourses(
@@ -858,7 +860,7 @@ class _SelectClassState extends State<SelectClass> {
                   Navigator.pop(context);
                   Navigator.push(
                     context,
-                    PageTransition(
+                    SwipePageTransition(
                       type: PageTransitionType.rightToLeft,
                       child: VPlanLogin(),
                     ),
@@ -994,7 +996,7 @@ class _SelectClassState extends State<SelectClass> {
             text: AppLocalizations.of(context)!.credentials,
             onPressed: () => Navigator.push(
               context,
-              PageTransition(
+              SwipePageTransition(
                 type: PageTransitionType.rightToLeft,
                 child: VPlanLogin(),
               ),
@@ -1129,7 +1131,7 @@ class _SelectClassState extends State<SelectClass> {
               // returns to VPlan.
               Navigator.pushReplacement(
                 context,
-                PageTransition(
+                SwipePageTransition(
                   type: PageTransitionType.rightToLeft,
                   child: Scaffold(
                     body: Courses(

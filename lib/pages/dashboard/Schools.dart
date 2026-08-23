@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:page_transition/page_transition.dart';
+
+import '../../models/swipe_page_transition.dart';
 import 'package:substitute/main.dart';
 import 'package:substitute/models/ListItem.dart';
 import 'package:substitute/models/ListPage.dart';
@@ -80,7 +82,7 @@ class _SchoolsState extends State<Schools> {
 
     await Navigator.push(
       context,
-      PageTransition(
+      SwipePageTransition(
         type: PageTransitionType.rightToLeft,
         child: VPlanLogin(),
       ),

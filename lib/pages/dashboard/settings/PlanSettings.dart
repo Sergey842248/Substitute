@@ -4,6 +4,8 @@ import 'package:substitute/l10n/app_localizations.dart';
 import 'package:substitute/services/SchoolStorage.dart';
 import 'package:page_transition/page_transition.dart';
 
+import '../../../models/swipe_page_transition.dart';
+
 import '../../../models/ListPage.dart';
 import './Lessons.dart';
 
@@ -239,7 +241,7 @@ class _PlanSettingsState extends State<PlanSettings> {
                     trailing: Icon(Icons.arrow_forward_ios_rounded, size: 18),
                     onTap: () => Navigator.push(
                       context,
-                      PageTransition(
+                      SwipePageTransition(
                         type: PageTransitionType.rightToLeft,
                         child: Lessons(),
                       ),

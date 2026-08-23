@@ -2,7 +2,9 @@ import 'dart:convert';
 
 import 'package:substitute/models/Button.dart';
 import 'package:flutter/material.dart';
+import 'package:page_transition/page_transition.dart';
 import 'package:substitute/l10n/app_localizations.dart';
+import '../../../models/swipe_page_transition.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -259,8 +261,9 @@ class _VPlanLoginState extends State<VPlanLogin> {
           IconButton(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => QRScanner(setData: setData),
+              SwipePageTransition(
+                type: PageTransitionType.rightToLeft,
+                child: QRScanner(setData: setData),
               ),
             ),
             icon: Icon(Icons.qr_code_scanner_rounded),

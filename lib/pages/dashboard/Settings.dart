@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:page_transition/page_transition.dart';
 
+import '../../models/swipe_page_transition.dart';
+
 import 'settings/Language.dart';
 import 'settings/VPlanLogin.dart';
 import 'settings/DeveloperOptions.dart';
@@ -69,7 +71,7 @@ class _SettingsState extends State<Settings> {
                 child: ListTile(
                   onTap: () => Navigator.push(
                     context,
-                    PageTransition(
+                    SwipePageTransition(
                       type: PageTransitionType.rightToLeft,
                       child: e['link'],
                     ),
@@ -158,7 +160,7 @@ class _SettingsState extends State<Settings> {
                           child: ListTile(
                             onTap: () => Navigator.push(
                               context,
-                              PageTransition(
+                              SwipePageTransition(
                                 type: PageTransitionType.rightToLeft,
                                 child: e['link'],
                               ),

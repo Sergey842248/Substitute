@@ -3,6 +3,8 @@ import 'package:substitute/pages/dashboard/math/CalcTriangle.dart';
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 
+import '../../models/swipe_page_transition.dart';
+
 import 'package:substitute/models/ListPage.dart';
 
 class Maths extends StatelessWidget {
@@ -25,7 +27,7 @@ class Maths extends StatelessWidget {
             title: Text(e['title']),
             onClick: () => Navigator.push(
               context,
-              PageTransition(
+              SwipePageTransition(
                 type: PageTransitionType.bottomToTop,
                 child: e['link'],
               ),

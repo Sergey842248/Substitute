@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:page_transition/page_transition.dart';
+
+import '../../models/swipe_page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/Button.dart';
@@ -52,7 +54,7 @@ class _SickTrackState extends State<SickTrack> {
   Future<void> _openEditor() async {
     final bool? saved = await Navigator.push(
       context,
-      PageTransition(
+      SwipePageTransition(
         type: PageTransitionType.rightToLeft,
         child: Scaffold(
           body: SickTrackEditor(),

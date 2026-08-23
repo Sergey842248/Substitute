@@ -8,6 +8,8 @@ import 'package:pretty_qr_code/pretty_qr_code.dart';
 import '../../../models/QRScanner.dart';
 import 'package:page_transition/page_transition.dart';
 
+import '../../../models/swipe_page_transition.dart';
+
 import '../../../models/InputField.dart';
 import '../../../models/ListPage.dart';
 import '../../vplan/VPlanAPI.dart';
@@ -75,7 +77,7 @@ class _TeacherShortsState extends State<TeacherShorts> {
 
               Navigator.push(
                 context,
-                PageTransition(
+                SwipePageTransition(
                   type: PageTransitionType.rightToLeft,
                   child: ScanPage(data: teacherShorts),
                 ),
@@ -88,8 +90,9 @@ class _TeacherShortsState extends State<TeacherShorts> {
           IconButton(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => QRScanner(
+              SwipePageTransition(
+                type: PageTransitionType.rightToLeft,
+                child: QRScanner(
                   setData: (String result) async {
                     print('scanned something');
                     SharedPreferences prefs =
