@@ -399,15 +399,15 @@ class _VPlanState extends State<VPlan> {
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+                    ), // closes ClassWidget
+                  ), // closes SizeTransition
+                ), // closes AnimatedList
+              ), // closes Scrollbar
+            ), // closes the height Container
+          ], // closes Column's children
+        ), // closes Column
+      ), // closes SingleChildScrollView
+    ); // closes outer Container
   }
 }
 
@@ -488,12 +488,41 @@ class _ClassWidgetState extends State<ClassWidget> {
     }
   }
 
+  TimeOfDay? _safeToTimeOfDay(dynamic value) {
+    final String time = value?.toString() ?? '';
+    if (time.isEmpty || !time.contains(':')) return null;
+    try {
+      final List<String> parts = time.split(':');
+      if (parts.length < 2) return null;
+      return TimeOfDay(
+        hour: int.parse(parts[0]),
+        minute: int.parse(parts[1]),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   getData() async {
     List<dynamic> realVPlan = [];
     VPlanAPI vplanAPI = VPlanAPI();
-    dynamic vplan = await vplanAPI.getLessonsForToday(widget.classId);
-    List<String> hiddenCourses =
-        await vplanAPI.getHiddenCourses(widget.classId);
+    dynamic vplan;
+    try {
+      vplan = await vplanAPI.getLessonsForToday(widget.classId);
+    } catch (_) {
+      if (mounted) setState(() {});
+      return;
+    }
+    if (vplan is! Map || vplan['data'] is! List) {
+      if (mounted) setState(() {});
+      return;
+    }
+    List<String> hiddenCourses = [];
+    try {
+      hiddenCourses = await vplanAPI.getHiddenCourses(widget.classId);
+    } catch (_) {
+      hiddenCourses = [];
+    }
 
     for (var i = 0; i < vplan['data'].length; i++) {
       bool add = !vplanAPI.isLessonHidden(vplan['data'][i], hiddenCourses) &&
@@ -508,10 +537,15 @@ class _ClassWidgetState extends State<ClassWidget> {
 
     TimeOfDay currentTime = TimeOfDay.now();
 
-    if (VPlanAPI()
-        .parseStringDatatoDateTime(vplan['date'])
-        .isAfter(DateTime.now())) {
-      currentTime = TimeOfDay(hour: 0, minute: 0);
+    try {
+      if (vplan['date'] != null &&
+          VPlanAPI()
+              .parseStringDatatoDateTime(vplan['date'].toString())
+              .isAfter(DateTime.now())) {
+        currentTime = TimeOfDay(hour: 0, minute: 0);
+      }
+    } catch (_) {
+      // Datum nicht auswertbar – mit der aktuellen Zeit weiterarbeiten.
     }
 
     double lowestDifference = 50;
@@ -521,14 +555,14 @@ class _ClassWidgetState extends State<ClassWidget> {
     for (var i = 0; i < realVPlan.length; i++) {
       Map<String, dynamic> lesson = realVPlan[i];
 
-      // Einträge ohne Beginn-Zeit sind keine brauchbaren Stunden - sie
-      // überspringen statt die ganze Vorschau abzubrechen.
-      if (lesson['begin'] == null) {
+      // Einträge ohne gültige Beginn-Zeit sind keine brauchbaren Stunden -
+      // sie überspringen statt die ganze Vorschau abzubrechen.
+      final TimeOfDay? beginTime = _safeToTimeOfDay(lesson['begin']);
+      if (beginTime == null) {
         continue;
       }
 
-      double difference = (toTimeOfDay(lesson['begin']).hour +
-              (toTimeOfDay(lesson['begin']).minute / 60)) -
+      double difference = (beginTime.hour + (beginTime.minute / 60)) -
           (currentTime.hour + (currentTime.minute / 60));
 
       if (difference < lowestDifference && difference >= 0) {
@@ -551,9 +585,9 @@ class _ClassWidgetState extends State<ClassWidget> {
         bool afterSchool = false;
         if (realVPlan.isNotEmpty) {
           Map<String, dynamic> lastLesson = realVPlan.last;
-          if (lastLesson['end'] != null) {
-            double lastLessonEndTime = (toTimeOfDay(lastLesson['end']).hour +
-                toTimeOfDay(lastLesson['end']).minute / 60);
+          final TimeOfDay? endTime = _safeToTimeOfDay(lastLesson['end']);
+          if (endTime != null) {
+            double lastLessonEndTime = (endTime.hour + (endTime.minute / 60));
             afterSchool = (currentTime.hour + (currentTime.minute / 60)) >
                 lastLessonEndTime;
           }
@@ -677,7 +711,9 @@ class _ClassWidgetState extends State<ClassWidget> {
               topRight: Radius.circular(25),
             ),
           ),
-          AnimatedSwitcher(
+           GestureDetector(
+             onTap: () => widget.openContainer(),
+             child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 500),
             transitionBuilder: (child, animation) => SizeTransition(
               sizeFactor: animation,
@@ -770,7 +806,7 @@ class _ClassWidgetState extends State<ClassWidget> {
                                     ),
                                     SizedBox(height: spaceBetween),
                                     Text(
-                                        '${nextLesson['begin'] != null ? printTime(toTimeOfDay(nextLesson['begin']).hour, toTimeOfDay(nextLesson['begin']).minute) : ''} - ${nextLesson['end'] != null ? printTime(toTimeOfDay(nextLesson['end']).hour, toTimeOfDay(nextLesson['end']).minute) : ''}',
+                                        '${nextLesson['begin'] != null ? printTime(_safeToTimeOfDay(nextLesson['begin'])?.hour ?? 0, _safeToTimeOfDay(nextLesson['begin'])?.minute ?? 0) : ''} - ${nextLesson['end'] != null ? printTime(_safeToTimeOfDay(nextLesson['end'])?.hour ?? 0, _safeToTimeOfDay(nextLesson['end'])?.minute ?? 0) : ''}',
                                         style: TextStyle(
                                           color: Theme.of(context)
                                               .colorScheme
@@ -790,6 +826,7 @@ class _ClassWidgetState extends State<ClassWidget> {
               ),
             ),
           ),
+),
         ],
       ),
     );

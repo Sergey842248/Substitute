@@ -701,44 +701,66 @@ class VPlanAPI {
   Future<List<dynamic>> parseVPlanXML(dynamic jsonVPlan, String classId,
       [Map<String, bool>? roomChanges]) async {
     List<dynamic> _outpuLessons = [];
-    final Map<String, Map<String, String>> lessonTimes =
-        await _loadLessonTimes();
+
+    // Die Stundenzeiten dürfen das Öffnen eines Plans niemals blockieren.
+    // Schlägt das Laden fehl, wird einfach ohne eigene Zeiten weitergearbeitet.
+    Map<String, Map<String, String>> lessonTimes = {};
+    try {
+      lessonTimes = await _loadLessonTimes();
+    } catch (_) {
+      lessonTimes = {};
+    }
 
     if (jsonVPlan == null) {
       return List.empty();
     }
     for (int i = 0; i < jsonVPlan.length; i++) {
       // scan all classes
+      if (jsonVPlan[i] is! Map) continue;
       if (jsonVPlan[i]['Kurz'] == classId) {
         // check if it is the right class
-        var _lessons = jsonVPlan[i]['Pl']['Std'];
+        final dynamic pl = jsonVPlan[i]['Pl'];
+        final dynamic _lessons = pl is Map ? pl['Std'] : null;
+        if (_lessons is! List) continue;
 
         for (int j = 0; j < _lessons.length; j++) {
           // parse the lessons
-          var currentLesson = _lessons[j];
-          String lessonCount = currentLesson['St']?.toString() ?? '';
-          final Map<String, String>? lessonTime = lessonTimes[lessonCount];
-          bool hasRaAe = roomChanges?[lessonCount] ?? false;
-          String room = currentLesson['Ra'] ?? '';
-          bool hasLetters = RegExp(r'[a-zA-Z]').hasMatch(room);
-          bool placeChanged = hasRaAe && !hasLetters;
+          final dynamic currentLesson = _lessons[j];
+          if (currentLesson is! Map) continue;
+          try {
+            String lessonCount = currentLesson['St']?.toString() ?? '';
+            final Map<String, String>? lessonTime = lessonTimes[lessonCount];
+            bool hasRaAe = roomChanges?[lessonCount] ?? false;
+            String room = currentLesson['Ra']?.toString() ?? '';
+            bool hasLetters = RegExp(r'[a-zA-Z]').hasMatch(room);
+            bool placeChanged = hasRaAe && !hasLetters;
 
-          _outpuLessons.add({
-            'count': currentLesson['St'],
-            'lesson': currentLesson['Fa'],
-            'teacher': await replaceTeacherShort(currentLesson['Le']),
-            'place': currentLesson['Ra'],
-            'placeChanged': placeChanged,
-            'begin': lessonTime?['start'] ?? currentLesson['Beginn'],
-            'end': lessonTime?['end'] ?? currentLesson['Ende'],
-            'info': currentLesson['If'],
-            'course': currentLesson['Ku2'],
-          });
+            _outpuLessons.add({
+              'count': currentLesson['St'],
+              'lesson': currentLesson['Fa'],
+              'teacher': await replaceTeacherShort(currentLesson['Le']),
+              'place': currentLesson['Ra'],
+              'placeChanged': placeChanged,
+              'begin': lessonTime?['start'] ?? currentLesson['Beginn'],
+              'end': lessonTime?['end'] ?? currentLesson['Ende'],
+              'info': currentLesson['If'],
+              'course': currentLesson['Ku2'],
+            });
+          } catch (_) {
+            // Ein einzelner fehlerhafter Eintrag darf den ganzen Plan nicht
+            // zum Absturz bringen.
+            continue;
+          }
         }
       }
     }
 
-    _outpuLessons.sort((a, b) => a['count'].compareTo(b['count']));
+    _outpuLessons.sort((a, b) {
+      final ca = a['count'];
+      final cb = b['count'];
+      if (ca is num && cb is num) return ca.compareTo(cb);
+      return '${ca ?? ''}'.compareTo('${cb ?? ''}');
+    });
 
     return _outpuLessons;
   }

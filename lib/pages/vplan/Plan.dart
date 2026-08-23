@@ -153,9 +153,21 @@ class _PlanState extends State<Plan> {
     setState(() => data = 'loading'); // show loading animation
     VPlanAPI vplanAPI = new VPlanAPI();
 
-    dynamic _lessons = await vplanAPI.getLessonsForToday(widget.classId);
-    if (_lessons['error'] != null) {
-      setState(() => data = _lessons);
+    dynamic _lessons;
+    try {
+      _lessons = await vplanAPI.getLessonsForToday(widget.classId);
+    } catch (e) {
+      // Ein Fehler beim Laden (z.B. durch Stundenzeiten) darf den Plan nicht
+      // blockieren – stattdessen eine Fehlermeldung anzeigen.
+      if (mounted) {
+        setState(() => data = {'error': 'no internet'});
+      }
+      return;
+    }
+    if (_lessons == null || _lessons is! Map || _lessons['error'] != null) {
+      if (mounted) {
+        setState(() => data = _lessons is Map ? _lessons : {'error': 'no internet'});
+      }
       return;
     }
 
@@ -249,6 +261,7 @@ class _PlanState extends State<Plan> {
   Future<void> _loadSettings() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? customName = await vplanAPI.getClassName(widget.classId);
+    if (!mounted) return;
     setState(() {
       hideLessonTimes =
           prefs.getBool(SchoolStorage.scopedKey(prefs, 'hideLessonTimes')) ??
@@ -275,7 +288,7 @@ class _PlanState extends State<Plan> {
     if (data == null) {
       return Text('no substitution plan');
     }
-    if (data.toString().contains('error')) {
+    if (data is Map && data.containsKey('error')) {
       String errorText = '';
       Widget extraWidget = SizedBox();
       switch (data['error']) {
@@ -287,6 +300,7 @@ class _PlanState extends State<Plan> {
           );
           break;
         case 'school-number':
+        case 'schoolnumber':
           errorText = 'Wrong school-number or no substitution plan available';
           extraWidget = Lottie.asset(
             'assets/animations/nodata.json',
@@ -301,29 +315,32 @@ class _PlanState extends State<Plan> {
           );
           break;
         default:
-          switch (data['data']['error']) {
-            case '401':
-              errorText = 'Username or Password is wrong!';
-              extraWidget = Lottie.asset(
-                'assets/animations/lock.json',
-                height: 120,
-              );
-              break;
-            case 'schoolnumber':
-              errorText =
-                  'Wrong school-number or no substitution plan available';
-              extraWidget = Lottie.asset(
-                'assets/animations/nodata.json',
-                height: 120,
-              );
-              break;
-            case 'no internet':
-              errorText = 'No Network connection';
-              extraWidget = Lottie.asset(
-                'assets/animations/wifi.json',
-                height: 120,
-              );
-              break;
+          final dynamic inner = data['data'];
+          if (inner is Map && inner['error'] != null) {
+            switch (inner['error']) {
+              case '401':
+                errorText = 'Username or Password is wrong!';
+                extraWidget = Lottie.asset(
+                  'assets/animations/lock.json',
+                  height: 120,
+                );
+                break;
+              case 'schoolnumber':
+                errorText =
+                    'Wrong school-number or no substitution plan available';
+                extraWidget = Lottie.asset(
+                  'assets/animations/nodata.json',
+                  height: 120,
+                );
+                break;
+              case 'no internet':
+                errorText = 'No Network connection';
+                extraWidget = Lottie.asset(
+                  'assets/animations/wifi.json',
+                  height: 120,
+                );
+                break;
+            }
           }
       }
       return ListPage(
@@ -363,10 +380,14 @@ class _PlanState extends State<Plan> {
         ],
       );
     }
-    if (data.toString().contains('data')) {
-      displayDateDateTime =
-          VPlanAPI().parseStringDatatoDateTime(data['data']['date'].toString());
-      displayDate = DateFormat('dd.MM.yyyy').format(displayDateDateTime);
+    if (data is Map && data['data'] is Map && data['data']['date'] != null) {
+      try {
+        displayDateDateTime = VPlanAPI()
+            .parseStringDatatoDateTime(data['data']['date'].toString());
+        displayDate = DateFormat('dd.MM.yyyy').format(displayDateDateTime);
+      } catch (_) {
+        displayDate = '...';
+      }
     }
     return ListPage(
       onTitleClick: () {
@@ -496,7 +517,7 @@ class _PlanState extends State<Plan> {
         if (shown != null && !shown.contains(e['course'])) {
           return SizedBox();
         }
-      } else if (vplanAPI.isLessonHidden(e, hiddenSubjects!)) {
+      } else if (vplanAPI.isLessonHidden(e, hiddenSubjects ?? [])) {
         return SizedBox();
       }
       String course = e['course']?.toString() ?? '';
