@@ -27,21 +27,21 @@ class Dashboard extends StatelessWidget {
       },
       {
         'icon': Icon(
-          Icons.settings_rounded,
-          color: Theme.of(context).focusColor,
-        ),
-        'title': AppLocalizations.of(context)!.settingsTitle,
-        'subtitle': AppLocalizations.of(context)!.settingsSubtitle,
-        'link': Settings(),
-      },
-      {
-        'icon': Icon(
           Icons.school_rounded,
           color: Theme.of(context).focusColor,
         ),
         'title': 'Schulen',
         'subtitle': 'Schulbereiche und Zugangsdaten wechseln',
         'link': const Schools(),
+      },
+      {
+        'icon': Icon(
+          Icons.settings_rounded,
+          color: Theme.of(context).focusColor,
+        ),
+        'title': AppLocalizations.of(context)!.settingsTitle,
+        'subtitle': AppLocalizations.of(context)!.settingsSubtitle,
+        'link': Settings(),
       },
     ];
     return Container(
