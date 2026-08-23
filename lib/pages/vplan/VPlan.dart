@@ -704,19 +704,21 @@ class _ClassWidgetState extends State<ClassWidget> {
                             const SizedBox(height: 6),
                             Text(
                               AppLocalizations.of(context)!.weekend,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 19,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                           ],
                         )
                       : (nextLesson.toString() == '{}'
-                          ? Text(
+                          ?                             Text(
                               AppLocalizations.of(context)!.noNextLessonFound,
                               style: TextStyle(
                                 color: Theme.of(context)
-                                    .focusColor
+                                    .colorScheme
+                                    .onSurface
                                     .withValues(alpha: 0.5),
                               ),
                             )
@@ -729,23 +731,24 @@ class _ClassWidgetState extends State<ClassWidget> {
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     Text(
-                                      AppLocalizations.of(context)!.nextHour,
-                                      style: TextStyle(
-                                        color: Theme.of(context)
-                                            .focusColor
-                                            .withValues(alpha: 0.5),
-                                      ),
-                                    ),
-                                    SizedBox(height: spaceBetween),
-                                    Text(
                                       nextLesson['lesson'] ?? '',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 21,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
                                       ),
                                     ),
                                     SizedBox(height: spaceBetween),
-                                    Text(nextLesson['teacher'] ?? ''),
+                                    Text(
+                                      nextLesson['teacher'] ?? '',
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 SizedBox(
@@ -757,11 +760,21 @@ class _ClassWidgetState extends State<ClassWidget> {
                                     Text(
                                       AppLocalizations.of(context)!
                                           .room(nextLesson['place'] ?? ''),
-                                      style: TextStyle(fontSize: 19),
+                                      style: TextStyle(
+                                        fontSize: 19,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                      ),
                                     ),
                                     SizedBox(height: spaceBetween),
                                     Text(
-                                        '${nextLesson['begin'] != null ? printTime(toTimeOfDay(nextLesson['begin']).hour, toTimeOfDay(nextLesson['begin']).minute) : ''} - ${nextLesson['end'] != null ? printTime(toTimeOfDay(nextLesson['end']).hour, toTimeOfDay(nextLesson['end']).minute) : ''}'),
+                                        '${nextLesson['begin'] != null ? printTime(toTimeOfDay(nextLesson['begin']).hour, toTimeOfDay(nextLesson['begin']).minute) : ''} - ${nextLesson['end'] != null ? printTime(toTimeOfDay(nextLesson['end']).hour, toTimeOfDay(nextLesson['end']).minute) : ''}',
+                                        style: TextStyle(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
+                                        )),
                                   ],
                                 ),
                               ],

@@ -409,13 +409,14 @@ class _TeacherListState extends State<TeacherList> {
                     ]
                   : displayTeachers
                       .map(
-                        (e) => Text(
-                          e,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
+                         (e) => Text(
+                           e,
+                           style: TextStyle(
+                             fontWeight: FontWeight.w600,
+                             fontSize: 16,
+                             color: Theme.of(context).colorScheme.onSurface,
+                           ),
+                         ),
                       )
                       .toList(),
             )
