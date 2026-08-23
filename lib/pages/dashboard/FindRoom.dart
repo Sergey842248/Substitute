@@ -42,8 +42,27 @@ class _FindRoomState extends State<FindRoom> {
   int process = 0;
   int totalSteps = 10;
 
-  bool isNumeric(String s) {
-    return double.tryParse(s) != null;
+  /// Normalisiert eine Raumbezeichnung (entfernt Gebäudepräfixe wie H1/H2/H3
+  /// und E sowie überflüssige Leerzeichen), damit identische Räume zusammenge-
+  /// fasst werden – unabhängig davon, ob der Name Ziffern oder Buchstaben
+  /// enthält.
+  String _normalizeRoom(String room) {
+    return room
+        .replaceAll('H1', '')
+        .replaceAll('H2', '')
+        .replaceAll('H3', '')
+        .replaceAll('E', '')
+        .trim();
+  }
+
+  /// Sortiert Räume: rein numerische aufsteigend, danach alphabetisch.
+  int _compareRooms(String a, String b) {
+    int? an = int.tryParse(a);
+    int? bn = int.tryParse(b);
+    if (an != null && bn != null) return an.compareTo(bn);
+    if (an != null) return -1;
+    if (bn != null) return 1;
+    return a.compareTo(b);
   }
 
   double toDouble(TimeOfDay myTime) => myTime.hour + myTime.minute / 60.0;
@@ -128,8 +147,8 @@ class _FindRoomState extends State<FindRoom> {
       return;
     }
 
-    // --- Get all rooms from plan data ---
-    List<int> rooms = [];
+    // --- Get all rooms from plan data (Zahlen- UND Buchstabenräume) ---
+    List<String> rooms = [];
     if (_vplanData['data']['Klassen'] != null &&
         _vplanData['data']['Klassen']['Kl'] != null) {
       for (var klasse in _vplanData['data']['Klassen']['Kl']) {
@@ -137,15 +156,9 @@ class _FindRoomState extends State<FindRoom> {
         for (var lesson in klasse['Pl']['Std']) {
           String? room = lesson['Ra'];
           if (room != null && room != 'Gang') {
-            String editRoom = room
-                .replaceAll('H1', '')
-                .replaceAll('H2', '')
-                .replaceAll('H3', '')
-                .replaceAll('E', '');
-            if (int.tryParse(editRoom) != null) {
-              if (!rooms.contains(int.parse(editRoom))) {
-                rooms.add(int.parse(editRoom));
-              }
+            String editRoom = _normalizeRoom(room);
+            if (editRoom.isNotEmpty && !rooms.contains(editRoom)) {
+              rooms.add(editRoom);
             }
           }
         }
@@ -154,68 +167,74 @@ class _FindRoomState extends State<FindRoom> {
 
     // Merge with previously cached rooms so ALL known rooms are shown
     SharedPreferences prefs2 = await SharedPreferences.getInstance();
-    List<int> cachedRooms =
+    List<String> cachedRooms =
         (prefs2.getStringList(SchoolStorage.scopedKey(prefs2, 'cachedRooms')) ??
-                [])
-            .map((e) => int.tryParse(e) ?? -1)
-            .where((e) => e >= 0)
-            .toList();
+            []);
     for (var r in cachedRooms) {
       if (!rooms.contains(r)) rooms.add(r);
     }
     // Save merged list for next time
     await prefs2.setStringList(
       SchoolStorage.scopedKey(prefs2, 'cachedRooms'),
-      rooms.map((e) => e.toString()).toList(),
+      rooms,
     );
 
-    rooms.sort();
+    rooms.sort(_compareRooms);
     // --- All rooms got ---
 
-    List<int> usedRooms = [];
-    if (!_isFullDay &&
-        _vplanData['data']['Klassen'] != null &&
+    List<String> usedRooms = [];
+    if (_vplanData['data']['Klassen'] != null &&
         _vplanData['data']['Klassen']['Kl'] != null) {
-      // Only check for currently used rooms when a time/hour is selected
+      // Belegte Räume ermitteln:
+      // - Stunde:  nur Räume mit dieser Stundenzahl
+      // - Uhrzeit: nur Räume, die zur gewählten Zeit belegt sind
+      // - ganzer Tag: jeder Raum, der an diesem Tag überhaupt belegt ist
       if (mounted)
         setState(() => loadText = AppLocalizations.of(context)!.browsingPlan);
       totalSteps = _vplanData['data']['Klassen']['Kl'].length;
       process = 0;
 
-      TimeOfDay filterTime = _effectiveTime ?? TimeOfDay.now();
+      final bool hourMode = _selectedHour != null;
+      final bool fullDayMode = _isFullDay;
+      final int selectedHour = _selectedHour ?? -1;
+      final TimeOfDay filterTime = _effectiveTime ?? TimeOfDay.now();
 
       for (var cl in _vplanData['data']['Klassen']['Kl']) {
         if (mounted) setState(() => process++);
         if (cl['Pl'] == null || cl['Pl']['Std'] == null) continue;
         for (var lesson in cl['Pl']['Std']) {
           try {
-            if (lesson['Beginn'] == null || lesson['Ende'] == null) continue;
+            if (hourMode) {
+              // Nach der echten Stundenzahl filtern, nicht nach Uhrzeit.
+              final int? lessonNum =
+                  int.tryParse(lesson['St']?.toString() ?? '');
+              if (lessonNum != selectedHour) continue;
+            } else if (!fullDayMode) {
+              if (lesson['Beginn'] == null || lesson['Ende'] == null) continue;
 
-            int bhours = int.parse((lesson['Beginn'] as String).split(':')[0]);
-            int bminutes =
-                int.parse((lesson['Beginn'] as String).split(':')[1]);
+              int bhours = int.parse((lesson['Beginn'] as String).split(':')[0]);
+              int bminutes =
+                  int.parse((lesson['Beginn'] as String).split(':')[1]);
 
-            int ehours = int.parse((lesson['Ende'] as String).split(':')[0]);
-            int eminutes = int.parse((lesson['Ende'] as String).split(':')[1]);
+              int ehours = int.parse((lesson['Ende'] as String).split(':')[0]);
+              int eminutes = int.parse((lesson['Ende'] as String).split(':')[1]);
 
-            TimeOfDay _begin = TimeOfDay(hour: bhours, minute: bminutes);
-            TimeOfDay _end = TimeOfDay(hour: ehours, minute: eminutes);
+              TimeOfDay _begin = TimeOfDay(hour: bhours, minute: bminutes);
+              TimeOfDay _end = TimeOfDay(hour: ehours, minute: eminutes);
 
-            if (toDouble(filterTime) >= toDouble(_begin) &&
-                toDouble(filterTime) <= toDouble(_end)) {
-              String? room = lesson['Ra'];
-              if (room != null) {
-                String editRoom = room
-                    .replaceAll('H1', '')
-                    .replaceAll('H2', '')
-                    .replaceAll('H3', '')
-                    .replaceAll('E', '');
-                if (isNumeric(editRoom)) {
-                  int roomInt = int.parse(editRoom);
-                  if (!usedRooms.contains(roomInt)) {
-                    usedRooms.add(roomInt);
-                  }
-                }
+              if (!(toDouble(filterTime) >= toDouble(_begin) &&
+                  toDouble(filterTime) <= toDouble(_end))) {
+                continue;
+              }
+            }
+            // Bei "ganzer Tag" werden alle Räume übernommen, die an diesem
+            // Tag irgendwann belegt sind.
+
+            String? room = lesson['Ra'];
+            if (room != null) {
+              String editRoom = _normalizeRoom(room);
+              if (editRoom.isNotEmpty && !usedRooms.contains(editRoom)) {
+                usedRooms.add(editRoom);
               }
             }
           } catch (e) {}
@@ -259,7 +278,7 @@ class _FindRoomState extends State<FindRoom> {
     }
   }
 
-  Future<List<dynamic>> getRoomLessons(int _room, _data) async {
+  Future<List<dynamic>> getRoomLessons(String _room, _data) async {
     List<dynamic> res = [];
     if (_data == null ||
         _data['data'] == null ||
@@ -277,13 +296,8 @@ class _FindRoomState extends State<FindRoom> {
         try {
           String? room = currentLesson['Ra'];
           if (room != null) {
-            String editRoom = room
-                .replaceAll('H1', '')
-                .replaceAll('H2', '')
-                .replaceAll('H3', '')
-                .replaceAll('E', '');
-            if (int.tryParse(editRoom) != null &&
-                int.parse(editRoom) == _room) {
+            String editRoom = _normalizeRoom(room);
+            if (editRoom == _room) {
               res.add({
                 'count': int.parse(currentLesson['St']),
                 'lesson': currentLesson['Fa'],
@@ -563,85 +577,43 @@ class _FindRoomState extends State<FindRoom> {
                           }
                         },
                       ),
-                    // Hour picker (when in hour mode)
+                    // Hour picker (when in hour mode) – es wird nach Stunde
+                    // gefiltert, daher werden hier keine Uhrzeiten angezeigt.
                     if (tempHour != null)
                       Column(
-                        children: [
-                          // Default lesson times from settings
-                          if (_lessonTimes.isNotEmpty)
-                            ...List.generate(_lessonTimes.length, (index) {
-                              int lessonNum = index + 1;
-                              String start = _lessonTimes[index]['start'] ?? '';
-                              String end = _lessonTimes[index]['end'] ?? '';
-                              String startParsed = '';
-                              String endParsed = '';
-                              try {
-                                startParsed = _parseTimeOfDay(start)
-                                        ?.toString()
-                                        .replaceAll('TimeOfDay(', '')
-                                        .replaceAll(')', '') ??
-                                    '';
-                                endParsed = _parseTimeOfDay(end)
-                                        ?.toString()
-                                        .replaceAll('TimeOfDay(', '')
-                                        .replaceAll(')', '') ??
-                                    '';
-                              } catch (e) {}
-                              return ListTile(
-                                leading: Icon(
-                                  tempHour == lessonNum
-                                      ? Icons.radio_button_checked
-                                      : Icons.radio_button_unchecked,
-                                  color: tempHour == lessonNum
-                                      ? Theme.of(context).primaryColor
-                                      : null,
-                                ),
-                                title: Text(
-                                  '$lessonNum. ${AppLocalizations.of(context)!.hour}',
-                                  style: TextStyle(
-                                    fontWeight: tempHour == lessonNum
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                  ),
-                                ),
-                                subtitle: (startParsed.isNotEmpty &&
-                                        endParsed.isNotEmpty)
-                                    ? Text('$startParsed – $endParsed')
+                        children: List.generate(
+                          _lessonTimes.isNotEmpty
+                              ? (_lessonTimes.length < 10
+                                  ? 10
+                                  : _lessonTimes.length)
+                              : 10,
+                          (index) {
+                            int lessonNum = index + 1;
+                            return ListTile(
+                              leading: Icon(
+                                tempHour == lessonNum
+                                    ? Icons.radio_button_checked
+                                    : Icons.radio_button_unchecked,
+                                color: tempHour == lessonNum
+                                    ? Theme.of(context).primaryColor
                                     : null,
-                                onTap: () {
-                                  setDialogState(() {
-                                    tempHour = lessonNum;
-                                  });
-                                },
-                              );
-                            }),
-                          // If no lesson times configured, show generic number picker
-                          if (_lessonTimes.isEmpty)
-                            for (int i = 1; i <= 10; i++)
-                              ListTile(
-                                leading: Icon(
-                                  tempHour == i
-                                      ? Icons.radio_button_checked
-                                      : Icons.radio_button_unchecked,
-                                  color: tempHour == i
-                                      ? Theme.of(context).primaryColor
-                                      : null,
-                                ),
-                                title: Text(
-                                  '$i. ${AppLocalizations.of(context)!.hour}',
-                                  style: TextStyle(
-                                    fontWeight: tempHour == i
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                  ),
-                                ),
-                                onTap: () {
-                                  setDialogState(() {
-                                    tempHour = i;
-                                  });
-                                },
                               ),
-                        ],
+                              title: Text(
+                                '$lessonNum. ${AppLocalizations.of(context)!.hour}',
+                                style: TextStyle(
+                                  fontWeight: tempHour == lessonNum
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                              onTap: () {
+                                setDialogState(() {
+                                  tempHour = lessonNum;
+                                });
+                              },
+                            );
+                          },
+                        ),
                       ),
                     // Full day message
                     if (tempHour == null && tempTime == null)
@@ -777,23 +749,21 @@ class _FindRoomState extends State<FindRoom> {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(20),
                                 color: Theme.of(context).colorScheme.surface,
-                                border: e['open']
+                                border: !e['open']
                                     ? Border.all(
                                         color: Theme.of(context).primaryColor,
                                       )
                                     : null,
                               ),
-                              child: Center(
-                                child: Text(
-                                  e['used_this_day']
-                                      ? '${e['room']}'
-                                      : '(${e['room']})',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
+                                child: Center(
+                                  child: Text(
+                                    '${e['room']}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
                                   ),
                                 ),
-                              ),
                             ),
                           ),
                         ),
