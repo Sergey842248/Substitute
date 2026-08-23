@@ -176,7 +176,7 @@ class _TeacherShortsState extends State<TeacherShorts> {
                       },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 400),
-                        padding: EdgeInsets.all(15),
+                        padding: EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(10),
@@ -187,14 +187,11 @@ class _TeacherShortsState extends State<TeacherShorts> {
                           ),
                         ),
                         child: Center(
-                          child: Text(
+                          child: Icon(
                             e['currently_added']
-                                ? AppLocalizations.of(context)!.saved
-                                : AppLocalizations.of(context)!.save,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 14,
-                            ),
+                                ? Icons.save_rounded
+                                : Icons.save_outlined,
+                            size: 20,
                           ),
                         ),
                       ),
