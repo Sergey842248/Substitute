@@ -17,6 +17,7 @@ class SwipePageTransition<T> extends PageTransition<T> {
           child: child,
           settings: settings,
           fullscreenDialog: fullscreenDialog,
+          opaque: true,
           isIos: Platform.isIOS,
         );
 }

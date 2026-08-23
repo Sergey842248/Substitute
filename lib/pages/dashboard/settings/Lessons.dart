@@ -50,8 +50,7 @@ class _LessonsState extends State<Lessons> {
       if (string[i] == 'end') {
         initTime = toTimeOfDay(lessons[index]['start']);
       }
-      print(initTime);
-      String newTime = (await showTimePicker(
+      final TimeOfDay? newTime = await showTimePicker(
         context: context,
         initialTime: initTime,
         hourLabelText: 'Hour',
@@ -60,34 +59,70 @@ class _LessonsState extends State<Lessons> {
         confirmText: 'OK',
         helpText:
             'Set ${string[i].replaceFirst(string[i][0], string[i][0].toUpperCase())} for ${lessons[index]['count']}.lesson',
-      ))
-          .toString();
+      );
 
-      if (newTime != 'null') {
-        lessons[index][string[i]] = newTime;
+      if (!mounted || index >= lessons.length) return;
+
+      if (newTime != null) {
+        lessons[index][string[i]] = newTime.toString();
       }
     }
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
-  TimeOfDay toTimeOfDay(String time) {
+  TimeOfDay toTimeOfDay(dynamic value) {
+    String time = value?.toString() ?? '';
     time = time.replaceAll('TimeOfDay(', '');
     time = time.replaceAll(')', '');
+    final List<String> parts = time.split(':');
+    final int hour = int.tryParse(parts.isNotEmpty ? parts[0] : '') ?? 0;
+    final int minute = int.tryParse(parts.length > 1 ? parts[1] : '') ?? 0;
 
     return TimeOfDay(
-      hour: int.parse(time.split(':')[0]),
-      minute: int.parse(time.split(':')[1]),
+      hour: hour.clamp(0, 23).toInt(),
+      minute: minute.clamp(0, 59).toInt(),
     );
+  }
+
+  List<dynamic> normalizeLessons(List<dynamic> decodedLessons) {
+    return List<dynamic>.generate(decodedLessons.length, (index) {
+      final dynamic rawLesson = decodedLessons[index];
+      final Map<dynamic, dynamic> lesson =
+          rawLesson is Map ? rawLesson : <dynamic, dynamic>{};
+      final int count = int.tryParse(lesson['count']?.toString() ?? '') ??
+          index + 1;
+
+      return {
+        'count': count,
+        'start': lesson['start']?.toString() ??
+            TimeOfDay(hour: 0, minute: 0).toString(),
+        'end': lesson['end']?.toString() ??
+            TimeOfDay(hour: 0, minute: 45).toString(),
+      };
+    });
   }
 
   getData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final String key = SchoolStorage.scopedKey(prefs, 'lessontimes');
-    if (prefs.getString(key) == null) {
-      prefs.setString(key, '[]');
+    final String? storedLessons = prefs.getString(key);
+
+    if (storedLessons == null || storedLessons.isEmpty) {
+      await prefs.setString(key, '[]');
+      lessons = [];
+    } else {
+      try {
+        final dynamic decodedLessons = jsonDecode(storedLessons);
+        lessons =
+            decodedLessons is List ? normalizeLessons(decodedLessons) : [];
+        reorderLessons();
+      } catch (_) {
+        lessons = [];
+        await prefs.setString(key, '[]');
+      }
     }
-    lessons = jsonDecode(prefs.getString(key)!);
-    setState(() {});
+
+    if (mounted) setState(() {});
   }
 
   isSaved(BuildContext context) {
@@ -137,6 +172,21 @@ class _LessonsState extends State<Lessons> {
     }
   }
 
+  void reorderLesson(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= lessons.length) return;
+    if (oldIndex < newIndex) newIndex -= 1;
+    if (newIndex < 0) newIndex = 0;
+    if (newIndex > lessons.length) newIndex = lessons.length;
+
+    final dynamic lesson = lessons.removeAt(oldIndex);
+    if (newIndex > lessons.length) newIndex = lessons.length;
+    lessons.insert(newIndex, lesson);
+    reorderLessons();
+    changed = true;
+    saved = false;
+    setState(() {});
+  }
+
   save() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString(
@@ -146,6 +196,73 @@ class _LessonsState extends State<Lessons> {
     setState(() {});
     Fluttertoast.cancel();
     Fluttertoast.showToast(msg: 'Times saved');
+  }
+
+  Widget buildLessonItem(BuildContext context, int index) {
+    final dynamic lesson = lessons[index];
+
+    return Container(
+      key: ObjectKey(lesson),
+      child: ListItem(
+        title: Row(
+          children: [
+            Text('From:'),
+            SizedBox(width: spaceBetween),
+            GestureDetector(
+              onTap: () => setTime(index, ['start']),
+              child: Text(
+                printTime(
+                  toTimeOfDay(lesson['start']).hour,
+                  toTimeOfDay(lesson['start']).minute,
+                ),
+                style: textStyle,
+              ),
+            ),
+            SizedBox(width: spaceBetween * 5),
+            Text('To:'),
+            SizedBox(width: spaceBetween),
+            GestureDetector(
+              onTap: () => setTime(index, ['end']),
+              child: Text(
+                printTime(
+                  toTimeOfDay(lesson['end']).hour,
+                  toTimeOfDay(lesson['end']).minute,
+                ),
+                style: textStyle,
+              ),
+            ),
+          ],
+        ),
+        leading: Text('${lesson['count']}. Lesson'),
+        onClick: () => setTime(index, ['start', 'end']),
+        actionButton: IconButton(
+          icon: Icon(
+            Icons.delete,
+            color: Theme.of(context).focusColor.withValues(alpha: 0.5),
+            size: 18,
+          ),
+          onPressed: () {
+            changed = true;
+            saved = false;
+            lessons.removeAt(index);
+            reorderLessons();
+            setState(() {});
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget buildLessonList() {
+    if (lessons.isEmpty) return SizedBox.shrink();
+
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: lessons.length,
+      itemBuilder: buildLessonItem,
+      onReorder: reorderLesson,
+    );
   }
 
   @override
@@ -186,72 +303,7 @@ class _LessonsState extends State<Lessons> {
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             width: MediaQuery.of(context).size.width,
-            child: ReorderableList(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              /* onReorderStart: (index) {
-                print(index); // make item bigger
-              }, */
-              itemBuilder: (context, index) => Container(
-                key: ValueKey(lessons[index]['count']),
-                child: ListItem(
-                  title: Row(
-                    children: [
-                      Text('From:'),
-                      SizedBox(width: spaceBetween),
-                      GestureDetector(
-                        onTap: () => setTime(index, ['start']),
-                        child: Text(
-                          printTime(
-                            toTimeOfDay(lessons[index]['start']).hour,
-                            toTimeOfDay(lessons[index]['start']).minute,
-                          ),
-                          style: textStyle,
-                        ),
-                      ),
-                      SizedBox(width: spaceBetween * 5),
-                      Text('To:'),
-                      SizedBox(width: spaceBetween),
-                      GestureDetector(
-                        onTap: () => setTime(index, ['end']),
-                        child: Text(
-                          printTime(
-                            toTimeOfDay(lessons[index]['end']).hour,
-                            toTimeOfDay(lessons[index]['end']).minute,
-                          ),
-                          style: textStyle,
-                        ),
-                      ),
-                    ],
-                  ),
-                  leading: Text('${lessons[index]['count']}. Lesson'),
-                  onClick: () => setTime(index, ['start', 'end']),
-                  actionButton: IconButton(
-                    icon: Icon(
-                      Icons.delete,
-                      color:
-                          Theme.of(context).focusColor.withValues(alpha: 0.5),
-                      size: 18,
-                    ),
-                    onPressed: () {
-                      changed = true;
-                      saved = false;
-                      lessons.removeAt(index);
-                      reorderLessons();
-                      setState(() {});
-                    },
-                  ),
-                ),
-              ),
-              itemCount: lessons.length,
-              onReorder: (oldIndex, newIndex) {
-                print('start');
-                dynamic oldElement = lessons.elementAt(oldIndex);
-                lessons[oldIndex] = lessons.elementAt(newIndex);
-                lessons[newIndex] = oldElement;
-                // setState(() {});
-              },
-            ),
+            child: buildLessonList(),
           ),
           ListItem(
             title: Icon(
