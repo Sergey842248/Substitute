@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(runner LANGUAGES CXX)
 
-set(BINARY_NAME "substitute")
-set(APPLICATION_ID "com.future.substitute")
+set(BINARY_NAME "Substitute")
+set(APPLICATION_ID "com.future.Substitute")
 
 cmake_policy(SET CMP0063 NEW)
 
