@@ -1,6 +1,7 @@
 import 'package:substitute/models/ModalBottomSheet.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:substitute/l10n/app_localizations.dart';
 import 'dart:convert';
 
 import '../../../models/ListItem.dart';
@@ -155,9 +156,10 @@ class _LessonsState extends State<Lessons> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: ListPage(
-        title: 'Lesson times',
+        title: l10n.lessonTimes,
         onPop: () => isSaved(context),
         actions: [
           /* IconButton(

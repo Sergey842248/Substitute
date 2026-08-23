@@ -97,9 +97,7 @@ class _PlanSettingsState extends State<PlanSettings> {
                     title: Padding(
                       padding: EdgeInsets.all(4),
                       child: Text(
-                        _hideLessonTimes
-                            ? l10n.hideLessonTimes
-                            : l10n.showLessonTimes,
+                        l10n.showLessonTimes,
                         style: TextStyle(
                           fontSize: 18,
                         ),
@@ -108,9 +106,7 @@ class _PlanSettingsState extends State<PlanSettings> {
                     subtitle: Padding(
                       padding: EdgeInsets.all(4),
                       child: Text(
-                        _hideLessonTimes
-                            ? l10n.hideLessonTimesSubtitle
-                            : l10n.showLessonTimesSubtitle,
+                        l10n.showLessonTimesSubtitle,
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w100,
