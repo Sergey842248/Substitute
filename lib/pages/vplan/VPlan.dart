@@ -10,7 +10,7 @@ import 'dart:convert';
 import 'package:animations/animations.dart';
 import 'package:page_transition/page_transition.dart';
 
-import '../models/swipe_page_transition.dart';
+import '../../models/swipe_page_transition.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/services/SchoolStorage.dart';

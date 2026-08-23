@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:page_transition/page_transition.dart';
 
-import '../models/swipe_page_transition.dart';
+import '../../models/swipe_page_transition.dart';
 import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
