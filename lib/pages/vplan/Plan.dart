@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:animations/animations.dart';
 import 'package:substitute/models/Button.dart';
 import 'package:flutter/material.dart';
 import 'package:substitute/l10n/app_localizations.dart';
@@ -412,34 +411,33 @@ class _PlanState extends State<Plan> {
           },
           icon: Icon(Icons.refresh, size: 20),
         ),
-        // courses
-        OpenContainer(
-          closedColor: Colors.transparent,
-          closedElevation: 0,
-          openColor: Theme.of(context).scaffoldBackgroundColor,
-          closedBuilder: (context, openContainer) => IconButton(
-            onPressed: openContainer,
-            icon: Icon(
-              Icons.settings_rounded,
-              size: 20,
+        IconButton(
+          onPressed: () => Navigator.push(
+            context,
+            SwipePageTransition(
+              type: PageTransitionType.rightToLeft,
+              child: widget.person != null
+                  ? PersonCourses(
+                      classId: widget.classId,
+                      person: widget.person!,
+                      isNew: false,
+                      onSaved: (courses) {
+                        setState(() {
+                          widget.person!['courses'] = courses;
+                        });
+                        getData();
+                      },
+                    )
+                  : Courses(
+                      classId: widget.classId,
+                      updateCourses: () => getData(),
+                    ),
             ),
           ),
-          openBuilder: (context, closeContainer) => widget.person != null
-              ? PersonCourses(
-                  classId: widget.classId,
-                  person: widget.person!,
-                  isNew: false,
-                  onSaved: (courses) {
-                    setState(() {
-                      widget.person!['courses'] = courses;
-                    });
-                    getData();
-                  },
-                )
-              : Courses(
-                  classId: widget.classId,
-                  updateCourses: () => getData(),
-                ),
+          icon: Icon(
+            Icons.settings_rounded,
+            size: 20,
+          ),
         ),
         IconButton(
           onPressed: () => newVP(false),

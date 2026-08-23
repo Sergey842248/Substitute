@@ -7,7 +7,6 @@ import 'package:substitute/l10n/app_localizations.dart';
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:animations/animations.dart';
 import 'package:page_transition/page_transition.dart';
 
 import '../../models/swipe_page_transition.dart';
@@ -317,27 +316,26 @@ class _VPlanState extends State<VPlan> {
           children: [
             _personsSection(),
             const SizedBox(height: 2),
-            OpenContainer(
-              closedColor: Theme.of(context).scaffoldBackgroundColor,
-              openColor: Theme.of(context).scaffoldBackgroundColor,
-              openElevation: 0,
-              closedElevation: 0,
-              closedBuilder: (context, openContainer) => ListItem(
-                margin: 5,
-                title: Text(
-                  AppLocalizations.of(context)!.selectClass,
-                  style: TextStyle(
-                    fontSize: 19,
+            ListItem(
+              margin: 5,
+              title: Text(
+                AppLocalizations.of(context)!.selectClass,
+                style: TextStyle(
+                  fontSize: 19,
+                ),
+              ),
+              onClick: () => Navigator.push(
+                context,
+                SwipePageTransition(
+                  type: PageTransitionType.rightToLeft,
+                  child: SelectClass(
+                    pop: (String classId) {
+                      listKey.currentState!.insertItem(classes.length);
+                      classes.add(classId);
+                    },
+                    favs: classes,
                   ),
                 ),
-                onClick: openContainer,
-              ),
-              openBuilder: (context, closeContainer) => SelectClass(
-                pop: (String classId) {
-                  listKey.currentState!.insertItem(classes.length);
-                  classes.add(classId);
-                },
-                favs: classes,
               ),
             ),
             Container(
@@ -351,54 +349,55 @@ class _VPlanState extends State<VPlan> {
                   initialItemCount: classes.length,
                   itemBuilder: (context, index, animation) => SizeTransition(
                     sizeFactor: animation,
-                    child: OpenContainer(
-                      closedColor: Theme.of(context).scaffoldBackgroundColor,
-                      openColor: Theme.of(context).scaffoldBackgroundColor,
-                      closedBuilder: (context, openContainer) => ClassWidget(
-                        classId: classes[index],
-                        classIndex: index,
-                        onDelete: () async {
-                          String classId = classes[index];
-                          SharedPreferences prefs =
-                              await SharedPreferences.getInstance();
-                          List<String>? newClasses = prefs.getStringList(
-                              SchoolStorage.scopedKey(prefs, 'classes'));
-                          if (newClasses == null) {
-                            newClasses = [];
-                          }
-                          newClasses.remove(classId);
-                          prefs.setStringList(
-                              SchoolStorage.scopedKey(prefs, 'classes'),
-                              newClasses);
-                          // Auch die gespeicherten Kurs-Auswahlen und den
-                          // benutzerdefinierten Namen der Klasse zurücksetzen,
-                          // damit eine später erneut hinzugefügte Klasse wieder
-                          // mit allen Kursen startet.
-                          await VPlanAPI().removeHiddenCoursesForClass(classId);
-                          await VPlanAPI().removeClassName(classId);
+                    child: ClassWidget(
+                      classId: classes[index],
+                      classIndex: index,
+                      onDelete: () async {
+                        String classId = classes[index];
+                        SharedPreferences prefs =
+                            await SharedPreferences.getInstance();
+                        List<String>? newClasses = prefs.getStringList(
+                            SchoolStorage.scopedKey(prefs, 'classes'));
+                        if (newClasses == null) {
+                          newClasses = [];
+                        }
+                        newClasses.remove(classId);
+                        prefs.setStringList(
+                            SchoolStorage.scopedKey(prefs, 'classes'),
+                            newClasses);
+                        // Auch die gespeicherten Kurs-Auswahlen und den
+                        // benutzerdefinierten Namen der Klasse zurücksetzen,
+                        // damit eine später erneut hinzugefügte Klasse wieder
+                        // mit allen Kursen startet.
+                        await VPlanAPI().removeHiddenCoursesForClass(classId);
+                        await VPlanAPI().removeClassName(classId);
 
-                          listKey.currentState!.removeItem(
-                            index,
-                            (context, animation) => SizeTransition(
-                              sizeFactor: animation,
-                              child: ListItem(
-                                onClick: () {},
-                                title: Text(
-                                  classId,
-                                  style: TextStyle(
-                                    fontSize: 19,
-                                  ),
+                        listKey.currentState!.removeItem(
+                          index,
+                          (context, animation) => SizeTransition(
+                            sizeFactor: animation,
+                            child: ListItem(
+                              onClick: () {},
+                              title: Text(
+                                classId,
+                                style: TextStyle(
+                                  fontSize: 19,
                                 ),
                               ),
                             ),
-                          );
-                          classes.removeAt(index);
-                          //getClasses();
-                        },
-                        openContainer: openContainer,
-                      ),
-                      openBuilder: (context, closeContainer) => Plan(
-                        classId: classes[index],
+                          ),
+                        );
+                        classes.removeAt(index);
+                        //getClasses();
+                      },
+                      openContainer: () => Navigator.push(
+                        context,
+                        SwipePageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          child: Plan(
+                            classId: classes[index],
+                          ),
+                        ),
                       ),
                     ),
                   ),
