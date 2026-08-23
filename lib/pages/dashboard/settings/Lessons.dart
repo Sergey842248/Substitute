@@ -37,6 +37,10 @@ class _LessonsState extends State<Lessons> {
     return '$hour:$minute';
   }
 
+  String formatTimeOfDay(TimeOfDay time) {
+    return printTime(time.hour, time.minute);
+  }
+
   setTime(int index, List<String> string) async {
     changed = true;
     saved = false;
@@ -64,19 +68,23 @@ class _LessonsState extends State<Lessons> {
       if (!mounted || index >= lessons.length) return;
 
       if (newTime != null) {
-        lessons[index][string[i]] = newTime.toString();
+        lessons[index][string[i]] = formatTimeOfDay(newTime);
       }
     }
     if (mounted) setState(() {});
   }
 
-  TimeOfDay toTimeOfDay(dynamic value) {
+  TimeOfDay toTimeOfDay(dynamic value, {TimeOfDay? fallback}) {
     String time = value?.toString() ?? '';
     time = time.replaceAll('TimeOfDay(', '');
     time = time.replaceAll(')', '');
-    final List<String> parts = time.split(':');
-    final int hour = int.tryParse(parts.isNotEmpty ? parts[0] : '') ?? 0;
-    final int minute = int.tryParse(parts.length > 1 ? parts[1] : '') ?? 0;
+    final RegExpMatch? match = RegExp(r'(\d{1,2}):(\d{1,2})').firstMatch(time);
+    final int? hour = match == null ? null : int.tryParse(match.group(1)!);
+    final int? minute = match == null ? null : int.tryParse(match.group(2)!);
+
+    if (hour == null || minute == null) {
+      return fallback ?? TimeOfDay(hour: 0, minute: 0);
+    }
 
     return TimeOfDay(
       hour: hour.clamp(0, 23).toInt(),
@@ -85,19 +93,25 @@ class _LessonsState extends State<Lessons> {
   }
 
   List<dynamic> normalizeLessons(List<dynamic> decodedLessons) {
+    final DateTime now = DateTime.now();
+    final TimeOfDay defaultStart = TimeOfDay.fromDateTime(now);
+    final TimeOfDay defaultEnd =
+        TimeOfDay.fromDateTime(now.add(Duration(minutes: 45)));
+
     return List<dynamic>.generate(decodedLessons.length, (index) {
       final dynamic rawLesson = decodedLessons[index];
       final Map<dynamic, dynamic> lesson =
           rawLesson is Map ? rawLesson : <dynamic, dynamic>{};
       final int count = int.tryParse(lesson['count']?.toString() ?? '') ??
           index + 1;
+      final TimeOfDay start =
+          toTimeOfDay(lesson['start'], fallback: defaultStart);
+      final TimeOfDay end = toTimeOfDay(lesson['end'], fallback: defaultEnd);
 
       return {
         'count': count,
-        'start': lesson['start']?.toString() ??
-            TimeOfDay(hour: 0, minute: 0).toString(),
-        'end': lesson['end']?.toString() ??
-            TimeOfDay(hour: 0, minute: 45).toString(),
+        'start': formatTimeOfDay(start),
+        'end': formatTimeOfDay(end),
       };
     });
   }
@@ -313,13 +327,14 @@ class _LessonsState extends State<Lessons> {
             onClick: () {
               changed = true;
               saved = false;
+              final DateTime now = DateTime.now();
               lessons.add(
                 {
                   'count': lessons.length + 1,
-                  'start': TimeOfDay.now().toString(),
-                  'end': TimeOfDay.fromDateTime(
-                    DateTime.now().add(Duration(minutes: 45)),
-                  ).toString(),
+                  'start': formatTimeOfDay(TimeOfDay.fromDateTime(now)),
+                  'end': formatTimeOfDay(
+                    TimeOfDay.fromDateTime(now.add(Duration(minutes: 45))),
+                  ),
                 },
               );
               setState(() {});

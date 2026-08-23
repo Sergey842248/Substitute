@@ -701,6 +701,8 @@ class VPlanAPI {
   Future<List<dynamic>> parseVPlanXML(dynamic jsonVPlan, String classId,
       [Map<String, bool>? roomChanges]) async {
     List<dynamic> _outpuLessons = [];
+    final Map<String, Map<String, String>> lessonTimes =
+        await _loadLessonTimes();
 
     if (jsonVPlan == null) {
       return List.empty();
@@ -715,6 +717,7 @@ class VPlanAPI {
           // parse the lessons
           var currentLesson = _lessons[j];
           String lessonCount = currentLesson['St']?.toString() ?? '';
+          final Map<String, String>? lessonTime = lessonTimes[lessonCount];
           bool hasRaAe = roomChanges?[lessonCount] ?? false;
           String room = currentLesson['Ra'] ?? '';
           bool hasLetters = RegExp(r'[a-zA-Z]').hasMatch(room);
@@ -726,8 +729,8 @@ class VPlanAPI {
             'teacher': await replaceTeacherShort(currentLesson['Le']),
             'place': currentLesson['Ra'],
             'placeChanged': placeChanged,
-            'begin': currentLesson['Beginn'],
-            'end': currentLesson['Ende'],
+            'begin': lessonTime?['start'] ?? currentLesson['Beginn'],
+            'end': lessonTime?['end'] ?? currentLesson['Ende'],
             'info': currentLesson['If'],
             'course': currentLesson['Ku2'],
           });
@@ -738,6 +741,58 @@ class VPlanAPI {
     _outpuLessons.sort((a, b) => a['count'].compareTo(b['count']));
 
     return _outpuLessons;
+  }
+
+  Future<Map<String, Map<String, String>>> _loadLessonTimes() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? lessonTimesJson =
+        prefs.getString(_prefKey(prefs, 'lessontimes'));
+
+    if (lessonTimesJson == null || lessonTimesJson.isEmpty) {
+      return {};
+    }
+
+    try {
+      final dynamic decoded = jsonDecode(lessonTimesJson);
+      if (decoded is! List) return {};
+
+      final Map<String, Map<String, String>> lessonTimes = {};
+      for (int i = 0; i < decoded.length; i++) {
+        final dynamic rawLesson = decoded[i];
+        if (rawLesson is! Map) continue;
+
+        final String count =
+            rawLesson['count']?.toString() ?? (i + 1).toString();
+        final String? start = _normalizeLessonTime(rawLesson['start']);
+        final String? end = _normalizeLessonTime(rawLesson['end']);
+
+        if (start != null && end != null) {
+          lessonTimes[count] = {
+            'start': start,
+            'end': end,
+          };
+        }
+      }
+      return lessonTimes;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  String? _normalizeLessonTime(dynamic value) {
+    final String time = value?.toString() ?? '';
+    final RegExpMatch? match = RegExp(r'(\d{1,2}):(\d{1,2})').firstMatch(time);
+    if (match == null) return null;
+
+    final int? hour = int.tryParse(match.group(1)!);
+    final int? minute = int.tryParse(match.group(2)!);
+    if (hour == null || minute == null) return null;
+
+    final int normalizedHour = hour.clamp(0, 23).toInt();
+    final int normalizedMinute = minute.clamp(0, 59).toInt();
+    final String hourText = normalizedHour.toString().padLeft(2, '0');
+    final String minuteText = normalizedMinute.toString().padLeft(2, '0');
+    return '$hourText:$minuteText';
   }
 
   Future<dynamic> getLessonsByDate({

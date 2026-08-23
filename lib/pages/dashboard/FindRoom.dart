@@ -56,22 +56,26 @@ class _FindRoomState extends State<FindRoom> {
     if (_selectedHour != null && _lessonTimes.isNotEmpty) {
       int idx = _selectedHour! - 1;
       if (idx >= 0 && idx < _lessonTimes.length) {
-        String start = _lessonTimes[idx]['start'] ?? '';
+        dynamic start = _lessonTimes[idx]['start'];
         return _parseTimeOfDay(start);
       }
     }
     return _selectedTime;
   }
 
-  TimeOfDay? _parseTimeOfDay(String time) {
-    try {
-      time = time.replaceAll('TimeOfDay(', '').replaceAll(')', '');
-      List<String> parts = time.split(':');
-      if (parts.length == 2) {
-        return TimeOfDay(
-            hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-      }
-    } catch (e) {}
+  TimeOfDay? _parseTimeOfDay(dynamic value) {
+    final String time = value?.toString() ?? '';
+    final RegExpMatch? match = RegExp(r'(\d{1,2}):(\d{1,2})').firstMatch(time);
+    if (match == null) return null;
+
+    final int? hour = int.tryParse(match.group(1)!);
+    final int? minute = int.tryParse(match.group(2)!);
+    if (hour != null && minute != null) {
+      return TimeOfDay(
+        hour: hour.clamp(0, 23).toInt(),
+        minute: minute.clamp(0, 59).toInt(),
+      );
+    }
     return null;
   }
 

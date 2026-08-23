@@ -47,12 +47,13 @@ class _PlanSettingsState extends State<PlanSettings> {
     });
   }
 
-  Future<void> _toggleLessonTimes(bool value) async {
+  Future<void> _toggleLessonTimes(bool showLessonTimes) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    final bool hideLessonTimes = !showLessonTimes;
     await prefs.setBool(
-        SchoolStorage.scopedKey(prefs, 'hideLessonTimes'), value);
+        SchoolStorage.scopedKey(prefs, 'hideLessonTimes'), hideLessonTimes);
     setState(() {
-      _hideLessonTimes = value;
+      _hideLessonTimes = hideLessonTimes;
     });
   }
 
@@ -114,7 +115,7 @@ class _PlanSettingsState extends State<PlanSettings> {
                         ),
                       ),
                     ),
-                    value: _hideLessonTimes,
+                    value: !_hideLessonTimes,
                     onChanged: _toggleLessonTimes,
                   ),
                 ),
