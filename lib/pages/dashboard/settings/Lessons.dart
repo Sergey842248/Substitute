@@ -184,9 +184,9 @@ class _LessonsState extends State<Lessons> {
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             width: MediaQuery.of(context).size.width,
-            height: MediaQuery.of(context).size.height * 0.11 * lessons.length,
             child: ReorderableList(
-              physics: const BouncingScrollPhysics(),
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
               /* onReorderStart: (index) {
                 print(index); // make item bigger
               }, */
