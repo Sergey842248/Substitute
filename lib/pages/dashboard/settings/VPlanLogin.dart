@@ -459,14 +459,24 @@ class _VPlanLoginState extends State<VPlanLogin> {
                     }
                     Fluttertoast.showToast(
                         msg: AppLocalizations.of(context)!.credsSaved);
-                    // Always navigate back to VPlan tab after saving credentials
-                    // This fixes the issue where classes load infinitely after adding credentials
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (context) => HomePageWithVPlanTab(),
-                      ),
-                      (Route<dynamic> route) => false,
-                    );
+                    // Bei der Default-Schule (Pflicht-Anmeldung) ohne Zurück zur
+                    // Hauptansicht navigieren. Bei einer separaten Schule dagegen
+                    // zur vorherigen Ansicht (z.B. Schulen-Liste) zurückkehren,
+                    // damit man nicht in einer Sackgasse ohne Zurück-Möglichkeit
+                    // landet.
+                    final bool isDefaultSchool =
+                        SchoolStorage.activeSchoolId(prefs) ==
+                            SchoolStorage.defaultSchoolId;
+                    if (isDefaultSchool) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => HomePageWithVPlanTab(),
+                        ),
+                        (Route<dynamic> route) => false,
+                      );
+                    } else {
+                      Navigator.of(context).pop();
+                    }
                   },
                 ),
               ],

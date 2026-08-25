@@ -210,16 +210,33 @@ class _MyAppState extends State<MyApp> {
 class HomePage extends StatefulWidget {
   final String? initialTab;
 
-  const HomePage({Key? key, this.initialTab}) : super(key: key);
+  /// Wenn true (z.B. beim Wechsel zu einer separaten Schule aus der
+  /// Schulen-Übersicht), wird ein Zurück-Pfeil in der Kopfzeile angezeigt,
+  /// mit dem man zur Schulen-Übersicht zurückkehren kann.
+  final bool showBackButton;
+
+  const HomePage({
+    Key? key,
+    this.initialTab,
+    this.showBackButton = false,
+  }) : super(key: key);
 
   @override
   _HomePageState createState() => _HomePageState();
 }
 
 class HomePageWithVPlanTab extends StatelessWidget {
+  final bool showBackButton;
+
+  const HomePageWithVPlanTab({Key? key, this.showBackButton = false})
+      : super(key: key);
+
   @override
   Widget build(BuildContext context) {
-    return HomePage(initialTab: 'vplanStudents');
+    return HomePage(
+      initialTab: 'vplanStudents',
+      showBackButton: showBackButton,
+    );
   }
 }
 
@@ -452,6 +469,32 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             ),
                           ),
                         ),
+                        if (widget.showBackButton)
+                          Positioned(
+                            left: 10,
+                            top: 0,
+                            bottom: 0,
+                            child: Center(
+                              child: InkWell(
+                                onTap: () => Navigator.pop(context),
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  padding: const EdgeInsets.all(9),
+                                  decoration: BoxDecoration(
+                                    borderRadius: const BorderRadius.all(
+                                      Radius.circular(100),
+                                    ),
+                                    color: Theme.of(context).dividerColor,
+                                  ),
+                                  child: Icon(
+                                    Icons.arrow_back_rounded,
+                                    size: 19,
+                                    color: Theme.of(context).splashColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         InkWell(
                           onTap: () async {
                             // Implement developer mode logic here if needed in the future
@@ -596,29 +639,30 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             ),
                           ),
                         ),
-                        Container(
-                          alignment: Alignment.centerLeft,
-                          margin: EdgeInsets.only(
-                            left: MediaQuery.of(context).size.width * 0.1,
-                          ),
-                          height: 45,
-                          width: 45,
-                          child: InkWell(
-                            onTap: eastereggIconChange,
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 500),
-                              transitionBuilder: (child, animation) =>
-                                  FadeTransition(
-                                opacity: animation,
-                                child: ScaleTransition(
-                                  scale: animation,
-                                  child: child,
+                        if (!widget.showBackButton)
+                          Container(
+                            alignment: Alignment.centerLeft,
+                            margin: EdgeInsets.only(
+                              left: MediaQuery.of(context).size.width * 0.1,
+                            ),
+                            height: 45,
+                            width: 45,
+                            child: InkWell(
+                              onTap: eastereggIconChange,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 500),
+                                transitionBuilder: (child, animation) =>
+                                    FadeTransition(
+                                  opacity: animation,
+                                  child: ScaleTransition(
+                                    scale: animation,
+                                    child: child,
+                                  ),
                                 ),
+                                child: eastereggIcon,
                               ),
-                              child: eastereggIcon,
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),

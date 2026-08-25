@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:page_transition/page_transition.dart';
 
 import '../../models/swipe_page_transition.dart';
@@ -143,10 +144,42 @@ class _SchoolsState extends State<Schools> {
     Fluttertoast.showToast(msg: '${school.name} ist jetzt aktiv');
     if (!mounted) return;
 
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => HomePageWithVPlanTab()),
-      (Route<dynamic> route) => false,
-    );
+    // Nur bei einer separaten (hinzugefügten) Schule soll man zur
+    // Schulen-Übersicht zurückkehren können – also normaler Push mit
+    // Zurück-Pfeil und iOS-Back-Geste. Die Default-Schule ('Meine Schule')
+    // bleibt der Hauptbereich ohne Zurück-Möglichkeit.
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final bool hasCredentials = await SchoolStorage.hasCredentials(prefs);
+
+    // Eine neu angelegte Schule hat zunächst keine Zugangsdaten. Öffne den
+    // Login direkt aus der Schulen-Liste, damit Zurück wieder genau dorthin
+    // führt und nicht anschließend ein gesperrter Login aus der Startseite
+    // über dem Navigationsstapel geöffnet wird.
+    if (!hasCredentials) {
+      await Navigator.of(context).push(
+        SwipePageTransition(
+          type: PageTransitionType.rightToLeft,
+          child: const VPlanLogin(),
+        ),
+      );
+      await _loadSchools();
+      return;
+    }
+
+    if (school.id == SchoolStorage.defaultSchoolId) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => HomePageWithVPlanTab()),
+        (Route<dynamic> route) => false,
+      );
+    } else {
+      await Navigator.of(context).push(
+        SwipePageTransition(
+          type: PageTransitionType.rightToLeft,
+          child: HomePageWithVPlanTab(showBackButton: true),
+        ),
+      );
+      await _loadSchools();
+    }
   }
 
   @override
