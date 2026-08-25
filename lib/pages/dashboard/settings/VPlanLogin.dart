@@ -18,6 +18,15 @@ import '../../../main.dart';
 import '../../../services/SchoolStorage.dart';
 
 class VPlanLogin extends StatefulWidget {
+  /// Wenn true (z.B. beim ersten App-Start, solange noch keine Zugangsdaten
+  /// hinterlegt sind), ist die Seite eine Pflicht-Anmeldung: Der Zurück-Pfeil
+  /// und die iOS-Back-Geste sind deaktiviert, damit man ohne Zugangsdaten
+  /// nicht aus der Seite herauskommt. Beim normalen Ändern der Zugangsdaten
+  /// bleibt das Zurückgehen dagegen möglich.
+  final bool blockBack;
+
+  const VPlanLogin({Key? key, this.blockBack = false}) : super(key: key);
+
   @override
   State<VPlanLogin> createState() => _VPlanLoginState();
 }
@@ -95,6 +104,82 @@ class _VPlanLoginState extends State<VPlanLogin> {
     customUrlController.text = jsonData['customUrl'];
   }
 
+  /// Öffnet ein Auswahl-Menü, um die Sprache direkt auf der Anmeldeseite zu
+  /// wechseln (wichtig, solange die Seite als Pflicht-Anmeldung beim ersten
+  /// App-Start angezeigt wird).
+  void _showLanguageSheet() {
+    final String currentLanguage =
+        Localizations.localeOf(context).languageCode;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(40),
+            topRight: Radius.circular(40),
+          ),
+          color: Theme.of(context).colorScheme.surface,
+        ),
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.all(10),
+              width: 100,
+              height: 5,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(100),
+                color: Theme.of(context).indicatorColor,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Text(
+                AppLocalizations.of(context)!.language,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: Icon(Icons.language_rounded),
+              title: Text('English'),
+              trailing: currentLanguage == 'en'
+                  ? Icon(Icons.check_rounded)
+                  : null,
+              onTap: () {
+                _setLanguage('en');
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.location_on_rounded),
+              title: Text('Deutsch'),
+              trailing: currentLanguage == 'de'
+                  ? Icon(Icons.check_rounded)
+                  : null,
+              onTap: () {
+                _setLanguage('de');
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Speichert die Sprache und wendet sie sofort auf die ganze App an.
+  void _setLanguage(String languageCode) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('languageCode', languageCode);
+    MyApp.setLocale(context, Locale(languageCode, ''));
+  }
+
   bool customUrlField = false;
 
   @override
@@ -135,9 +220,12 @@ class _VPlanLoginState extends State<VPlanLogin> {
           labelText: AppLocalizations.of(context)!.selfHost);
     }
 
-    return Scaffold(
+    return PopScope(
+      canPop: !widget.blockBack,
+      child: Scaffold(
       body: ListPage(
         title: AppLocalizations.of(context)!.settingsCredentials,
+        showBackButton: !widget.blockBack,
         actions: [
           IconButton(
             onPressed: () async {
@@ -268,6 +356,10 @@ class _VPlanLoginState extends State<VPlanLogin> {
             ),
             icon: Icon(Icons.qr_code_scanner_rounded),
           ),
+          IconButton(
+            onPressed: _showLanguageSheet,
+            icon: Icon(Icons.language_rounded),
+          ),
         ],
         children: [
           Container(
@@ -294,32 +386,42 @@ class _VPlanLoginState extends State<VPlanLogin> {
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Container(
-                            height: 1.4,
-                            color: Theme.of(context)
-                                .focusColor
-                                .withValues(alpha: 0.3),
-                            width: MediaQuery.of(context).size.width * 0.2,
-                          ),
-                          Text(
-                            customUrlField
-                                ? AppLocalizations.of(context)!.useLogin
-                                : AppLocalizations.of(context)!.useSelfHost,
-                            style: TextStyle(
+                          Expanded(
+                            child: Container(
+                              height: 1.4,
                               color: Theme.of(context)
                                   .focusColor
-                                  .withValues(alpha: 0.85),
+                                  .withValues(alpha: 0.3),
                             ),
                           ),
-                          Container(
-                            height: 1.4,
-                            color: Theme.of(context)
-                                .focusColor
-                                .withValues(alpha: 0.3),
-                            width: MediaQuery.of(context).size.width * 0.2,
+                          Flexible(
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                customUrlField
+                                    ? AppLocalizations.of(context)!.useLogin
+                                    : AppLocalizations.of(context)!.useSelfHost,
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Theme.of(context)
+                                      .focusColor
+                                      .withValues(alpha: 0.85),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Container(
+                              height: 1.4,
+                              color: Theme.of(context)
+                                  .focusColor
+                                  .withValues(alpha: 0.3),
+                            ),
                           ),
                         ],
                       ),
@@ -371,6 +473,7 @@ class _VPlanLoginState extends State<VPlanLogin> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

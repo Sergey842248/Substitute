@@ -109,6 +109,16 @@ class SchoolStorage {
     );
   }
 
+  /// Prüft, ob für die aktive Schule Zugangsdaten (Benutzername) hinterlegt
+  /// sind.
+  static Future<bool> hasCredentials([SharedPreferences? prefs]) async {
+    final SharedPreferences instance =
+        prefs ?? await SharedPreferences.getInstance();
+    final String? username =
+        instance.getString(scopedKey(instance, 'vplanUsername'));
+    return username != null && username.trim().isNotEmpty;
+  }
+
   static Future<void> setActiveSchool(String schoolId) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await ensureInitialized(prefs);

@@ -143,59 +143,14 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
                     .getString(SchoolStorage.scopedKey(prefs, 'vplanUsername'));
 
                 if (username == null || username == '') {
-                  // Zeige Login-Dialog wenn keine Zugangsdaten vorhanden sind
-                  showDialog(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        backgroundColor: Theme.of(context).colorScheme.surface,
-                        title: Text(
-                          AppLocalizations.of(context)!.addNewClass,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 19),
-                        ),
-                        content: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(AppLocalizations.of(context)!
-                                .dontForgetCredentials),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text(
-                              AppLocalizations.of(context)!.later,
-                              style: TextStyle(
-                                color: Theme.of(context).primaryColor,
-                              ),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              Navigator.push(
-                                context,
-                                SwipePageTransition(
-                                  type: PageTransitionType.rightToLeft,
-                                  child: VPlanLogin(),
-                                ),
-                              );
-                            },
-                            child: Text(
-                              AppLocalizations.of(context)!.add,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).primaryColor,
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
+                  // Ohne Zugangsdaten direkt zur Anmeldeseite navigieren,
+                  // statt einen Dialog anzuzeigen.
+                  Navigator.push(
+                    context,
+                    SwipePageTransition(
+                      type: PageTransitionType.rightToLeft,
+                      child: VPlanLogin(blockBack: true),
+                    ),
                   );
                   return;
                 }
@@ -261,58 +216,15 @@ class _TeacherListState extends State<TeacherList> {
         prefs.getString(SchoolStorage.scopedKey(prefs, 'vplanUsername'));
 
     if (username == null || username == '') {
-      // Zeige Login-Dialog wenn keine Zugangsdaten vorhanden sind
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(25),
-            ),
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            title: Text(
-              AppLocalizations.of(context)!.addNewClass,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 19),
-            ),
-            content: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(AppLocalizations.of(context)!.dontForgetCredentials),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  AppLocalizations.of(context)!.later,
-                  style: TextStyle(
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    SwipePageTransition(
-                      type: PageTransitionType.rightToLeft,
-                      child: VPlanLogin(),
-                    ),
-                  );
-                },
-                child: Text(
-                  AppLocalizations.of(context)!.add,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+      // Ohne Zugangsdaten direkt zur Anmeldeseite navigieren, statt einen
+      // Dialog anzuzeigen.
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        SwipePageTransition(
+          type: PageTransitionType.rightToLeft,
+          child: VPlanLogin(blockBack: true),
+        ),
       );
       return; // Stoppe weitere Ausführung wenn keine Zugangsdaten vorhanden sind
     }

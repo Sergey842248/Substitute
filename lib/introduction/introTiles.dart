@@ -99,7 +99,9 @@ Widget getStarded(BuildContext context) => Container(
 start() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   prefs.setBool('firstTime', false);
-  runApp(MyApp());
+  // Ohne Zugangsdaten direkt die Anmeldeseite öffnen, statt in die App zu
+  // starten – so kommt man ohne Zugangsdaten nicht in die App.
+  await runSubstituteApp();
 }
 
 Widget vplanLogin(BuildContext context) => Container();

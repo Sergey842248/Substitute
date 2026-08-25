@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 class ListPage extends StatefulWidget {
   ListPage({
@@ -11,6 +12,9 @@ class ListPage extends StatefulWidget {
     this.onPop,
     this.onTitleClick,
     this.onRefresh,
+    this.showBackButton = true,
+    this.collapseHeaderOnScroll = true,
+    this.keepScrollOffset = true,
   }) : super(key: key);
 
   final String title;
@@ -21,6 +25,17 @@ class ListPage extends StatefulWidget {
   final List<Widget> children;
   List<Widget>? actions;
 
+  /// Wenn false, wird der Zurück-Pfeil ausgeblendet (z.B. auf der
+  /// Anmeldeseite, solange noch keine Zugangsdaten hinterlegt sind).
+  final bool showBackButton;
+
+  /// Wenn false, bleibt die Kopfzeile vollständig sichtbar, auch wenn der
+  /// Inhalt scrollt.
+  final bool collapseHeaderOnScroll;
+
+  /// Wenn false, übernimmt die Liste keinen alten PageStorage-Scrollstand.
+  final bool keepScrollOffset;
+
   /// Pull-to-refresh callback. When set, the content list is wrapped in a
   /// RefreshIndicator so a downward pull reloads the page.
   final Future<void> Function()? onRefresh;
@@ -30,22 +45,50 @@ class ListPage extends StatefulWidget {
 }
 
 class _ListPageState extends State<ListPage> {
-  ScrollController controller = ScrollController();
+  late final ScrollController controller;
   double topHeight = -10;
   final double cornerRadius = 30;
+
+  /// Wird true, sobald der Nutzer die Seite wirklich gescrollt hat. Davor
+  /// wird die Kopfzeile nicht eingeklappt – programmatische Scrolls
+  /// (Tastatur, Scroll-into-view beim Fokussieren eines Feldes,
+  /// wiederhergestellte Scroll-Position) dürfen die Seite beim Öffnen nicht
+  /// „hochgeschoben" aussehen lassen, als hätte man bereits gescrollt.
+  bool _userScrolled = false;
 
   @override
   void initState() {
     super.initState();
+    controller = ScrollController(keepScrollOffset: widget.keepScrollOffset);
     controller.addListener(() {
+      if (!widget.collapseHeaderOnScroll) {
+        if (topHeight != -10) {
+          setState(() => topHeight = -10);
+        }
+        return;
+      }
+      if (!_userScrolled) return;
       // Kopfzeile wieder einblenden, sobald wieder ganz oben angekommen ist.
-      if (controller.offset <= 0) {
+      // Ein kleiner Schwellenwert verhindert, dass ein winziger
+      // Overscroll/Bounce (z.B. ein Tap auf einer BouncingScrollPhysics)
+      // die Kopfzeile schon einklappt.
+      if (controller.offset <= 8) {
         topHeight = -10;
+        // Sobald wir wieder ganz oben sind, wird die Nutzer-Geste
+        // zurückgesetzt – programmatische Scrolls (Tastatur, Fokus)
+        // klappen die Kopfzeile dann nicht mehr ein.
+        if (controller.offset <= 0) _userScrolled = false;
       } else {
         topHeight = 0;
       }
       setState(() {});
     });
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -89,25 +132,27 @@ class _ListPageState extends State<ListPage> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            InkWell(
-                              onTap: () => widget.onPop!(),
-                              child: Container(
-                                alignment: Alignment.center,
-                                padding: const EdgeInsets.all(9),
-                                decoration: BoxDecoration(
-                                  borderRadius: const BorderRadius.all(
-                                    Radius.circular(100),
+                            if (widget.showBackButton) ...[
+                              InkWell(
+                                onTap: () => widget.onPop!(),
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  padding: const EdgeInsets.all(9),
+                                  decoration: BoxDecoration(
+                                    borderRadius: const BorderRadius.all(
+                                      Radius.circular(100),
+                                    ),
+                                    color: Theme.of(context).dividerColor,
                                   ),
-                                  color: Theme.of(context).dividerColor,
-                                ),
-                                child: Icon(
-                                  backIcon,
-                                  size: 19,
-                                  color: Theme.of(context).splashColor,
+                                  child: Icon(
+                                    backIcon,
+                                    size: 19,
+                                    color: Theme.of(context).splashColor,
+                                  ),
                                 ),
                               ),
-                            ),
-                            SizedBox(width: 12),
+                              SizedBox(width: 12),
+                            ],
                             Expanded(
                               child: Row(
                                 children: [
@@ -219,24 +264,26 @@ class _ListPageState extends State<ListPage> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    InkWell(
-                      onTap: () => widget.onPop!(),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.all(
-                            Radius.circular(100),
+                    if (widget.showBackButton) ...[
+                      InkWell(
+                        onTap: () => widget.onPop!(),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            borderRadius: const BorderRadius.all(
+                              Radius.circular(100),
+                            ),
+                            color: Theme.of(context).dividerColor,
                           ),
-                          color: Theme.of(context).dividerColor,
-                        ),
-                        child: Icon(
-                          backIcon,
-                          size: 16,
-                          color: Theme.of(context).splashColor,
+                          child: Icon(
+                            backIcon,
+                            size: 16,
+                            color: Theme.of(context).splashColor,
+                          ),
                         ),
                       ),
-                    ),
-                    SizedBox(width: 20),
+                      SizedBox(width: 20),
+                    ],
                     Expanded(
                       child: GestureDetector(
                         onTap: () {
@@ -295,24 +342,35 @@ class _ListPageState extends State<ListPage> {
   }
 
   Widget _buildContent() {
-    // Ein einzelner, stabiler ListView (kein AnimatedSwitcher): Die Liste
-    // wird beim Neuladen nicht neu erstellt, dadurch bleibt die
-    // Scroll-Position erhalten und es kann kein zweiter ScrollView denselben
-    // Controller nutzen.
-    final Widget list = ListView(
+  final Widget list = NotificationListener<ScrollNotification>(
+    onNotification: (notification) {
+      // Nur eine ScrollUpdateNotification mit gesetzten dragDetails stammt
+      // von einer echten Finger-Drag-Geste. Programmatische Scrolls (Tastatur/
+      // Scroll-into-view beim Fokussieren eines Feldes, wiederhergestellte
+      // Scroll-Position via jumpTo/animateTo, o.ä.) haben dragDetails == null
+      // und dürfen die Kopfzeile NICHT einklappen lassen.
+      if (widget.collapseHeaderOnScroll &&
+          notification is ScrollUpdateNotification &&
+          notification.dragDetails != null) {
+        _userScrolled = true;
+      }
+      return false;
+    },
+    child: ListView(
       controller: controller,
       physics: const BouncingScrollPhysics(
         parent: AlwaysScrollableScrollPhysics(),
       ),
       children: widget.children,
-    );
-    if (widget.onRefresh == null) {
-      return list;
-    }
-    return RefreshIndicator(
-      onRefresh: widget.onRefresh!,
-      color: Theme.of(context).primaryColor,
-      child: list,
-    );
+    ),
+  );
+  if (widget.onRefresh == null) {
+    return list;
   }
+  return RefreshIndicator(
+    onRefresh: widget.onRefresh!,
+    color: Theme.of(context).primaryColor,
+    child: list,
+  );
+}
 }

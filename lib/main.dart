@@ -28,6 +28,7 @@ import 'pages/vplan/VPlan.dart';
 import 'pages/vplan/VPlanAPI.dart';
 import 'pages/dashboard/Dashboard.dart';
 import 'pages/search/SearchMenu.dart';
+import 'pages/dashboard/settings/VPlanLogin.dart';
 import 'services/SchoolStorage.dart';
 
 /// Compares two version strings (e.g. '3.7.10') numerically segment by segment.
@@ -59,7 +60,18 @@ void main() async {
     return;
   }
 
-  runApp(MyApp());
+  await runSubstituteApp();
+}
+
+/// Startet die App. Sind noch keine Zugangsdaten hinterlegt (z.B. direkt
+/// nach der Installation), wird statt der Startseite direkt die Seite zum
+/// Eintragen der Zugangsdaten angezeigt – so kommt man ohne Zugangsdaten
+/// nicht in die App.
+Future<void> runSubstituteApp() async {
+  final bool hasCredentials = await SchoolStorage.hasCredentials();
+  runApp(hasCredentials
+      ? const MyApp()
+      : MyApp(initialPage: VPlanLogin(blockBack: true)));
 }
 
 Color darken(Color c, [int percent = 10]) {
@@ -74,7 +86,12 @@ Color darken(Color c, [int percent = 10]) {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({Key? key, this.initialPage}) : super(key: key);
+
+  /// Optionaler Startbildschirm (z.B. die Anmeldeseite, solange noch keine
+  /// Zugangsdaten hinterlegt sind). Wenn nicht gesetzt, wird die normale
+  /// Startseite angezeigt.
+  final Widget? initialPage;
 
   static void setLocale(BuildContext context, Locale newLocale) {
     _MyAppState? state = context.findAncestorStateOfType<_MyAppState>();
@@ -181,7 +198,7 @@ class _MyAppState extends State<MyApp> {
             highlightColor: Colors.transparent,
             splashFactory: NoSplash.splashFactory,
           ),
-          home: Scaffold(
+          home: widget.initialPage ?? Scaffold(
             body: HomePage(),
           ),
         );
