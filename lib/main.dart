@@ -104,6 +104,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   Locale? _locale;
+  bool _orientationLocked = false;
 
   setLocale(Locale locale) {
     setState(() {
@@ -157,6 +158,18 @@ class _MyAppState extends State<MyApp> {
           supportedLocales: AppLocalizations.supportedLocales,
           builder: (BuildContext context, Widget? child) {
             final MediaQueryData data = MediaQuery.of(context);
+            // Handys (iPhone, Smartphone) werden im Hochformat fixiert,
+            // damit die Ansicht nicht ins Querformat rotiert. Tablet, iPad
+            // und Desktop (kleinste Seite >= 600 dp) dürfen frei rotieren.
+            if (!_orientationLocked) {
+              _orientationLocked = true;
+              if (data.size.shortestSide < 600) {
+                SystemChrome.setPreferredOrientations([
+                  DeviceOrientation.portraitUp,
+                  DeviceOrientation.portraitDown,
+                ]);
+              }
+            }
             return MediaQuery(
               data: data.copyWith(
                 textScaler: TextScaler.linear(0.9),
