@@ -873,7 +873,11 @@ class VPlanAPI {
     _outpuLessons.sort((a, b) {
       final ca = a['count'];
       final cb = b['count'];
-      if (ca is num && cb is num) return ca.compareTo(cb);
+      final ia = int.tryParse('${ca ?? ''}');
+      final ib = int.tryParse('${cb ?? ''}');
+      if (ia != null && ib != null) return ia.compareTo(ib);
+      if (ia != null) return -1;
+      if (ib != null) return 1;
       return '${ca ?? ''}'.compareTo('${cb ?? ''}');
     });
 
