@@ -637,8 +637,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       color: Theme.of(context).colorScheme.surface,
                     ),
                     width: MediaQuery.of(context).size.width,
-                    height: MediaQuery.of(context).size.height * 0.1,
+                    height: MediaQuery.of(context).size.height * 0.1 +
+                        MediaQuery.paddingOf(context).bottom,
                     alignment: Alignment.bottomCenter,
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.paddingOf(context).bottom,
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
