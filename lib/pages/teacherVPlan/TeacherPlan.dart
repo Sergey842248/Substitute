@@ -37,37 +37,49 @@ class _TeacherPlanState extends State<TeacherPlan> {
       widget.selectedDate.day,
     );
 
-    final String dateString = vplanAPI.parseDate(normalizedDate);
-
-    final String url =
-        'https://www.stundenplan24.de/${vplanAPI.schoolnumber}/mobil/mobdaten/PlanKl$dateString.xml';
-
-
-    var data = (await vplanAPI.getVPlanJSON(
-      Uri.parse(url),
-      widget.selectedDate,
-    ))['data'];
-
-    // Check if the fetched data is for the correct date
+    // Den passenden Tagesplan laden: für "heute" automatisch Klassen.xml,
+    // für andere Tage PlanKl<Datum>.xml. Die interne Datumsangabe des Plans
+    // (DatumPlan) weicht am Tagesanfang oft noch auf den letzten Schultag ab
+    // – der vom Server gelieferte Plan ist trotzdem die gültige Quelle für
+    // den gewählten Tag und wird daher nicht mehr anhand des Datums
+    // verworfen.
+    dynamic plan;
     try {
-      DateTime fetchedDate = VPlanAPI().parseStringDatatoDateTime(data['Kopf']['DatumPlan']);
-      if (fetchedDate.year != widget.selectedDate.year ||
-          fetchedDate.month != widget.selectedDate.month ||
-          fetchedDate.day != widget.selectedDate.day) {
-        // Data is for a different date, show no data
-        res = [];
-        setState(() {});
-        return;
-      }
+      plan = await vplanAPI.getRawPlanByDate(normalizedDate);
     } catch (e) {
-      // If date parsing fails, assume data is invalid
+      plan = {'error': 'no internet'};
+    }
+
+    // Bei ungültigem Ergebnis einmalig frisch vom Server laden.
+    bool planInvalid() {
+      return plan == null ||
+          plan is! Map ||
+          plan['error'] != null ||
+          plan['data'] == null ||
+          plan['data']['Klassen'] == null;
+    }
+
+    if (planInvalid()) {
+      try {
+        plan = await vplanAPI.getRawPlanByDate(
+          normalizedDate,
+          forceRefresh: true,
+        );
+      } catch (e) {
+        plan = {'error': 'no internet'};
+      }
+    }
+
+    if (planInvalid()) {
       res = [];
       setState(() {});
       return;
     }
 
+    var data = plan['data'];
+
     setState(() {
-      date = data['Kopf']['DatumPlan'];
+      date = data['Kopf'] != null ? (data['Kopf']['DatumPlan'] ?? '') : '';
     });
     for (int i = 0; i < data['Klassen']['Kl'].length; i++) {
       var currentClass = data['Klassen']['Kl'][i];
