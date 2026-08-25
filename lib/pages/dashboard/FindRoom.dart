@@ -123,25 +123,41 @@ class _FindRoomState extends State<FindRoom> {
       }
     }
 
-    VPlanAPI vplanAPI = VPlanAPI();
-    Uri url = Uri.parse(await vplanAPI.getURL(_selectedDate));
+    final VPlanAPI vplanAPI = VPlanAPI();
 
-    if (mounted)
-      setState(() =>
-          loadText = AppLocalizations.of(context)!.loadingSubstitutionPlan);
-    dynamic _vplanData = await vplanAPI.getVPlanJSON(url, _selectedDate);
-    if (mounted)
-      setState(() =>
-          loadText = AppLocalizations.of(context)!.substitutionPlanLoaded);
+    if (mounted) {
+      setState(() {
+        loadText = AppLocalizations.of(context)!.loadingSubstitutionPlan;
+      });
+    }
+
+    // Den vollständigen Tagesplan direkt laden. Dieser Pfad funktioniert auch
+    // ohne angelegte Klasse/Person und verwendet für vergangene Tage
+    // automatisch PlanKl<Datum>.xml.
+    dynamic _vplanData;
+    try {
+      _vplanData = await vplanAPI.getRawPlanByDate(_selectedDate);
+    } catch (e) {
+      _vplanData = {'error': 'no internet'};
+    }
+    if (mounted) {
+      setState(() {
+        loadText = AppLocalizations.of(context)!.substitutionPlanLoaded;
+      });
+    }
 
     if (_vplanData == null ||
+        _vplanData is! Map ||
         _vplanData.isEmpty ||
         _vplanData['error'] != null ||
         _vplanData['data'] == null ||
         !vplanAPI.compareDate(_selectedDate, _vplanData['date'])) {
       if (mounted) {
         setState(() {
-          loadText = AppLocalizations.of(context)!.noPlanForThisDay;
+          loadText = _vplanData is Map &&
+                  _vplanData['error'] == 'no internet'
+              ? AppLocalizations.of(context)!.noInternetConnection
+              : AppLocalizations.of(context)!.noPlanForThisDay;
         });
       }
       return;

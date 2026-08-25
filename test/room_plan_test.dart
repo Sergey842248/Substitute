@@ -148,6 +148,21 @@ void main() {
     });
   });
 
+  group('getURL', () {
+    test('returns Klassen.xml for today', () async {
+      final url = await VPlanAPI().getURL(DateTime.now());
+      expect(url, contains('Klassen.xml'));
+      expect(url, isNot(contains('PlanKl')));
+    });
+
+    test('returns dated PlanKl URL for a past day', () async {
+      final past = DateTime.now().subtract(const Duration(days: 3));
+      final url = await VPlanAPI().getURL(past);
+      expect(url, contains('PlanKl'));
+      expect(url, contains(VPlanAPI().parseDate(past)));
+    });
+  });
+
   group('date helpers', () {
     test('parseStringDatatoDateTime parses today German date', () {
       final parsed = VPlanAPI().parseStringDatatoDateTime(todayString);

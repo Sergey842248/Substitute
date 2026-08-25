@@ -413,21 +413,22 @@ class VPlanAPI {
 
   Future<dynamic> searchForOfflineData(DateTime vpDate) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (prefs.getStringList(_prefKey(prefs, 'offlineVPData')) == null ||
-        prefs.getStringList(_prefKey(prefs, 'offlineVPData')) == []) {
+    final List<String>? offlineList =
+        prefs.getStringList(_prefKey(prefs, 'offlineVPData'));
+    if (offlineList == null || offlineList.isEmpty) {
       return false;
     }
-    List<dynamic> jsonData = [];
 
-    jsonData = prefs
-        .getStringList(_prefKey(prefs, 'offlineVPData'))!
-        .map((e) => jsonDecode(e))
-        .toList();
-
-    for (int i = 0; i < jsonData.length; i++) {
-      if (compareDate(vpDate, jsonData[i]['data']['Kopf']['DatumPlan'])) {
-        // print('we have an offline backup!');
-        return jsonData[i];
+    for (final String entry in offlineList) {
+      try {
+        final dynamic decoded = jsonDecode(entry);
+        if (compareDate(vpDate, decoded['data']['Kopf']['DatumPlan'])) {
+          return decoded;
+        }
+      } catch (e) {
+        // Ein beschädigter Eintrag darf die Suche nach den übrigen
+        // Offline-Plänen nicht abbrechen.
+        continue;
       }
     }
     return false;
@@ -579,19 +580,23 @@ class VPlanAPI {
       client = http_auth.BasicAuthClient(vplanUsername, vplanPassword);
     }
     try {
-      return ((prefs.getString(_prefKey(prefs, 'customUrl')) != null &&
+      return await ((prefs.getString(_prefKey(prefs, 'customUrl')) != null &&
                   prefs.getString(_prefKey(prefs, 'customUrl')) != '')
               ? http.Client()
               : client)
           .get(url)
-          .then((res) {
+          .then((res) async {
+        if (res.statusCode == 401 ||
+            res.body.toString().contains('Error 401 - Unauthorized')) {
+          return {'error': '401'};
+        }
         if (res.body
             .toString()
             .contains('Die eingegebene Schulnummer wurde nicht gefunden.')) {
           return {'error': 'schoolnumber'};
         }
-        if (res.body.toString().contains('Error 401 - Unauthorized')) {
-          return {'error': '401'};
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          return {'error': 'http_${res.statusCode}'};
         }
         //print(res.body);
         String source = utf8.decode(res.bodyBytes, allowMalformed: true);
@@ -703,14 +708,26 @@ class VPlanAPI {
           // print('plan already exist...');
         }
 
-        prefs.setStringList(_prefKey(prefs, 'offlineVPData'), stringData);
-        //print(prefs.getStringList('offlineVPData'));
+        await prefs.setStringList(_prefKey(prefs, 'offlineVPData'), stringData);
+
+        // Keep a short-lived raw-plan cache as well. This makes subsequent
+        // room-plan requests independent from the class/person views while
+        // still allowing a fresh request after the TTL expires.
+        final String cacheKey =
+            'vplan_cache_${vpDate.year}-${vpDate.month.toString().padLeft(2, '0')}-${vpDate.day.toString().padLeft(2, '0')}';
+        final String scopedCacheKey = _prefKey(prefs, cacheKey);
+        await prefs.setString(scopedCacheKey, jsonEncode(data.last));
+        await prefs.setInt(
+          '${scopedCacheKey}_time',
+          DateTime.now().millisecondsSinceEpoch,
+        );
         //-------------------------------------
 
         return data.last;
       });
     } catch (e) {
-      print("Fehler bei getVplanJson");
+      print("Fehler bei getVplanJson: $e");
+      return {'error': 'no internet'};
     }
   }
 
@@ -815,9 +832,20 @@ class VPlanAPI {
     return 'https://www.stundenplan24.de/${this.schoolnumber}/mobil/mobdaten/Klassen.xml';
   }
 
+  /// Liefert die URL des Vertretungsplans für [date]: für heute die aktuelle
+  /// 'Klassen.xml', für andere Tage (auch vergangene) die tagesbezogene
+  /// 'PlanKl<Datum>.xml' – genau wie getRawPlanByDate/getLessonsByDate es tun.
   Future<String> getURL(DateTime date) async {
     await login();
-    return 'https://www.stundenplan24.de/${this.schoolnumber}/mobil/mobdaten/Klassen.xml';
+
+    DateTime today = DateTime.now();
+    bool isToday = date.year == today.year &&
+        date.month == today.month &&
+        date.day == today.day;
+    if (isToday) {
+      return 'https://www.stundenplan24.de/${this.schoolnumber}/mobil/mobdaten/Klassen.xml';
+    }
+    return 'https://www.stundenplan24.de/${this.schoolnumber}/mobil/mobdaten/PlanKl${parseDate(date)}.xml';
   }
 
   Future<List<dynamic>> parseVPlanXML(dynamic jsonVPlan, String classId,
@@ -992,29 +1020,32 @@ class VPlanAPI {
   ///
   /// Für heute wird wie im restlichen App-Code die 'Klassen.xml' verwendet,
   /// für andere Tage die tagesbezogene 'PlanKl<Datum>.xml'.
-  Future<dynamic> getRawPlanByDate(DateTime date,
-      {bool forceRefresh = false}) async {
+  Future<dynamic> getRawPlanByDate(DateTime date, {bool forceRefresh = false}) async {
     await login();
 
-    DateTime today = DateTime.now();
-    bool isToday = date.year == today.year &&
-        date.month == today.month &&
-        date.day == today.day;
-
-    Uri url;
-    if (isToday) {
-      url = Uri.parse(await getDayURL());
-    } else {
-      url = Uri.parse(
-        'https://www.stundenplan24.de/${this.schoolnumber}/mobil/mobdaten/PlanKl${parseDate(date)}.xml',
-      );
-    }
+    final Uri url = Uri.parse(await getURL(date));
 
     dynamic pureVPlan;
     try {
       pureVPlan = await getVPlanJSON(url, date, forceRefresh: forceRefresh);
     } catch (e) {
       return {'error': 'no internet'};
+    }
+
+    // Sieht das Ergebnis nach Fehler/leer aus (Cache-Problem, kurzer
+    // Netzwerk-Hänger, beschädigter Offline-Eintrag ...), wird EINMAL
+    // ein erzwungener Refresh direkt vom Server versucht, statt den
+    // Nutzer über einen Umweg (z.B. Klassenplan öffnen) selbst retryen
+    // zu lassen.
+    final bool looksLikeFailure = pureVPlan == null ||
+        (pureVPlan is Map && (pureVPlan.isEmpty || pureVPlan['error'] != null));
+
+    if (!forceRefresh && looksLikeFailure) {
+      try {
+        pureVPlan = await getVPlanJSON(url, date, forceRefresh: true);
+      } catch (e) {
+        return {'error': 'no internet'};
+      }
     }
 
     if (pureVPlan == null || pureVPlan.toString() == '{}') {
