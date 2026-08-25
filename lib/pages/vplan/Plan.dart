@@ -357,6 +357,7 @@ class _PlanState extends State<Plan> {
       }
       return ListPage(
         title: headerTitle,
+        onRefresh: () => getData(),
         actions: [
           IconButton(
             onPressed: () => getData(),
@@ -436,6 +437,7 @@ class _PlanState extends State<Plan> {
       },
       title: '$headerTitle\n$displayDate',
       smallTitle: true,
+      onRefresh: () => getData(),
       actions: [
         IconButton(
           onPressed: () async {

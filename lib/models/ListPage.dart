@@ -10,6 +10,7 @@ class ListPage extends StatefulWidget {
     this.canclePage,
     this.onPop,
     this.onTitleClick,
+    this.onRefresh,
   }) : super(key: key);
 
   final String title;
@@ -19,6 +20,10 @@ class ListPage extends StatefulWidget {
   Function? onPop;
   final List<Widget> children;
   List<Widget>? actions;
+
+  /// Pull-to-refresh callback. When set, the content list is wrapped in a
+  /// RefreshIndicator so a downward pull reloads the page.
+  final Future<void> Function()? onRefresh;
 
   @override
   State<ListPage> createState() => _ListPageState();
@@ -294,12 +299,20 @@ class _ListPageState extends State<ListPage> {
     // wird beim Neuladen nicht neu erstellt, dadurch bleibt die
     // Scroll-Position erhalten und es kann kein zweiter ScrollView denselben
     // Controller nutzen.
-    return ListView(
+    final Widget list = ListView(
       controller: controller,
       physics: const BouncingScrollPhysics(
         parent: AlwaysScrollableScrollPhysics(),
       ),
       children: widget.children,
+    );
+    if (widget.onRefresh == null) {
+      return list;
+    }
+    return RefreshIndicator(
+      onRefresh: widget.onRefresh!,
+      color: Theme.of(context).primaryColor,
+      child: list,
     );
   }
 }
