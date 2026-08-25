@@ -3,6 +3,7 @@ import 'package:substitute/models/ListPage.dart';
 import 'package:substitute/pages/dashboard/settings/Lessons.dart';
 import 'package:substitute/pages/vplan/VPlanAPI.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -504,10 +505,23 @@ class _ClassWidgetState extends State<ClassWidget> {
     }
   }
 
-  getData() async {
-    List<dynamic> realVPlan = [];
-    VPlanAPI vplanAPI = VPlanAPI();
-    dynamic vplan;
+  /// Aktualisiert die „Nächste Stunde“-Vorschau. Zuerst wird offline (ohne
+  /// Netzwerkwarten) die zuletzt bekannte Vorschau angezeigt, anschließend
+  /// werden im Hintergrund frische Daten geholt und die Vorschau nur ersetzt,
+  /// wenn sich tatsächlich etwas geändert hat – es wird nie eine
+  /// Ladeanimation gezeigt.
+  ///
+  /// [forceRefresh] == true lädt frisch vom Server, andernfalls werden
+  /// (ohne Ladezeit) die lokal gespeicherten Daten verwendet.
+  getData({bool silent = false, bool forceRefresh = false}) async {
+    final Map<String, dynamic> oldNextLesson = nextLesson;
+    final VPlanAPI vplanAPI = VPlanAPI();
+
+    void refreshIfChanged() {
+      if (silent && mapEquals(oldNextLesson, nextLesson)) return;
+      if (mounted) setState(() {});
+    }
+
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       hideLessonTimes =
@@ -516,16 +530,7 @@ class _ClassWidgetState extends State<ClassWidget> {
     } catch (_) {
       hideLessonTimes = true;
     }
-    try {
-      vplan = await vplanAPI.getLessonsForToday(widget.classId);
-    } catch (_) {
-      if (mounted) setState(() {});
-      return;
-    }
-    if (vplan is! Map || vplan['data'] is! List) {
-      if (mounted) setState(() {});
-      return;
-    }
+
     List<String> hiddenCourses = [];
     try {
       hiddenCourses = await vplanAPI.getHiddenCourses(widget.classId);
@@ -533,6 +538,40 @@ class _ClassWidgetState extends State<ClassWidget> {
       hiddenCourses = [];
     }
 
+    dynamic vplan;
+    try {
+      vplan = forceRefresh
+          ? await vplanAPI
+              .getLessonsForToday(widget.classId, forceRefresh: true)
+          : await vplanAPI.getCachedLessonsForToday(widget.classId);
+    } catch (_) {
+      refreshIfChanged();
+      return;
+    }
+    if (vplan is! Map || vplan['data'] is! List) {
+      refreshIfChanged();
+      return;
+    }
+
+    await _setNextLessonFromPlan(vplanAPI, vplan, hiddenCourses,
+        allowNextDay: forceRefresh);
+    // Zuletzt berechnete Vorschau speichern, damit sie beim nächsten Öffnen
+    // sofort (ohne Ladezeit) angezeigt wird.
+    saveNextLesson(widget.classId, nextLesson);
+    refreshIfChanged();
+  }
+
+  /// Berechnet die „Nächste Stunde“-Vorschau aus einem Plan und setzt
+  /// [nextLesson]. [allowNextDay] == false (sofortiger Cache-Pfad) löst keine
+  /// weitere Netzwerkanfrage für den Folgetag aus – das übernimmt der
+  /// Hintergrund-Refresh.
+  Future<void> _setNextLessonFromPlan(
+    VPlanAPI vplanAPI,
+    Map vplan,
+    List<String> hiddenCourses, {
+    bool allowNextDay = true,
+  }) async {
+    List<dynamic> realVPlan = [];
     for (var i = 0; i < vplan['data'].length; i++) {
       bool add = !vplanAPI.isLessonHidden(vplan['data'][i], hiddenCourses) &&
           vplan['data'][i]['course'] != '---' &&
@@ -543,9 +582,7 @@ class _ClassWidgetState extends State<ClassWidget> {
     }
 
     // GET NEXT LESSON
-
     TimeOfDay currentTime = TimeOfDay.now();
-
     try {
       if (vplan['date'] != null &&
           VPlanAPI()
@@ -560,20 +597,12 @@ class _ClassWidgetState extends State<ClassWidget> {
     double lowestDifference = 50;
     int lessonIndex = 0;
     bool foundNextLesson = false;
-
     for (var i = 0; i < realVPlan.length; i++) {
       Map<String, dynamic> lesson = realVPlan[i];
-
-      // Einträge ohne gültige Beginn-Zeit sind keine brauchbaren Stunden -
-      // sie überspringen statt die ganze Vorschau abzubrechen.
       final TimeOfDay? beginTime = _safeToTimeOfDay(lesson['begin']);
-      if (beginTime == null) {
-        continue;
-      }
-
+      if (beginTime == null) continue;
       double difference = (beginTime.hour + (beginTime.minute / 60)) -
           (currentTime.hour + (currentTime.minute / 60));
-
       if (difference < lowestDifference && difference >= 0) {
         lowestDifference = difference;
         lessonIndex = i;
@@ -583,77 +612,80 @@ class _ClassWidgetState extends State<ClassWidget> {
 
     if (foundNextLesson) {
       nextLesson = realVPlan[lessonIndex];
-    } else {
-      // No lesson found today. Check weekend first, then after-school.
-      DateTime now = DateTime.now();
-
-      if (now.weekday == DateTime.saturday || now.weekday == DateTime.sunday) {
-        nextLesson = {'weekend': true};
-      } else {
-        // Weekday - check if it's after school hours
-        bool afterSchool = false;
-        if (realVPlan.isNotEmpty) {
-          Map<String, dynamic> lastLesson = realVPlan.last;
-          final TimeOfDay? endTime = _safeToTimeOfDay(lastLesson['end']);
-          if (endTime != null) {
-            double lastLessonEndTime = (endTime.hour + (endTime.minute / 60));
-            afterSchool = (currentTime.hour + (currentTime.minute / 60)) >
-                lastLessonEndTime;
-          }
-        } else {
-          afterSchool = true;
-        }
-
-        if (afterSchool) {
-          // Determine the next school day
-          DateTime nextDay = now.add(Duration(days: 1));
-          while (nextDay.weekday == DateTime.saturday ||
-              nextDay.weekday == DateTime.sunday) {
-            nextDay = nextDay.add(const Duration(days: 1));
-          }
-
-          try {
-            dynamic nextDayVplan = await VPlanAPI().getLessonsByDate(
-              date: nextDay,
-              classId: widget.classId,
-            );
-
-            if (nextDayVplan != null &&
-                nextDayVplan['data'] != null &&
-                nextDayVplan['data'].isNotEmpty) {
-              // Filter hidden courses from the next day's lessons
-              List<dynamic> nextDayRealVPlan = [];
-              for (var i = 0; i < nextDayVplan['data'].length; i++) {
-                bool add = !vplanAPI.isLessonHidden(
-                        nextDayVplan['data'][i], hiddenCourses) &&
-                    nextDayVplan['data'][i]['course'] != '---' &&
-                    nextDayVplan['data'][i]['lesson'] != null;
-                if (add) {
-                  nextDayRealVPlan.add(nextDayVplan['data'][i]);
-                }
-              }
-
-              if (nextDayRealVPlan.isNotEmpty) {
-                nextLesson = nextDayRealVPlan.first;
-              } else {
-                // Plan exists but all lessons are hidden or empty
-                nextLesson = {'weekend': true};
-              }
-            } else {
-              // No plan available for next school day -> show weekend
-              nextLesson = {'weekend': true};
-            }
-          } catch (e) {
-            // Error loading next day plan -> show weekend
-            nextLesson = {'weekend': true};
-          }
-        } else {
-          nextLesson = {};
-        }
-      }
+      return;
     }
 
-    setState(() {});
+    // Keine Stunde mehr heute: Wochenende oder nach Schulschluss.
+    DateTime now = DateTime.now();
+    if (now.weekday == DateTime.saturday || now.weekday == DateTime.sunday) {
+      nextLesson = {'weekend': true};
+      return;
+    }
+
+    bool afterSchool = false;
+    if (realVPlan.isNotEmpty) {
+      Map<String, dynamic> lastLesson = realVPlan.last;
+      final TimeOfDay? endTime = _safeToTimeOfDay(lastLesson['end']);
+      if (endTime != null) {
+        double lastLessonEndTime = (endTime.hour + (endTime.minute / 60));
+        afterSchool = (currentTime.hour + (currentTime.minute / 60)) >
+            lastLessonEndTime;
+      }
+    } else {
+      afterSchool = true;
+    }
+
+    if (!afterSchool) {
+      nextLesson = {};
+      return;
+    }
+
+    if (!allowNextDay) {
+      // Beim sofortigen Cache-Pfad keine weitere Netzwerkanfrage für den
+      // Folgetag auslösen – der Hintergrund-Refresh korrigiert das.
+      nextLesson = {};
+      return;
+    }
+
+    // Determine the next school day
+    DateTime nextDay = now.add(const Duration(days: 1));
+    while (nextDay.weekday == DateTime.saturday ||
+        nextDay.weekday == DateTime.sunday) {
+      nextDay = nextDay.add(const Duration(days: 1));
+    }
+
+    try {
+      dynamic nextDayVplan = await VPlanAPI().getLessonsByDate(
+        date: nextDay,
+        classId: widget.classId,
+      );
+
+      if (nextDayVplan != null &&
+          nextDayVplan['data'] != null &&
+          nextDayVplan['data'].isNotEmpty) {
+        // Filter hidden courses from the next day's lessons
+        List<dynamic> nextDayRealVPlan = [];
+        for (var i = 0; i < nextDayVplan['data'].length; i++) {
+          bool add = !vplanAPI.isLessonHidden(
+                  nextDayVplan['data'][i], hiddenCourses) &&
+              nextDayVplan['data'][i]['course'] != '---' &&
+              nextDayVplan['data'][i]['lesson'] != null;
+          if (add) {
+            nextDayRealVPlan.add(nextDayVplan['data'][i]);
+          }
+        }
+
+        if (nextDayRealVPlan.isNotEmpty) {
+          nextLesson = nextDayRealVPlan.first;
+        } else {
+          nextLesson = {'weekend': true};
+        }
+      } else {
+        nextLesson = {'weekend': true};
+      }
+    } catch (e) {
+      nextLesson = {'weekend': true};
+    }
   }
 
   TimeOfDay toTimeOfDay(String time) {
@@ -674,8 +706,30 @@ class _ClassWidgetState extends State<ClassWidget> {
   @override
   void initState() {
     super.initState();
+    // Sofort (ohne Ladezeit und ohne await) die zuletzt gespeicherte
+    // „Nächste Stunde“-Vorschau anzeigen – der allererste Frame zeigt also
+    // bereits den letzten Stand.
+    nextLesson = cachedNextLesson(widget.classId) ?? {'': 'loading'};
+    // 1) Lokale Vorschau (Cache) anzeigen.
     getData();
+    // 2) Im Hintergrund frische Daten laden und – nur wenn nötig – ersetzen.
+    getData(silent: true, forceRefresh: true);
     _loadCustomName();
+    vplanBackgroundRefresh.addListener(_onBackgroundRefresh);
+  }
+
+  /// Reaktioniert auf den Hintergrund-Refresh beim App-Start: Die Vorschau
+  /// wird im Hintergrund neu geladen, aber nur für diesen Favoriten neu
+  /// gezeichnet, wenn sich die nächste Stunde / der Plan tatsächlich geändert
+  /// hat.
+  void _onBackgroundRefresh() {
+    getData(silent: true, forceRefresh: true);
+  }
+
+  @override
+  void dispose() {
+    vplanBackgroundRefresh.removeListener(_onBackgroundRefresh);
+    super.dispose();
   }
 
   @override
@@ -733,7 +787,7 @@ class _ClassWidgetState extends State<ClassWidget> {
               width: double.infinity,
               alignment: Alignment.center,
               child: nextLesson.toString() == '{: loading}'
-                  ? LoadingProcess()
+                  ? const SizedBox.shrink()
                   : (nextLesson['weekend'] == true
                       ? Column(
                           mainAxisAlignment: MainAxisAlignment.center,

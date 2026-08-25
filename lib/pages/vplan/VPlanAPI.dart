@@ -2,12 +2,90 @@ import 'dart:convert';
 
 import 'package:http_auth/http_auth.dart' as http_auth;
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/services/SchoolStorage.dart';
 import 'package:xml2json/xml2json.dart';
 import 'package:xml/xml.dart';
 
 import 'DemoData.dart';
+
+/// Wird erhöht, sobald die VPläne im Hintergrund (z.B. beim Öffnen der App)
+/// neu geladen wurden. UI-Komponenten, die sich dabei aktualisieren sollen
+/// (z.B. die VPlan-Übersicht), lauschen auf diesen Notifier und gleichen ihre
+/// Anzeige ab – sie aktualisieren sich aber nur, wenn sich die Daten
+/// tatsächlich geändert haben.
+final ValueNotifier<int> vplanBackgroundRefresh = ValueNotifier<int>(0);
+
+/// Synchroner Persisted-Cache der zuletzt aufbereiteten Plan-Anzeige je
+/// Klasse. Wird beim App-Start aus SharedPreferences gefüllt (`loadDisplayCache`)
+/// und bei jedem geladenen Plan aktualisiert, damit beim Öffnen eines Plans
+/// im allerersten Frame ohne jede Ladezeit der letzte Plan angezeigt wird.
+final Map<String, Map<String, dynamic>> _planDisplayCache = {};
+
+/// Synchroner Persisted-Cache der zuletzt berechneten „Nächste Stunde“-
+/// Vorschau je Klasse (für die Home-Tab-Anzeige).
+final Map<String, Map<String, dynamic>> _nextLessonCache = {};
+
+/// Liefert synchron den zuletzt angezeigten Plan für [classId] (oder `null`).
+Map<String, dynamic>? cachedPlanDisplay(String classId) =>
+    _planDisplayCache[classId];
+
+/// Liefert synchron die zuletzt berechnete „Nächste Stunde“-Vorschau (oder
+/// `null`).
+Map<String, dynamic>? cachedNextLesson(String classId) =>
+    _nextLessonCache[classId];
+
+String _planDisplayKey(SharedPreferences prefs, String classId) =>
+    SchoolStorage.scopedKey(prefs, 'planDisplay_$classId');
+
+String _nextLessonKey(SharedPreferences prefs, String classId) =>
+    SchoolStorage.scopedKey(prefs, 'nextLesson_$classId');
+
+/// Speichert den aufbereiteten Plan [data] für [classId] dauerhaft und im
+/// synchronen Cache.
+Future<void> savePlanDisplay(String classId, dynamic data) async {
+  _planDisplayCache[classId] =
+      Map<String, dynamic>.from(data as Map);
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.setString(_planDisplayKey(prefs, classId), jsonEncode(data));
+}
+
+/// Speichert die „Nächste Stunde“-Vorschau [nextLesson] für [classId]
+/// dauerhaft und im synchronen Cache.
+Future<void> saveNextLesson(String classId, Map<String, dynamic> nextLesson) async {
+  _nextLessonCache[classId] = nextLesson;
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.setString(_nextLessonKey(prefs, classId), jsonEncode(nextLesson));
+}
+
+/// Lädt beim App-Start alle gespeicherten Plan-Displays und Vorschauen der
+/// aktiven Schule in den synchronen Cache, damit beim ersten Frame bereits
+/// der letzte Stand verfügbar ist.
+Future<void> loadDisplayCache(SharedPreferences prefs) async {
+  _planDisplayCache.clear();
+  _nextLessonCache.clear();
+  final List<String>? classes =
+      prefs.getStringList(SchoolStorage.scopedKey(prefs, 'classes'));
+  if (classes == null) return;
+
+  for (final String classId in classes) {
+    final String? plan = prefs.getString(_planDisplayKey(prefs, classId));
+    if (plan != null && plan.isNotEmpty) {
+      try {
+        _planDisplayCache[classId] =
+            (jsonDecode(plan) as Map).cast<String, dynamic>();
+      } catch (_) {}
+    }
+    final String? lesson = prefs.getString(_nextLessonKey(prefs, classId));
+    if (lesson != null && lesson.isNotEmpty) {
+      try {
+        _nextLessonCache[classId] =
+            (jsonDecode(lesson) as Map).cast<String, dynamic>();
+      } catch (_) {}
+    }
+  }
+}
 
 class VPlanAPI {
   int schoolnumber = 0; // = prefs.getString("vplanSchoolnumber");
@@ -468,9 +546,14 @@ class VPlanAPI {
       }
     }
 
-    dynamic offlinePlan = await searchForOfflineData(vpDate);
+    // Bei einem echten Force-Refresh wird der Offline-Fallback übersprungen,
+    // damit wirklich frische Daten vom Server geholt werden. Ansonsten werden
+    // vor dem Netzwerkzugriff gespeicherte Offline-Pläne verwendet.
+    if (!forceRefresh) {
+      dynamic offlinePlan = await searchForOfflineData(vpDate);
 
-    if (offlinePlan != false) return offlinePlan;
+      if (offlinePlan != false) return offlinePlan;
+    }
 
     Xml2Json xml2json = Xml2Json();
     var client;
@@ -648,14 +731,46 @@ class VPlanAPI {
     };
   }
 
-  Future<dynamic> getLessonsForToday(String classId) async {
+  /// Liest NUR die lokal gespeicherten (Offline-)Pläne für heute und bereitet
+  /// sie für eine Klasse auf – ohne jede Netzwerk-/Ladezeit. Wird verwendet,
+  /// um beim Öffnen eines Plans sofort den zuletzt bekannten Plan anzuzeigen,
+  /// bevor er im Hintergrund frisch nachgeladen wird.
+  ///
+  /// Gibt `null` zurück, wenn noch kein Offline-Plan für heute existiert.
+  Future<dynamic> getCachedLessonsForToday(String classId) async {
+    dynamic offlinePlan = await searchForOfflineData(DateTime.now());
+    if (offlinePlan == false) return null;
+
+    dynamic jsonVPlan = offlinePlan['data']['Klassen']['Kl'];
+
+    Map<String, bool>? classRoomChanges;
+    if (offlinePlan['roomChanges']?[classId] != null) {
+      classRoomChanges =
+          Map<String, bool>.from(offlinePlan['roomChanges'][classId]);
+    }
+
+    List<dynamic> lessons =
+        await parseVPlanXML(jsonVPlan, classId, classRoomChanges);
+    return {
+      'date': offlinePlan['date'],
+      'week': offlinePlan['week'],
+      'data': lessons,
+      'info': offlinePlan['info'],
+    };
+  }
+
+  /// Holt die Stunden für heute. Mit [forceRefresh] == true wird die
+  /// Offline-/Gecachte-Variante übersprungen und frisch vom Server geladen.
+  Future<dynamic> getLessonsForToday(String classId,
+      {bool forceRefresh = false}) async {
     await login();
 
     Uri url = Uri.parse(await getDayURL());
 
     dynamic pureVPlan;
     try {
-      pureVPlan = await getVPlanJSON(url, DateTime.now());
+      pureVPlan =
+          await getVPlanJSON(url, DateTime.now(), forceRefresh: forceRefresh);
       //print(pureVPlan);
     } catch (e) {
       // print('line 316 in VPlanAPI.dart --> $e');

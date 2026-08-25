@@ -49,6 +49,10 @@ void main() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   await SchoolStorage.ensureInitialized(prefs);
 
+  // Zuletzt angezeigte Pläne / Vorschauen synchron in den Speicher laden,
+  // damit beim Öffnen sofort (ohne Ladezeit) der letzte Stand angezeigt wird.
+  await loadDisplayCache(prefs);
+
   if (prefs.getBool('firstTime') == null ||
       prefs.getBool('firstTime') == true) {
     runApp(Introduction());
@@ -220,6 +224,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Future<void> _refreshAllPlans() async {
     try {
       await VPlanAPI().refreshAllPlansInBackground();
+      // Benachrichtige die VPlan-Übersicht, damit sie ihre Vorschauen
+      // abgleicht (aktualisiert wird nur, wenn sich etwas geändert hat).
+      vplanBackgroundRefresh.value++;
       print('Background refresh completed');
     } catch (e) {
       print('Error during background refresh: $e');

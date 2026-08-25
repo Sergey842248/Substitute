@@ -161,34 +161,44 @@ class _PlanState extends State<Plan> {
     }
   }
 
-  Future<void> getData() async {
-    setState(() => data = 'loading'); // show loading animation
-    VPlanAPI vplanAPI = new VPlanAPI();
-
-    dynamic _lessons;
+  /// Prüft, ob zwei Pläne den gleichen Inhalt haben (Stunden + Zusatzinfo),
+  /// damit ein identischer Plan beim erneuten Laden nicht neu gezeichnet wird.
+  bool _planDataEqual(dynamic a, dynamic b) {
+    if (a is! Map || b is! Map) return identical(a, b) || a == b;
     try {
-      _lessons = await vplanAPI.getLessonsForToday(widget.classId);
-    } catch (e) {
-      // Ein Fehler beim Laden (z.B. durch Stundenzeiten) darf den Plan nicht
-      // blockieren – stattdessen eine Fehlermeldung anzeigen.
-      if (mounted) {
-        setState(() => data = {'error': 'no internet'});
-      }
-      return;
+      return jsonEncode(a) == jsonEncode(b);
+    } catch (_) {
+      return false;
     }
-    if (_lessons == null || _lessons is! Map || _lessons['error'] != null) {
-      if (mounted) {
-        setState(() => data = _lessons is Map ? _lessons : {'error': 'no internet'});
-      }
-      return;
-    }
+  }
+
+  /// Wahr, wenn [data] bereits einen geladenen Plan (ohne Fehler) enthält.
+  bool _hasPlan(dynamic d) {
+    if (d is! Map || d['error'] != null) return false;
+    return d['data'] is Map && d['data']['data'] != null;
+  }
+
+  /// Wendet [candidate] als angezeigten Plan an, aber nur, wenn sich das
+  /// tatsächlich ändert – sonst passiert nichts (kein unnötiges Neuzeichnen).
+  void _applyIfChanged(dynamic candidate) {
+    if (!mounted || _planDataEqual(data, candidate)) return;
+    data = candidate;
+    setState(() {});
+  }
+
+  /// Baut aus einem `getLessons*`-Ergebnis die angezeigte Plan-Struktur,
+  /// inklusive dem automatischen Wechsel auf den nächsten Schultag, sobald
+  /// der heutige Tag vorbei ist. [allowNextDay] == false (Cache-Pfad) zeigt
+  /// vorerst nur die vorhandenen Daten ohne weitere Netzwerkanfrage.
+  Future<dynamic> _displayData(dynamic lessons, {bool allowNextDay = true}) async {
+    if (lessons == null) return null;
 
     // Check if the day is over (current time is after the last lesson's end time)
-    bool dayOver = false;
-    if (_lessons['data'].isNotEmpty) {
-      var lastLesson = _lessons['data'].last;
+    if (allowNextDay && lessons['data'] is List && lessons['data'].isNotEmpty) {
+      var lastLesson = lessons['data'].last;
       String? endTimeStr = lastLesson['end']?.toString();
       if (endTimeStr != null && endTimeStr != '---') {
+        bool dayOver = false;
         try {
           List<String> parts = endTimeStr.split(':');
           int hour = int.parse(parts[0]);
@@ -196,52 +206,87 @@ class _PlanState extends State<Plan> {
           DateTime now = DateTime.now();
           DateTime lastEnd =
               DateTime(now.year, now.month, now.day, hour, minute);
-          if (now.isAfter(lastEnd)) {
-            dayOver = true;
-          }
+          if (now.isAfter(lastEnd)) dayOver = true;
         } catch (e) {
           // Ignore parsing errors
+        }
+
+        if (dayOver) {
+          // Load lessons for the next day
+          DateTime tomorrow = DateTime.now().add(Duration(days: 1));
+          // Skip weekends
+          if (tomorrow.weekday == 6) {
+            tomorrow = tomorrow.add(Duration(days: 2)); // Monday
+          } else if (tomorrow.weekday == 7) {
+            tomorrow = tomorrow.add(Duration(days: 1)); // Monday
+          }
+          dynamic tomorrowLessons = await VPlanAPI()
+              .getLessonsByDate(date: tomorrow, classId: widget.classId);
+          if (tomorrowLessons['error'] == null &&
+              tomorrowLessons['data'] != null &&
+              tomorrowLessons['data'].isNotEmpty) {
+            return {
+              'data': tomorrowLessons,
+              'info': tomorrowLessons['info'],
+            };
+          }
         }
       }
     }
 
-    if (dayOver) {
-      // Load lessons for the next day
-      DateTime tomorrow = DateTime.now().add(Duration(days: 1));
-      // Skip weekends
-      if (tomorrow.weekday == 6) {
-        // Saturday
-        tomorrow = tomorrow.add(Duration(days: 2)); // Monday
-      } else if (tomorrow.weekday == 7) {
-        // Sunday
-        tomorrow = tomorrow.add(Duration(days: 1)); // Monday
-      }
-      dynamic tomorrowLessons = await VPlanAPI()
-          .getLessonsByDate(date: tomorrow, classId: widget.classId);
-      if (tomorrowLessons['error'] == null &&
-          tomorrowLessons['data'] != null &&
-          tomorrowLessons['data'].isNotEmpty) {
-        data = {
-          'data': tomorrowLessons,
-          'info': tomorrowLessons['info'],
-        };
-      } else {
-        // If no lessons tomorrow or error, keep today's data
-        data = {
-          'data': _lessons,
-          'info': _lessons['info'],
-        };
-      }
-    } else {
-      data = {
-        'data': _lessons,
-        'info': _lessons['info'],
-      };
-    }
+    return {
+      'data': lessons,
+      'info': lessons['info'],
+    };
+  }
 
+  /// Lädt den Plan im Hintergrund: Zuerst wird – ohne jede Ladeanimation und
+  /// ohne Netzwerkwarten – der zuletzt bekannte (lokale) Plan angezeigt, im
+  /// Hintergrund werden dann frische Daten geholt und der Plan nur ersetzt,
+  /// wenn sich tatsächlich etwas geändert hat.
+  Future<void> getData({bool showLoading = true}) async {
+    final VPlanAPI vplanAPI = VPlanAPI();
     hiddenSubjects = await vplanAPI.getHiddenCourses(widget.classId);
 
-    setState(() {});
+    // 1) Sofort verfügbare Daten (Offline-Cache) anzeigen – keine Ladezeit.
+    if (mounted && !_hasPlan(data)) {
+      try {
+        final dynamic cached =
+            await vplanAPI.getCachedLessonsForToday(widget.classId);
+        if (mounted && cached != null && cached['data'] is List) {
+          _applyIfChanged(await _displayData(cached, allowNextDay: false));
+          if (mounted && _hasPlan(data)) {
+            savePlanDisplay(widget.classId, data);
+          }
+        }
+      } catch (_) {
+        // Cache nicht verfügbar – direkt mit dem Hintergrund-Fetch fortfahren.
+      }
+    }
+
+    // 2) Im Hintergrund frische Daten laden und nur bei Änderung ersetzen.
+    dynamic fresh;
+    try {
+      fresh = await vplanAPI
+          .getLessonsForToday(widget.classId, forceRefresh: true);
+    } catch (e) {
+      fresh = {'error': 'no internet'};
+    }
+    if (fresh == null || (fresh is Map && fresh['error'] != null)) {
+      // Zeige den Fehler nur, wenn noch kein Plan angezeigt wird – ein
+      // bereits sichtbarer Plan bleibt bei einem Hintergrund-Fehler erhalten.
+      if (mounted && !_hasPlan(data)) {
+        _applyIfChanged(fresh is Map ? fresh : {'error': 'no internet'});
+      }
+      vplanAPI.cleanVplanOfflineData();
+      return;
+    }
+    if (!mounted) return;
+
+    _applyIfChanged(await _displayData(fresh));
+    if (mounted && _hasPlan(data)) {
+      savePlanDisplay(widget.classId, data);
+    }
 
     vplanAPI.cleanVplanOfflineData();
 
@@ -266,6 +311,9 @@ class _PlanState extends State<Plan> {
   @override
   void initState() {
     super.initState();
+    // Sofort (ohne Ladezeit und ohne await) den zuletzt gespeicherten Plan
+    // anzeigen – der allererste Frame zeigt also bereits den letzten Stand.
+    data = cachedPlanDisplay(widget.classId) ?? 'loading';
     _loadSettings();
     getData();
   }
@@ -437,7 +485,7 @@ class _PlanState extends State<Plan> {
       },
       title: '$headerTitle\n$displayDate',
       smallTitle: true,
-      onRefresh: () => getData(),
+      onRefresh: () => getData(showLoading: false),
       actions: [
         IconButton(
           onPressed: () async {
@@ -460,12 +508,12 @@ class _PlanState extends State<Plan> {
                         setState(() {
                           widget.person!['courses'] = courses;
                         });
-                        getData();
+                        getData(showLoading: false);
                       },
                     )
                   : Courses(
                       classId: widget.classId,
-                      updateCourses: () => getData(),
+                      updateCourses: () => getData(showLoading: false),
                     ),
             ),
           ),
@@ -485,13 +533,7 @@ class _PlanState extends State<Plan> {
       ],
       children: [
         ...(data == 'loading'
-            ? [
-                Container(
-                  alignment: Alignment.center,
-                  width: MediaQuery.of(context).size.width * 0.2,
-                  child: LoadingProcess(),
-                )
-              ]
+            ? const <Widget>[SizedBox.shrink()]
             : _buildLessons(data['data']['data'] as List)),
         data != 'loading' ? const SizedBox() : const SizedBox(),
         data != 'loading'
