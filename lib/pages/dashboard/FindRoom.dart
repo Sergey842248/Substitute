@@ -146,12 +146,42 @@ class _FindRoomState extends State<FindRoom> {
       });
     }
 
-    if (_vplanData == null ||
-        _vplanData is! Map ||
-        _vplanData.isEmpty ||
-        _vplanData['error'] != null ||
-        _vplanData['data'] == null ||
-        !vplanAPI.compareDate(_selectedDate, _vplanData['date'])) {
+    // Prüft, ob der geladene Plan überhaupt brauchbare Raumdaten enthält.
+    // Bewusst OHNE compareDate: Der vom Server gelieferte Vertretungsplan für
+    // "heute" ist oft noch auf den letzten Schultag datiert (die Schule
+    // veröffentlicht den aktuellen Plan erst im Laufe des Tages). Ein solcher
+    // Plan ist trotzdem die gültige Quelle für die heutige Raumbelegung und
+    // darf nicht pauschal verworfen werden – genau wie es der Klassen-
+    // /Kursplan auch handhabt.
+    bool planLooksInvalid() {
+      return _vplanData == null ||
+          _vplanData is! Map ||
+          _vplanData.isEmpty ||
+          _vplanData['error'] != null ||
+          _vplanData['data'] == null ||
+          _vplanData['data']['Klassen'] == null;
+    }
+
+    // Der erste Abruf kann fehlschlagen (z.B. veralteter Cache-Eintrag für
+    // diesen Tag, kurzer Netzwerk-/Server-Hänger beim ersten Request der
+    // Session). In diesem Fall den Vertretungsplan einmalig frisch vom Server
+    // laden, damit der Raumplan sich nicht erst auf das vorherige Öffnen
+    // eines Klassen-/Kursplans verlassen muss.
+    if (planLooksInvalid()) {
+      try {
+        _vplanData =
+            await vplanAPI.getRawPlanByDate(_selectedDate, forceRefresh: true);
+      } catch (e) {
+        _vplanData = {'error': 'no internet'};
+      }
+      if (mounted) {
+        setState(() {
+          loadText = AppLocalizations.of(context)!.substitutionPlanLoaded;
+        });
+      }
+    }
+
+    if (planLooksInvalid()) {
       if (mounted) {
         setState(() {
           loadText = _vplanData is Map &&
