@@ -178,6 +178,7 @@ class _MyAppState extends State<MyApp> {
             );
           },
           debugShowCheckedModeBanner: false,
+          navigatorObservers: [routeObserver],
           title: 'Substitute',
           darkTheme: ThemeData(
             fontFamily: 'Poppins',

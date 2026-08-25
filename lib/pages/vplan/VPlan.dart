@@ -29,11 +29,57 @@ class VPlan extends StatefulWidget {
   _VPlanState createState() => _VPlanState();
 }
 
-class _VPlanState extends State<VPlan> {
+class _VPlanState extends State<VPlan> with RouteAware {
   List<String> classes = [];
   List<Map<String, dynamic>> persons = [];
   bool hidePersons = false;
   final listKey = GlobalKey<AnimatedListState>();
+
+  @override
+  void initState() {
+    super.initState();
+    getClasses();
+
+    // Einmalig nach dem ersten Aufbau sicherstellen, dass die
+    // „Nächste Stunde“-Vorschauen beim App-Start wirklich frisch geladen
+    // werden – auch wenn die Hintergrund-Aktualisierung bereits vor dem
+    // Anlegen der Klassen-Widgets durchgelaufen ist.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) vplanBackgroundRefresh.value++;
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final Route? route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      routeObserver.subscribe(this, route as PageRoute);
+    }
+  }
+
+  @override
+  void didPopNext() {
+    // Die VPlan-Übersicht ist wieder sichtbar (z.B. nach dem Hinzufügen einer
+    // Klasse/Kurse oder dem Zurückwechseln eines Tabs): Die „Nächste Stunde“-
+    // Vorschauen neu laden, damit die tatsächlich nächste Stunde angezeigt
+    // wird und nicht mehr fälschlich „Wochenende“.
+    vplanBackgroundRefresh.value++;
+    super.didPopNext();
+  }
+
+  @override
+  void didPush() {
+    // Erstes Erscheinen (ggf. App-Start): Vorschauen frisch laden.
+    vplanBackgroundRefresh.value++;
+    super.didPush();
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
 
   void getClasses() async {
     classes = [];
@@ -87,12 +133,6 @@ class _VPlanState extends State<VPlan> {
         ),
       );
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    getClasses();
   }
 
   Widget _personsSection() {

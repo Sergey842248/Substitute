@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http_auth/http_auth.dart' as http_auth;
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/services/SchoolStorage.dart';
 import 'package:xml2json/xml2json.dart';
@@ -16,6 +17,12 @@ import 'DemoData.dart';
 /// Anzeige ab – sie aktualisieren sich aber nur, wenn sich die Daten
 /// tatsächlich geändert haben.
 final ValueNotifier<int> vplanBackgroundRefresh = ValueNotifier<int>(0);
+
+/// Beobachtet die Navigation, damit z.B. der Home-Tab (VPlan-Übersicht) merkt,
+/// wenn er wieder sichtbar wird (Tab-Wechsel zurück, Rückkehr aus dem
+/// Klassen-/Kurs-Hinzufügen) und dann die „Nächste Stunde“-Vorschauen frisch
+/// laden kann.
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 /// Synchroner Persisted-Cache der zuletzt aufbereiteten Plan-Anzeige je
 /// Klasse. Wird beim App-Start aus SharedPreferences gefüllt (`loadDisplayCache`)
