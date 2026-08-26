@@ -105,6 +105,25 @@ void main() {
   });
 
   group('getRawPlanByDate', () {
+    test('uses the API week value from cached plan headers', () async {
+      final cachedPlan = jsonDecode(fakePlanJson) as Map<String, dynamic>;
+      cachedPlan['week'] = '';
+      (cachedPlan['data'] as Map<String, dynamic>)['Kopf'] = {
+        'DatumPlan': todayString,
+        'woche': '2',
+      };
+      SharedPreferences.setMockInitialValues({
+        'vplanSchoolnumber': '123456',
+        'vplanUsername': 'user',
+        'vplanPassword': 'pass',
+        'offlineVPData': [jsonEncode(cachedPlan)],
+      });
+
+      final plan = await VPlanAPI().getRawPlanByDate(DateTime.now());
+
+      expect(plan['week'], '2');
+    });
+
     test('returns today plan from offline data without network', () async {
       final plan = await VPlanAPI().getRawPlanByDate(DateTime.now());
       expect(plan, isNotNull);

@@ -332,9 +332,17 @@ class _PlanState extends State<Plan> {
     });
   }
 
-  int weekNumber(DateTime date) {
-    int dayOfYear = int.parse(DateFormat("D").format(date));
-    return ((dayOfYear - date.weekday + 10) / 7).floor();
+  /// Wandelt den von der API gelieferten Wochenwert (Kopf/Woche, z.B. "A",
+  /// "B", "A-Woche", "B-Woche" oder eine Kalenderwochen-Zahl) in eine
+  /// kompakte Anzeige um. Die Woche darf NIEMALS lokal aus dem Datum
+  /// berechnet werden, sondern muss zwingend aus dem Plan des Servers kommen.
+  String _weekLabel(dynamic week) {
+    final String w = (week?.toString() ?? '').trim();
+    if (w.isEmpty) return '---';
+    final String upper = w.toUpperCase();
+    if (upper.startsWith('B') || upper == '2') return 'B';
+    if (upper.startsWith('A') || upper == '1') return 'A';
+    return w;
   }
 
   @override
@@ -465,12 +473,7 @@ class _PlanState extends State<Plan> {
             contentPadding: const EdgeInsets.all(10),
             actionsPadding: const EdgeInsets.all(0),
             content: Text(
-              weekNumber(VPlanAPI().parseStringDatatoDateTime(
-                              data['data']['date'].toString())) %
-                          2 !=
-                      0
-                  ? 'A'
-                  : 'B',
+              _weekLabel(data['data']['week']),
               style: TextStyle(fontSize: 18),
               textAlign: TextAlign.center,
             ),

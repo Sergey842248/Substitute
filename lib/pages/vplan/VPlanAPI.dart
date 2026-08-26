@@ -49,6 +49,37 @@ String _planDisplayKey(SharedPreferences prefs, String classId) =>
 String _nextLessonKey(SharedPreferences prefs, String classId) =>
     SchoolStorage.scopedKey(prefs, 'nextLesson_$classId');
 
+/// Ergänzt bei älteren Cache-Einträgen den Wochenwert aus dem von der API
+/// gelieferten Kopfbereich. Es wird bewusst kein Wert aus dem Datum berechnet.
+dynamic _normalizeApiWeek(dynamic plan) {
+  if (plan is! Map) return plan;
+
+  final Map<String, dynamic> normalized = Map<String, dynamic>.from(plan);
+  final String currentWeek = normalized['week']?.toString().trim() ?? '';
+  if (currentWeek.isNotEmpty) return normalized;
+
+  final dynamic planData = normalized['data'];
+  if (planData is Map) {
+    final String nestedWeek = planData['week']?.toString().trim() ?? '';
+    if (nestedWeek.isNotEmpty) {
+      normalized['week'] = nestedWeek;
+      return normalized;
+    }
+
+    final dynamic head = planData['Kopf'];
+    if (head is Map) {
+      for (final String key in ['woche', 'Woche']) {
+        final dynamic value = head[key];
+        if (value != null && value.toString().trim().isNotEmpty) {
+          normalized['week'] = value.toString().trim();
+          break;
+        }
+      }
+    }
+  }
+  return normalized;
+}
+
 /// Speichert den aufbereiteten Plan [data] für [classId] dauerhaft und im
 /// synchronen Cache.
 Future<void> savePlanDisplay(String classId, dynamic data) async {
@@ -81,7 +112,7 @@ Future<void> loadDisplayCache(SharedPreferences prefs) async {
     if (plan != null && plan.isNotEmpty) {
       try {
         _planDisplayCache[classId] =
-            (jsonDecode(plan) as Map).cast<String, dynamic>();
+            _normalizeApiWeek((jsonDecode(plan) as Map).cast<String, dynamic>());
       } catch (_) {}
     }
     final String? lesson = prefs.getString(_nextLessonKey(prefs, classId));
@@ -423,7 +454,7 @@ class VPlanAPI {
       try {
         final dynamic decoded = jsonDecode(entry);
         if (compareDate(vpDate, decoded['data']['Kopf']['DatumPlan'])) {
-          return decoded;
+          return _normalizeApiWeek(decoded);
         }
       } catch (e) {
         // Ein beschädigter Eintrag darf die Suche nach den übrigen
@@ -549,7 +580,7 @@ class VPlanAPI {
 
         if (currentTime - cacheTime < cacheTTL * 1000) {
           print('Using cached data for ${vpDate.toString().split(' ')[0]}');
-          return jsonDecode(cachedData);
+          return _normalizeApiWeek(jsonDecode(cachedData));
         }
       }
     }
@@ -617,6 +648,40 @@ class VPlanAPI {
         /* NEW XML PARSER */
 
         final XmlDocument xmlVPlan = XmlDocument.parse(source);
+        // Stundenplan24 liefert das Element als <woche> (kleines "w").
+        // XML-Namen sind case-sensitive, deshalb beide Schreibweisen prüfen.
+        String? weekValue;
+        final XmlElement? head = xmlVPlan
+            .getElement('VpMobil')
+            ?.getElement('Kopf');
+        for (final String elementName in ['woche', 'Woche']) {
+          final XmlElement? weekElement = head?.getElement(elementName);
+          final String value = weekElement?.innerText.trim() ?? '';
+          if (value.isNotEmpty) {
+            weekValue = value;
+            break;
+          }
+        }
+
+        // Fallback auf Parker-JSON, falls ein Anbieter das Element anders
+        // serialisiert. Auch dort werden beide Schreibweisen unterstützt.
+        if (weekValue == null || weekValue.isEmpty) {
+          final dynamic headJson = jsonVPlan['VpMobil']['Kopf'];
+          if (headJson is Map) {
+            for (final String key in ['woche', 'Woche']) {
+              final dynamic value = headJson[key];
+              if (value != null && value.toString().trim().isNotEmpty) {
+                weekValue = value.toString().trim();
+                break;
+              }
+            }
+          }
+        }
+
+        if (kDebugMode && (weekValue == null || weekValue.isEmpty)) {
+          print('VPlanAPI: Kein Woche-Wert gefunden. Kopf-XML: '
+              '${head?.toXmlString()}');
+        }
 
         Iterable<XmlElement>? ziZeilen;
         try {
@@ -681,7 +746,7 @@ class VPlanAPI {
 
         data.add({
           'date': jsonVPlan['VpMobil']['Kopf']['DatumPlan'],
-          'week': jsonVPlan['VpMobil']['Kopf']['Woche'],
+          'week': weekValue,
           'data': jsonVPlan['VpMobil'],
           'info': infoList,
           'courses': courses,
