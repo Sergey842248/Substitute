@@ -213,7 +213,12 @@ class _TeacherPlanState extends State<TeacherPlan> {
             : res
                 .map(
                   (e) => ListItem(
-                    leading: Text('${e['count']}'),
+                    leading: Text(
+                      '${e['count']}',
+                      style: TextStyle(
+                        fontSize: 19,
+                      ),
+                    ),
                     title: Container(
                       alignment: Alignment.centerLeft,
                       width: MediaQuery.of(context).size.width * 0.1,
