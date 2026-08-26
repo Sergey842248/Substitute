@@ -552,6 +552,22 @@ class _ClassWidgetState extends State<ClassWidget> {
 
     await _setNextLessonFromPlan(vplanAPI, vplan, hiddenCourses,
         allowNextDay: forceRefresh);
+
+    // Hat die frische Berechnung keine *konkrete* nächste Stunde ergeben
+    // (z.B. weil die nächste Stunde an einem späteren Tag liegt, dessen Plan
+    // noch nicht geholt wurde, oder weil gerade eine Lücke im Plan ist),
+    // dann zeigen wir weiterhin die zuvor bekannte (gecachete) Vorschau an
+    // und überschreiben den Cache nicht mit diesem nichtssagenden Ergebnis.
+    // Erst wenn der Plan tatsächlich neu geladen wurde und eine echte
+    // nächste Stunde liefert, wird die Anzeige ersetzt.
+    final bool hasNewLesson = nextLesson.containsKey('lesson');
+    final bool hadOldLesson = oldNextLesson.containsKey('lesson');
+    if (!hasNewLesson && hadOldLesson) {
+      nextLesson = oldNextLesson;
+      refreshIfChanged();
+      return;
+    }
+
     // Zuletzt berechnete Vorschau speichern, damit sie beim nächsten Öffnen
     // sofort (ohne Ladezeit) angezeigt wird.
     saveNextLesson(widget.classId, nextLesson);
