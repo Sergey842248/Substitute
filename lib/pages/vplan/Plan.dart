@@ -785,6 +785,15 @@ class _CoursesState extends State<Courses> {
       });
     }
 
+    courses.sort((a, b) {
+      final ca = (a['course'] as String?) ?? '';
+      final cb = (b['course'] as String?) ?? '';
+      final ua = ca.isNotEmpty && ca[0] != ca[0].toLowerCase();
+      final ub = cb.isNotEmpty && cb[0] != cb[0].toLowerCase();
+      if (ua != ub) return ua ? -1 : 1;
+      return ca.toLowerCase().compareTo(cb.toLowerCase());
+    });
+
     setState(() {});
   }
 
