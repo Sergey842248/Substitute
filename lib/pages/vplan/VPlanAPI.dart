@@ -579,8 +579,28 @@ class VPlanAPI {
         int currentTime = DateTime.now().millisecondsSinceEpoch;
 
         if (currentTime - cacheTime < cacheTTL * 1000) {
-          print('Using cached data for ${vpDate.toString().split(' ')[0]}');
-          return _normalizeApiWeek(jsonDecode(cachedData));
+          final dynamic cached = jsonDecode(cachedData);
+          // Cache-Eintrag nur verwenden, wenn der Plan wirklich zum
+          // angefragten Tag gehört. Die Schule legt den Plan für den
+          // nächsten Tag oft bereits in die aktuelle 'Klassen.xml' – würde
+          // dieser Plan unter dem Cache-Schlüssel von "heute" gespeichert,
+          // bliebe die Navigation zurück auf heute bzw. vorherige Tage
+          // hängen, weil immer wieder der Plan des Folgetags zurückkommt.
+          bool cachedPlanMatchesDay = true;
+          try {
+            cachedPlanMatchesDay = cached is! Map ||
+                cached['date'] == null ||
+                compareDate(vpDate, cached['date'].toString());
+          } catch (_) {
+            // Datum nicht auswertbar – Eintrag wie bisher verwenden.
+            cachedPlanMatchesDay = true;
+          }
+          if (cachedPlanMatchesDay) {
+            print('Using cached data for ${vpDate.toString().split(' ')[0]}');
+            return _normalizeApiWeek(cached);
+          }
+          print('Ignoring cached plan for another day (${cached?['date']}) '
+              'when loading ${vpDate.toString().split(' ')[0]}');
         }
       }
     }
@@ -778,14 +798,29 @@ class VPlanAPI {
         // Keep a short-lived raw-plan cache as well. This makes subsequent
         // room-plan requests independent from the class/person views while
         // still allowing a fresh request after the TTL expires.
-        final String cacheKey =
-            'vplan_cache_${vpDate.year}-${vpDate.month.toString().padLeft(2, '0')}-${vpDate.day.toString().padLeft(2, '0')}';
-        final String scopedCacheKey = _prefKey(prefs, cacheKey);
-        await prefs.setString(scopedCacheKey, jsonEncode(data.last));
-        await prefs.setInt(
-          '${scopedCacheKey}_time',
-          DateTime.now().millisecondsSinceEpoch,
-        );
+        //
+        // Nur Pläne cachen, deren Datum zum angefragten Tag passt: Liefert
+        // die 'Klassen.xml' bereits den Plan des Folgetags (die Schule
+        // veröffentlicht den neuen Plan oft schon abends), darf dieser nicht
+        // unter dem Cache-Schlüssel des angefragten Tages landen – sonst
+        // blockiert er die Tages-Navigation zurück (siehe Cache-Lesen oben).
+        bool cacheMatchesDay = true;
+        try {
+          cacheMatchesDay = data.last['date'] == null ||
+              compareDate(vpDate, data.last['date'].toString());
+        } catch (_) {
+          cacheMatchesDay = true;
+        }
+        if (cacheMatchesDay) {
+          final String cacheKey =
+              'vplan_cache_${vpDate.year}-${vpDate.month.toString().padLeft(2, '0')}-${vpDate.day.toString().padLeft(2, '0')}';
+          final String scopedCacheKey = _prefKey(prefs, cacheKey);
+          await prefs.setString(scopedCacheKey, jsonEncode(data.last));
+          await prefs.setInt(
+            '${scopedCacheKey}_time',
+            DateTime.now().millisecondsSinceEpoch,
+          );
+        }
         //-------------------------------------
 
         return data.last;
