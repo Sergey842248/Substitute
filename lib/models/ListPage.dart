@@ -12,6 +12,7 @@ class ListPage extends StatefulWidget {
     this.onPop,
     this.onTitleClick,
     this.onRefresh,
+    this.noSpinnerRefreshIndicator = false,
     this.showBackButton = true,
     this.collapseHeaderOnScroll = true,
     this.keepScrollOffset = true,
@@ -39,6 +40,13 @@ class ListPage extends StatefulWidget {
   /// Pull-to-refresh callback. When set, the content list is wrapped in a
   /// RefreshIndicator so a downward pull reloads the page.
   final Future<void> Function()? onRefresh;
+
+  /// Wenn true, wird beim Pull-to-Refresh kein Overlay-Spinner (Material
+  /// [RefreshIndicator]) angezeigt – [onRefresh] wird trotzdem ausgeführt.
+  /// Der Aufrufer zeigt dann während des Ladevorgangs sein eigenes
+  /// Lade-Symbol an (z.B. direkt über dem Inhalt, wie beim Klick auf ein
+  /// Aktualisieren-Symbol in der Kopfzeile).
+  final bool noSpinnerRefreshIndicator;
 
   @override
   State<ListPage> createState() => _ListPageState();
@@ -366,6 +374,12 @@ class _ListPageState extends State<ListPage> {
   );
   if (widget.onRefresh == null) {
     return list;
+  }
+  if (widget.noSpinnerRefreshIndicator) {
+    return RefreshIndicator.noSpinner(
+      onRefresh: widget.onRefresh!,
+      child: list,
+    );
   }
   return RefreshIndicator(
     onRefresh: widget.onRefresh!,

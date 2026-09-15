@@ -301,6 +301,62 @@ class _PlanState extends State<Plan> {
   Map<String, Map<String, dynamic>> missedCourses = {};
   String? className;
 
+  /// Wird true, solange der Plan gerade neu geladen wird – egal ob über das
+  /// Aktualisieren-Symbol in der Kopfzeile oder über Pull-to-Refresh.
+  /// Dann wird ein Lade-Symbol direkt über dem Plan angezeigt (kein
+  /// Overlay wie beim alten Pull-to-Refresh).
+  bool refreshing = false;
+
+  /// Blendet das Lade-Symbol ein, führt [action] aus und blendet das
+  /// Lade-Symbol danach wieder aus.
+  Future<void> _runRefresh(Future<void> Function() action) async {
+    if (refreshing) return;
+    setState(() => refreshing = true);
+    try {
+      await action();
+    } finally {
+      if (mounted) setState(() => refreshing = false);
+    }
+  }
+
+  /// Aktualisiert den Plan über das Aktualisieren-Symbol in der Kopfzeile.
+  /// Entfernt zusätzlich den lokalen Cache des angezeigten Tages, damit der
+  /// Plan wirklich frisch vom Server geladen wird.
+  Future<void> _refreshPlan() async {
+    if (refreshing) return;
+    if (data is! Map || data['data'] is! Map || data['data']['date'] == null) {
+      return;
+    }
+    await _runRefresh(() async {
+      await VPlanAPI().removePlanByDate(data['data']['date'].toString());
+      await getData();
+    });
+  }
+
+  /// Pull-to-Refresh: lädt den Plan neu, ohne den lokalen Cache zu löschen.
+  /// Das Lade-Symbol erscheint dabei direkt über dem Plan – wie beim Klick
+  /// auf das Aktualisieren-Symbol – statt als Overlay.
+  Future<void> _pullToRefresh() async {
+    await _runRefresh(() => getData(showLoading: false));
+  }
+
+  /// Baut das Lade-Symbol, das – wie beim Aktualisieren-Symbol – direkt
+  /// über dem Plan angezeigt wird, solange [refreshing] aktiv ist.
+  List<Widget> _refreshSpinnerWidgets() {
+    if (!refreshing) return const <Widget>[];
+    return <Widget>[
+      const SizedBox(height: 6),
+      Center(
+        child: CircularProgressIndicator(
+          color: Theme.of(context).primaryColor,
+          strokeWidth: 3,
+          constraints: BoxConstraints.tightFor(width: 36, height: 36),
+        ),
+      ),
+      const SizedBox(height: 6),
+    ];
+  }
+
   String printValue(String? value) {
     if (value == null) {
       return '---';
@@ -413,14 +469,16 @@ class _PlanState extends State<Plan> {
       }
       return ListPage(
         title: headerTitle,
-        onRefresh: () => getData(),
+        onRefresh: _pullToRefresh,
+        noSpinnerRefreshIndicator: true,
         actions: [
           IconButton(
-            onPressed: () => getData(),
+            onPressed: refreshing ? null : _pullToRefresh,
             icon: Icon(Icons.sync_rounded),
           ),
         ],
         children: [
+          ..._refreshSpinnerWidgets(),
           extraWidget,
           Container(
             alignment: Alignment.center,
@@ -488,13 +546,11 @@ class _PlanState extends State<Plan> {
       },
       title: '$headerTitle\n$displayDate',
       smallTitle: true,
-      onRefresh: () => getData(showLoading: false),
+      onRefresh: _pullToRefresh,
+      noSpinnerRefreshIndicator: true,
       actions: [
         IconButton(
-          onPressed: () async {
-            await VPlanAPI().removePlanByDate(data['data']['date']);
-            getData();
-          },
+          onPressed: refreshing ? null : _refreshPlan,
           icon: Icon(Icons.refresh, size: 20),
         ),
         IconButton(
@@ -535,6 +591,7 @@ class _PlanState extends State<Plan> {
         ),
       ],
       children: [
+        ..._refreshSpinnerWidgets(),
         ...(data == 'loading'
             ? const <Widget>[SizedBox.shrink()]
             : _buildLessons(data['data']['data'] as List)),
