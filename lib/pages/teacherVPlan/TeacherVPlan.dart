@@ -334,8 +334,8 @@ class _TeacherListState extends State<TeacherList> {
                       )
                       .toList(),
             )
-          : GridView.count(
-              crossAxisCount: 3,
+          : GridView.extent(
+              maxCrossAxisExtent: 135,
               shrinkWrap: true,
               physics: BouncingScrollPhysics(),
               childAspectRatio: 2 / 1.1,

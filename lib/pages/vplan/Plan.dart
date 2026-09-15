@@ -907,10 +907,10 @@ class _CoursesState extends State<Courses> {
         ),
       ],
       children: [
-        GridView.count(
+        GridView.extent(
+          maxCrossAxisExtent: 195,
           childAspectRatio: 3 / 1.5,
           shrinkWrap: true,
-          crossAxisCount: 2,
           crossAxisSpacing: 1,
           mainAxisSpacing: 1,
           physics: BouncingScrollPhysics(),
@@ -1101,10 +1101,10 @@ class _PersonCoursesState extends State<PersonCourses> {
         if (loading)
           Center(child: LoadingProcess())
         else
-          GridView.count(
+          GridView.extent(
+            maxCrossAxisExtent: 195,
             childAspectRatio: 3 / 1.5,
             shrinkWrap: true,
-            crossAxisCount: 2,
             crossAxisSpacing: 1,
             mainAxisSpacing: 1,
             physics: BouncingScrollPhysics(),

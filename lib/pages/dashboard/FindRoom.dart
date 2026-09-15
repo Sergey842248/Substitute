@@ -777,8 +777,8 @@ class _FindRoomState extends State<FindRoom> {
                       height: 200,
                       child: Text(AppLocalizations.of(context)!.loading),
                     )
-                  : GridView.count(
-                      crossAxisCount: 3,
+                  : GridView.extent(
+                      maxCrossAxisExtent: 140,
                       childAspectRatio: 3 / 2,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
