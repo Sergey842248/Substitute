@@ -430,6 +430,33 @@ class AppLocalizationsDe extends AppLocalizations {
   String get hidePersonsSubtitle => 'Den Personenbereich ausblenden';
 
   @override
+  String get hidePreviewClasses => 'Vorschau bei Klassen ausblenden';
+
+  @override
+  String get hidePreviewClassesSubtitle =>
+      'Die „Nächste Stunde“-Vorschau unterhalb der Klassen ausblenden';
+
+  @override
+  String get hidePreviewPersons => 'Vorschau bei Personen ausblenden';
+
+  @override
+  String get hidePreviewPersonsSubtitle =>
+      'Die „Nächste Stunde“-Vorschau unterhalb der Personen ausblenden';
+
+  @override
+  String get hidePreview => 'Vorschau ausblenden';
+
+  @override
+  String get showPreview => 'Vorschau anzeigen';
+
+  @override
+  String get previewSettings => 'Vorschau';
+
+  @override
+  String get previewSettingsSubtitle =>
+      'Die „Nächste Stunde“-Vorschau ein- und ausblenden';
+
+  @override
   String get persons => 'Personen';
 
   @override

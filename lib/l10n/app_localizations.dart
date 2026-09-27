@@ -872,6 +872,54 @@ abstract class AppLocalizations {
   /// **'Hide the persons section'**
   String get hidePersonsSubtitle;
 
+  /// No description provided for @hidePreviewClasses.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide preview for classes'**
+  String get hidePreviewClasses;
+
+  /// No description provided for @hidePreviewClassesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide the next lesson preview below the classes'**
+  String get hidePreviewClassesSubtitle;
+
+  /// No description provided for @hidePreviewPersons.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide preview for persons'**
+  String get hidePreviewPersons;
+
+  /// No description provided for @hidePreviewPersonsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide the next lesson preview below the persons'**
+  String get hidePreviewPersonsSubtitle;
+
+  /// No description provided for @hidePreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide preview'**
+  String get hidePreview;
+
+  /// No description provided for @showPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Show preview'**
+  String get showPreview;
+
+  /// No description provided for @previewSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get previewSettings;
+
+  /// No description provided for @previewSettingsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show or hide the next lesson preview'**
+  String get previewSettingsSubtitle;
+
   /// No description provided for @persons.
   ///
   /// In en, this message translates to:

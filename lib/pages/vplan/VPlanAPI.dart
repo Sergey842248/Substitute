@@ -44,6 +44,10 @@ Map<String, dynamic>? cachedPlanDisplay(String classId) =>
 Map<String, dynamic>? cachedNextLesson(String classId) =>
     _nextLessonCache[classId];
 
+/// Cache-Schlüssel der „Nächste Stunde“-Vorschau einer Person. Das Präfix
+/// verhindert Kollisionen mit den Cache-Einträgen der Klassenkürzel.
+String nextLessonCacheKeyForPerson(String personId) => 'person:$personId';
+
 String _planDisplayKey(SharedPreferences prefs, String classId) =>
     SchoolStorage.scopedKey(prefs, 'planDisplay_$classId');
 
@@ -104,11 +108,28 @@ Future<void> saveNextLesson(String classId, Map<String, dynamic> nextLesson) asy
 Future<void> loadDisplayCache(SharedPreferences prefs) async {
   _planDisplayCache.clear();
   _nextLessonCache.clear();
+
+  // Zuerst die Personen auslesen: Auch wenn (noch) keine Klassen gespeichert
+  // sind, kann die Vorschau einer Person bereits im Cache liegen.
+  final String? personsRaw =
+      prefs.getString(SchoolStorage.scopedKey(prefs, 'persons'));
+  final List<String> nextLessonKeys = [];
+  if (personsRaw != null && personsRaw.isNotEmpty) {
+    try {
+      final List<dynamic> persons = jsonDecode(personsRaw) as List;
+      for (final dynamic person in persons) {
+        final String id = person is Map ? person['id']?.toString() ?? '' : '';
+        if (id.isNotEmpty) nextLessonKeys.add(nextLessonCacheKeyForPerson(id));
+      }
+    } catch (_) {}
+  }
+
   final List<String>? classes =
       prefs.getStringList(SchoolStorage.scopedKey(prefs, 'classes'));
-  if (classes == null) return;
+  if (classes == null && nextLessonKeys.isEmpty) return;
 
-  for (final String classId in classes) {
+  for (final String classId in classes ?? <String>[]) {
+    nextLessonKeys.add(classId);
     final String? plan = prefs.getString(_planDisplayKey(prefs, classId));
     if (plan != null && plan.isNotEmpty) {
       try {
@@ -116,10 +137,13 @@ Future<void> loadDisplayCache(SharedPreferences prefs) async {
             _normalizeApiWeek((jsonDecode(plan) as Map).cast<String, dynamic>());
       } catch (_) {}
     }
-    final String? lesson = prefs.getString(_nextLessonKey(prefs, classId));
+  }
+
+  for (final String cacheKey in nextLessonKeys) {
+    final String? lesson = prefs.getString(_nextLessonKey(prefs, cacheKey));
     if (lesson != null && lesson.isNotEmpty) {
       try {
-        _nextLessonCache[classId] =
+        _nextLessonCache[cacheKey] =
             (jsonDecode(lesson) as Map).cast<String, dynamic>();
       } catch (_) {}
     }
@@ -383,6 +407,192 @@ class VPlanAPI {
 
     return false;
   }
+  // --- Vorschau („Nächste Stunde“) ein-/ausblenden ---
+  //
+  // Die Sichtbarkeit der Vorschau lässt sich global (für alle Klassen bzw.
+  // alle Personen) in den Einstellungen umschalten und zusätzlich pro Klasse
+  // bzw. Person über das Zahnrad im jeweiligen Plan überschreiben. Ohne
+  // spezifische Einstellung gilt der globale Wert; entspricht die spezifische
+  // Einstellung wieder dem globalen Wert, wird sie entfernt, damit der Plan
+  // der globalen Einstellung folgt.
+
+  static const String _globalPreviewClassesKey = 'hidePreviewClasses';
+  static const String _globalPreviewPersonsKey = 'hidePreviewPersons';
+  static const String _classPreviewOverridesKey = 'previewHiddenClasses';
+  static const String _personPreviewOverridesKey = 'previewHiddenPersons';
+
+  /// Standard: Bei Klassen ist die Vorschau aktiv, bei Personen
+  /// standardmäßig deaktiviert – eine Person zeigt sonst sehr schnell nur noch
+  /// die nächste Stunde des einen Kurses, den sie ausgewählt hat.
+  static const bool defaultPreviewClassesHidden = false;
+  static const bool defaultPreviewPersonsHidden = true;
+
+  /// Liest eine als JSON gespeicherte Map mit Wahrheitswerten (z.B.
+  /// `{ "10a": true }`).
+  Map<String, dynamic> _decodeBoolMap(SharedPreferences prefs, String key) {
+    final String? raw = prefs.getString(_prefKey(prefs, key));
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final dynamic decoded = jsonDecode(raw);
+      if (decoded is Map) return decoded.cast<String, dynamic>();
+    } catch (_) {}
+    return {};
+  }
+
+  Future<void> _writeBoolMap(
+      SharedPreferences prefs, String key, Map<String, dynamic> values) async {
+    await prefs.setString(_prefKey(prefs, key), jsonEncode(values));
+  }
+
+  /// Der globale Wert – bzw. der Standard, solange nichts gespeichert ist.
+  bool _globalPreviewValue(
+    SharedPreferences prefs,
+    String globalKey,
+    bool fallback,
+  ) =>
+      prefs.getBool(_prefKey(prefs, globalKey)) ?? fallback;
+
+  Future<bool> _isPreviewHidden(
+    SharedPreferences prefs,
+    String mapKey,
+    String globalKey,
+    String id,
+    bool fallback,
+  ) async {
+    final dynamic override = _decodeBoolMap(prefs, mapKey)[id];
+    if (override is bool) return override;
+    return _globalPreviewValue(prefs, globalKey, fallback);
+  }
+
+  Future<void> _setPreviewHidden(
+    SharedPreferences prefs,
+    String mapKey,
+    String globalKey,
+    String id,
+    bool hidden,
+    bool fallback,
+  ) async {
+    final Map<String, dynamic> overrides = _decodeBoolMap(prefs, mapKey);
+    final bool globalValue = _globalPreviewValue(prefs, globalKey, fallback);
+    if (hidden == globalValue) {
+      overrides.remove(id);
+    } else {
+      overrides[id] = hidden;
+    }
+    await _writeBoolMap(prefs, mapKey, overrides);
+  }
+
+  /// Globale Einstellung: Vorschau unter allen Klassen ausblenden.
+  Future<bool> hidePreviewForClassesGlobally() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return _globalPreviewValue(
+      prefs,
+      _globalPreviewClassesKey,
+      defaultPreviewClassesHidden,
+    );
+  }
+
+  /// Globale Einstellung: Vorschau unter allen Personen ausblenden.
+  /// Standardmäßig sind die Vorschauen der Personen ausgeblendet.
+  Future<bool> hidePreviewForPersonsGlobally() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return _globalPreviewValue(
+      prefs,
+      _globalPreviewPersonsKey,
+      defaultPreviewPersonsHidden,
+    );
+  }
+
+  /// Setzt die globale Einstellung für Klassen. Bestehende klassenspezifische
+  /// Einstellungen bleiben erhalten und haben weiterhin Vorrang.
+  Future<void> setPreviewHiddenForClassesGlobally(bool hidden) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefKey(prefs, _globalPreviewClassesKey), hidden);
+  }
+
+  /// Setzt die globale Einstellung für Personen. Bestehende
+  /// personenspezifische Einstellungen bleiben erhalten und haben weiterhin
+  /// Vorrang.
+  Future<void> setPreviewHiddenForPersonsGlobally(bool hidden) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefKey(prefs, _globalPreviewPersonsKey), hidden);
+  }
+
+  /// True, wenn die Vorschau für [classId] ausgeblendet werden soll
+  /// (spezifische Einstellung der Klasse, sonst die globale Einstellung).
+  /// Standardmäßig ist die Vorschau einer Klasse sichtbar.
+  Future<bool> isPreviewHiddenForClass(String classId) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return _isPreviewHidden(
+      prefs,
+      _classPreviewOverridesKey,
+      _globalPreviewClassesKey,
+      classId,
+      defaultPreviewClassesHidden,
+    );
+  }
+
+  /// Blendet die Vorschau für [classId] ein/aus. Entspricht der Wert wieder der
+  /// globalen Einstellung, wird die klassenspezifische Einstellung entfernt.
+  Future<void> setPreviewHiddenForClass(String classId, bool hidden) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await _setPreviewHidden(
+      prefs,
+      _classPreviewOverridesKey,
+      _globalPreviewClassesKey,
+      classId,
+      hidden,
+      defaultPreviewClassesHidden,
+    );
+  }
+
+  /// True, wenn die Vorschau für [personId] ausgeblendet werden soll
+  /// (spezifische Einstellung der Person, sonst die globale Einstellung).
+  /// Standardmäßig ist die Vorschau einer Person ausgeblendet.
+  Future<bool> isPreviewHiddenForPerson(String personId) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return _isPreviewHidden(
+      prefs,
+      _personPreviewOverridesKey,
+      _globalPreviewPersonsKey,
+      personId,
+      defaultPreviewPersonsHidden,
+    );
+  }
+
+  /// Blendet die Vorschau für [personId] ein/aus. Entspricht der Wert wieder
+  /// der globalen Einstellung, wird die personenspezifische Einstellung
+  /// entfernt.
+  Future<void> setPreviewHiddenForPerson(String personId, bool hidden) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await _setPreviewHidden(
+      prefs,
+      _personPreviewOverridesKey,
+      _globalPreviewPersonsKey,
+      personId,
+      hidden,
+      defaultPreviewPersonsHidden,
+    );
+  }
+
+  /// Entscheidet, ob eine Stunde für eine Person sichtbar ist – sowohl im
+  /// Plan als auch in der „Nächste Stunde“-Vorschau.
+  ///
+  /// Hat die Person keine Kurse ausgewählt, gilt dasselbe wie bei einer Klasse
+  /// ohne Auswahl: Sichtbar ist dann alles, was in den Klassen-Einstellungen
+  /// nicht ausgeblendet wurde. Andernfalls zählen nur die von der Person
+  /// gewählten Kurse.
+  bool isLessonVisibleForPerson(
+    dynamic lesson,
+    List<String> personCourses,
+    List<String> classHiddenCourses,
+  ) {
+    if (personCourses.isEmpty) {
+      return !isLessonHidden(lesson, classHiddenCourses);
+    }
+    return personCourses.contains(lesson['course']?.toString() ?? '');
+  }
+
   // --- Persons (named profiles with class + own course selection) ---
 
   Future<List<Map<String, dynamic>>> getPersons() async {

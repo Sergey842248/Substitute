@@ -17,6 +17,7 @@ import '../../models/ListPage.dart';
 import '../../models/LoadingProcess.dart';
 import '../../pages/dashboard/settings/VPlanLogin.dart';
 
+import './LessonPreview.dart';
 import './VPlanAPI.dart';
 
 class Plan extends StatefulWidget {
@@ -411,15 +412,16 @@ class _PlanState extends State<Plan> {
       return;
     }
 
-    DateTime today = AppClock.now();
-    if (displayedDate.isAfter(today)) {
-      _setNewerPlanCount(0);
-      return;
-    }
-
     // Zähle alle bereits lokal verfügbaren Pläne, die NACH dem angezeigten
     // Tag liegen – nicht nur den nächsten Schultag. So zeigt die Badge die
     // tatsächliche Anzahl neuer Pläne an.
+    //
+    // Bewusst ohne Einschränkung auf "angezeigter Tag liegt in der
+    // Zukunft": Genau dann blendet der Nutzer ja mit dem Vor-Pfeil in die
+    // Zukunft, und die Badge soll mitgehen (2 → 1 → 0), statt zu verschwinden.
+    // Im Modus 'latest' wird die Badge weiterhin oben per _planMode
+    // ausgeblendet, weil dort der Plan ohnehin automatisch dem neuesten
+    // Schulplan folgt.
     int count = 0;
     try {
       final List<dynamic> allPlans = await VPlanAPI().getAllOfflineData();
@@ -782,7 +784,15 @@ class _PlanState extends State<Plan> {
       if (widget.person != null) {
         final List<dynamic>? shown =
             widget.person!['courses'] as List<dynamic>?;
-        if (shown != null && !shown.contains(e['course'])) {
+        // Solange eine Person keine Kurse ausgewählt hat, gilt dasselbe wie
+        // bei einer Klasse ohne Auswahl: Es werden alle Kurse angezeigt.
+        final List<String> personCourses =
+            shown?.map((c) => c.toString()).toList() ?? <String>[];
+        if (!vplanAPI.isLessonVisibleForPerson(
+          e,
+          personCourses,
+          hiddenSubjects ?? [],
+        )) {
           return SizedBox();
         }
       } else if (vplanAPI.isLessonHidden(e, hiddenSubjects ?? [])) {
@@ -952,6 +962,27 @@ class _CoursesState extends State<Courses> {
   bool? seeAll;
   Timer? _debounce;
 
+  /// Ist die „Nächste Stunde“-Vorschau für diese Klasse ausgeblendet?
+  bool _previewHidden = VPlanAPI.defaultPreviewClassesHidden;
+
+  Future<void> _loadPreviewHidden() async {
+    final bool hidden =
+        await vplanAPI.isPreviewHiddenForClass(widget.classId);
+    if (mounted && hidden != _previewHidden) {
+      setState(() => _previewHidden = hidden);
+    }
+  }
+
+  /// Schaltet die Vorschau dieser Klasse um. Der Override hat Vorrang vor der
+  /// globalen Einstellung; entspricht er ihr wieder, wird er entfernt.
+  Future<void> _togglePreview() async {
+    final bool hidden = !_previewHidden;
+    setState(() => _previewHidden = hidden);
+    await vplanAPI.setPreviewHiddenForClass(widget.classId, hidden);
+    // Vorschau der VPlan-Übersicht sofort neu berechnen bzw. ausblenden.
+    vplanBackgroundRefresh.value++;
+  }
+
   void getData() async {
     List<dynamic> _courses = await vplanAPI.getCourses(widget.classId);
 
@@ -1020,6 +1051,7 @@ class _CoursesState extends State<Courses> {
   void initState() {
     super.initState();
     getData();
+    _loadPreviewHidden();
   }
 
   @override
@@ -1032,6 +1064,10 @@ class _CoursesState extends State<Courses> {
   Widget build(BuildContext context) {
     return ListPage(
       title: 'Courses',
+      headerCenter: PreviewVisibilityToggle(
+        hidden: _previewHidden,
+        onPressed: _togglePreview,
+      ),
       actions: [
         IconButton(
           icon: Icon(Icons.visibility_rounded),
@@ -1185,6 +1221,32 @@ class _PersonCoursesState extends State<PersonCourses> {
   Set<String> shown = {};
   bool loading = true;
 
+  /// Ist die „Nächste Stunde“-Vorschau für diese Person ausgeblendet?
+  /// Startet mit dem Standard (ausgeblendet), damit das Symbol in der
+  /// Kopfzeile nicht kurz den falschen Zustand zeigt.
+  bool _previewHidden = VPlanAPI.defaultPreviewPersonsHidden;
+
+  Future<void> _loadPreviewHidden() async {
+    final String personId = widget.person['id']?.toString() ?? '';
+    if (personId.isEmpty) return;
+    final bool hidden = await vplanAPI.isPreviewHiddenForPerson(personId);
+    if (mounted && hidden != _previewHidden) {
+      setState(() => _previewHidden = hidden);
+    }
+  }
+
+  /// Schaltet die Vorschau dieser Person um. Der Override hat Vorrang vor der
+  /// globalen Einstellung; entspricht er ihr wieder, wird er entfernt.
+  Future<void> _togglePreview() async {
+    final String personId = widget.person['id']?.toString() ?? '';
+    if (personId.isEmpty) return;
+    final bool hidden = !_previewHidden;
+    setState(() => _previewHidden = hidden);
+    await vplanAPI.setPreviewHiddenForPerson(personId, hidden);
+    // Vorschau der VPlan-Übersicht sofort neu berechnen bzw. ausblenden.
+    vplanBackgroundRefresh.value++;
+  }
+
   void getData() async {
     List<dynamic> _courses = await vplanAPI.getCourses(widget.classId);
     List<dynamic> courseList = [];
@@ -1219,6 +1281,7 @@ class _PersonCoursesState extends State<PersonCourses> {
   void initState() {
     super.initState();
     getData();
+    _loadPreviewHidden();
   }
 
   void _save() {
@@ -1242,6 +1305,12 @@ class _PersonCoursesState extends State<PersonCourses> {
   Widget build(BuildContext context) {
     return ListPage(
       title: AppLocalizations.of(context)!.coursesFor(widget.person['name']),
+      // Die Person hat auch beim Anlegen bereits eine ID, deshalb steht die
+      // Option auch im Erstell-Dialog zur Verfügung.
+      headerCenter: PreviewVisibilityToggle(
+        hidden: _previewHidden,
+        onPressed: _togglePreview,
+      ),
       actions: [
         IconButton(
           icon: Icon(Icons.check_rounded),

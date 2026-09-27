@@ -8,6 +8,7 @@ class ListPage extends StatefulWidget {
     this.smallTitle,
     required this.children,
     this.actions,
+    this.headerCenter,
     this.canclePage,
     this.onPop,
     this.onTitleClick,
@@ -25,6 +26,12 @@ class ListPage extends StatefulWidget {
   Function? onPop;
   final List<Widget> children;
   List<Widget>? actions;
+
+  /// Eine einzelne Option, die mittig oben in der Kopfzeile steht – z.B. das
+  /// Ein-/Ausblenden der Vorschau. Sie sitzt unabhängig von der Länge des
+  /// Titels immer in der Mitte der Kopfzeile; Titel und Aktions-Buttons weichen
+  /// ihr nach links bzw. rechts aus.
+  final Widget? headerCenter;
 
   /// Wenn false, wird der Zurück-Pfeil ausgeblendet (z.B. auf der
   /// Anmeldeseite, solange noch keine Zugangsdaten hinterlegt sind).
@@ -137,74 +144,88 @@ class _ListPageState extends State<ListPage> {
                           bottom: 10,
                           left: 10,
                         ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                        child: Stack(
+                          alignment: Alignment.center,
                           children: [
-                            if (widget.showBackButton) ...[
-                              InkWell(
-                                onTap: () => widget.onPop!(),
-                                child: Container(
-                                  alignment: Alignment.center,
-                                  padding: const EdgeInsets.all(9),
-                                  decoration: BoxDecoration(
-                                    borderRadius: const BorderRadius.all(
-                                      Radius.circular(100),
-                                    ),
-                                    color: Theme.of(context).dividerColor,
-                                  ),
-                                  child: Icon(
-                                    backIcon,
-                                    size: 19,
-                                    color: Theme.of(context).splashColor,
-                                  ),
-                                ),
+                            // Platz für die mittige Option, damit Titel
+                            // und Aktions-Buttons nicht darunter laufen.
+                            Padding(
+                              padding: EdgeInsets.only(
+                                right: widget.headerCenter != null ? 40 : 0,
                               ),
-                              SizedBox(width: 12),
-                            ],
-                            Expanded(
                               child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  // Der Titel nimmt den restlichen Platz ein, die
-                                  // Aktions-Buttons werden dadurch rechtsbündig
-                                  // am rechten Rand angezeigt.
-                                  Expanded(
-                                    child: AnimatedOpacity(
-                                      duration: Duration(
-                                          milliseconds: topHeight == 0 ? 700 : 100),
-                                      opacity: topHeight == 0 ? 0 : 1,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          if (widget.onTitleClick != null) {
-                                            widget.onTitleClick!();
-                                          }
-                                        },
-                                        child: Text(
-                                          widget.title,
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: widget.smallTitle! ? 2 : 1,
-                                          style: TextStyle(
-                                            fontSize:
-                                            widget.smallTitle! ? 22 : 30,
-                                            fontWeight: FontWeight.bold,
-                                            fontFamily: 'Questrial',
+                                if (widget.showBackButton) ...[
+                                  InkWell(
+                                    onTap: () => widget.onPop!(),
+                                    child: Container(
+                                      alignment: Alignment.center,
+                                      padding: const EdgeInsets.all(9),
+                                      decoration: BoxDecoration(
+                                        borderRadius: const BorderRadius.all(
+                                          Radius.circular(100),
+                                        ),
+                                        color: Theme.of(context).dividerColor,
+                                      ),
+                                      child: Icon(
+                                        backIcon,
+                                        size: 19,
+                                        color: Theme.of(context).splashColor,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                ],
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      // Der Titel nimmt den restlichen Platz ein, die
+                                      // Aktions-Buttons werden dadurch rechtsbündig
+                                      // am rechten Rand angezeigt.
+                                      Expanded(
+                                        child: AnimatedOpacity(
+                                          duration: Duration(
+                                              milliseconds: topHeight == 0 ? 700 : 100),
+                                          opacity: topHeight == 0 ? 0 : 1,
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              if (widget.onTitleClick != null) {
+                                                widget.onTitleClick!();
+                                              }
+                                            },
+                                            child: Text(
+                                              widget.title,
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: widget.smallTitle! ? 2 : 1,
+                                              style: TextStyle(
+                                                fontSize:
+                                                widget.smallTitle! ? 22 : 30,
+                                                fontWeight: FontWeight.bold,
+                                                fontFamily: 'Questrial',
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
+                                      if (widget.actions!.isNotEmpty)
+                                        SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          reverse: true,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: widget.actions!,
+                                          ),
+                                        ),
+                                    ],
                                   ),
-                                  if (widget.actions!.isNotEmpty)
-                                    SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      reverse: true,
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: widget.actions!,
-                                      ),
-                                    ),
+                                ),
+                                SizedBox(width: 5),
                                 ],
                               ),
                             ),
-                            SizedBox(width: 5),
+                            if (widget.headerCenter != null)
+                              widget.headerCenter!,
                           ],
                         ),
                       ),

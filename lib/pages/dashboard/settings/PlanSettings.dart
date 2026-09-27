@@ -7,6 +7,8 @@ import 'package:page_transition/page_transition.dart';
 import '../../../models/swipe_page_transition.dart';
 
 import '../../../models/ListPage.dart';
+import '../../../models/SettingsSwitchTile.dart';
+import './PreviewSettings.dart';
 import './Lessons.dart';
 import './PlanModeSettings.dart';
 
@@ -73,6 +75,50 @@ class _PlanSettingsState extends State<PlanSettings> {
     });
   }
 
+  /// Eintrag, der eine weitere Einstellungsseite öffnet.
+  Widget _entryTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Widget page,
+  }) {
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: Container(
+        margin: const EdgeInsets.all(10),
+        child: Center(
+          child: ListTile(
+            leading: Container(
+              margin: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(100),
+              ),
+              child: Icon(icon),
+            ),
+            title: Text(title, style: const TextStyle(fontSize: 18)),
+            subtitle: Text(
+              subtitle,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w100,
+                color: Colors.grey,
+              ),
+            ),
+            trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 18),
+            onTap: () => Navigator.push(
+              context,
+              SwipePageTransition(
+                type: PageTransitionType.rightToLeft,
+                child: page,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -81,217 +127,44 @@ class _PlanSettingsState extends State<PlanSettings> {
         child: ListPage(
           title: l10n.planSettings,
           children: [
-            Material(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              child: Container(
-                margin: EdgeInsets.all(10),
-                child: Center(
-                  child: SwitchListTile(
-                    secondary: Container(
-                      margin: EdgeInsets.all(4),
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: Icon(Icons.access_time_rounded),
-                    ),
-                      title: Padding(
-                        padding: EdgeInsets.all(4),
-                        child: Text(
-                          l10n.hideLessonTimes,
-                          style: TextStyle(
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-                      subtitle: Padding(
-                        padding: EdgeInsets.all(4),
-                        child: Text(
-                          l10n.hideLessonTimesSubtitle,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w100,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                      value: _hideLessonTimes,
-                      onChanged: _toggleLessonTimes,
-                  ),
-                ),
-              ),
+            SettingsSwitchTile(
+              icon: Icons.access_time_rounded,
+              title: l10n.hideLessonTimes,
+              subtitle: l10n.hideLessonTimesSubtitle,
+              value: _hideLessonTimes,
+              onChanged: _toggleLessonTimes,
             ),
-            Material(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              child: Container(
-                margin: EdgeInsets.all(10),
-                child: Center(
-                  child: SwitchListTile(
-                    secondary: Container(
-                      margin: EdgeInsets.all(4),
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: Icon(Icons.person_outline_rounded),
-                    ),
-                    title: Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Text(
-                        l10n.hideTeacher,
-                        style: TextStyle(
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
-                    subtitle: Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Text(
-                        l10n.hideTeacherSubtitle,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w100,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                    value: _hideTeacher,
-                    onChanged: _toggleHideTeacher,
-                  ),
-                ),
-              ),
+            SettingsSwitchTile(
+              icon: Icons.person_outline_rounded,
+              title: l10n.hideTeacher,
+              subtitle: l10n.hideTeacherSubtitle,
+              value: _hideTeacher,
+              onChanged: _toggleHideTeacher,
             ),
-            Material(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              child: Container(
-                margin: EdgeInsets.all(10),
-                child: Center(
-                  child: SwitchListTile(
-                    secondary: Container(
-                      margin: EdgeInsets.all(4),
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: Icon(Icons.groups_outlined),
-                    ),
-                    title: Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Text(
-                        l10n.hidePersons,
-                        style: TextStyle(
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
-                    subtitle: Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Text(
-                        l10n.hidePersonsSubtitle,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w100,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                    value: _hidePersons,
-                    onChanged: _toggleHidePersons,
-                  ),
-                ),
-              ),
+            SettingsSwitchTile(
+              icon: Icons.groups_outlined,
+              title: l10n.hidePersons,
+              subtitle: l10n.hidePersonsSubtitle,
+              value: _hidePersons,
+              onChanged: _toggleHidePersons,
             ),
-            Material(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              child: Container(
-                margin: EdgeInsets.all(10),
-                child: Center(
-                  child: ListTile(
-                    leading: Container(
-                      margin: EdgeInsets.all(4),
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: Icon(Icons.view_agenda_rounded),
-                    ),
-                    title: Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Text(
-                        l10n.defaultPlanModePreviewEntryTitle,
-                        style: TextStyle(
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
-                    subtitle: Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Text(
-                        l10n.defaultPlanModePreviewEntrySubtitle,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w100,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                    trailing: Icon(Icons.arrow_forward_ios_rounded, size: 18),
-                    onTap: () => Navigator.push(
-                      context,
-                      SwipePageTransition(
-                        type: PageTransitionType.rightToLeft,
-                        child: const PlanModeSettings(),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+            _entryTile(
+              icon: Icons.visibility_rounded,
+              title: l10n.previewSettings,
+              subtitle: l10n.previewSettingsSubtitle,
+              page: const PreviewSettings(),
             ),
-            Material(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              child: Container(
-                margin: EdgeInsets.all(10),
-                child: Center(
-                  child: ListTile(
-                    leading: Container(
-                      margin: EdgeInsets.all(4),
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: Icon(Icons.schedule_rounded),
-                    ),
-                    title: Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Text(
-                        l10n.lessonTimes,
-                        style: TextStyle(
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
-                    subtitle: Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Text(
-                        l10n.lessonTimesSubtitle,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w100,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                    trailing: Icon(Icons.arrow_forward_ios_rounded, size: 18),
-                    onTap: () => Navigator.push(
-                      context,
-                      SwipePageTransition(
-                        type: PageTransitionType.rightToLeft,
-                        child: Lessons(),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+            _entryTile(
+              icon: Icons.view_agenda_rounded,
+              title: l10n.defaultPlanModePreviewEntryTitle,
+              subtitle: l10n.defaultPlanModePreviewEntrySubtitle,
+              page: const PlanModeSettings(),
+            ),
+            _entryTile(
+              icon: Icons.schedule_rounded,
+              title: l10n.lessonTimes,
+              subtitle: l10n.lessonTimesSubtitle,
+              page: Lessons(),
             ),
           ],
         ),

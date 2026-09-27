@@ -426,6 +426,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hidePersonsSubtitle => 'Hide the persons section';
 
   @override
+  String get hidePreviewClasses => 'Hide preview for classes';
+
+  @override
+  String get hidePreviewClassesSubtitle =>
+      'Hide the next lesson preview below the classes';
+
+  @override
+  String get hidePreviewPersons => 'Hide preview for persons';
+
+  @override
+  String get hidePreviewPersonsSubtitle =>
+      'Hide the next lesson preview below the persons';
+
+  @override
+  String get hidePreview => 'Hide preview';
+
+  @override
+  String get showPreview => 'Show preview';
+
+  @override
+  String get previewSettings => 'Preview';
+
+  @override
+  String get previewSettingsSubtitle => 'Show or hide the next lesson preview';
+
+  @override
   String get persons => 'Persons';
 
   @override

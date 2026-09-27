@@ -21,6 +21,7 @@ import '../dashboard/settings/VPlanLogin.dart';
 import '../../models/ListItem.dart';
 import '../../models/LoadingProcess.dart';
 
+import './LessonPreview.dart';
 import './Plan.dart';
 
 class VPlan extends StatefulWidget {
@@ -66,7 +67,21 @@ class _VPlanState extends State<VPlan> with RouteAware {
     // Vorschauen neu laden, damit die tatsächlich nächste Stunde angezeigt
     // wird und nicht mehr fälschlich „Wochenende“.
     vplanBackgroundRefresh.value++;
+    // Auch die Personen erneut laden: Name, Klasse und Kursauswahl (sowie die
+    // Vorschau-Einstellung) können sich in den Einstellungen geändert haben.
+    _reloadPersons();
     super.didPopNext();
+  }
+
+  /// Lädt die gespeicherten Personen neu und zeichnet den Personenbereich
+  /// anschließend neu – nur, wenn sich tatsächlich etwas geändert hat.
+  Future<void> _reloadPersons() async {
+    final List<Map<String, dynamic>> loaded = await VPlanAPI().getPersons();
+    if (!mounted) return;
+    if (jsonEncode(loaded) == jsonEncode(persons)) return;
+    setState(() {
+      persons = loaded;
+    });
   }
 
   @override
@@ -164,45 +179,21 @@ class _VPlanState extends State<VPlan> with RouteAware {
           ],
         ),
         ...persons.map((person) {
-          return ListItem(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  person['name'],
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  person['classId'],
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Theme.of(context).focusColor.withValues(alpha: 0.7),
+          return PersonWidget(
+            person: person,
+            onDelete: () => _deletePerson(person),
+            openContainer: () => Navigator.push(
+              context,
+              SwipePageTransition(
+                type: PageTransitionType.rightToLeft,
+                child: Scaffold(
+                  body: Plan(
+                    classId: person['classId'],
+                    person: person,
                   ),
                 ),
-              ],
-            ),
-            actionButton: IconButton(
-              onPressed: () => _deletePerson(person),
-              icon: Icon(
-                Icons.delete_rounded,
-                color: Theme.of(context).focusColor.withValues(alpha: 0.5),
               ),
             ),
-            onClick: () {
-              Navigator.push(
-                context,
-                SwipePageTransition(
-                  type: PageTransitionType.rightToLeft,
-                  child: Scaffold(
-                    body: Plan(
-                      classId: person['classId'],
-                      person: person,
-                    ),
-                  ),
-                ),
-              );
-            },
           );
         }),
       ],
@@ -429,9 +420,13 @@ class ClassWidget extends StatefulWidget {
 }
 
 class _ClassWidgetState extends State<ClassWidget> {
-  Map<String, dynamic> nextLesson = {'': 'loading'};
+  Map<String, dynamic> nextLesson = previewLoading;
   String? customName;
   bool hideLessonTimes = true;
+
+  /// Vorschau für diese Klasse ausgeblendet? (spezifische Einstellung der
+  /// Klasse, sonst die globale Einstellung aus den Plan-Einstellungen)
+  bool previewHidden = false;
   String _defaultPlanMode = 'auto';
 
   Future<void> _loadCustomName() async {
@@ -489,21 +484,6 @@ class _ClassWidgetState extends State<ClassWidget> {
     }
   }
 
-  TimeOfDay? _safeToTimeOfDay(dynamic value) {
-    final String time = value?.toString() ?? '';
-    if (time.isEmpty || !time.contains(':')) return null;
-    try {
-      final List<String> parts = time.split(':');
-      if (parts.length < 2) return null;
-      return TimeOfDay(
-        hour: int.parse(parts[0]),
-        minute: int.parse(parts[1]),
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
   /// Aktualisiert die „Nächste Stunde“-Vorschau. Zuerst wird offline (ohne
   /// Netzwerkwarten) die zuletzt bekannte Vorschau angezeigt, anschließend
   /// werden im Hintergrund frische Daten geholt und die Vorschau nur ersetzt,
@@ -514,10 +494,17 @@ class _ClassWidgetState extends State<ClassWidget> {
   /// (ohne Ladezeit) die lokal gespeicherten Daten verwendet.
   getData({bool silent = false, bool forceRefresh = false}) async {
     final Map<String, dynamic> oldNextLesson = nextLesson;
+    final bool oldPreviewHidden = previewHidden;
     final VPlanAPI vplanAPI = VPlanAPI();
 
     void refreshIfChanged() {
-      if (silent && mapEquals(oldNextLesson, nextLesson)) return;
+      // Auch ein geänderter Sichtbarkeitszustand muss neu gezeichnet werden,
+      // sonst bleibt eine ein-/ausgeblendete Vorschau veraltet stehen.
+      if (silent &&
+          mapEquals(oldNextLesson, nextLesson) &&
+          oldPreviewHidden == previewHidden) {
+        return;
+      }
       if (mounted) setState(() {});
     }
 
@@ -532,6 +519,18 @@ class _ClassWidgetState extends State<ClassWidget> {
     } catch (_) {
       hideLessonTimes = true;
     }
+    final bool hidden = await vplanAPI.isPreviewHiddenForClass(widget.classId);
+
+    // Vorschau ausgeblendet: es gibt nichts zu berechnen bzw. zwischen-
+    // zuspeichern – ein bereits berechneter Cache bleibt aber erhalten, damit
+    // sie nach dem Einblenden sofort wieder vorliegt.
+    if (hidden) {
+      previewHidden = true;
+      nextLesson = oldNextLesson;
+      refreshIfChanged();
+      return;
+    }
+    previewHidden = false;
 
     List<String> hiddenCourses = [];
     try {
@@ -555,8 +554,14 @@ class _ClassWidgetState extends State<ClassWidget> {
       return;
     }
 
-    await _setNextLessonFromPlan(vplanAPI, vplan, hiddenCourses,
-        allowNextDay: forceRefresh);
+    nextLesson = await computeNextLesson(
+      plan: vplan,
+      mode: _defaultPlanMode,
+      classId: widget.classId,
+      isHidden: (lesson) => vplanAPI.isLessonHidden(lesson, hiddenCourses),
+      allowNextDay: forceRefresh,
+      vplanAPI: vplanAPI,
+    );
 
     // Hat die frische Berechnung keine *konkrete* nächste Stunde ergeben
     // (z.B. weil die nächste Stunde an einem späteren Tag liegt, dessen Plan
@@ -579,160 +584,13 @@ class _ClassWidgetState extends State<ClassWidget> {
     refreshIfChanged();
   }
 
-  /// Berechnet die „Nächste Stunde“-Vorschau aus einem Plan und setzt
-  /// [nextLesson]. [allowNextDay] == false (sofortiger Cache-Pfad) löst keine
-  /// weitere Netzwerkanfrage für den Folgetag aus – das übernimmt der
-  /// Hintergrund-Refresh.
-  Future<void> _setNextLessonFromPlan(
-    VPlanAPI vplanAPI,
-    Map vplan,
-    List<String> hiddenCourses, {
-    bool allowNextDay = true,
-  }) async {
-    List<dynamic> realVPlan = [];
-    for (var i = 0; i < vplan['data'].length; i++) {
-      bool add = !vplanAPI.isLessonHidden(vplan['data'][i], hiddenCourses) &&
-          vplan['data'][i]['course'] != '---' &&
-          vplan['data'][i]['lesson'] != null;
-      if (add) {
-        realVPlan.add(vplan['data'][i]);
-      }
-    }
-
-    // GET NEXT LESSON
-    TimeOfDay currentTime = TimeOfDay.now();
-    try {
-      if (vplan['date'] != null &&
-          VPlanAPI()
-              .parseStringDatatoDateTime(vplan['date'].toString())
-              .isAfter(AppClock.now())) {
-        currentTime = TimeOfDay(hour: 0, minute: 0);
-      }
-    } catch (_) {
-      // Datum nicht auswertbar – mit der aktuellen Zeit weiterarbeiten.
-    }
-
-    double lowestDifference = 50;
-    int lessonIndex = 0;
-    bool foundNextLesson = false;
-    for (var i = 0; i < realVPlan.length; i++) {
-      Map<String, dynamic> lesson = realVPlan[i];
-      final TimeOfDay? beginTime = _safeToTimeOfDay(lesson['begin']);
-      if (beginTime == null) continue;
-      double difference = (beginTime.hour + (beginTime.minute / 60)) -
-          (currentTime.hour + (currentTime.minute / 60));
-      if (difference < lowestDifference && difference >= 0) {
-        lowestDifference = difference;
-        lessonIndex = i;
-        foundNextLesson = true;
-      }
-    }
-
-    if (foundNextLesson) {
-      nextLesson = realVPlan[lessonIndex];
-      return;
-    }
-
-    // Keine Stunde mehr heute: Wochenende oder nach Schulschluss.
-    DateTime now = AppClock.now();
-    if (now.weekday == DateTime.saturday || now.weekday == DateTime.sunday) {
-      nextLesson = {'weekend': true};
-      return;
-    }
-
-    bool afterSchool = false;
-    if (realVPlan.isNotEmpty) {
-      Map<String, dynamic> lastLesson = realVPlan.last;
-      final TimeOfDay? endTime = _safeToTimeOfDay(lastLesson['end']);
-      if (endTime != null) {
-        double lastLessonEndTime = (endTime.hour + (endTime.minute / 60));
-        afterSchool = (currentTime.hour + (currentTime.minute / 60)) >
-            lastLessonEndTime;
-      }
-    } else {
-      afterSchool = true;
-    }
-
-    if (!afterSchool && _defaultPlanMode != 'latest') {
-      nextLesson = {};
-      return;
-    }
-
-    if (_defaultPlanMode == 'today') {
-      nextLesson = {};
-      return;
-    }
-
-    if (!allowNextDay) {
-      // Beim sofortigen Cache-Pfad keine weitere Netzwerkanfrage für den
-      // Folgetag auslösen – der Hintergrund-Refresh korrigiert das.
-      nextLesson = {};
-      return;
-    }
-
-    // Determine the next school day
-    DateTime nextDay = now.add(const Duration(days: 1));
-    while (nextDay.weekday == DateTime.saturday ||
-        nextDay.weekday == DateTime.sunday) {
-      nextDay = nextDay.add(const Duration(days: 1));
-    }
-
-    try {
-      dynamic nextDayVplan = await VPlanAPI().getLessonsByDate(
-        date: nextDay,
-        classId: widget.classId,
-      );
-
-      if (nextDayVplan != null &&
-          nextDayVplan['data'] != null &&
-          nextDayVplan['data'].isNotEmpty) {
-        // Filter hidden courses from the next day's lessons
-        List<dynamic> nextDayRealVPlan = [];
-        for (var i = 0; i < nextDayVplan['data'].length; i++) {
-          bool add = !vplanAPI.isLessonHidden(
-                  nextDayVplan['data'][i], hiddenCourses) &&
-              nextDayVplan['data'][i]['course'] != '---' &&
-              nextDayVplan['data'][i]['lesson'] != null;
-          if (add) {
-            nextDayRealVPlan.add(nextDayVplan['data'][i]);
-          }
-        }
-
-        if (nextDayRealVPlan.isNotEmpty) {
-          nextLesson = nextDayRealVPlan.first;
-        } else {
-          nextLesson = {'weekend': true};
-        }
-      } else {
-        nextLesson = {'weekend': true};
-      }
-    } catch (e) {
-      nextLesson = {'weekend': true};
-    }
-  }
-
-  TimeOfDay toTimeOfDay(String time) {
-    return TimeOfDay(
-      hour: int.parse(time.split(':')[0]),
-      minute: int.parse(time.split(':')[1]),
-    );
-  }
-
-  String printTime(int _hour, int _minute) {
-    TimeOfDay time = TimeOfDay(hour: _hour, minute: _minute);
-
-    String hour = time.hour < 10 ? '0${time.hour}' : '${time.hour}';
-    String minute = time.minute < 10 ? '0${time.minute}' : '${time.minute}';
-    return '$hour:$minute';
-  }
-
   @override
   void initState() {
     super.initState();
     // Sofort (ohne Ladezeit und ohne await) die zuletzt gespeicherte
     // „Nächste Stunde“-Vorschau anzeigen – der allererste Frame zeigt also
     // bereits den letzten Stand.
-    nextLesson = cachedNextLesson(widget.classId) ?? {'': 'loading'};
+    nextLesson = cachedNextLesson(widget.classId) ?? previewLoading;
     // 1) Lokale Vorschau (Cache) anzeigen.
     getData();
     // 2) Im Hintergrund frische Daten laden und – nur wenn nötig – ersetzen.
@@ -757,7 +615,6 @@ class _ClassWidgetState extends State<ClassWidget> {
 
   @override
   Widget build(BuildContext context) {
-    double spaceBetween = 10;
     return Container(
       margin: EdgeInsets.only(left: 5, right: 5, bottom: 5),
       child: Column(
@@ -792,133 +649,261 @@ class _ClassWidgetState extends State<ClassWidget> {
               ],
             ),
             margin: 0,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(25),
-              topRight: Radius.circular(25),
-            ),
+            // Ohne Vorschau hat der Eintrag keinen Anschluss nach unten und
+            // wird deshalb rundherum abgerundet.
+            borderRadius: previewHidden
+                ? BorderRadius.circular(25)
+                : BorderRadius.only(
+                    topLeft: Radius.circular(25),
+                    topRight: Radius.circular(25),
+                  ),
           ),
-           GestureDetector(
-             onTap: () => widget.openContainer(),
-             child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 500),
-            transitionBuilder: (child, animation) => SizeTransition(
-              sizeFactor: animation,
-              child: child,
+          if (!previewHidden)
+            LessonPreviewCard(
+              nextLesson: nextLesson,
+              onTap: () => widget.openContainer(),
+              hideLessonTimes: hideLessonTimes,
             ),
-            child: Container(
-              key: ValueKey(nextLesson),
-              width: double.infinity,
-              alignment: Alignment.center,
-              child: nextLesson.toString() == '{: loading}'
-                  ? const SizedBox.shrink()
-                  : (nextLesson['weekend'] == true
-                      ? Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.weekend_rounded,
-                              size: 30,
-                              color: Theme.of(context)
-                                  .focusColor
-                                  .withValues(alpha: 0.5),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              AppLocalizations.of(context)!.weekend,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 19,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          ],
-                        )
-                      : (nextLesson.toString() == '{}'
-                          ?                             Text(
-                              AppLocalizations.of(context)!.noNextLessonFound,
-                              style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.5),
-                              ),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      nextLesson['lesson'] ?? '',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 21,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface,
-                                      ),
-                                    ),
-                                    SizedBox(height: spaceBetween),
-                                    Text(
-                                      nextLesson['teacher'] ?? '',
-                                      style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(
-                                    width: MediaQuery.of(context).size.width *
-                                        0.3),
-                                Column(
-                                  children: [
-                                    Text(
-                                      AppLocalizations.of(context)!
-                                          .room(nextLesson['place'] ?? ''),
-                                      style: TextStyle(
-                                        fontSize: 19,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface,
-                                      ),
-                                    ),
-                                    SizedBox(height: spaceBetween),
-                                    if (!hideLessonTimes)
-                                      Text(
-                                          '${nextLesson['begin'] != null ? printTime(_safeToTimeOfDay(nextLesson['begin'])?.hour ?? 0, _safeToTimeOfDay(nextLesson['begin'])?.minute ?? 0) : ''} - ${nextLesson['end'] != null ? printTime(_safeToTimeOfDay(nextLesson['end'])?.hour ?? 0, _safeToTimeOfDay(nextLesson['end'])?.minute ?? 0) : ''}',
-                                          style: TextStyle(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface,
-                                          )),
-                                  ],
-                                ),
-                              ],
-                            ))),
-              padding: EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(25),
-                  bottomRight: Radius.circular(25),
-                ),
-                color: Theme.of(context).colorScheme.surface,
-              ),
-            ),
-          ),
-),
         ],
       ),
     );
   }
 }
 
+/// Eintrag einer Person in der VPlan-Übersicht inklusive der „Nächste
+/// Stunde“-Vorschau der von der Person gewählten Kurse.
+class PersonWidget extends StatefulWidget {
+  const PersonWidget({
+    Key? key,
+    required this.person,
+    required this.onDelete,
+    required this.openContainer,
+  }) : super(key: key);
+
+  final Map<String, dynamic> person;
+  final Function() onDelete;
+  final Function openContainer;
+
+  @override
+  State<PersonWidget> createState() => _PersonWidgetState();
+}
+
+class _PersonWidgetState extends State<PersonWidget> {
+  Map<String, dynamic> nextLesson = previewLoading;
+  bool hideLessonTimes = true;
+
+  /// Vorschau für diese Person ausgeblendet? (spezifische Einstellung der
+  /// Person, sonst die globale Einstellung aus den Plan-Einstellungen).
+  /// Startet mit dem Standard, damit bei Personen keine Vorschau kurz aufblitzt.
+  bool previewHidden = VPlanAPI.defaultPreviewPersonsHidden;
+  String _defaultPlanMode = 'auto';
+
+  /// Kurse, die die Person beobachtet – nur deren Stunden erscheinen in der
+  /// Vorschau.
+  List<String> courses = [];
+
+  String get _classId => widget.person['classId']?.toString() ?? '';
+  String get _personId => widget.person['id']?.toString() ?? '';
+  String get _cacheKey => nextLessonCacheKeyForPerson(_personId);
+
+  List<String> _coursesOf(Map<String, dynamic> person) {
+    final dynamic raw = person['courses'];
+    if (raw is! List) return [];
+    return raw.map((e) => e.toString()).toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    courses = _coursesOf(widget.person);
+    nextLesson = cachedNextLesson(_cacheKey) ?? previewLoading;
+    getData();
+    getData(silent: true, forceRefresh: true);
+    vplanBackgroundRefresh.addListener(_onBackgroundRefresh);
+  }
+
+  @override
+  void didUpdateWidget(PersonWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Die Kursauswahl kann sich in den Personen-Einstellungen geändert haben.
+    final List<String> updated = _coursesOf(widget.person);
+    if (!listEquals(updated, courses)) {
+      courses = updated;
+      getData();
+    }
+  }
+
+  /// Lädt die „Nächste Stunde“-Vorschau der Person. Zuerst wird offline (ohne
+  /// Netzwerkwarten) die zuletzt bekannte Vorschau angezeigt, anschließend
+  /// werden im Hintergrund frische Daten geholt und die Vorschau nur ersetzt,
+  /// wenn sich tatsächlich etwas geändert hat.
+  getData({bool silent = false, bool forceRefresh = false}) async {
+    final Map<String, dynamic> oldNextLesson = nextLesson;
+    final bool oldPreviewHidden = previewHidden;
+    final VPlanAPI vplanAPI = VPlanAPI();
+
+    void refreshIfChanged() {
+      // Auch ein geänderter Sichtbarkeitszustand muss neu gezeichnet werden,
+      // sonst bleibt eine ein-/ausgeblendete Vorschau veraltet stehen.
+      if (silent &&
+          mapEquals(oldNextLesson, nextLesson) &&
+          oldPreviewHidden == previewHidden) {
+        return;
+      }
+      if (mounted) setState(() {});
+    }
+
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      hideLessonTimes =
+          prefs.getBool(SchoolStorage.scopedKey(prefs, 'hideLessonTimes')) ??
+              true;
+      _defaultPlanMode = prefs.getString(
+              SchoolStorage.scopedKey(prefs, 'defaultPlanModePreview')) ??
+          'auto';
+    } catch (_) {
+      hideLessonTimes = true;
+    }
+    final bool hidden = await vplanAPI.isPreviewHiddenForPerson(_personId);
+
+    /// Filtert die Einträge, die nicht in die Vorschau gehören. Wird unten
+    /// passend zur Kursauswahl der Person (bzw. zur Klasse) gesetzt.
+    late final bool Function(dynamic lesson) isLessonHidden;
+
+    // Vorschau ausgeblendet: es gibt nichts zu berechnen – ein bereits
+    // berechneter Cache bleibt aber erhalten, damit sie nach dem Einblenden
+    // sofort wieder vorliegt.
+    if (hidden) {
+      previewHidden = true;
+      nextLesson = oldNextLesson;
+      refreshIfChanged();
+      return;
+    }
+    previewHidden = false;
+
+    dynamic vplan;
+    try {
+      vplan = forceRefresh
+          ? await vplanAPI.getLessonsForToday(_classId, forceRefresh: true)
+          : await vplanAPI.getCachedLessonsForToday(_classId);
+    } catch (_) {
+      refreshIfChanged();
+      return;
+    }
+    if (vplan is! Map || vplan['data'] is! List) {
+      refreshIfChanged();
+      return;
+    }
+
+    // Nur die Kurse, die die Person beobachtet, kommen für die Vorschau in
+    // Frage. Hat die Person keine Kurse ausgewählt, gilt dasselbe wie bei einer
+    // Klasse ohne Auswahl: Es werden die Kurse der Klasse angezeigt, also
+    // alles, was in den Klassen-Einstellungen nicht ausgeblendet wurde.
+    List<String> classHiddenCourses = [];
+    try {
+      classHiddenCourses = await vplanAPI.getHiddenCourses(_classId);
+    } catch (_) {
+      classHiddenCourses = [];
+    }
+    isLessonHidden = (lesson) => !vplanAPI.isLessonVisibleForPerson(
+          lesson,
+          courses,
+          classHiddenCourses,
+        );
+
+    nextLesson = await computeNextLesson(
+      plan: vplan,
+      mode: _defaultPlanMode,
+      classId: _classId,
+      isHidden: isLessonHidden,
+      allowNextDay: forceRefresh,
+      vplanAPI: vplanAPI,
+    );
+
+    // Keine konkrete nächste Stunde gefunden: die zuletzt bekannte Vorschau
+    // beibehalten statt sie mit einem nichtssagenden Ergebnis zu ersetzen.
+    final bool hasNewLesson = nextLesson.containsKey('lesson');
+    final bool hadOldLesson = oldNextLesson.containsKey('lesson');
+    if (!forceRefresh && !hasNewLesson && hadOldLesson) {
+      nextLesson = oldNextLesson;
+      refreshIfChanged();
+      return;
+    }
+
+    saveNextLesson(_cacheKey, nextLesson);
+    refreshIfChanged();
+  }
+
+  void _onBackgroundRefresh() {
+    getData(silent: true, forceRefresh: true);
+  }
+
+  @override
+  void dispose() {
+    vplanBackgroundRefresh.removeListener(_onBackgroundRefresh);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(left: 5, right: 5, bottom: 5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ListItem(
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  widget.person['name']?.toString() ?? '',
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  _classId,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).focusColor.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+            actionButton: IconButton(
+              onPressed: widget.onDelete,
+              icon: Icon(
+                Icons.delete_rounded,
+                color: Theme.of(context).focusColor.withValues(alpha: 0.5),
+              ),
+            ),
+            onClick: widget.openContainer,
+            padding: 7,
+            // Ohne Vorschau hat der Eintrag keinen Anschluss nach unten und
+            // wird deshalb rundherum abgerundet.
+            borderRadius: previewHidden
+                ? BorderRadius.circular(25)
+                : BorderRadius.only(
+                    topLeft: Radius.circular(25),
+                    topRight: Radius.circular(25),
+                  ),
+          ),
+          if (!previewHidden)
+            LessonPreviewCard(
+              nextLesson: nextLesson,
+              onTap: () => widget.openContainer(),
+              hideLessonTimes: hideLessonTimes,
+              // Bei einer Person ist der Kurs die entscheidende Angabe.
+              showCourse: true,
+            ),
+        ],
+      ),
+    );
+  }
+}
 class SelectClass extends StatefulWidget {
   const SelectClass({
     Key? key,
