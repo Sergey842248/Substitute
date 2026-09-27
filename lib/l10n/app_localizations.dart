@@ -1081,6 +1081,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Manually set the times for each lesson'**
   String get lessonTimesSubtitle;
+
+  /// No description provided for @defaultPlanModePerson.
+  ///
+  /// In en, this message translates to:
+  /// **'Persons'**
+  String get defaultPlanModePerson;
+
+  /// No description provided for @defaultPlanModePersonAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get defaultPlanModePersonAuto;
+
+  /// No description provided for @defaultPlanModePersonAutoSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show today, unless the school day is over'**
+  String get defaultPlanModePersonAutoSubtitle;
+
+  /// No description provided for @defaultPlanModePersonLatest.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest'**
+  String get defaultPlanModePersonLatest;
+
+  /// No description provided for @defaultPlanModePersonLatestSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Always show the latest available plan'**
+  String get defaultPlanModePersonLatestSubtitle;
+
+  /// No description provided for @defaultPlanModePersonToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get defaultPlanModePersonToday;
+
+  /// No description provided for @defaultPlanModePersonTodaySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Always show only today\'s plan'**
+  String get defaultPlanModePersonTodaySubtitle;
+
+  /// No description provided for @defaultPlanModeClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Classes'**
+  String get defaultPlanModeClass;
+
+  /// No description provided for @defaultPlanModeClassAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get defaultPlanModeClassAuto;
+
+  /// No description provided for @defaultPlanModeClassAutoSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show today, unless the school day is over'**
+  String get defaultPlanModeClassAutoSubtitle;
+
+  /// No description provided for @defaultPlanModeClassLatest.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest'**
+  String get defaultPlanModeClassLatest;
+
+  /// No description provided for @defaultPlanModeClassLatestSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Always show the latest available plan'**
+  String get defaultPlanModeClassLatestSubtitle;
+
+  /// No description provided for @defaultPlanModeClassToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get defaultPlanModeClassToday;
+
+  /// No description provided for @defaultPlanModeClassTodaySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Always show only today\'s plan'**
+  String get defaultPlanModeClassTodaySubtitle;
+
+  /// No description provided for @defaultPlanModePreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get defaultPlanModePreview;
+
+  /// No description provided for @defaultPlanModePreviewAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get defaultPlanModePreviewAuto;
+
+  /// No description provided for @defaultPlanModePreviewAutoSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show today, unless the school day is over'**
+  String get defaultPlanModePreviewAutoSubtitle;
+
+  /// No description provided for @defaultPlanModePreviewLatest.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest'**
+  String get defaultPlanModePreviewLatest;
+
+  /// No description provided for @defaultPlanModePreviewLatestSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Always show the latest available plan'**
+  String get defaultPlanModePreviewLatestSubtitle;
+
+  /// No description provided for @defaultPlanModePreviewToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get defaultPlanModePreviewToday;
+
+  /// No description provided for @defaultPlanModePreviewTodaySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Always show only today\'s plan'**
+  String get defaultPlanModePreviewTodaySubtitle;
+
+  /// No description provided for @defaultPlanModePreviewEntryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Defaut plan mode'**
+  String get defaultPlanModePreviewEntryTitle;
+
+  /// No description provided for @defaultPlanModePreviewEntrySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Persons, classes and preview'**
+  String get defaultPlanModePreviewEntrySubtitle;
 }
 
 class _AppLocalizationsDelegate

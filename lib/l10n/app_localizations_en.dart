@@ -540,4 +540,83 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lessonTimesSubtitle => 'Manually set the times for each lesson';
+
+  @override
+  String get defaultPlanModePerson => 'Persons';
+
+  @override
+  String get defaultPlanModePersonAuto => 'Auto';
+
+  @override
+  String get defaultPlanModePersonAutoSubtitle =>
+      'Show today, unless the school day is over';
+
+  @override
+  String get defaultPlanModePersonLatest => 'Latest';
+
+  @override
+  String get defaultPlanModePersonLatestSubtitle =>
+      'Always show the latest available plan';
+
+  @override
+  String get defaultPlanModePersonToday => 'Today';
+
+  @override
+  String get defaultPlanModePersonTodaySubtitle =>
+      'Always show only today\'s plan';
+
+  @override
+  String get defaultPlanModeClass => 'Classes';
+
+  @override
+  String get defaultPlanModeClassAuto => 'Auto';
+
+  @override
+  String get defaultPlanModeClassAutoSubtitle =>
+      'Show today, unless the school day is over';
+
+  @override
+  String get defaultPlanModeClassLatest => 'Latest';
+
+  @override
+  String get defaultPlanModeClassLatestSubtitle =>
+      'Always show the latest available plan';
+
+  @override
+  String get defaultPlanModeClassToday => 'Today';
+
+  @override
+  String get defaultPlanModeClassTodaySubtitle =>
+      'Always show only today\'s plan';
+
+  @override
+  String get defaultPlanModePreview => 'Preview';
+
+  @override
+  String get defaultPlanModePreviewAuto => 'Auto';
+
+  @override
+  String get defaultPlanModePreviewAutoSubtitle =>
+      'Show today, unless the school day is over';
+
+  @override
+  String get defaultPlanModePreviewLatest => 'Latest';
+
+  @override
+  String get defaultPlanModePreviewLatestSubtitle =>
+      'Always show the latest available plan';
+
+  @override
+  String get defaultPlanModePreviewToday => 'Today';
+
+  @override
+  String get defaultPlanModePreviewTodaySubtitle =>
+      'Always show only today\'s plan';
+
+  @override
+  String get defaultPlanModePreviewEntryTitle => 'Defaut plan mode';
+
+  @override
+  String get defaultPlanModePreviewEntrySubtitle =>
+      'Persons, classes and preview';
 }

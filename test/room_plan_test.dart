@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:substitute/pages/vplan/VPlanAPI.dart';
+import 'package:substitute/services/AppClock.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Formatiert ein Datum als deutschen Datumsstring, wie ihn der
@@ -179,6 +181,77 @@ void main() {
       final url = await VPlanAPI().getURL(past);
       expect(url, contains('PlanKl'));
       expect(url, contains(VPlanAPI().parseDate(past)));
+    });
+
+    test('an overridden app clock date is not treated as today', () async {
+      // Mit überschriebener App-Uhr darf nicht die aktuelle 'Klassen.xml'
+      // (der neueste Plan) geladen werden, sondern der tagesbezogene Plan.
+      await AppClock.setOverriddenNow(DateTime(2026, 8, 14, 8, 0));
+      try {
+        final url = await VPlanAPI().getURL(DateTime(2026, 8, 14, 8, 0));
+        expect(url, contains('PlanKl'));
+        expect(url, contains('20260814'));
+      } finally {
+        await AppClock.setOverriddenNow(null);
+      }
+    });
+  });
+
+  group('getLessonsByDate URL', () {
+    test('getLessonsForToday requests Klassen.xml, not PlanKl<today>',
+        () async {
+      // Allow a real loopback connection for this test (the test binding
+      // otherwise blocks all HTTP with status 400).
+      HttpOverrides.global = null;
+      final HttpServer server =
+          await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      final List<String> requestedPaths = <String>[];
+      server.listen((HttpRequest request) async {
+        requestedPaths.add(request.uri.path);
+        request.response
+          ..statusCode = 200
+          ..headers.contentType =
+              ContentType('text', 'xml', charset: 'utf-8')
+          ..write('''<?xml version="1.0" encoding="utf-8"?>
+<VpMobil>
+  <Kopf>
+    <DatumPlan>$todayString</DatumPlan>
+    <woche>A</woche>
+  </Kopf>
+  <Klassen>
+    <Kl>
+      <Kurz>5a</Kurz>
+      <Kurse>
+        <Ku><KKz Le="AB">M</KKz></Ku>
+      </Kurse>
+      <Pl>
+        <Std>
+          <St>1</St><Fa>M</Fa><Le>AB</Le><Ra>101</Ra>
+          <Beginn>08:00</Beginn><Ende>08:45</Ende><Ku2>M</Ku2>
+        </Std>
+      </Pl>
+    </Kl>
+  </Klassen>
+  <ZusatzInfo></ZusatzInfo>
+</VpMobil>''');
+        await request.response.close();
+      });
+
+      SharedPreferences.setMockInitialValues({
+        'vplanSchoolnumber': '12345',
+        'vplanUsername': 'user',
+        'vplanPassword': 'pass',
+        'customUrl': 'http://127.0.0.1:${server.port}/',
+      });
+
+      final dynamic result =
+          await VPlanAPI().getLessonsForToday('5a', forceRefresh: true);
+
+      expect(requestedPaths, hasLength(1));
+      expect(requestedPaths.single, endsWith('mobdaten/Klassen.xml'));
+      expect(result['error'], isNull);
+
+      await server.close(force: true);
     });
   });
 

@@ -4,6 +4,7 @@ import 'package:substitute/models/LoadingProcess.dart';
 import 'package:flutter/material.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
+import 'package:substitute/services/AppClock.dart';
 
 import '../vplan/VPlanAPI.dart';
 
@@ -26,8 +27,8 @@ class _RoomPlanState extends State<RoomPlan> {
   String? selectedRoom;
   List<dynamic> roomLessons = [];
 
-  DateTime currentDate = DateTime.now();
-  DateTime planDate = DateTime.now(); // Datum, das der Plan tatsächlich hat
+  DateTime currentDate = AppClock.now();
+  DateTime planDate = AppClock.now(); // Datum, das der Plan tatsächlich hat
   bool loading = true;
   String loadText = '';
   String errorText = '';

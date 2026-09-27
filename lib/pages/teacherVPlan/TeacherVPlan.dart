@@ -13,6 +13,8 @@ import './TeacherPlan.dart';
 import 'package:substitute/models/LoadingProcess.dart';
 import 'package:substitute/models/ListPage.dart';
 import 'package:substitute/models/Button.dart';
+import 'package:substitute/services/SchoolStorage.dart';
+import 'package:substitute/services/AppClock.dart';
 
 import '../vplan/VPlanAPI.dart';
 import '../dashboard/settings/VPlanLogin.dart';
@@ -30,9 +32,9 @@ class TeacherVPlan extends StatefulWidget {
 class _TeacherVPlanState extends State<TeacherVPlan> {
   String teacherShort = '';
   DateTime selectedDate = DateTime(
-    DateTime.now().year,
-    DateTime.now().month,
-    DateTime.now().day,
+    AppClock.now().year,
+    AppClock.now().month,
+    AppClock.now().day,
   );
 
   TextEditingController textFieldController = new TextEditingController();
@@ -98,8 +100,8 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
                     context: context,
                     initialDate: selectedDate,
                     firstDate:
-                        DateTime.now().subtract(const Duration(days: 30)),
-                    lastDate: DateTime.now().add(const Duration(days: 30)),
+                        AppClock.now().subtract(const Duration(days: 30)),
+                    lastDate: AppClock.now().add(const Duration(days: 30)),
                   );
                   if (picked != null) {
                     setState(() {

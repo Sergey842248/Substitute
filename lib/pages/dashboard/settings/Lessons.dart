@@ -7,6 +7,7 @@ import 'dart:convert';
 import '../../../models/ListItem.dart';
 import '../../../models/ListPage.dart';
 import '../../../services/SchoolStorage.dart';
+import '../../../services/AppClock.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -93,7 +94,7 @@ class _LessonsState extends State<Lessons> {
   }
 
   List<dynamic> normalizeLessons(List<dynamic> decodedLessons) {
-    final DateTime now = DateTime.now();
+    final DateTime now = AppClock.now();
     final TimeOfDay defaultStart = TimeOfDay.fromDateTime(now);
     final TimeOfDay defaultEnd =
         TimeOfDay.fromDateTime(now.add(Duration(minutes: 45)));
@@ -327,7 +328,7 @@ class _LessonsState extends State<Lessons> {
             onClick: () {
               changed = true;
               saved = false;
-              final DateTime now = DateTime.now();
+              final DateTime now = AppClock.now();
               lessons.add(
                 {
                   'count': lessons.length + 1,

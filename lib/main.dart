@@ -30,6 +30,7 @@ import 'pages/dashboard/Dashboard.dart';
 import 'pages/search/SearchMenu.dart';
 import 'pages/dashboard/settings/VPlanLogin.dart';
 import 'services/SchoolStorage.dart';
+import 'services/AppClock.dart';
 
 /// Compares two version strings (e.g. '3.7.10') numerically segment by segment.
 /// Returns < 0 if [a] is older, 0 if equal, > 0 if [a] is newer.
@@ -53,6 +54,12 @@ void main() async {
   // Zuletzt angezeigte Pläne / Vorschauen synchron in den Speicher laden,
   // damit beim Öffnen sofort (ohne Ladezeit) der letzte Stand angezeigt wird.
   await loadDisplayCache(prefs);
+
+  // Eine in den Entwicklereinstellungen gesetzte Datums-Überschreibung auch
+  // nach einem Neustart wieder anwenden (sie wird in SharedPreferences
+  // gespeichert, aber sonst erst beim Öffnen der Entwicklereinstellungen in
+  // den statischen AppClock geladen).
+  await AppClock.getOverriddenNow();
 
   if (prefs.getBool('firstTime') == null ||
       prefs.getBool('firstTime') == true) {

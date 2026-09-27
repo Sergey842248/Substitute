@@ -545,4 +545,83 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get lessonTimesSubtitle =>
       'Zeiten der einzelnen Unterrichtsstunden manuell einstellen';
+
+  @override
+  String get defaultPlanModePerson => 'Personen';
+
+  @override
+  String get defaultPlanModePersonAuto => 'Automatisch';
+
+  @override
+  String get defaultPlanModePersonAutoSubtitle =>
+      'Zeige heute, außer der Schultag ist vorbei';
+
+  @override
+  String get defaultPlanModePersonLatest => 'Neueste';
+
+  @override
+  String get defaultPlanModePersonLatestSubtitle =>
+      'Immer den neuesten verfügbaren Plan anzeigen';
+
+  @override
+  String get defaultPlanModePersonToday => 'Heute';
+
+  @override
+  String get defaultPlanModePersonTodaySubtitle =>
+      'Immer nur den heutigen Plan anzeigen';
+
+  @override
+  String get defaultPlanModeClass => 'Klassen';
+
+  @override
+  String get defaultPlanModeClassAuto => 'Automatisch';
+
+  @override
+  String get defaultPlanModeClassAutoSubtitle =>
+      'Zeige heute, außer der Schultag ist vorbei';
+
+  @override
+  String get defaultPlanModeClassLatest => 'Neueste';
+
+  @override
+  String get defaultPlanModeClassLatestSubtitle =>
+      'Immer den neuesten verfügbaren Plan anzeigen';
+
+  @override
+  String get defaultPlanModeClassToday => 'Heute';
+
+  @override
+  String get defaultPlanModeClassTodaySubtitle =>
+      'Immer nur den heutigen Plan anzeigen';
+
+  @override
+  String get defaultPlanModePreview => 'Vorschau';
+
+  @override
+  String get defaultPlanModePreviewAuto => 'Automatisch';
+
+  @override
+  String get defaultPlanModePreviewAutoSubtitle =>
+      'Zeige heute, außer der Schultag ist vorbei';
+
+  @override
+  String get defaultPlanModePreviewLatest => 'Neueste';
+
+  @override
+  String get defaultPlanModePreviewLatestSubtitle =>
+      'Immer den neuesten verfügbaren Plan anzeigen';
+
+  @override
+  String get defaultPlanModePreviewToday => 'Heute';
+
+  @override
+  String get defaultPlanModePreviewTodaySubtitle =>
+      'Immer nur den heutigen Plan anzeigen';
+
+  @override
+  String get defaultPlanModePreviewEntryTitle => 'Standard-Planmodus';
+
+  @override
+  String get defaultPlanModePreviewEntrySubtitle =>
+      'Personen, Klassen und Vorschau';
 }

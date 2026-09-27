@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/services/SchoolStorage.dart';
+import 'package:substitute/services/AppClock.dart';
 import 'package:xml2json/xml2json.dart';
 import 'package:xml/xml.dart';
 
@@ -179,7 +180,7 @@ class VPlanAPI {
 
     dynamic data = await getVPlanJSON(
       Uri.parse(await getDayURL()),
-      DateTime.now(),
+      AppClock.now(),
     );
 
     if (data['error'] != null) {
@@ -489,17 +490,15 @@ class VPlanAPI {
     prefs.setStringList(_prefKey(prefs, 'offlineVPData'), newVplanData);
   }
 
-  Future<dynamic> getAllOfflineData() async {
+  Future<List<dynamic>> getAllOfflineData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String>? offlineVPData =
         prefs.getStringList(_prefKey(prefs, 'offlineVPData'));
 
     if (offlineVPData == null) {
-      return [];
-    } else {
-      // print('offlineVPData');
-      return offlineVPData.map((e) => jsonDecode(e));
+      return <dynamic>[];
     }
+    return offlineVPData.map<dynamic>((e) => jsonDecode(e)).toList();
   }
 
   Future<void> refreshAllPlansInBackground() async {
@@ -515,7 +514,7 @@ class VPlanAPI {
     // Get the URL for today's plan
     String urlString = await getDayURL();
     Uri url = Uri.parse(urlString);
-    DateTime today = DateTime.now();
+    DateTime today = AppClock.now();
 
     // Refresh each class in the background in parallel (force refresh to get latest data)
     await Future.wait(classes.map((classId) async {
@@ -537,7 +536,7 @@ class VPlanAPI {
 
     List<dynamic> data = (await getVPlanJSON(
       Uri.parse(await getDayURL()),
-      DateTime.now(),
+      AppClock.now(),
     ))['courses'];
 
     List<dynamic> returnData = [];
@@ -576,7 +575,7 @@ class VPlanAPI {
       if (cachedData != null && cacheTime != null) {
         int cacheTTL =
             prefs.getInt('vplanCacheTTL') ?? 300; // 5 minutes default
-        int currentTime = DateTime.now().millisecondsSinceEpoch;
+        int currentTime = AppClock.now().millisecondsSinceEpoch;
 
         if (currentTime - cacheTime < cacheTTL * 1000) {
           final dynamic cached = jsonDecode(cachedData);
@@ -818,7 +817,7 @@ class VPlanAPI {
           await prefs.setString(scopedCacheKey, jsonEncode(data.last));
           await prefs.setInt(
             '${scopedCacheKey}_time',
-            DateTime.now().millisecondsSinceEpoch,
+            AppClock.now().millisecondsSinceEpoch,
           );
         }
         //-------------------------------------
@@ -862,7 +861,7 @@ class VPlanAPI {
   ///
   /// Gibt `null` zurück, wenn noch kein Offline-Plan für heute existiert.
   Future<dynamic> getCachedLessonsForToday(String classId) async {
-    dynamic offlinePlan = await searchForOfflineData(DateTime.now());
+    dynamic offlinePlan = await searchForOfflineData(AppClock.now());
     if (offlinePlan == false) return null;
 
     dynamic jsonVPlan = offlinePlan['data']['Klassen']['Kl'];
@@ -888,43 +887,11 @@ class VPlanAPI {
   Future<dynamic> getLessonsForToday(String classId,
       {bool forceRefresh = false}) async {
     await login();
-
-    Uri url = Uri.parse(await getDayURL());
-
-    dynamic pureVPlan;
-    try {
-      pureVPlan =
-          await getVPlanJSON(url, DateTime.now(), forceRefresh: forceRefresh);
-      //print(pureVPlan);
-    } catch (e) {
-      // print('line 316 in VPlanAPI.dart --> $e');
-      return {'error': 'no internet'};
-    }
-
-    if (pureVPlan == null || pureVPlan.isEmpty) {
-      return _emptyPlan(DateTime.now());
-    }
-    if (pureVPlan['error'] != null) {
-      return pureVPlan;
-    }
-
-    var jsonVPlan =
-        pureVPlan['data']['Klassen']['Kl']; //get the XML data of the URL
-
-    Map<String, bool>? classRoomChanges;
-    if (pureVPlan['roomChanges']?[classId] != null) {
-      classRoomChanges =
-          Map<String, bool>.from(pureVPlan['roomChanges'][classId]);
-    }
-
-    List<dynamic> lessons =
-        await parseVPlanXML(jsonVPlan, classId, classRoomChanges);
-    return {
-      'date': pureVPlan['date'],
-      'week': pureVPlan['week'],
-      'data': lessons,
-      'info': pureVPlan['info'],
-    };
+    return getLessonsByDate(
+      date: AppClock.now(),
+      classId: classId,
+      forceRefresh: forceRefresh,
+    );
   }
 
   Future<String> getDayURL() async {
@@ -938,7 +905,12 @@ class VPlanAPI {
   Future<String> getURL(DateTime date) async {
     await login();
 
-    DateTime today = DateTime.now();
+    // Für die URL-Auswahl zählt der ECHTE Kalendertag, nicht die ggf. über die
+    // Entwicklereinstellungen überschriebene App-Uhr. Sonst würde ein
+    // überschriebenes Datum immer als "heute" gelten und es käme stets die
+    // aktuelle 'Klassen.xml' (also der neueste Plan) statt des tagesbezogenen
+    // 'PlanKl<Datum>.xml' zurück.
+    final DateTime today = DateTime.now();
     bool isToday = date.year == today.year &&
         date.month == today.month &&
         date.day == today.day;
@@ -1074,17 +1046,20 @@ class VPlanAPI {
   Future<dynamic> getLessonsByDate({
     required DateTime date,
     required String classId,
+    bool forceRefresh = false,
   }) async {
     await login();
 
-    String stringDate = parseDate(date);
-    Uri url = Uri.parse(
-      'https://www.stundenplan24.de/${this.schoolnumber}/mobil/mobdaten/PlanKl$stringDate.xml',
-    );
+    // Für heute die aktuelle 'Klassen.xml' verwenden, für andere Tage die
+    // tagesbezogene 'PlanKl<Datum>.xml' – genau wie getRawPlanByDate. Sonst
+    // würde der Hintergrund-Refresh der Vorschau für heute an der (für den
+    // heutigen Tag oft nicht existierenden) 'PlanKl<heute>.xml' scheitern und
+    // die „Nächste Stunde“ bliebe auf dem alten Stand hängen.
+    Uri url = Uri.parse(await getURL(date));
 
     dynamic pureVPlan;
     try {
-      pureVPlan = await getVPlanJSON(url, date);
+      pureVPlan = await getVPlanJSON(url, date, forceRefresh: forceRefresh);
     } catch (e) {
       return {'error': 'no internet'};
     }
@@ -1601,7 +1576,7 @@ class VPlanAPI {
       vplanData.add(jsonDecode(offlineVPData[i]));
     }
     List<dynamic> cleanedPlan = [];
-    DateTime today = DateTime.now();
+    DateTime today = AppClock.now();
 
     for (int i = 0; i < vplanData.length; i++) {
       // Skip plans older than the retention period (future plans are kept).
@@ -1646,7 +1621,7 @@ class VPlanAPI {
     List<String> allTeachers = [];
     dynamic vplanData = await getVPlanJSON(
       Uri.parse(await getDayURL()),
-      DateTime.now(),
+      AppClock.now(),
     );
 
     if (vplanData != null && vplanData['courses'] != null) {

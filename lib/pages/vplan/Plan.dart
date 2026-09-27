@@ -10,6 +10,7 @@ import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/services/SchoolStorage.dart';
+import 'package:substitute/services/AppClock.dart';
 
 import '../../models/ListItem.dart';
 import '../../models/ListPage.dart';
@@ -43,7 +44,7 @@ class _PlanState extends State<Plan> {
         currentDate =
             VPlanAPI().parseStringDatatoDateTime(data['data']['date']);
       } else {
-        currentDate = DateTime.now();
+        currentDate = AppClock.now();
       }
 
       setState(() {
@@ -93,6 +94,7 @@ class _PlanState extends State<Plan> {
         };
       });
       _loadMissedCourses();
+      _checkForNewerPlan();
     } catch (e) {
       print('Error loading plan for new date: $e');
       // If there's an error, try to reload current data
@@ -193,6 +195,13 @@ class _PlanState extends State<Plan> {
   Future<dynamic> _displayData(dynamic lessons, {bool allowNextDay = true}) async {
     if (lessons == null) return null;
 
+    if (_planMode == 'today') {
+      return {
+        'data': lessons,
+        'info': lessons['info'],
+      };
+    }
+
     // Check if the day is over (current time is after the last lesson's end time)
     if (allowNextDay && lessons['data'] is List && lessons['data'].isNotEmpty) {
       var lastLesson = lessons['data'].last;
@@ -203,7 +212,7 @@ class _PlanState extends State<Plan> {
           List<String> parts = endTimeStr.split(':');
           int hour = int.parse(parts[0]);
           int minute = int.parse(parts[1]);
-          DateTime now = DateTime.now();
+          DateTime now = AppClock.now();
           DateTime lastEnd =
               DateTime(now.year, now.month, now.day, hour, minute);
           if (now.isAfter(lastEnd)) dayOver = true;
@@ -213,7 +222,7 @@ class _PlanState extends State<Plan> {
 
         if (dayOver) {
           // Load lessons for the next day
-          DateTime tomorrow = DateTime.now().add(Duration(days: 1));
+          DateTime tomorrow = AppClock.now().add(Duration(days: 1));
           // Skip weekends
           if (tomorrow.weekday == 6) {
             tomorrow = tomorrow.add(Duration(days: 2)); // Monday
@@ -288,9 +297,44 @@ class _PlanState extends State<Plan> {
       savePlanDisplay(widget.classId, data);
     }
 
+    if (_planMode == 'latest' && mounted && _hasPlan(data)) {
+      try {
+        DateTime displayedDate = VPlanAPI()
+            .parseStringDatatoDateTime(data['data']['date'].toString());
+        DateTime today = AppClock.now();
+        DateTime nextDay = today.add(Duration(days: 1));
+        while (nextDay.weekday == DateTime.saturday ||
+            nextDay.weekday == DateTime.sunday) {
+          nextDay = nextDay.add(Duration(days: 1));
+        }
+        if (!displayedDate.isAfter(today) ||
+            (displayedDate.year == today.year &&
+                displayedDate.month == today.month &&
+                displayedDate.day == today.day)) {
+          dynamic nextPlan = await VPlanAPI().getLessonsByDate(
+            date: nextDay,
+            classId: widget.classId,
+          );
+          if (nextPlan != null &&
+              nextPlan['error'] == null &&
+              nextPlan['data'] is List &&
+              nextPlan['data'].isNotEmpty) {
+            _applyIfChanged({
+              'data': nextPlan,
+              'info': nextPlan['info'],
+            });
+            if (mounted && _hasPlan(data)) {
+              savePlanDisplay(widget.classId, data);
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
     vplanAPI.cleanVplanOfflineData();
 
     _loadMissedCourses();
+    _checkForNewerPlan();
   }
 
   dynamic data = 'loading';
@@ -306,6 +350,13 @@ class _PlanState extends State<Plan> {
   /// Dann wird ein Lade-Symbol direkt über dem Plan angezeigt (kein
   /// Overlay wie beim alten Pull-to-Refresh).
   bool refreshing = false;
+  String _defaultPlanModePerson = 'auto';
+  String _defaultPlanModeClass = 'auto';
+  // Anzahl der neueren, bereits verfügbaren Pläne (wird als Badge angezeigt).
+  int _newerPlanCount = 0;
+
+  String get _planMode =>
+      widget.person != null ? _defaultPlanModePerson : _defaultPlanModeClass;
 
   /// Blendet das Lade-Symbol ein, führt [action] aus und blendet das
   /// Lade-Symbol danach wieder aus.
@@ -340,6 +391,67 @@ class _PlanState extends State<Plan> {
     await _runRefresh(() => getData(showLoading: false));
   }
 
+  Future<void> _checkForNewerPlan() async {
+    if (_planMode == 'latest') {
+      _setNewerPlanCount(0);
+      return;
+    }
+
+    if (!_hasPlan(data)) {
+      _setNewerPlanCount(0);
+      return;
+    }
+
+    DateTime displayedDate;
+    try {
+      displayedDate = VPlanAPI()
+          .parseStringDatatoDateTime(data['data']['date'].toString());
+    } catch (_) {
+      _setNewerPlanCount(0);
+      return;
+    }
+
+    DateTime today = AppClock.now();
+    if (displayedDate.isAfter(today)) {
+      _setNewerPlanCount(0);
+      return;
+    }
+
+    // Zähle alle bereits lokal verfügbaren Pläne, die NACH dem angezeigten
+    // Tag liegen – nicht nur den nächsten Schultag. So zeigt die Badge die
+    // tatsächliche Anzahl neuer Pläne an.
+    int count = 0;
+    try {
+      final List<dynamic> allPlans = await VPlanAPI().getAllOfflineData();
+      final Set<String> newerDates = <String>{};
+      for (final dynamic entry in allPlans) {
+        if (entry is! Map) continue;
+        final String dateStr = entry['date']?.toString() ?? '';
+        if (dateStr.isEmpty) continue;
+        DateTime planDate;
+        try {
+          planDate = VPlanAPI().parseStringDatatoDateTime(dateStr);
+        } catch (_) {
+          continue;
+        }
+        if (!planDate.isAfter(displayedDate)) continue;
+        // Pro Kalendertag nur einmal zählen (Offline-Daten können denselben
+        // Plan mehrfach enthalten).
+        newerDates.add('${planDate.year}-${planDate.month}-${planDate.day}');
+      }
+      count = newerDates.length;
+    } catch (_) {
+      count = 0;
+    }
+
+    _setNewerPlanCount(count);
+  }
+
+  void _setNewerPlanCount(int count) {
+    if (!mounted || _newerPlanCount == count) return;
+    setState(() => _newerPlanCount = count);
+  }
+
   /// Baut das Lade-Symbol, das – wie beim Aktualisieren-Symbol – direkt
   /// über dem Plan angezeigt wird, solange [refreshing] aktiv ist.
   List<Widget> _refreshSpinnerWidgets() {
@@ -370,8 +482,12 @@ class _PlanState extends State<Plan> {
     // Sofort (ohne Ladezeit und ohne await) den zuletzt gespeicherten Plan
     // anzeigen – der allererste Frame zeigt also bereits den letzten Stand.
     data = cachedPlanDisplay(widget.classId) ?? 'loading';
-    _loadSettings();
-    getData();
+    // Erst die Einstellungen (u.a. den Standard-Planmodus) laden, danach den
+    // Plan holen. Sonst würde getData() mit dem Standardwert 'auto' rechnen
+    // und z.B. bei „Heute“ fälschlich auf den nächsten Tag wechseln.
+    _loadSettings().then((_) {
+      if (mounted) getData();
+    });
   }
 
   Future<void> _loadSettings() async {
@@ -384,8 +500,15 @@ class _PlanState extends State<Plan> {
               true;
       hideTeacher =
           prefs.getBool(SchoolStorage.scopedKey(prefs, 'hideTeacher')) ?? false;
+      _defaultPlanModePerson =
+          prefs.getString(SchoolStorage.scopedKey(prefs, 'defaultPlanModePerson')) ??
+              'auto';
+      _defaultPlanModeClass =
+          prefs.getString(SchoolStorage.scopedKey(prefs, 'defaultPlanModeClass')) ??
+              'auto';
       className = customName;
     });
+    _checkForNewerPlan();
   }
 
   /// Wandelt den von der API gelieferten Wochenwert (Kopf/Woche, z.B. "A",
@@ -585,9 +708,38 @@ class _PlanState extends State<Plan> {
           onPressed: () => newVP(false),
           icon: Icon(Icons.arrow_back),
         ),
-        IconButton(
-          onPressed: () => newVP(true),
-          icon: Icon(Icons.arrow_forward),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton(
+              onPressed: refreshing ? null : () => newVP(true),
+              icon: Icon(Icons.arrow_forward),
+            ),
+            if (_newerPlanCount > 0)
+              Positioned(
+                right: 2,
+                top: 2,
+                child: Container(
+                  key: const ValueKey<String>('newerPlanBadge'),
+                  padding: EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  constraints: BoxConstraints(minWidth: 16, minHeight: 16),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '$_newerPlanCount',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
         ),
       ],
       children: [

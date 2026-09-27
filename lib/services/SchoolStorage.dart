@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:substitute/services/AppClock.dart';
 
 class SchoolProfile {
   SchoolProfile({
@@ -128,7 +129,7 @@ class SchoolStorage {
   static Future<SchoolProfile> addSchool(String name) async {
     final List<SchoolProfile> profiles = await getProfiles();
     final SchoolProfile school = SchoolProfile(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: AppClock.now().millisecondsSinceEpoch.toString(),
       name: name.trim().isEmpty ? 'Neue Schule' : name.trim(),
     );
     profiles.add(school);

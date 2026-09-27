@@ -14,6 +14,7 @@ import '../../models/swipe_page_transition.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/services/SchoolStorage.dart';
+import 'package:substitute/services/AppClock.dart';
 
 import '../dashboard/settings/VPlanLogin.dart';
 
@@ -281,7 +282,7 @@ class _VPlanState extends State<VPlan> with RouteAware {
 
     // Step 3: Choose the courses to show for this person
     final person = {
-      'id': '${DateTime.now().millisecondsSinceEpoch}',
+      'id': '${AppClock.now().millisecondsSinceEpoch}',
       'name': name,
       'classId': className,
       'courses': <String>[],
@@ -431,6 +432,7 @@ class _ClassWidgetState extends State<ClassWidget> {
   Map<String, dynamic> nextLesson = {'': 'loading'};
   String? customName;
   bool hideLessonTimes = true;
+  String _defaultPlanMode = 'auto';
 
   Future<void> _loadCustomName() async {
     String? name = await VPlanAPI().getClassName(widget.classId);
@@ -524,6 +526,9 @@ class _ClassWidgetState extends State<ClassWidget> {
       hideLessonTimes =
           prefs.getBool(SchoolStorage.scopedKey(prefs, 'hideLessonTimes')) ??
               true;
+      _defaultPlanMode =
+          prefs.getString(SchoolStorage.scopedKey(prefs, 'defaultPlanModePreview')) ??
+              'auto';
     } catch (_) {
       hideLessonTimes = true;
     }
@@ -562,7 +567,7 @@ class _ClassWidgetState extends State<ClassWidget> {
     // nächste Stunde liefert, wird die Anzeige ersetzt.
     final bool hasNewLesson = nextLesson.containsKey('lesson');
     final bool hadOldLesson = oldNextLesson.containsKey('lesson');
-    if (!hasNewLesson && hadOldLesson) {
+    if (!forceRefresh && !hasNewLesson && hadOldLesson) {
       nextLesson = oldNextLesson;
       refreshIfChanged();
       return;
@@ -600,7 +605,7 @@ class _ClassWidgetState extends State<ClassWidget> {
       if (vplan['date'] != null &&
           VPlanAPI()
               .parseStringDatatoDateTime(vplan['date'].toString())
-              .isAfter(DateTime.now())) {
+              .isAfter(AppClock.now())) {
         currentTime = TimeOfDay(hour: 0, minute: 0);
       }
     } catch (_) {
@@ -629,7 +634,7 @@ class _ClassWidgetState extends State<ClassWidget> {
     }
 
     // Keine Stunde mehr heute: Wochenende oder nach Schulschluss.
-    DateTime now = DateTime.now();
+    DateTime now = AppClock.now();
     if (now.weekday == DateTime.saturday || now.weekday == DateTime.sunday) {
       nextLesson = {'weekend': true};
       return;
@@ -648,7 +653,12 @@ class _ClassWidgetState extends State<ClassWidget> {
       afterSchool = true;
     }
 
-    if (!afterSchool) {
+    if (!afterSchool && _defaultPlanMode != 'latest') {
+      nextLesson = {};
+      return;
+    }
+
+    if (_defaultPlanMode == 'today') {
       nextLesson = {};
       return;
     }

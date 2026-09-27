@@ -4,6 +4,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 
 import '../../../models/ListPage.dart';
 import '../../../services/SchoolStorage.dart';
+import '../../../services/AppClock.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -20,11 +21,13 @@ class DeveloperOptions extends StatefulWidget {
 
 class _DeveloperOptionsState extends State<DeveloperOptions> {
   bool _isAnalysisEnabled = false;
+  DateTime? _customDate;
 
   @override
   void initState() {
     super.initState();
     _loadAnalysisStatus();
+    _loadCustomDate();
   }
 
   Future<void> _loadAnalysisStatus() async {
@@ -32,6 +35,65 @@ class _DeveloperOptionsState extends State<DeveloperOptions> {
     setState(() {
       _isAnalysisEnabled = prefs.getBool('analysis') ?? false;
     });
+  }
+
+  Future<void> _loadCustomDate() async {
+    final date = await AppClock.getOverriddenNow();
+    if (mounted) {
+      setState(() {
+        _customDate = date;
+      });
+    }
+  }
+
+  Future<void> _pickCustomDate() async {
+    final DateTime base = _customDate ?? AppClock.now();
+
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: base,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (pickedDate == null || !mounted) return;
+
+    // Zusätzlich zur Uhrzeit auch die Uhrzeit wählen lassen, damit sich z.B.
+    // „vor/nach der letzten Stunde“ sauber testen lässt.
+    final TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(base),
+    );
+    if (pickedTime == null || !mounted) return;
+
+    final DateTime picked = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+    await AppClock.setOverriddenNow(picked);
+    if (mounted) {
+      setState(() {
+        _customDate = picked;
+      });
+    }
+  }
+
+  String _two(int value) => value.toString().padLeft(2, '0');
+
+  String _formatDateTime(DateTime date) {
+    return '${_two(date.day)}.${_two(date.month)}.${date.year} '
+        '${_two(date.hour)}:${_two(date.minute)}';
+  }
+
+  Future<void> _clearCustomDate() async {
+    await AppClock.setOverriddenNow(null);
+    if (mounted) {
+      setState(() {
+        _customDate = null;
+      });
+    }
   }
 
   @override
@@ -97,7 +159,45 @@ class _DeveloperOptionsState extends State<DeveloperOptions> {
       body: ListPage(
         title: 'Developer options',
         children: [
-          // ... other options
+          Container(
+            margin: const EdgeInsets.all(10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Custom date & time',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _customDate == null
+                            ? 'No override'
+                            : _formatDateTime(_customDate!),
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_customDate != null)
+                  Button(
+                    text: 'Clear',
+                    onPressed: _clearCustomDate,
+                  ),
+                Button(
+                  text: _customDate == null ? 'Set' : 'Change',
+                  onPressed: _pickCustomDate,
+                ),
+              ],
+            ),
+          ),
           ...options.map(
             (e) => Container(
               margin: const EdgeInsets.all(10),

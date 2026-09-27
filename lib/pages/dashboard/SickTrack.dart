@@ -10,6 +10,7 @@ import '../../models/ListItem.dart';
 import '../../models/ListPage.dart';
 import '../../models/LoadingProcess.dart';
 import '../../services/SchoolStorage.dart';
+import '../../services/AppClock.dart';
 import '../vplan/VPlanAPI.dart';
 
 class SickTrack extends StatefulWidget {
@@ -441,9 +442,9 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
   Future<void> _addDay() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: AppClock.now(),
       firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      lastDate: AppClock.now().add(const Duration(days: 365)),
       helpText: AppLocalizations.of(context)!.selectSickDays,
     );
     if (picked == null) return;
@@ -457,7 +458,7 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
   Future<void> _save() async {
     if (classId == null || days.isEmpty) return;
     Map<String, dynamic> entry = {
-      'id': '${DateTime.now().millisecondsSinceEpoch}',
+      'id': '${AppClock.now().millisecondsSinceEpoch}',
       'classId': classId,
       'courses': selectedCourses.toList(),
       'days': days,

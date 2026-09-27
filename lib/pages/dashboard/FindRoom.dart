@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import 'package:substitute/services/AppClock.dart';
 
 import '../vplan/VPlanAPI.dart';
 import '../../services/SchoolStorage.dart';
@@ -28,7 +29,7 @@ class _FindRoomState extends State<FindRoom> {
   String loadText = '';
 
   // Date selection
-  DateTime _selectedDate = DateTime.now();
+  DateTime _selectedDate = AppClock.now();
 
   // Time mode: null = full day, TimeOfDay = specific time
   TimeOfDay? _selectedTime;
@@ -546,8 +547,8 @@ class _FindRoomState extends State<FindRoom> {
                           context: context,
                           initialDate: tempDate,
                           firstDate:
-                              DateTime.now().subtract(Duration(days: 30)),
-                          lastDate: DateTime.now().add(Duration(days: 30)),
+                              AppClock.now().subtract(Duration(days: 30)),
+                          lastDate: AppClock.now().add(Duration(days: 30)),
                         );
                         if (picked != null) {
                           setDialogState(() {
