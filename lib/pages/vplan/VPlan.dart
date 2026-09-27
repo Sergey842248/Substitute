@@ -15,6 +15,7 @@ import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/services/SchoolStorage.dart';
 import 'package:substitute/services/AppClock.dart';
+import 'package:substitute/services/PlanModePreferences.dart';
 
 import '../dashboard/settings/VPlanLogin.dart';
 
@@ -200,11 +201,135 @@ class _VPlanState extends State<VPlan> with RouteAware {
     );
   }
 
-  void _deletePerson(Map<String, dynamic> person) async {
+  /// Fragt vor dem Löschen einer Person nach, damit sie nicht versehentlich
+  /// verloren geht. Erst nach einer Bestätigung wird sie tatsächlich entfernt.
+  Future<void> _deletePerson(Map<String, dynamic> person) async {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(25),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        title: Text(
+          l10n.deletePersonTitle,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 19),
+        ),
+        content: Text(
+          l10n.deletePersonMessage(
+            person['name']?.toString() ?? person['id']?.toString() ?? '',
+          ),
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              l10n.deleteAction,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
     await VPlanAPI().deletePerson(person['id']);
     setState(() {
       persons.remove(person);
     });
+  }
+
+  /// Fragt vor dem Löschen einer Klasse nach, damit sie nicht versehentlich
+  /// verloren geht. Erst nach einer Bestätigung wird sie tatsächlich entfernt.
+  Future<void> _deleteClass(int index) async {
+    if (index < 0 || index >= classes.length) return;
+    final String classId = classes[index];
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final String className = await VPlanAPI().getClassName(classId) ?? classId;
+    if (!mounted) return;
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(25),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        title: Text(
+          l10n.deleteClassTitle,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 19),
+        ),
+        content: Text(
+          l10n.deleteClassMessage(className),
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              l10n.deleteAction,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    // Nach dem Dialog kann sich die Liste nicht verändert haben, da währenddessen
+    // keine weiteren Aktionen möglich waren.
+    final int currentIndex = classes.indexOf(classId);
+    if (currentIndex == -1) return;
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String>? newClasses =
+        prefs.getStringList(SchoolStorage.scopedKey(prefs, 'classes'));
+    if (newClasses == null) {
+      newClasses = [];
+    }
+    newClasses.remove(classId);
+    prefs.setStringList(
+        SchoolStorage.scopedKey(prefs, 'classes'), newClasses);
+    // Auch die gespeicherten Kurs-Auswahlen und den
+    // benutzerdefinierten Namen der Klasse zurücksetzen,
+    // damit eine später erneut hinzugefügte Klasse wieder
+    // mit allen Kursen startet.
+    await VPlanAPI().removeHiddenCoursesForClass(classId);
+    await VPlanAPI().removeClassName(classId);
+    if (!mounted) return;
+
+    listKey.currentState!.removeItem(
+      currentIndex,
+      (context, animation) => SizeTransition(
+        sizeFactor: animation,
+        child: ListItem(
+          onClick: () {},
+          title: Text(
+            classId,
+            style: TextStyle(
+              fontSize: 19,
+            ),
+          ),
+        ),
+      ),
+    );
+    classes.removeAt(currentIndex);
   }
 
   Future<void> _openAddPerson() async {
@@ -374,44 +499,7 @@ class _VPlanState extends State<VPlan> with RouteAware {
                     child: ClassWidget(
                       classId: classes[index],
                       classIndex: index,
-                      onDelete: () async {
-                        String classId = classes[index];
-                        SharedPreferences prefs =
-                            await SharedPreferences.getInstance();
-                        List<String>? newClasses = prefs.getStringList(
-                            SchoolStorage.scopedKey(prefs, 'classes'));
-                        if (newClasses == null) {
-                          newClasses = [];
-                        }
-                        newClasses.remove(classId);
-                        prefs.setStringList(
-                            SchoolStorage.scopedKey(prefs, 'classes'),
-                            newClasses);
-                        // Auch die gespeicherten Kurs-Auswahlen und den
-                        // benutzerdefinierten Namen der Klasse zurücksetzen,
-                        // damit eine später erneut hinzugefügte Klasse wieder
-                        // mit allen Kursen startet.
-                        await VPlanAPI().removeHiddenCoursesForClass(classId);
-                        await VPlanAPI().removeClassName(classId);
-
-                        listKey.currentState!.removeItem(
-                          index,
-                          (context, animation) => SizeTransition(
-                            sizeFactor: animation,
-                            child: ListItem(
-                              onClick: () {},
-                              title: Text(
-                                classId,
-                                style: TextStyle(
-                                  fontSize: 19,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                        classes.removeAt(index);
-                        //getClasses();
-                      },
+                      onDelete: () => _deleteClass(index),
                       openContainer: () => Navigator.push(
                         context,
                         SwipePageTransition(
@@ -545,9 +633,7 @@ class _ClassWidgetState extends State<ClassWidget> {
       hideLessonTimes =
           prefs.getBool(SchoolStorage.scopedKey(prefs, 'hideLessonTimes')) ??
               true;
-      _defaultPlanMode =
-          prefs.getString(SchoolStorage.scopedKey(prefs, 'defaultPlanModePreview')) ??
-              'auto';
+      _defaultPlanMode = await PlanModePreferences.readPreviewClass(prefs);
     } catch (_) {
       hideLessonTimes = true;
     }
@@ -851,9 +937,7 @@ class _PersonWidgetState extends State<PersonWidget> {
       hideLessonTimes =
           prefs.getBool(SchoolStorage.scopedKey(prefs, 'hideLessonTimes')) ??
               true;
-      _defaultPlanMode = prefs.getString(
-              SchoolStorage.scopedKey(prefs, 'defaultPlanModePreview')) ??
-          'auto';
+      _defaultPlanMode = await PlanModePreferences.readPreviewPerson(prefs);
     } catch (_) {
       hideLessonTimes = true;
     }

@@ -242,6 +242,41 @@ class AppLocalizationsEn extends AppLocalizations {
   String get classNameHint => 'Custom name (optional)';
 
   @override
+  String get deleteClassTitle => 'Delete class?';
+
+  @override
+  String deleteClassMessage(String className) {
+    return 'The class \"$className\" will be removed. This cannot be undone.';
+  }
+
+  @override
+  String get deletePersonTitle => 'Delete person?';
+
+  @override
+  String deletePersonMessage(String personName) {
+    return 'The person \"$personName\" will be removed. This cannot be undone.';
+  }
+
+  @override
+  String get deleteAction => 'Delete';
+
+  @override
+  String get deleteSickEntryTitle => 'Delete entry?';
+
+  @override
+  String deleteSickEntryMessage(String classId) {
+    return 'The sick track entry for \"$classId\" will be removed. This cannot be undone.';
+  }
+
+  @override
+  String get deleteLessonTitle => 'Delete lesson time?';
+
+  @override
+  String deleteLessonMessage(int count) {
+    return 'The $count. lesson time will be removed. This cannot be undone.';
+  }
+
+  @override
   String get couldNotLoadVPlanData => 'Could not load VPlan data.';
 
   @override
@@ -749,9 +784,57 @@ class AppLocalizationsEn extends AppLocalizations {
       'Always show only today\'s plan';
 
   @override
-  String get defaultPlanModePreviewEntryTitle => 'Defaut plan mode';
+  String get defaultPlanModePreviewClass => 'Preview of classes';
+
+  @override
+  String get defaultPlanModePreviewClassAuto => 'Auto';
+
+  @override
+  String get defaultPlanModePreviewClassAutoSubtitle =>
+      'Show today, unless the school day is over';
+
+  @override
+  String get defaultPlanModePreviewClassLatest => 'Latest';
+
+  @override
+  String get defaultPlanModePreviewClassLatestSubtitle =>
+      'Always show the latest available plan';
+
+  @override
+  String get defaultPlanModePreviewClassToday => 'Today';
+
+  @override
+  String get defaultPlanModePreviewClassTodaySubtitle =>
+      'Always show only today\'s plan';
+
+  @override
+  String get defaultPlanModePreviewPerson => 'Preview of persons';
+
+  @override
+  String get defaultPlanModePreviewPersonAuto => 'Auto';
+
+  @override
+  String get defaultPlanModePreviewPersonAutoSubtitle =>
+      'Show today, unless the school day is over';
+
+  @override
+  String get defaultPlanModePreviewPersonLatest => 'Latest';
+
+  @override
+  String get defaultPlanModePreviewPersonLatestSubtitle =>
+      'Always show the latest available plan';
+
+  @override
+  String get defaultPlanModePreviewPersonToday => 'Today';
+
+  @override
+  String get defaultPlanModePreviewPersonTodaySubtitle =>
+      'Always show only today\'s plan';
+
+  @override
+  String get defaultPlanModePreviewEntryTitle => 'Default plan mode';
 
   @override
   String get defaultPlanModePreviewEntrySubtitle =>
-      'Persons, classes and preview';
+      'Separately for persons, classes and their previews';
 }

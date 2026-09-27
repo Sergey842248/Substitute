@@ -530,6 +530,60 @@ abstract class AppLocalizations {
   /// **'Custom name (optional)'**
   String get classNameHint;
 
+  /// No description provided for @deleteClassTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete class?'**
+  String get deleteClassTitle;
+
+  /// No description provided for @deleteClassMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The class \"{className}\" will be removed. This cannot be undone.'**
+  String deleteClassMessage(String className);
+
+  /// No description provided for @deletePersonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete person?'**
+  String get deletePersonTitle;
+
+  /// No description provided for @deletePersonMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The person \"{personName}\" will be removed. This cannot be undone.'**
+  String deletePersonMessage(String personName);
+
+  /// No description provided for @deleteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteAction;
+
+  /// No description provided for @deleteSickEntryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete entry?'**
+  String get deleteSickEntryTitle;
+
+  /// No description provided for @deleteSickEntryMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The sick track entry for \"{classId}\" will be removed. This cannot be undone.'**
+  String deleteSickEntryMessage(String classId);
+
+  /// No description provided for @deleteLessonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete lesson time?'**
+  String get deleteLessonTitle;
+
+  /// No description provided for @deleteLessonMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The {count}. lesson time will be removed. This cannot be undone.'**
+  String deleteLessonMessage(int count);
+
   /// No description provided for @couldNotLoadVPlanData.
   ///
   /// In en, this message translates to:
@@ -1454,16 +1508,100 @@ abstract class AppLocalizations {
   /// **'Always show only today\'s plan'**
   String get defaultPlanModePreviewTodaySubtitle;
 
+  /// No description provided for @defaultPlanModePreviewClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview of classes'**
+  String get defaultPlanModePreviewClass;
+
+  /// No description provided for @defaultPlanModePreviewClassAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get defaultPlanModePreviewClassAuto;
+
+  /// No description provided for @defaultPlanModePreviewClassAutoSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show today, unless the school day is over'**
+  String get defaultPlanModePreviewClassAutoSubtitle;
+
+  /// No description provided for @defaultPlanModePreviewClassLatest.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest'**
+  String get defaultPlanModePreviewClassLatest;
+
+  /// No description provided for @defaultPlanModePreviewClassLatestSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Always show the latest available plan'**
+  String get defaultPlanModePreviewClassLatestSubtitle;
+
+  /// No description provided for @defaultPlanModePreviewClassToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get defaultPlanModePreviewClassToday;
+
+  /// No description provided for @defaultPlanModePreviewClassTodaySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Always show only today\'s plan'**
+  String get defaultPlanModePreviewClassTodaySubtitle;
+
+  /// No description provided for @defaultPlanModePreviewPerson.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview of persons'**
+  String get defaultPlanModePreviewPerson;
+
+  /// No description provided for @defaultPlanModePreviewPersonAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get defaultPlanModePreviewPersonAuto;
+
+  /// No description provided for @defaultPlanModePreviewPersonAutoSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show today, unless the school day is over'**
+  String get defaultPlanModePreviewPersonAutoSubtitle;
+
+  /// No description provided for @defaultPlanModePreviewPersonLatest.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest'**
+  String get defaultPlanModePreviewPersonLatest;
+
+  /// No description provided for @defaultPlanModePreviewPersonLatestSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Always show the latest available plan'**
+  String get defaultPlanModePreviewPersonLatestSubtitle;
+
+  /// No description provided for @defaultPlanModePreviewPersonToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get defaultPlanModePreviewPersonToday;
+
+  /// No description provided for @defaultPlanModePreviewPersonTodaySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Always show only today\'s plan'**
+  String get defaultPlanModePreviewPersonTodaySubtitle;
+
   /// No description provided for @defaultPlanModePreviewEntryTitle.
   ///
   /// In en, this message translates to:
-  /// **'Defaut plan mode'**
+  /// **'Default plan mode'**
   String get defaultPlanModePreviewEntryTitle;
 
   /// No description provided for @defaultPlanModePreviewEntrySubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Persons, classes and preview'**
+  /// **'Separately for persons, classes and their previews'**
   String get defaultPlanModePreviewEntrySubtitle;
 }
 

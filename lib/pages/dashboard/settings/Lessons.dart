@@ -213,6 +213,57 @@ class _LessonsState extends State<Lessons> {
     Fluttertoast.showToast(msg: 'Times saved');
   }
 
+  /// Fragt vor dem Löschen einer Unterrichtszeit nach, damit sie nicht
+  /// versehentlich verloren geht.
+  Future<void> _deleteLesson(int index) async {
+    if (index < 0 || index >= lessons.length) return;
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final int count = lessons[index]['count']?.toString() != null
+        ? int.tryParse(lessons[index]['count'].toString()) ?? index + 1
+        : index + 1;
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(25),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        title: Text(
+          l10n.deleteLessonTitle,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 19),
+        ),
+        content: Text(
+          l10n.deleteLessonMessage(count),
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              l10n.deleteAction,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    if (index >= lessons.length) return;
+    changed = true;
+    saved = false;
+    lessons.removeAt(index);
+    reorderLessons();
+    setState(() {});
+  }
+
   Widget buildLessonItem(BuildContext context, int index) {
     final dynamic lesson = lessons[index];
 
@@ -256,13 +307,7 @@ class _LessonsState extends State<Lessons> {
             color: Theme.of(context).focusColor.withValues(alpha: 0.5),
             size: 18,
           ),
-          onPressed: () {
-            changed = true;
-            saved = false;
-            lessons.removeAt(index);
-            reorderLessons();
-            setState(() {});
-          },
+          onPressed: () => _deleteLesson(index),
         ),
       ),
     );

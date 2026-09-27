@@ -105,6 +105,43 @@
     "nameClass": "Name the class",
     "renameClass": "Rename class",
     "classNameHint": "Custom name (optional)",
+    "deleteClassTitle": "Delete class?",
+    "deleteClassMessage": "The class \"{className}\" will be removed. This cannot be undone.",
+    "@deleteClassMessage": {
+        "placeholders": {
+            "className": {
+                "type": "String"
+            }
+        }
+    },
+    "deletePersonTitle": "Delete person?",
+    "deletePersonMessage": "The person \"{personName}\" will be removed. This cannot be undone.",
+    "@deletePersonMessage": {
+        "placeholders": {
+            "personName": {
+                "type": "String"
+            }
+        }
+    },
+    "deleteAction": "Delete",
+    "deleteSickEntryTitle": "Delete entry?",
+    "deleteSickEntryMessage": "The sick track entry for \"{classId}\" will be removed. This cannot be undone.",
+    "@deleteSickEntryMessage": {
+        "placeholders": {
+            "classId": {
+                "type": "String"
+            }
+        }
+    },
+    "deleteLessonTitle": "Delete lesson time?",
+    "deleteLessonMessage": "The {count}. lesson time will be removed. This cannot be undone.",
+    "@deleteLessonMessage": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
     "couldNotLoadVPlanData": "Could not load VPlan data.",
     "noDataForAnalysisAvailable": "No data for analysis available.",
     "teacherLabel": "Teacher: {name}",
@@ -334,6 +371,20 @@
     "defaultPlanModePreviewLatestSubtitle": "Always show the latest available plan",
     "defaultPlanModePreviewToday": "Today",
     "defaultPlanModePreviewTodaySubtitle": "Always show only today's plan",
-    "defaultPlanModePreviewEntryTitle": "Defaut plan mode",
-    "defaultPlanModePreviewEntrySubtitle": "Persons, classes and preview"
+    "defaultPlanModePreviewClass": "Preview of classes",
+    "defaultPlanModePreviewClassAuto": "Auto",
+    "defaultPlanModePreviewClassAutoSubtitle": "Show today, unless the school day is over",
+    "defaultPlanModePreviewClassLatest": "Latest",
+    "defaultPlanModePreviewClassLatestSubtitle": "Always show the latest available plan",
+    "defaultPlanModePreviewClassToday": "Today",
+    "defaultPlanModePreviewClassTodaySubtitle": "Always show only today's plan",
+    "defaultPlanModePreviewPerson": "Preview of persons",
+    "defaultPlanModePreviewPersonAuto": "Auto",
+    "defaultPlanModePreviewPersonAutoSubtitle": "Show today, unless the school day is over",
+    "defaultPlanModePreviewPersonLatest": "Latest",
+    "defaultPlanModePreviewPersonLatestSubtitle": "Always show the latest available plan",
+    "defaultPlanModePreviewPersonToday": "Today",
+    "defaultPlanModePreviewPersonTodaySubtitle": "Always show only today's plan",
+    "defaultPlanModePreviewEntryTitle": "Default plan mode",
+    "defaultPlanModePreviewEntrySubtitle": "Separately for persons, classes and their previews"
 }

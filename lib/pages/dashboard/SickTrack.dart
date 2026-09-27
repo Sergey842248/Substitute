@@ -68,7 +68,46 @@ class _SickTrackState extends State<SickTrack> {
     }
   }
 
+  /// Fragt vor dem Löschen eines Krankheitseintrags nach, damit er nicht
+  /// versehentlich verloren geht.
   Future<void> _deleteEntry(Map<String, dynamic> entry) async {
+    if (!mounted) return;
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(25),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        title: Text(
+          l10n.deleteSickEntryTitle,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 19),
+        ),
+        content: Text(
+          l10n.deleteSickEntryMessage(entry['classId']?.toString() ?? ''),
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              l10n.deleteAction,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
     await vplanAPI.deleteSickTrackEntry(entry['id']);
     if (!mounted) return;
     setState(() {

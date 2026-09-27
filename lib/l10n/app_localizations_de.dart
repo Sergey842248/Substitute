@@ -245,6 +245,41 @@ class AppLocalizationsDe extends AppLocalizations {
   String get classNameHint => 'Benutzerdefinierter Name (optional)';
 
   @override
+  String get deleteClassTitle => 'Klasse löschen?';
+
+  @override
+  String deleteClassMessage(String className) {
+    return 'Die Klasse \"$className\" wird entfernt. Das kann nicht rückgängig gemacht werden.';
+  }
+
+  @override
+  String get deletePersonTitle => 'Person löschen?';
+
+  @override
+  String deletePersonMessage(String personName) {
+    return 'Die Person \"$personName\" wird entfernt. Das kann nicht rückgängig gemacht werden.';
+  }
+
+  @override
+  String get deleteAction => 'Löschen';
+
+  @override
+  String get deleteSickEntryTitle => 'Eintrag löschen?';
+
+  @override
+  String deleteSickEntryMessage(String classId) {
+    return 'Der Krankheitseintrag für \"$classId\" wird entfernt. Das kann nicht rückgängig gemacht werden.';
+  }
+
+  @override
+  String get deleteLessonTitle => 'Unterrichtszeit löschen?';
+
+  @override
+  String deleteLessonMessage(int count) {
+    return 'Die $count. Unterrichtszeit wird entfernt. Das kann nicht rückgängig gemacht werden.';
+  }
+
+  @override
   String get couldNotLoadVPlanData =>
       'VPlan-Daten konnten nicht geladen werden.';
 
@@ -756,9 +791,57 @@ class AppLocalizationsDe extends AppLocalizations {
       'Immer nur den heutigen Plan anzeigen';
 
   @override
+  String get defaultPlanModePreviewClass => 'Vorschau der Klassen';
+
+  @override
+  String get defaultPlanModePreviewClassAuto => 'Automatisch';
+
+  @override
+  String get defaultPlanModePreviewClassAutoSubtitle =>
+      'Zeige heute, außer der Schultag ist vorbei';
+
+  @override
+  String get defaultPlanModePreviewClassLatest => 'Neueste';
+
+  @override
+  String get defaultPlanModePreviewClassLatestSubtitle =>
+      'Immer den neuesten verfügbaren Plan anzeigen';
+
+  @override
+  String get defaultPlanModePreviewClassToday => 'Heute';
+
+  @override
+  String get defaultPlanModePreviewClassTodaySubtitle =>
+      'Immer nur den heutigen Plan anzeigen';
+
+  @override
+  String get defaultPlanModePreviewPerson => 'Vorschau der Personen';
+
+  @override
+  String get defaultPlanModePreviewPersonAuto => 'Automatisch';
+
+  @override
+  String get defaultPlanModePreviewPersonAutoSubtitle =>
+      'Zeige heute, außer der Schultag ist vorbei';
+
+  @override
+  String get defaultPlanModePreviewPersonLatest => 'Neueste';
+
+  @override
+  String get defaultPlanModePreviewPersonLatestSubtitle =>
+      'Immer den neuesten verfügbaren Plan anzeigen';
+
+  @override
+  String get defaultPlanModePreviewPersonToday => 'Heute';
+
+  @override
+  String get defaultPlanModePreviewPersonTodaySubtitle =>
+      'Immer nur den heutigen Plan anzeigen';
+
+  @override
   String get defaultPlanModePreviewEntryTitle => 'Standard-Planmodus';
 
   @override
   String get defaultPlanModePreviewEntrySubtitle =>
-      'Personen, Klassen und Vorschau';
+      'Getrennt für Personen, Klassen und deren Vorschauen';
 }
