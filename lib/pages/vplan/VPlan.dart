@@ -234,6 +234,9 @@ class _VPlanState extends State<VPlan> with RouteAware {
     if (className == null || !mounted) return;
 
     // Step 2: Enter the person's name
+    // Ohne Eingabe wird der Name der gewählten Klasse verwendet.
+    final String classFallbackHint =
+        await VPlanAPI().getClassName(className) ?? className;
     final TextEditingController nameController = TextEditingController();
     final String? name = await showDialog<String>(
       context: context,
@@ -251,7 +254,7 @@ class _VPlanState extends State<VPlan> with RouteAware {
           controller: nameController,
           autofocus: true,
           decoration: InputDecoration(
-            hintText: AppLocalizations.of(context)!.personName,
+            hintText: classFallbackHint,
           ),
         ),
         actions: [
@@ -269,12 +272,17 @@ class _VPlanState extends State<VPlan> with RouteAware {
         ],
       ),
     );
-    if (name == null || name.isEmpty || !mounted) return;
+    if (name == null || !mounted) return;
+
+    // Ohne eingegebenen Namen wird der Klassenname verwendet – ist der schon
+    // vergeben, bekommt die Person " (1)", " (2)" … angehängt.
+    final String personName = await _resolvePersonName(name, className);
+    if (!mounted) return;
 
     // Step 3: Choose the courses to show for this person
     final person = {
       'id': '${AppClock.now().millisecondsSinceEpoch}',
-      'name': name,
+      'name': personName,
       'classId': className,
       'courses': <String>[],
     };
@@ -294,6 +302,30 @@ class _VPlanState extends State<VPlan> with RouteAware {
 
     persons = await vplanAPI.getPersons();
     if (mounted) setState(() {});
+  }
+
+  /// Ermittelt den Namen einer **neu angelegten** Person: den eingegebenen
+  /// Namen, sonst den Namen der Klasse (bzw. deren selbst vergebener
+  /// Anzeigename).
+  ///
+  /// Nur beim Anlegen wird ein Suffix vergeben, und nur wenn es in derselben
+  /// Klasse bereits eine Person mit diesem Namen gibt: Dann wird " (1)",
+  /// " (2)" … angehängt. Derselbe Name in einer anderen Klasse bleibt
+  /// unverändert.
+  Future<String> _resolvePersonName(String? entered, String classId) async {
+    final String typed = (entered ?? '').trim();
+    final String base = typed.isNotEmpty
+        ? typed
+        : await VPlanAPI().getClassName(classId) ?? classId;
+
+    final List<Map<String, dynamic>> persons = await VPlanAPI().getPersons();
+    return VPlanAPI.uniquePersonName(
+      base,
+      persons
+          .where(
+              (Map<String, dynamic> p) => p['classId']?.toString() == classId)
+          .map((Map<String, dynamic> p) => p['name']?.toString() ?? ''),
+    );
   }
 
   @override
@@ -704,6 +736,67 @@ class _PersonWidgetState extends State<PersonWidget> {
 
   String get _classId => widget.person['classId']?.toString() ?? '';
   String get _personId => widget.person['id']?.toString() ?? '';
+
+  /// Benennt die Person um. Der Name wird dabei **immer unverändert**
+  /// übernommen: Zwei Personen dürfen denselben Namen haben, auch in derselben
+  /// Klasse. Ein Suffix wie " (1)" wird ausschließlich beim Anlegen vergeben.
+  Future<void> _renamePerson() async {
+    final TextEditingController nameController =
+        TextEditingController(text: widget.person['name']?.toString() ?? '');
+    final String? newName = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(25),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        title: Text(
+          AppLocalizations.of(context)!.renamePerson,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 19),
+        ),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context)!.personName,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(context, nameController.text.trim()),
+            child: Text(
+              AppLocalizations.of(context)!.save,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (newName == null || !mounted) return;
+
+    // Leerer Name -> Name der Klasse, sonst der eingegebene Name. Ohne
+    // Suffix: Beim Umbenieren sind Doppelnamen ausdrücklich erlaubt.
+    final String resolved = newName.isEmpty ? _classId : newName;
+
+    if (_personId.isEmpty) {
+      // Ohne ID lässt sich die Person nicht gezielt speichern – der Name im
+      // Widget wird trotzdem aktualisiert, damit er direkt sichtbar ist.
+      setState(() => widget.person['name'] = resolved);
+      return;
+    }
+
+    await VPlanAPI().updatePersonName(_personId, resolved);
+    if (!mounted) return;
+    // Die Person-Map wird auch in der Liste der Übersicht gehalten – sie wird
+    // hier direkt aktualisiert, damit die neue Anzeige sofort stimmt.
+    setState(() => widget.person['name'] = resolved);
+  }
   String get _cacheKey => nextLessonCacheKeyForPerson(_personId);
 
   List<String> _coursesOf(Map<String, dynamic> person) {
@@ -873,12 +966,25 @@ class _PersonWidgetState extends State<PersonWidget> {
                 ),
               ],
             ),
-            actionButton: IconButton(
-              onPressed: widget.onDelete,
-              icon: Icon(
-                Icons.delete_rounded,
-                color: Theme.of(context).focusColor.withValues(alpha: 0.5),
-              ),
+            actionButton: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  onPressed: _renamePerson,
+                  icon: Icon(
+                    Icons.edit_rounded,
+                    color: Theme.of(context).focusColor.withValues(alpha: 0.5),
+                  ),
+                  tooltip: AppLocalizations.of(context)!.renamePerson,
+                ),
+                IconButton(
+                  onPressed: widget.onDelete,
+                  icon: Icon(
+                    Icons.delete_rounded,
+                    color: Theme.of(context).focusColor.withValues(alpha: 0.5),
+                  ),
+                ),
+              ],
             ),
             onClick: widget.openContainer,
             padding: 7,

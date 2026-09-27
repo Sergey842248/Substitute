@@ -446,6 +446,112 @@ class AppLocalizationsEn extends AppLocalizations {
   String get showPreview => 'Show preview';
 
   @override
+  String get backup => 'Backup & Restore';
+
+  @override
+  String get backupSubtitle =>
+      'Export and import settings, classes and persons';
+
+  @override
+  String get backupExport => 'Export configuration';
+
+  @override
+  String get backupExportSubtitle => 'Share or save all settings as a file';
+
+  @override
+  String get backupImport => 'Import configuration';
+
+  @override
+  String get backupImportSubtitle => 'Read a previously exported file';
+
+  @override
+  String get backupImportRestore => 'Import configuration';
+
+  @override
+  String get backupImportNoCredentials =>
+      'Imported – the file did not contain any credentials.';
+
+  @override
+  String get backupExportSubject => 'Substitute configuration';
+
+  @override
+  String get backupExportText =>
+      'Substitute configuration (settings, classes, persons, credentials). It contains your password in plain text – please share it carefully.';
+
+  @override
+  String get backupNote =>
+      'Settings, classes, persons, courses, room data and credentials are backed up. Only cached plans are left out. Note: the file contains your password in plain text. After importing, restarting the app is recommended.';
+
+  @override
+  String get backupCredentialsTitle => 'Contains credentials';
+
+  @override
+  String get backupCredentialsWarning =>
+      'The exported file contains your password in plain text. Only share it with people you trust – or share it without credentials.';
+
+  @override
+  String get backupCredentialsContinue => 'With credentials';
+
+  @override
+  String get backupShareWithoutCredentials => 'Share without credentials';
+
+  @override
+  String get backupExportTextWithoutCredentials =>
+      'Substitute configuration (settings, classes, persons) – without credentials.';
+
+  @override
+  String get backupImportTitle => 'Import configuration';
+
+  @override
+  String get backupImportQuestion =>
+      'Should the existing settings be replaced?';
+
+  @override
+  String get backupImportMerge => 'Merge';
+
+  @override
+  String get backupImportReplace => 'Replace';
+
+  @override
+  String backupImportDone(int applied, int removed) {
+    return 'Import done: $applied settings applied, $removed removed.';
+  }
+
+  @override
+  String get backupImportFailed => 'The file could not be read.';
+
+  @override
+  String get backupFailed => 'Export failed.';
+
+  @override
+  String get backupErrorForeign => 'This file was not created by this app.';
+
+  @override
+  String get backupErrorFutureSchema =>
+      'The file was created by a newer version of the app.';
+
+  @override
+  String get weekdayShortMon => 'Mon';
+
+  @override
+  String get weekdayShortTue => 'Tue';
+
+  @override
+  String get weekdayShortWed => 'Wed';
+
+  @override
+  String get weekdayShortThu => 'Thu';
+
+  @override
+  String get weekdayShortFri => 'Fri';
+
+  @override
+  String get weekdayShortSat => 'Sat';
+
+  @override
+  String get weekdayShortSun => 'Sun';
+
+  @override
   String get previewSettings => 'Preview';
 
   @override
@@ -463,6 +569,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get personName => 'Person\'s name';
+
+  @override
+  String get renamePerson => 'Rename person';
 
   @override
   String get enterPersonName => 'Please enter a name for the person.';

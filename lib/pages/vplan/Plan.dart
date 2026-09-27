@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/services/SchoolStorage.dart';
 import 'package:substitute/services/AppClock.dart';
+import 'package:substitute/services/Weekday.dart';
 
 import '../../models/ListItem.dart';
 import '../../models/ListPage.dart';
@@ -636,7 +637,11 @@ class _PlanState extends State<Plan> {
       try {
         displayDateDateTime = VPlanAPI()
             .parseStringDatatoDateTime(data['data']['date'].toString());
-        displayDate = DateFormat('dd.MM.yyyy').format(displayDateDateTime);
+        displayDate = dateWithWeekday(
+          AppLocalizations.of(context)!,
+          displayDateDateTime,
+          DateFormat('dd.MM.yyyy').format(displayDateDateTime),
+        );
       } catch (_) {
         displayDate = '...';
       }
@@ -1063,7 +1068,7 @@ class _CoursesState extends State<Courses> {
   @override
   Widget build(BuildContext context) {
     return ListPage(
-      title: 'Courses',
+      title: AppLocalizations.of(context)!.courses,
       headerCenter: PreviewVisibilityToggle(
         hidden: _previewHidden,
         onPressed: _togglePreview,
@@ -1304,7 +1309,7 @@ class _PersonCoursesState extends State<PersonCourses> {
   @override
   Widget build(BuildContext context) {
     return ListPage(
-      title: AppLocalizations.of(context)!.coursesFor(widget.person['name']),
+      title: AppLocalizations.of(context)!.courses,
       // Die Person hat auch beim Anlegen bereits eine ID, deshalb steht die
       // Option auch im Erstell-Dialog zur Verfügung.
       headerCenter: PreviewVisibilityToggle(

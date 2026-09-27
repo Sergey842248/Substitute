@@ -595,6 +595,36 @@ class VPlanAPI {
 
   // --- Persons (named profiles with class + own course selection) ---
 
+  /// Sorgt für einen eindeutigen Personennamen **beim Anlegen** einer Person.
+  ///
+  /// Wird [base] in [takenNames] bereits verwendet, wird " (1)", " (2)" …
+  /// angehängt, bis der Name frei ist. Der Aufrufer übergibt nur die Namen, die
+  /// wirklich stören – also die Personen derselben Klasse. Personen anderer
+  /// Klassen dürfen denselben Namen haben.
+  ///
+  /// Beim Umbenennen wird diese Funktion bewusst *nicht* verwendet: Zwei
+  /// Personen mit demselben Namen sind ausdrücklich erlaubt.
+  static String uniquePersonName(String base, Iterable<String> takenNames) {
+    final Set<String> taken = takenNames
+        .map((String name) => name.trim())
+        .where((String name) => name.isNotEmpty)
+        .toSet();
+    if (!taken.contains(base)) return base;
+    int index = 1;
+    // Achtung: Der Suchbegriff muss exakt dem späteren Namen entsprechen –
+    // also mit dem Leerzeichen vor der Klammer.
+    while (taken.contains('$base $openBracket$index$closeBracket')) {
+      index++;
+    }
+    return '$base $openBracket$index$closeBracket';
+  }
+
+  /// Die Klammern werden hier bewusst als Zahlenwerte festgeschrieben:
+  /// Das sind die einfachen ASCII-Klammern U+0028 und U+0029. So kann sich
+  /// keine typografische Klammer oder ein anderes Symbol einschleichen.
+  static const String openBracket = '(';
+  static const String closeBracket = ')';
+
   Future<List<Map<String, dynamic>>> getPersons() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? data = prefs.getString(_prefKey(prefs, 'persons'));
@@ -627,6 +657,18 @@ class VPlanAPI {
     for (int i = 0; i < persons.length; i++) {
       if (persons[i]['id'] == personId) {
         persons[i]['courses'] = courses;
+        break;
+      }
+    }
+    await savePersons(persons);
+  }
+
+  /// Ändert den Namen einer bestehenden Person.
+  Future<void> updatePersonName(String personId, String name) async {
+    List<Map<String, dynamic>> persons = await getPersons();
+    for (int i = 0; i < persons.length; i++) {
+      if (persons[i]['id'] == personId) {
+        persons[i]['name'] = name;
         break;
       }
     }

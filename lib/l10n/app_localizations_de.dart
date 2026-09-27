@@ -450,6 +450,113 @@ class AppLocalizationsDe extends AppLocalizations {
   String get showPreview => 'Vorschau anzeigen';
 
   @override
+  String get backup => 'Sichern & Wiederherstellen';
+
+  @override
+  String get backupSubtitle =>
+      'Einstellungen, Klassen und Personen exportieren und importieren';
+
+  @override
+  String get backupExport => 'Konfiguration exportieren';
+
+  @override
+  String get backupExportSubtitle =>
+      'Alle Einstellungen als Datei teilen oder speichern';
+
+  @override
+  String get backupImport => 'Konfiguration importieren';
+
+  @override
+  String get backupImportSubtitle => 'Eine zuvor exportierte Datei einlesen';
+
+  @override
+  String get backupImportRestore => 'Konfiguration importieren';
+
+  @override
+  String get backupImportNoCredentials =>
+      'Importiert – die Datei enthielt keine Zugangsdaten.';
+
+  @override
+  String get backupExportSubject => 'Konfiguration von Substitute';
+
+  @override
+  String get backupExportText =>
+      'Konfiguration von Substitute (Einstellungen, Klassen, Personen, Zugangsdaten). Enthält das Passwort im Klartext – bitte vorsichtig weitergeben.';
+
+  @override
+  String get backupNote =>
+      'Gesichert werden Einstellungen, Klassen, Personen, Kurse und Zugangsdaten. Nur zwischengespeicherte Pläne sind nicht enthalten. Achtung: Die Datei enthält das Passwort im Klartext. Nach dem Import empfiehlt es sich, die App neu zu starten.';
+
+  @override
+  String get backupCredentialsTitle => 'Zugangsdaten enthalten';
+
+  @override
+  String get backupCredentialsWarning =>
+      'Die Exportdatei enthält dein Passwort im Klartext. Teile sie nur mit Personen, denen du vertraust – oder teile sie ohne Zugangsdaten.';
+
+  @override
+  String get backupCredentialsContinue => 'Mit Zugangsdaten';
+
+  @override
+  String get backupShareWithoutCredentials => 'Ohne Zugangsdaten teilen';
+
+  @override
+  String get backupExportTextWithoutCredentials =>
+      'Konfiguration von Substitute (Einstellungen, Klassen, Personen) – ohne Zugangsdaten.';
+
+  @override
+  String get backupImportTitle => 'Konfiguration importieren';
+
+  @override
+  String get backupImportQuestion =>
+      'Sollen die vorhandenen Einstellungen ersetzt werden?';
+
+  @override
+  String get backupImportMerge => 'Ergänzen';
+
+  @override
+  String get backupImportReplace => 'Ersetzen';
+
+  @override
+  String backupImportDone(int applied, int removed) {
+    return 'Import fertig: $applied Einstellungen übernommen, $removed entfernt.';
+  }
+
+  @override
+  String get backupImportFailed => 'Die Datei konnte nicht gelesen werden.';
+
+  @override
+  String get backupFailed => 'Der Export ist fehlgeschlagen.';
+
+  @override
+  String get backupErrorForeign => 'Diese Datei stammt nicht aus dieser App.';
+
+  @override
+  String get backupErrorFutureSchema =>
+      'Die Datei wurde mit einer neueren App-Version erstellt.';
+
+  @override
+  String get weekdayShortMon => 'Mo';
+
+  @override
+  String get weekdayShortTue => 'Di';
+
+  @override
+  String get weekdayShortWed => 'Mi';
+
+  @override
+  String get weekdayShortThu => 'Do';
+
+  @override
+  String get weekdayShortFri => 'Fr';
+
+  @override
+  String get weekdayShortSat => 'Sa';
+
+  @override
+  String get weekdayShortSun => 'So';
+
+  @override
   String get previewSettings => 'Vorschau';
 
   @override
@@ -468,6 +575,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get personName => 'Name der Person';
+
+  @override
+  String get renamePerson => 'Person umbenennen';
 
   @override
   String get enterPersonName => 'Bitte gib einen Namen für die Person ein.';

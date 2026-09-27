@@ -908,6 +908,198 @@ abstract class AppLocalizations {
   /// **'Show preview'**
   String get showPreview;
 
+  /// No description provided for @backup.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup & Restore'**
+  String get backup;
+
+  /// No description provided for @backupSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export and import settings, classes and persons'**
+  String get backupSubtitle;
+
+  /// No description provided for @backupExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export configuration'**
+  String get backupExport;
+
+  /// No description provided for @backupExportSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share or save all settings as a file'**
+  String get backupExportSubtitle;
+
+  /// No description provided for @backupImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import configuration'**
+  String get backupImport;
+
+  /// No description provided for @backupImportSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Read a previously exported file'**
+  String get backupImportSubtitle;
+
+  /// No description provided for @backupImportRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Import configuration'**
+  String get backupImportRestore;
+
+  /// No description provided for @backupImportNoCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported – the file did not contain any credentials.'**
+  String get backupImportNoCredentials;
+
+  /// No description provided for @backupExportSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Substitute configuration'**
+  String get backupExportSubject;
+
+  /// No description provided for @backupExportText.
+  ///
+  /// In en, this message translates to:
+  /// **'Substitute configuration (settings, classes, persons, credentials). It contains your password in plain text – please share it carefully.'**
+  String get backupExportText;
+
+  /// No description provided for @backupNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings, classes, persons, courses, room data and credentials are backed up. Only cached plans are left out. Note: the file contains your password in plain text. After importing, restarting the app is recommended.'**
+  String get backupNote;
+
+  /// No description provided for @backupCredentialsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contains credentials'**
+  String get backupCredentialsTitle;
+
+  /// No description provided for @backupCredentialsWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'The exported file contains your password in plain text. Only share it with people you trust – or share it without credentials.'**
+  String get backupCredentialsWarning;
+
+  /// No description provided for @backupCredentialsContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'With credentials'**
+  String get backupCredentialsContinue;
+
+  /// No description provided for @backupShareWithoutCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Share without credentials'**
+  String get backupShareWithoutCredentials;
+
+  /// No description provided for @backupExportTextWithoutCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Substitute configuration (settings, classes, persons) – without credentials.'**
+  String get backupExportTextWithoutCredentials;
+
+  /// No description provided for @backupImportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import configuration'**
+  String get backupImportTitle;
+
+  /// No description provided for @backupImportQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Should the existing settings be replaced?'**
+  String get backupImportQuestion;
+
+  /// No description provided for @backupImportMerge.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge'**
+  String get backupImportMerge;
+
+  /// No description provided for @backupImportReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get backupImportReplace;
+
+  /// No description provided for @backupImportDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Import done: {applied} settings applied, {removed} removed.'**
+  String backupImportDone(int applied, int removed);
+
+  /// No description provided for @backupImportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The file could not be read.'**
+  String get backupImportFailed;
+
+  /// No description provided for @backupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed.'**
+  String get backupFailed;
+
+  /// No description provided for @backupErrorForeign.
+  ///
+  /// In en, this message translates to:
+  /// **'This file was not created by this app.'**
+  String get backupErrorForeign;
+
+  /// No description provided for @backupErrorFutureSchema.
+  ///
+  /// In en, this message translates to:
+  /// **'The file was created by a newer version of the app.'**
+  String get backupErrorFutureSchema;
+
+  /// No description provided for @weekdayShortMon.
+  ///
+  /// In en, this message translates to:
+  /// **'Mon'**
+  String get weekdayShortMon;
+
+  /// No description provided for @weekdayShortTue.
+  ///
+  /// In en, this message translates to:
+  /// **'Tue'**
+  String get weekdayShortTue;
+
+  /// No description provided for @weekdayShortWed.
+  ///
+  /// In en, this message translates to:
+  /// **'Wed'**
+  String get weekdayShortWed;
+
+  /// No description provided for @weekdayShortThu.
+  ///
+  /// In en, this message translates to:
+  /// **'Thu'**
+  String get weekdayShortThu;
+
+  /// No description provided for @weekdayShortFri.
+  ///
+  /// In en, this message translates to:
+  /// **'Fri'**
+  String get weekdayShortFri;
+
+  /// No description provided for @weekdayShortSat.
+  ///
+  /// In en, this message translates to:
+  /// **'Sat'**
+  String get weekdayShortSat;
+
+  /// No description provided for @weekdayShortSun.
+  ///
+  /// In en, this message translates to:
+  /// **'Sun'**
+  String get weekdayShortSun;
+
   /// No description provided for @previewSettings.
   ///
   /// In en, this message translates to:
@@ -943,6 +1135,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Person\'s name'**
   String get personName;
+
+  /// No description provided for @renamePerson.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename person'**
+  String get renamePerson;
 
   /// No description provided for @enterPersonName.
   ///

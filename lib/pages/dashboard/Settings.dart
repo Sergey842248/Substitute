@@ -9,6 +9,7 @@ import 'settings/VPlanLogin.dart';
 import 'settings/DeveloperOptions.dart';
 import 'settings/TeacherShorts.dart';
 import 'settings/PlanSettings.dart';
+import 'settings/ConfigBackupSettings.dart';
 
 import '../../models/ListPage.dart';
 
@@ -53,6 +54,12 @@ class _SettingsState extends State<Settings> {
         'link': Language(),
       },
       {
+        'title': AppLocalizations.of(context)!.backup,
+        'icon': Icons.settings_backup_restore_rounded,
+        'subtitle': AppLocalizations.of(context)!.backupSubtitle,
+        'link': const ConfigBackupSettings(),
+      },
+      {
         'title': AppLocalizations.of(context)!.developerOptions,
         'icon': Icons.developer_mode_rounded,
         'subtitle': AppLocalizations.of(context)!.developerOptionsSubtitle,
@@ -64,49 +71,54 @@ class _SettingsState extends State<Settings> {
       children: [
         ...settingPages
             .map(
-            (e) => Container(
+            // Material statt einer farbigen Box: Sonst malt das ListTile
+            // seinen Hintergrund und die Ripple-Effekte auf den Container
+            // darüber und die Berührung wird unsichtbar.
+            (e) => Material(
               color: Theme.of(context).scaffoldBackgroundColor,
-              margin: EdgeInsets.all(10),
-              child: Center(
-                child: ListTile(
-                  onTap: () => Navigator.push(
-                    context,
-                    SwipePageTransition(
-                      type: PageTransitionType.rightToLeft,
-                      child: e['link'],
-                    ),
-                  ),
-                  leading: Container(
-                    margin: EdgeInsets.all(4),
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                    child: Icon(e['icon']),
-                  ),
-                  title: Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Text(
-                      e['title'],
-                      style: TextStyle(
-                        fontSize: 18,
+              child: Container(
+                margin: const EdgeInsets.all(10),
+                child: Center(
+                  child: ListTile(
+                    onTap: () => Navigator.push(
+                      context,
+                      SwipePageTransition(
+                        type: PageTransitionType.rightToLeft,
+                        child: e['link'],
                       ),
                     ),
-                  ),
-                  subtitle: Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Text(
-                      e['subtitle'],
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w100,
-                        color: Colors.grey,
+                    leading: Container(
+                      margin: EdgeInsets.all(4),
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(100),
                       ),
+                      child: Icon(e['icon']),
+                    ),
+                    title: Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Text(
+                        e['title'],
+                        style: TextStyle(
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    subtitle: Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Text(
+                        e['subtitle'],
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w100,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
                     ),
                   ),
                 ),
               ),
-            ),
           )
           .toList(),
       ],

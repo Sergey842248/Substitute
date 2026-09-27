@@ -16,6 +16,8 @@ import 'package:pretty_qr_code/pretty_qr_code.dart';
 import '../../../models/QRScanner.dart';
 import '../../../main.dart';
 import '../../../services/SchoolStorage.dart';
+import '../../../services/ConfigBackup.dart';
+import '../../../services/ConfigBackupFlow.dart';
 
 class VPlanLogin extends StatefulWidget {
   /// Wenn true (z.B. beim ersten App-Start, solange noch keine Zugangsdaten
@@ -76,6 +78,41 @@ class _VPlanLoginState extends State<VPlanLogin> {
 
     if (customUrlController.text != '') {
       setState(() => customUrlField = true);
+    }
+  }
+
+  /// Stellt eine zuvor exportierte Konfiguration wieder her. Sinnvoll vor
+  /// allem beim ersten Start, um die App ohne erneute Eingabe wiederherzustellen.
+  Future<void> _importConfig() async {
+    final l10n = AppLocalizations.of(context)!;
+    // Ohne Rückfrage: Auf der Anmeldeseite gibt es nichts zu erhalten, was
+    // verloren gehen könnte.
+    final ConfigImportResult? result =
+        await ConfigBackupFlow.importConfig(context, askReplace: false);
+    if (result == null || !mounted) return;
+
+    // Importierte Zugangsdaten in die Eingabefelder übernehmen.
+    getLoginData();
+    if (!mounted) return;
+    setState(() {});
+
+    ConfigBackupFlow.showResult(context, result);
+
+    // Sind mit der Sicherung Zugangsdaten gekommen, ist die Anmeldung erledigt
+    // und die App kann direkt geöffnet werden.
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final bool isDefaultSchool = SchoolStorage.activeSchoolId(prefs) ==
+        SchoolStorage.defaultSchoolId;
+    if (await SchoolStorage.hasCredentials() && isDefaultSchool) {
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => HomePageWithVPlanTab()),
+        (Route<dynamic> route) => false,
+      );
+    } else if (isDefaultSchool && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.backupImportNoCredentials)),
+      );
     }
   }
 
@@ -478,6 +515,21 @@ class _VPlanLoginState extends State<VPlanLogin> {
                       Navigator.of(context).pop();
                     }
                   },
+                ),
+
+                // Konfiguration importieren – praktisch vor allem beim ersten
+                // Start, um die App aus einer Sicherung wiederherzustellen.
+                Container(
+                  margin: const EdgeInsets.only(top: 14),
+                  child: TextButton.icon(
+                    key: const ValueKey<String>('importConfigOnLogin'),
+                    onPressed: _importConfig,
+                    icon: const Icon(Icons.file_download_rounded, size: 18),
+                    label: Text(
+                      AppLocalizations.of(context)!.backupImportRestore,
+                      style: const TextStyle(fontSize: 15),
+                    ),
+                  ),
                 ),
               ],
             ),
