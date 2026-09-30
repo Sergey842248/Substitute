@@ -1,130 +1,110 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
-  <base href="/Substitute/">
-
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Substitute">
-
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Substitute">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>Substitute</title>
-  <link rel="manifest" href="manifest.json">
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #1e1f25;
-      color: #ffffff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      box-sizing: border-box;
-    }
-    #loading-container {
-      text-align: center;
-      transition: opacity 0.3s ease;
-    }
-    .spinner {
-      width: 48px;
-      height: 48px;
-      border: 4px solid rgba(175, 105, 238, 0.2);
-      border-top-color: #AF69EE;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 16px auto;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    #file-protocol-warning {
-      display: none;
-      max-width: 600px;
-      margin: 20px;
-      padding: 24px;
-      background: #2a2b32;
-      border: 1px solid #AF69EE;
-      border-radius: 12px;
-      text-align: left;
-      line-height: 1.6;
-    }
-    #file-protocol-warning h2 {
-      margin-top: 0;
-      color: #AF69EE;
-    }
-    #file-protocol-warning code {
-      background: #1e1f25;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: monospace;
-      color: #f1f1f1;
-    }
-    #file-protocol-warning pre {
-      background: #1e1f25;
-      padding: 12px;
-      border-radius: 6px;
-      overflow-x: auto;
-      color: #e0e0e0;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Substitute Sync Server</title>
+<meta name="description" content="Status of the Substitute sync and share server.">
+<style>
+  :root {
+    --bg: #101418;
+    --fg: #e6e9ec;
+    --muted: #8b949e;
+    --ok: #3fb950;
+    --down: #f85149;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f6f8fa; --fg: #1f2328; --muted: #59636e; }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  main {
+    text-align: center;
+    max-width: 30rem;
+  }
+  #status {
+    font-size: clamp(1.5rem, 6vw, 2.25rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6em;
+  }
+  /* Der Punkt ist die einzige Farbangabe – der Text bleibt derselbe, ob der
+     Server läuft oder nicht. */
+  #dot {
+    width: 0.55em;
+    height: 0.55em;
+    border-radius: 50%;
+    background: var(--muted);
+    flex: none;
+  }
+  #dot.running { background: var(--ok); }
+  #dot.stopped { background: var(--down); }
+  /* Bis die Antwort da ist, bleibt der Punkt grau – "unbekannt" soll nicht
+     wie "läuft" aussehen. */
+  footer {
+    margin-top: 1.5rem;
+    color: var(--muted);
+    font-size: 0.8125rem;
+  }
+  a { color: inherit; }
+</style>
 </head>
 <body>
-  <div id="loading-container">
-    <div class="spinner"></div>
-    <p style="color: #a0a0a0; font-size: 14px;">Substitute wird geladen...</p>
-  </div>
+<main>
+  <h1 id="status"><span id="dot"></span><span id="text">…</span></h1>
+  <footer>
+    Substitute sync &amp; share server ·
+    <a href="https://github.com/Sergey842248/Substitute/tree/main/docs/server">source</a>
+  </footer>
+</main>
 
-  <div id="file-protocol-warning">
-    <h2>⚠️ Lokaler Webserver erforderlich</h2>
-    <p>
-      Flutter-Webanwendungen können aus Sicherheitsgründen aller modernen Browser (CORS / Same-Origin-Policy) nicht direkt über <code>file://</code> (per Doppelklick auf die Datei) ausgeführt werden.
-    </p>
-    <p><strong>So startest du die Website:</strong></p>
-    <pre><code># Im Projektordner:
-cd build/web
-python3 -m http.server 8080</code></pre>
-    <p>Öffne anschließend in deinem bevorzugten Browser (z. B. Firefox):<br>
-      <a href="http://localhost:8080" style="color: #AF69EE; font-weight: bold;">http://localhost:8080</a>
-    </p>
-  </div>
+<script>
+  // Diese Adresse ist die einzige Konstante der Seite. Sie muss mit
+  // `SyncEngine.defaultServerUrl` in der App übereinstimmen
+  // (lib/services/sync/SyncEngine.dart).
+  const SERVER = 'https://substitute-sync.open-nexor.org';
 
-  <script>
-    if (window.location.protocol === 'file:') {
-      document.getElementById('loading-container').style.display = 'none';
-      document.getElementById('file-protocol-warning').style.display = 'block';
-    }
-  </script>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+  const text = document.getElementById('text');
+  const dot = document.getElementById('dot');
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
-  <script src="flutter_bootstrap.js" async></script>
+  // Genau zwei Zustände, wie gewünscht: "Server is running" oder
+  // "Server is stopped". Kein Ladezustand, keine Fehlermeldung, keine
+  // weiteren Angaben – die Seite sagt nur, ob der Server erreichbar ist.
+  function show(running) {
+    dot.className = running ? 'running' : 'stopped';
+    text.textContent = running ? 'Server is running' : 'Server is stopped';
+  }
+
+  // `no-cors` liefert eine undurchsichtige Antwort, deren Status man nicht
+  // prüfen kann – deshalb wird ohne `no-cors` gefragt. Der Server setzt
+  // dafür `access-control-allow-origin: *`.
+  fetch(`${SERVER}/v1/health`, { cache: 'no-store' })
+    .then((response) => show(response.ok))
+    .catch(() => show(false));
+
+  // Alle fünf Sekunden neu fragen: Die Seite soll auch dann stimmen, wenn
+  // jemand sie lange offen lässt.
+  setInterval(() => {
+    fetch(`${SERVER}/v1/health`, { cache: 'no-store' })
+      .then((response) => show(response.ok))
+      .catch(() => show(false));
+  }, 5000);
+</script>
 </body>
 </html>

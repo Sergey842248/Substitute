@@ -1,0 +1,60 @@
+name: Publish docs to GitHub Pages
+
+# Der Inhalt von `docs/` wird als GitHub-Page ausgeliefert. Dort liegen
+#
+#   * `index.html`  – die Statusseite des Sync-Servers. Sie zeigt
+#                     ausschließlich "Server is running" oder
+#                     "Server is stopped" und fragt dafür
+#                     `GET /v1/health` ab.
+#   * `server/`     – der Quelltext des Sync- und Share-Servers. Er wird
+#                     *nicht* ausgeführt, sondern nur als Code veröffentlicht.
+#
+# Die eigentliche API läuft auf einem eigenen Ubuntu-Server
+# (substitute-sync.open-nexor.org, Port 8384) – GitHub Pages kann nur
+# statische Dateien ausliefern, keinen Server betreiben.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Es soll immer nur der neueste Stand veröffentlicht sein: Zwei gleichzeitige
+# Läufe würden sich gegenseitig überschreiben.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload the docs directory
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # `docs/` enthält bereits eine `index.html`; versteckte Dateien und
+          # der Build-Rest des Dart-Servers werden nicht mitveröffentlicht.
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

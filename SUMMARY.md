@@ -6,6 +6,7 @@
 * [Installation](en/installation/README.md)
   * [Android](en/installation/android.md)
   * [iOS](en/installation/ios.md)
+* [Sync and Share](docs/sync-and-share.md)
 
 ## German <a href="#de" id="de"></a>
 
@@ -13,6 +14,7 @@
 * [Installation](de/installation/README.md)
   * [Android](de/installation/android.md)
   * [iOS](de/installation/ios.md)
+* [Sync und Share](docs/sync-and-share.md)
 
 ## Hidden
 

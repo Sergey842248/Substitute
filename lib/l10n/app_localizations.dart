@@ -1603,6 +1603,853 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Separately for persons, classes and their previews'**
   String get defaultPlanModePreviewEntrySubtitle;
+
+  /// No description provided for @sync.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync'**
+  String get sync;
+
+  /// No description provided for @syncSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep classes, persons and plans in sync across your devices'**
+  String get syncSubtitle;
+
+  /// No description provided for @syncTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync'**
+  String get syncTitle;
+
+  /// No description provided for @syncServerRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Server is running'**
+  String get syncServerRunning;
+
+  /// No description provided for @syncServerStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Server is stopped'**
+  String get syncServerStopped;
+
+  /// No description provided for @syncServerCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Check server'**
+  String get syncServerCheck;
+
+  /// No description provided for @syncNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'No sync server configured'**
+  String get syncNotConfigured;
+
+  /// No description provided for @syncStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start sync'**
+  String get syncStart;
+
+  /// No description provided for @syncStartSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Generates a code of ten words that connects your devices'**
+  String get syncStartSubtitle;
+
+  /// No description provided for @syncJoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Join a sync'**
+  String get syncJoin;
+
+  /// No description provided for @syncJoinSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the ten words of an existing sync on another device'**
+  String get syncJoinSubtitle;
+
+  /// No description provided for @syncPassphrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync code'**
+  String get syncPassphrase;
+
+  /// No description provided for @syncPassphraseHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ten words, e.g. blue sky river seven'**
+  String get syncPassphraseHint;
+
+  /// No description provided for @syncPassphraseGenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate new code'**
+  String get syncPassphraseGenerate;
+
+  /// No description provided for @syncPassphraseCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy code'**
+  String get syncPassphraseCopy;
+
+  /// No description provided for @syncPassphraseCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Code copied to the clipboard'**
+  String get syncPassphraseCopied;
+
+  /// No description provided for @syncPassphraseUnknownWord.
+  ///
+  /// In en, this message translates to:
+  /// **'These words are not in the list: {words}'**
+  String syncPassphraseUnknownWord(Object words);
+
+  /// No description provided for @syncPassphraseTooFewWords.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter at least three words'**
+  String get syncPassphraseTooFewWords;
+
+  /// No description provided for @syncPassphraseEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a code'**
+  String get syncPassphraseEmpty;
+
+  /// No description provided for @syncSettingsToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Include settings'**
+  String get syncSettingsToggle;
+
+  /// No description provided for @syncSettingsToggleSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'When off, settings stay on each device and are not transferred'**
+  String get syncSettingsToggleSubtitle;
+
+  /// No description provided for @syncSettingsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Classes, persons, courses and plans are always included. The school password is never transferred.'**
+  String get syncSettingsNote;
+
+  /// No description provided for @syncSettingsNotePlain.
+  ///
+  /// In en, this message translates to:
+  /// **'Klassen, Personen, Kurse und Pläne werden immer übertragen. Das Schulpasswort niemals.'**
+  String get syncSettingsNotePlain;
+
+  /// No description provided for @syncNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get syncNow;
+
+  /// No description provided for @syncNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never synced'**
+  String get syncNever;
+
+  /// No description provided for @syncLastSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Last sync: {when}'**
+  String syncLastSync(Object when);
+
+  /// No description provided for @syncInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronising…'**
+  String get syncInProgress;
+
+  /// No description provided for @syncDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync done. {changes} changes from {devices} devices.'**
+  String syncDone(Object changes, Object devices);
+
+  /// No description provided for @syncDoneNoChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync done. Everything is up to date.'**
+  String get syncDoneNoChanges;
+
+  /// No description provided for @syncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed: {reason}'**
+  String syncFailed(Object reason);
+
+  /// No description provided for @syncLeave.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave sync'**
+  String get syncLeave;
+
+  /// No description provided for @syncLeaveConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave the sync?'**
+  String get syncLeaveConfirmTitle;
+
+  /// No description provided for @syncLeaveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data stays on this device. It will only stop being kept in sync with the other devices.'**
+  String get syncLeaveConfirm;
+
+  /// No description provided for @syncLeaveDone.
+  ///
+  /// In en, this message translates to:
+  /// **'You have left the sync. Your data is still on this device.'**
+  String get syncLeaveDone;
+
+  /// No description provided for @syncLeaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The server could not be reached. The sync has been ended on this device anyway.'**
+  String get syncLeaveFailed;
+
+  /// No description provided for @syncDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices in this sync'**
+  String get syncDevices;
+
+  /// No description provided for @syncDevicesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No other device has joined this sync yet'**
+  String get syncDevicesEmpty;
+
+  /// No description provided for @syncDeviceThisOne.
+  ///
+  /// In en, this message translates to:
+  /// **'This device'**
+  String get syncDeviceThisOne;
+
+  /// No description provided for @syncDeviceUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown device'**
+  String get syncDeviceUnknown;
+
+  /// No description provided for @syncDeleteChain.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete sync completely'**
+  String get syncDeleteChain;
+
+  /// No description provided for @syncDeleteChainConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete the whole sync?'**
+  String get syncDeleteChainConfirmTitle;
+
+  /// No description provided for @syncDeleteChainConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync code is deleted on the server. Other devices keep their data but can no longer sync.'**
+  String get syncDeleteChainConfirm;
+
+  /// No description provided for @syncDeleteChainDone.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync has been deleted on the server.'**
+  String get syncDeleteChainDone;
+
+  /// No description provided for @syncResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync again'**
+  String get syncResume;
+
+  /// No description provided for @syncResumeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue the sync you left earlier'**
+  String get syncResumeSubtitle;
+
+  /// No description provided for @syncRestart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a new sync'**
+  String get syncRestart;
+
+  /// No description provided for @syncRestartConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start over?'**
+  String get syncRestartConfirmTitle;
+
+  /// No description provided for @syncRestartConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This device leaves the current sync. Your data stays. You get a new code.'**
+  String get syncRestartConfirm;
+
+  /// No description provided for @syncErrorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server could not be reached'**
+  String get syncErrorNetwork;
+
+  /// No description provided for @syncErrorTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server took too long to answer'**
+  String get syncErrorTimeout;
+
+  /// No description provided for @syncErrorNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This sync code is unknown – check the words and try again'**
+  String get syncErrorNotFound;
+
+  /// No description provided for @syncErrorWrongPassphrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong code – or the data was changed on the way'**
+  String get syncErrorWrongPassphrase;
+
+  /// No description provided for @syncErrorForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'The server rejected this request'**
+  String get syncErrorForbidden;
+
+  /// No description provided for @syncErrorTooManyRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests. Please try again in a minute'**
+  String get syncErrorTooManyRequests;
+
+  /// No description provided for @syncErrorConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'This sync is full, or too many shares exist'**
+  String get syncErrorConflict;
+
+  /// No description provided for @syncErrorServerError.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server has a problem'**
+  String get syncErrorServerError;
+
+  /// No description provided for @syncErrorTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The data is too large for the server'**
+  String get syncErrorTooLarge;
+
+  /// No description provided for @syncErrorInvalidShare.
+  ///
+  /// In en, this message translates to:
+  /// **'This share is not allowed'**
+  String get syncErrorInvalidShare;
+
+  /// No description provided for @syncErrorForeignApp.
+  ///
+  /// In en, this message translates to:
+  /// **'These data were not created by Substitute'**
+  String get syncErrorForeignApp;
+
+  /// No description provided for @syncErrorFutureSchema.
+  ///
+  /// In en, this message translates to:
+  /// **'These data come from a newer version of the app'**
+  String get syncErrorFutureSchema;
+
+  /// No description provided for @share.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get share;
+
+  /// No description provided for @shareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My shares'**
+  String get shareTitle;
+
+  /// No description provided for @shareSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share selected classes and persons with other teachers'**
+  String get shareSubtitle;
+
+  /// No description provided for @shareCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'New share'**
+  String get shareCreate;
+
+  /// No description provided for @shareCreateSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what should be visible to others'**
+  String get shareCreateSubtitle;
+
+  /// No description provided for @shareEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit share'**
+  String get shareEdit;
+
+  /// No description provided for @shareEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No shares yet. Create one to give other teachers your classes and persons.'**
+  String get shareEmpty;
+
+  /// No description provided for @shareUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'My username'**
+  String get shareUsername;
+
+  /// No description provided for @shareUsernameSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ten words that colleagues enter to open your shares'**
+  String get shareUsernameSubtitle;
+
+  /// No description provided for @shareUsernameRegenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'New username'**
+  String get shareUsernameRegenerate;
+
+  /// No description provided for @shareUsernameRegenerateConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New username?'**
+  String get shareUsernameRegenerateConfirmTitle;
+
+  /// No description provided for @shareUsernameRegenerateConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'All existing shares move to the new username. Colleagues who saved the old one have to enter the new one.'**
+  String get shareUsernameRegenerateConfirm;
+
+  /// No description provided for @shareDisplayName.
+  ///
+  /// In en, this message translates to:
+  /// **'My display name'**
+  String get shareDisplayName;
+
+  /// No description provided for @shareDisplayNameSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown in the search menu of your school'**
+  String get shareDisplayNameSubtitle;
+
+  /// No description provided for @shareLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name of the share'**
+  String get shareLabel;
+
+  /// No description provided for @shareLabelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. substitution plans autumn'**
+  String get shareLabelHint;
+
+  /// No description provided for @shareSearchable.
+  ///
+  /// In en, this message translates to:
+  /// **'Show in the search menu'**
+  String get shareSearchable;
+
+  /// No description provided for @shareSearchableSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Colleagues of your school can find you and choose from your shares'**
+  String get shareSearchableSubtitle;
+
+  /// No description provided for @shareGlobal.
+  ///
+  /// In en, this message translates to:
+  /// **'Global share'**
+  String get shareGlobal;
+
+  /// No description provided for @shareGlobalSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Also usable by teachers of other schools, who know your username'**
+  String get shareGlobalSubtitle;
+
+  /// No description provided for @sharePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get sharePassword;
+
+  /// No description provided for @sharePasswordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Protects the share – even against people who have the school credentials'**
+  String get sharePasswordSubtitle;
+
+  /// No description provided for @sharePasswordGenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate password'**
+  String get sharePasswordGenerate;
+
+  /// No description provided for @sharePasswordOwn.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own password'**
+  String get sharePasswordOwn;
+
+  /// No description provided for @sharePasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ten words, e.g. red moon water nine'**
+  String get sharePasswordHint;
+
+  /// No description provided for @sharePasswordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This share has a password. Enter it to open.'**
+  String get sharePasswordRequired;
+
+  /// No description provided for @shareSelectWhat.
+  ///
+  /// In en, this message translates to:
+  /// **'What should be shared?'**
+  String get shareSelectWhat;
+
+  /// No description provided for @shareSelectClasses.
+  ///
+  /// In en, this message translates to:
+  /// **'Classes'**
+  String get shareSelectClasses;
+
+  /// No description provided for @shareSelectPersons.
+  ///
+  /// In en, this message translates to:
+  /// **'Persons'**
+  String get shareSelectPersons;
+
+  /// No description provided for @shareSelectEverything.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get shareSelectEverything;
+
+  /// No description provided for @shareSelectNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Select none'**
+  String get shareSelectNothing;
+
+  /// No description provided for @shareIncludeSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Include settings'**
+  String get shareIncludeSettings;
+
+  /// No description provided for @shareIncludeSettingsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share display settings as well'**
+  String get shareIncludeSettingsSubtitle;
+
+  /// No description provided for @shareIncludePlans.
+  ///
+  /// In en, this message translates to:
+  /// **'Include saved plans'**
+  String get shareIncludePlans;
+
+  /// No description provided for @shareIncludePlansSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share the substitution plans stored on this device'**
+  String get shareIncludePlansSubtitle;
+
+  /// No description provided for @shareIncludeHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Include plans from the past'**
+  String get shareIncludeHistory;
+
+  /// No description provided for @shareIncludeHistorySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Otherwise only the last {days} days are shared'**
+  String shareIncludeHistorySubtitle(Object days);
+
+  /// No description provided for @shareSelectNothingSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select at least one class or person'**
+  String get shareSelectNothingSelected;
+
+  /// No description provided for @sharePublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Share created'**
+  String get sharePublished;
+
+  /// No description provided for @shareUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Share updated'**
+  String get shareUpdated;
+
+  /// No description provided for @shareDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Share deleted'**
+  String get shareDeleted;
+
+  /// No description provided for @sharePasswordSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Password saved on this device'**
+  String get sharePasswordSaved;
+
+  /// No description provided for @shareDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this share?'**
+  String get shareDeleteConfirmTitle;
+
+  /// No description provided for @shareDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody can open it any more. Data already imported by others stay on their devices.'**
+  String get shareDeleteConfirm;
+
+  /// No description provided for @shareGlobalNote.
+  ///
+  /// In en, this message translates to:
+  /// **'A global share can be opened by teachers of any school who know your username. It does not appear in their search menu.'**
+  String get shareGlobalNote;
+
+  /// No description provided for @shareBrowse.
+  ///
+  /// In en, this message translates to:
+  /// **'Find shares'**
+  String get shareBrowse;
+
+  /// No description provided for @shareBrowseSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'See what colleagues of your school have shared'**
+  String get shareBrowseSubtitle;
+
+  /// No description provided for @shareBrowseEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody in your school has shared anything yet'**
+  String get shareBrowseEmpty;
+
+  /// No description provided for @shareBrowseEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'As soon as a colleague marks a share as searchable, it appears here.'**
+  String get shareBrowseEmptySubtitle;
+
+  /// No description provided for @shareBrowseLoginRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your school number first'**
+  String get shareBrowseLoginRequired;
+
+  /// No description provided for @shareBrowseLoginRequiredSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shares can only be found within your own school. That is why signing in is required.'**
+  String get shareBrowseLoginRequiredSubtitle;
+
+  /// No description provided for @shareBrowseEnterUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a username'**
+  String get shareBrowseEnterUsername;
+
+  /// No description provided for @shareBrowseEnterUsernameSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Know the ten words of a colleague? Enter them here to open their share directly.'**
+  String get shareBrowseEnterUsernameSubtitle;
+
+  /// No description provided for @shareBrowseGlobalOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'This share is global – it can also be opened by teachers of other schools.'**
+  String get shareBrowseGlobalOnly;
+
+  /// No description provided for @shareOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Shares of {name}'**
+  String shareOf(Object name);
+
+  /// No description provided for @shareContents.
+  ///
+  /// In en, this message translates to:
+  /// **'Contents'**
+  String get shareContents;
+
+  /// No description provided for @shareContentsClasses.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} classes'**
+  String shareContentsClasses(Object count);
+
+  /// No description provided for @shareContentsPersons.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} persons'**
+  String shareContentsPersons(Object count);
+
+  /// No description provided for @shareContentsPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} plans'**
+  String shareContentsPlans(Object count);
+
+  /// No description provided for @shareSelectItems.
+  ///
+  /// In en, this message translates to:
+  /// **'What do you want to import?'**
+  String get shareSelectItems;
+
+  /// No description provided for @shareImportModeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How should it be imported?'**
+  String get shareImportModeTitle;
+
+  /// No description provided for @shareImportMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Import as'**
+  String get shareImportMode;
+
+  /// No description provided for @shareImportModeOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'Original'**
+  String get shareImportModeOriginal;
+
+  /// No description provided for @shareImportModeOriginalSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Exactly as shared: classes, persons and courses stay as they are'**
+  String get shareImportModeOriginalSubtitle;
+
+  /// No description provided for @shareImportModePlans.
+  ///
+  /// In en, this message translates to:
+  /// **'Plans'**
+  String get shareImportModePlans;
+
+  /// No description provided for @shareImportModePlansSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Every person becomes a plan with their courses'**
+  String get shareImportModePlansSubtitle;
+
+  /// No description provided for @shareImportModePersons.
+  ///
+  /// In en, this message translates to:
+  /// **'Persons'**
+  String get shareImportModePersons;
+
+  /// No description provided for @shareImportModePersonsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the names are taken over as persons'**
+  String get shareImportModePersonsSubtitle;
+
+  /// No description provided for @shareImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get shareImport;
+
+  /// No description provided for @shareImportDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported from {name}: {persons} persons, {classes} classes, {plans} plans'**
+  String shareImportDone(
+      Object classes, Object name, Object persons, Object plans);
+
+  /// No description provided for @shareNothingToImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing selected'**
+  String get shareNothingToImport;
+
+  /// No description provided for @shareNameBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This name is not allowed. Please choose another one.'**
+  String get shareNameBlocked;
+
+  /// No description provided for @shareNameTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter at least two characters'**
+  String get shareNameTooShort;
+
+  /// No description provided for @shareNameTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'This name is too long'**
+  String get shareNameTooLong;
+
+  /// No description provided for @shareNameEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a name'**
+  String get shareNameEmpty;
+
+  /// No description provided for @shareErrorNoUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'No username has been created yet'**
+  String get shareErrorNoUsername;
+
+  /// No description provided for @shareErrorNothingSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select what should be shared'**
+  String get shareErrorNothingSelected;
+
+  /// No description provided for @shareErrorWrongCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'This share could not be opened – wrong code or wrong school number?'**
+  String get shareErrorWrongCredentials;
+
+  /// No description provided for @shareErrorUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'These data could not be read'**
+  String get shareErrorUnreadable;
+
+  /// No description provided for @shareDemoNoShares.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody has shared anything yet'**
+  String get shareDemoNoShares;
+
+  /// No description provided for @shareDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete share'**
+  String get shareDelete;
 }
 
 class _AppLocalizationsDelegate

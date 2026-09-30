@@ -10,8 +10,12 @@ import 'settings/DeveloperOptions.dart';
 import 'settings/TeacherShorts.dart';
 import 'settings/PlanSettings.dart';
 import 'settings/ConfigBackupSettings.dart';
+import 'settings/SyncSettings.dart';
 
 import '../../models/ListPage.dart';
+
+import '../../pages/share/ShareBrowsePage.dart';
+import '../../pages/share/ShareListPage.dart';
 
 class Settings extends StatefulWidget {
   @override
@@ -58,6 +62,24 @@ class _SettingsState extends State<Settings> {
         'icon': Icons.settings_backup_restore_rounded,
         'subtitle': AppLocalizations.of(context)!.backupSubtitle,
         'link': const ConfigBackupSettings(),
+      },
+      {
+        'title': AppLocalizations.of(context)!.sync,
+        'icon': Icons.sync_rounded,
+        'subtitle': AppLocalizations.of(context)!.syncSubtitle,
+        'link': const SyncSettings(),
+      },
+      {
+        'title': AppLocalizations.of(context)!.share,
+        'icon': Icons.people_alt_rounded,
+        'subtitle': AppLocalizations.of(context)!.shareSubtitle,
+        'link': const ShareListPage(),
+      },
+      {
+        'title': AppLocalizations.of(context)!.shareBrowse,
+        'icon': Icons.travel_explore_rounded,
+        'subtitle': AppLocalizations.of(context)!.shareBrowseSubtitle,
+        'link': const ShareBrowsePage(),
       },
       {
         'title': AppLocalizations.of(context)!.developerOptions,

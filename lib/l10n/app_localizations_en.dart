@@ -837,4 +837,488 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get defaultPlanModePreviewEntrySubtitle =>
       'Separately for persons, classes and their previews';
+
+  @override
+  String get sync => 'Sync';
+
+  @override
+  String get syncSubtitle =>
+      'Keep classes, persons and plans in sync across your devices';
+
+  @override
+  String get syncTitle => 'Sync';
+
+  @override
+  String get syncServerRunning => 'Server is running';
+
+  @override
+  String get syncServerStopped => 'Server is stopped';
+
+  @override
+  String get syncServerCheck => 'Check server';
+
+  @override
+  String get syncNotConfigured => 'No sync server configured';
+
+  @override
+  String get syncStart => 'Start sync';
+
+  @override
+  String get syncStartSubtitle =>
+      'Generates a code of ten words that connects your devices';
+
+  @override
+  String get syncJoin => 'Join a sync';
+
+  @override
+  String get syncJoinSubtitle =>
+      'Enter the ten words of an existing sync on another device';
+
+  @override
+  String get syncPassphrase => 'Sync code';
+
+  @override
+  String get syncPassphraseHint => 'Ten words, e.g. blue sky river seven';
+
+  @override
+  String get syncPassphraseGenerate => 'Generate new code';
+
+  @override
+  String get syncPassphraseCopy => 'Copy code';
+
+  @override
+  String get syncPassphraseCopied => 'Code copied to the clipboard';
+
+  @override
+  String syncPassphraseUnknownWord(Object words) {
+    return 'These words are not in the list: $words';
+  }
+
+  @override
+  String get syncPassphraseTooFewWords => 'Please enter at least three words';
+
+  @override
+  String get syncPassphraseEmpty => 'Please enter a code';
+
+  @override
+  String get syncSettingsToggle => 'Include settings';
+
+  @override
+  String get syncSettingsToggleSubtitle =>
+      'When off, settings stay on each device and are not transferred';
+
+  @override
+  String get syncSettingsNote =>
+      'Classes, persons, courses and plans are always included. The school password is never transferred.';
+
+  @override
+  String get syncSettingsNotePlain =>
+      'Klassen, Personen, Kurse und Pläne werden immer übertragen. Das Schulpasswort niemals.';
+
+  @override
+  String get syncNow => 'Sync now';
+
+  @override
+  String get syncNever => 'Never synced';
+
+  @override
+  String syncLastSync(Object when) {
+    return 'Last sync: $when';
+  }
+
+  @override
+  String get syncInProgress => 'Synchronising…';
+
+  @override
+  String syncDone(Object changes, Object devices) {
+    return 'Sync done. $changes changes from $devices devices.';
+  }
+
+  @override
+  String get syncDoneNoChanges => 'Sync done. Everything is up to date.';
+
+  @override
+  String syncFailed(Object reason) {
+    return 'Sync failed: $reason';
+  }
+
+  @override
+  String get syncLeave => 'Leave sync';
+
+  @override
+  String get syncLeaveConfirmTitle => 'Leave the sync?';
+
+  @override
+  String get syncLeaveConfirm =>
+      'Your data stays on this device. It will only stop being kept in sync with the other devices.';
+
+  @override
+  String get syncLeaveDone =>
+      'You have left the sync. Your data is still on this device.';
+
+  @override
+  String get syncLeaveFailed =>
+      'The server could not be reached. The sync has been ended on this device anyway.';
+
+  @override
+  String get syncDevices => 'Devices in this sync';
+
+  @override
+  String get syncDevicesEmpty => 'No other device has joined this sync yet';
+
+  @override
+  String get syncDeviceThisOne => 'This device';
+
+  @override
+  String get syncDeviceUnknown => 'Unknown device';
+
+  @override
+  String get syncDeleteChain => 'Delete sync completely';
+
+  @override
+  String get syncDeleteChainConfirmTitle => 'Delete the whole sync?';
+
+  @override
+  String get syncDeleteChainConfirm =>
+      'The sync code is deleted on the server. Other devices keep their data but can no longer sync.';
+
+  @override
+  String get syncDeleteChainDone => 'The sync has been deleted on the server.';
+
+  @override
+  String get syncResume => 'Sync again';
+
+  @override
+  String get syncResumeSubtitle => 'Continue the sync you left earlier';
+
+  @override
+  String get syncRestart => 'Start a new sync';
+
+  @override
+  String get syncRestartConfirmTitle => 'Start over?';
+
+  @override
+  String get syncRestartConfirm =>
+      'This device leaves the current sync. Your data stays. You get a new code.';
+
+  @override
+  String get syncErrorNetwork => 'The sync server could not be reached';
+
+  @override
+  String get syncErrorTimeout => 'The sync server took too long to answer';
+
+  @override
+  String get syncErrorNotFound =>
+      'This sync code is unknown – check the words and try again';
+
+  @override
+  String get syncErrorWrongPassphrase =>
+      'Wrong code – or the data was changed on the way';
+
+  @override
+  String get syncErrorForbidden => 'The server rejected this request';
+
+  @override
+  String get syncErrorTooManyRequests =>
+      'Too many requests. Please try again in a minute';
+
+  @override
+  String get syncErrorConflict => 'This sync is full, or too many shares exist';
+
+  @override
+  String get syncErrorServerError => 'The sync server has a problem';
+
+  @override
+  String get syncErrorTooLarge => 'The data is too large for the server';
+
+  @override
+  String get syncErrorInvalidShare => 'This share is not allowed';
+
+  @override
+  String get syncErrorForeignApp => 'These data were not created by Substitute';
+
+  @override
+  String get syncErrorFutureSchema =>
+      'These data come from a newer version of the app';
+
+  @override
+  String get share => 'Share';
+
+  @override
+  String get shareTitle => 'My shares';
+
+  @override
+  String get shareSubtitle =>
+      'Share selected classes and persons with other teachers';
+
+  @override
+  String get shareCreate => 'New share';
+
+  @override
+  String get shareCreateSubtitle => 'Choose what should be visible to others';
+
+  @override
+  String get shareEdit => 'Edit share';
+
+  @override
+  String get shareEmpty =>
+      'No shares yet. Create one to give other teachers your classes and persons.';
+
+  @override
+  String get shareUsername => 'My username';
+
+  @override
+  String get shareUsernameSubtitle =>
+      'Ten words that colleagues enter to open your shares';
+
+  @override
+  String get shareUsernameRegenerate => 'New username';
+
+  @override
+  String get shareUsernameRegenerateConfirmTitle => 'New username?';
+
+  @override
+  String get shareUsernameRegenerateConfirm =>
+      'All existing shares move to the new username. Colleagues who saved the old one have to enter the new one.';
+
+  @override
+  String get shareDisplayName => 'My display name';
+
+  @override
+  String get shareDisplayNameSubtitle =>
+      'Shown in the search menu of your school';
+
+  @override
+  String get shareLabel => 'Name of the share';
+
+  @override
+  String get shareLabelHint => 'e.g. substitution plans autumn';
+
+  @override
+  String get shareSearchable => 'Show in the search menu';
+
+  @override
+  String get shareSearchableSubtitle =>
+      'Colleagues of your school can find you and choose from your shares';
+
+  @override
+  String get shareGlobal => 'Global share';
+
+  @override
+  String get shareGlobalSubtitle =>
+      'Also usable by teachers of other schools, who know your username';
+
+  @override
+  String get sharePassword => 'Password';
+
+  @override
+  String get sharePasswordSubtitle =>
+      'Protects the share – even against people who have the school credentials';
+
+  @override
+  String get sharePasswordGenerate => 'Generate password';
+
+  @override
+  String get sharePasswordOwn => 'Your own password';
+
+  @override
+  String get sharePasswordHint => 'Ten words, e.g. red moon water nine';
+
+  @override
+  String get sharePasswordRequired =>
+      'This share has a password. Enter it to open.';
+
+  @override
+  String get shareSelectWhat => 'What should be shared?';
+
+  @override
+  String get shareSelectClasses => 'Classes';
+
+  @override
+  String get shareSelectPersons => 'Persons';
+
+  @override
+  String get shareSelectEverything => 'Select all';
+
+  @override
+  String get shareSelectNothing => 'Select none';
+
+  @override
+  String get shareIncludeSettings => 'Include settings';
+
+  @override
+  String get shareIncludeSettingsSubtitle => 'Share display settings as well';
+
+  @override
+  String get shareIncludePlans => 'Include saved plans';
+
+  @override
+  String get shareIncludePlansSubtitle =>
+      'Share the substitution plans stored on this device';
+
+  @override
+  String get shareIncludeHistory => 'Include plans from the past';
+
+  @override
+  String shareIncludeHistorySubtitle(Object days) {
+    return 'Otherwise only the last $days days are shared';
+  }
+
+  @override
+  String get shareSelectNothingSelected =>
+      'Please select at least one class or person';
+
+  @override
+  String get sharePublished => 'Share created';
+
+  @override
+  String get shareUpdated => 'Share updated';
+
+  @override
+  String get shareDeleted => 'Share deleted';
+
+  @override
+  String get sharePasswordSaved => 'Password saved on this device';
+
+  @override
+  String get shareDeleteConfirmTitle => 'Delete this share?';
+
+  @override
+  String get shareDeleteConfirm =>
+      'Nobody can open it any more. Data already imported by others stay on their devices.';
+
+  @override
+  String get shareGlobalNote =>
+      'A global share can be opened by teachers of any school who know your username. It does not appear in their search menu.';
+
+  @override
+  String get shareBrowse => 'Find shares';
+
+  @override
+  String get shareBrowseSubtitle =>
+      'See what colleagues of your school have shared';
+
+  @override
+  String get shareBrowseEmpty =>
+      'Nobody in your school has shared anything yet';
+
+  @override
+  String get shareBrowseEmptySubtitle =>
+      'As soon as a colleague marks a share as searchable, it appears here.';
+
+  @override
+  String get shareBrowseLoginRequired =>
+      'Sign in with your school number first';
+
+  @override
+  String get shareBrowseLoginRequiredSubtitle =>
+      'Shares can only be found within your own school. That is why signing in is required.';
+
+  @override
+  String get shareBrowseEnterUsername => 'Enter a username';
+
+  @override
+  String get shareBrowseEnterUsernameSubtitle =>
+      'Know the ten words of a colleague? Enter them here to open their share directly.';
+
+  @override
+  String get shareBrowseGlobalOnly =>
+      'This share is global – it can also be opened by teachers of other schools.';
+
+  @override
+  String shareOf(Object name) {
+    return 'Shares of $name';
+  }
+
+  @override
+  String get shareContents => 'Contents';
+
+  @override
+  String shareContentsClasses(Object count) {
+    return '$count classes';
+  }
+
+  @override
+  String shareContentsPersons(Object count) {
+    return '$count persons';
+  }
+
+  @override
+  String shareContentsPlans(Object count) {
+    return '$count plans';
+  }
+
+  @override
+  String get shareSelectItems => 'What do you want to import?';
+
+  @override
+  String get shareImportModeTitle => 'How should it be imported?';
+
+  @override
+  String get shareImportMode => 'Import as';
+
+  @override
+  String get shareImportModeOriginal => 'Original';
+
+  @override
+  String get shareImportModeOriginalSubtitle =>
+      'Exactly as shared: classes, persons and courses stay as they are';
+
+  @override
+  String get shareImportModePlans => 'Plans';
+
+  @override
+  String get shareImportModePlansSubtitle =>
+      'Every person becomes a plan with their courses';
+
+  @override
+  String get shareImportModePersons => 'Persons';
+
+  @override
+  String get shareImportModePersonsSubtitle =>
+      'Only the names are taken over as persons';
+
+  @override
+  String get shareImport => 'Import';
+
+  @override
+  String shareImportDone(
+      Object classes, Object name, Object persons, Object plans) {
+    return 'Imported from $name: $persons persons, $classes classes, $plans plans';
+  }
+
+  @override
+  String get shareNothingToImport => 'Nothing selected';
+
+  @override
+  String get shareNameBlocked =>
+      'This name is not allowed. Please choose another one.';
+
+  @override
+  String get shareNameTooShort => 'Please enter at least two characters';
+
+  @override
+  String get shareNameTooLong => 'This name is too long';
+
+  @override
+  String get shareNameEmpty => 'Please enter a name';
+
+  @override
+  String get shareErrorNoUsername => 'No username has been created yet';
+
+  @override
+  String get shareErrorNothingSelected => 'Please select what should be shared';
+
+  @override
+  String get shareErrorWrongCredentials =>
+      'This share could not be opened – wrong code or wrong school number?';
+
+  @override
+  String get shareErrorUnreadable => 'These data could not be read';
+
+  @override
+  String get shareDemoNoShares => 'Nobody has shared anything yet';
+
+  @override
+  String get shareDelete => 'Delete share';
 }

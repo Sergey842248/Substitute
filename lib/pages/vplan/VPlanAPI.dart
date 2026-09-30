@@ -158,6 +158,27 @@ class VPlanAPI {
   bool _isDemoMode = false;
   bool get isDemoMode => _isDemoMode;
 
+  /// Die Zugangsdaten des Demo-Accounts.
+  static const String demoSchoolnumber = '123456';
+  static const String demoUsername = 'user';
+  static const String demoPassword = 'password';
+
+  /// true, wenn [prefs] die Zugangsdaten des Demo-Accounts enthält.
+  ///
+  /// Bewusst **statisch**: `VPlanAPI()` erzeugt bei jedem Aufruf eine neue
+  /// Instanz, und `isDemoMode` ist nur auf der Instanz gesetzt, die [login]
+  /// aufgerufen hat. Eine andere Seite, die sich ein frisches `VPlanAPI()`
+  /// holt, würde den Demo-Account also nicht erkennen – und könnte Daten
+  /// anlegen, die in der echten Welt niemand sieht. Der Demo-Zustand wird
+  /// deshalb hier direkt aus den Zugangsdaten gelesen.
+  static bool isDemoAccount(SharedPreferences prefs) {
+    String read(String key) =>
+        prefs.getString(SchoolStorage.scopedKey(prefs, key)) ?? '';
+    return read('vplanSchoolnumber') == demoSchoolnumber &&
+        read('vplanUsername') == demoUsername &&
+        read('vplanPassword') == demoPassword;
+  }
+
   String _prefKey(SharedPreferences prefs, String key) {
     return SchoolStorage.scopedKey(prefs, key);
   }
@@ -170,7 +191,7 @@ class VPlanAPI {
     final un = prefs.getString(_prefKey(prefs, "vplanUsername")) ?? '';
     final pw = prefs.getString(_prefKey(prefs, "vplanPassword")) ?? '';
     final customUrl = prefs.getString(_prefKey(prefs, 'customUrl')) ?? '';
-    if (sn == "123456" && un == "user" && pw == "password") {
+    if (sn == demoSchoolnumber && un == demoUsername && pw == demoPassword) {
       _isDemoMode = true;
       schoolnumber = 123456;
       vplanUsername = "user";

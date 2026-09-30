@@ -1,0 +1,49 @@
+[Unit]
+Description=Substitute sync and share server
+Documentation=file:/opt/substitute-sync/README.md
+# Nach /opt/substitute-sync installiert (deploy/install.sh)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=substitute-sync
+Group=substitute-sync
+
+EnvironmentFile=/etc/substitute-sync/server.env
+ExecStart=/usr/bin/dart run /opt/substitute-sync/bin/server.dart
+
+# Der Server schreibt ausschließlich in sein Datenverzeichnis. Das wird
+# hier ausdrücklich erlaubt – alles andere bleibt schreibgeschützt.
+WorkingDirectory=/opt/substitute-sync
+
+Restart=on-failure
+RestartSec=5
+
+# --- Härtung -------------------------------------------------------------
+# Ein kompromittierter Server soll nicht das ganze System mitnehmen können.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+ReadWritePaths=/var/lib/substitute-sync
+
+# Der Server braucht nur Netz und sein Datenverzeichnis.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressAllow=localhost
+IPAddressAllow=any
+
+[Install]
+WantedBy=multi-user.target

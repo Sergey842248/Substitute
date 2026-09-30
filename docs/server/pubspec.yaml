@@ -1,0 +1,13 @@
+name: substitute_sync_server
+description: >-
+  Sync- und Share-Server für die Substitute-App. Speichert ausschließlich
+  bereits vom Gerät verschlüsselte Blobs – der Server kann die Inhalte nicht
+  lesen (End-to-End).
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dev_dependencies:
+  test: ^1.25.0
