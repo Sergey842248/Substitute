@@ -194,14 +194,14 @@ void main() {
       final String text = ConfigBackup.encodeExport(
         await ConfigBackup.buildExport(prefs),
         exportedAt: DateTime(2026, 9, 27, 12, 30),
-        appVersion: '3.9.0',
+        appVersion: '3.9.1',
       );
       final Map<String, dynamic> decoded =
           (jsonDecode(text) as Map).cast<String, dynamic>();
 
       expect(decoded['app'], 'substitute');
       expect(decoded['schema'], ConfigBackup.schemaVersion);
-      expect(decoded['appVersion'], '3.9.0');
+      expect(decoded['appVersion'], '3.9.1');
       expect(decoded['exportedAt'], '2026-09-27T12:30:00.000');
     });
   });
