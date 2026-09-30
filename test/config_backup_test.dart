@@ -1,9 +1,23 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:substitute/services/ConfigBackup.dart';
+
+/// Die in der `pubspec.yaml` deklarierte Version – direkt gelesen, damit der
+/// Test nicht bei jedem Release angepasst werden muss und wirklich prüft,
+/// dass die App ihre aktuelle Version in die Datei schreibt.
+String currentAppVersion() {
+  final RegExpMatch? match = RegExp(r'^version:\s*(\S+)', multiLine: true)
+      .firstMatch(File('pubspec.yaml').readAsStringSync());
+  if (match == null) {
+    throw StateError('pubspec.yaml enthält keine version:-Angabe');
+  }
+  // "3.9.1+3901" -> "3.9.1" (PackageInfo.version enthält keinen Build-Nr.).
+  return match.group(1)!.split('+').first;
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -194,14 +208,14 @@ void main() {
       final String text = ConfigBackup.encodeExport(
         await ConfigBackup.buildExport(prefs),
         exportedAt: DateTime(2026, 9, 27, 12, 30),
-        appVersion: '3.9.1',
+        appVersion: currentAppVersion(),
       );
       final Map<String, dynamic> decoded =
           (jsonDecode(text) as Map).cast<String, dynamic>();
 
       expect(decoded['app'], 'substitute');
       expect(decoded['schema'], ConfigBackup.schemaVersion);
-      expect(decoded['appVersion'], '3.9.1');
+      expect(decoded['appVersion'], currentAppVersion());
       expect(decoded['exportedAt'], '2026-09-27T12:30:00.000');
     });
   });
