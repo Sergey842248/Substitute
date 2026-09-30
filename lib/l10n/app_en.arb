@@ -244,7 +244,7 @@
     "hidePreview": "Hide preview",
     "showPreview": "Show preview",
     "backup": "Backup & Restore",
-    "backupSubtitle": "Export and import settings, classes and persons",
+    "backupSubtitle": "Export and import settings, classes, persons and cached substitution plans",
     "backupExport": "Export configuration",
     "backupExportSubtitle": "Share or save all settings as a file",
     "backupImport": "Import configuration",

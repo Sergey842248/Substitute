@@ -971,7 +971,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Export and import settings, classes and persons'**
+  /// **'Export and import settings, classes, persons and cached substitution plans'**
   String get backupSubtitle;
 
   /// No description provided for @backupExport.

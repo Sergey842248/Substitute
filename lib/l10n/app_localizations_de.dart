@@ -489,7 +489,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get backupSubtitle =>
-      'Einstellungen, Klassen und Personen exportieren und importieren';
+      'Einstellungen, Klassen, Personen und gespeicherte Vertretungspläne exportieren und importieren';
 
   @override
   String get backupExport => 'Konfiguration exportieren';

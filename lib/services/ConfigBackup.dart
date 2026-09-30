@@ -24,18 +24,23 @@ class ConfigImportResult {
 }
 
 /// Sichert die gesamte Konfiguration der App (Einstellungen, Klassen,
-/// Personen, Kurse **und Zugangsdaten**) als JSON – und stellt sie wieder her.
+/// Personen, Kurse, **zwischengespeicherte Vertretungspläne** und
+/// **Zugangsdaten**) als JSON – und stellt sie wieder her.
 ///
 /// Enthalten sind bewusst auch die Zugangsdaten, damit ein Import auf einem
 /// neuen Gerät die App sofort nutzbar macht. Die Datei enthält damit im
 /// Klartext das Passwort und sollte entsprechend behandelt werden – die App
 /// weist vor dem Export und beim Teilen darauf hin.
 ///
+/// Die lokal gespeicherten Pläne (`offlineVPData`, je Schule ggf.
+/// `schools.<id>.offlineVPData`) gehören ebenfalls dazu: Sie sind der Grund,
+/// warum sich in der App auch Tage in der Vergangenheit öffnen lassen, und
+/// ohne sie wäre eine Wiederherstellung unvollständig.
+///
 /// Nicht gesichert werden nur:
 ///
-/// * **Zwischengespeicherte Pläne** (`offlineVPData`, `vplan_cache_*`):
-///   Sie sind reine Datenmüll, den die App jederzeit neu laden kann, und
-///   würden die Datei unnötig aufblähen.
+/// * **Kurzzeit-Cache** (`vplan_cache_*` inkl. Zeitstempel): reiner
+///   Zwischenspeicher, der nach wenigen Minuten ohnehin verfällt.
 /// * **Entwickler-Overrides** (`overriddenNow`): gerätebezogen.
 class ConfigBackup {
   const ConfigBackup._();
@@ -49,7 +54,6 @@ class ConfigBackup {
   /// Schlüssel, die weder exportiert noch importiert werden.
   static const List<String> sensitiveKeys = <String>[
     'overriddenNow',
-    'offlineVPData',
   ];
 
   /// Schlüssel, die Zugangsdaten enthalten. Sie werden mitgesichert (damit ein
@@ -77,11 +81,18 @@ class ConfigBackup {
   /// Präfixe/Pfade, die nicht Teil der Konfiguration sind (Cache & Dev).
   static bool _isExcluded(String key) {
     if (sensitiveKeys.contains(key)) return true;
-    // Plan-Cache inkl. seiner Zeitstempel ('…_time').
-    if (key.startsWith('vplan_cache_')) return true;
+    // Kurzzeit-Cache der Pläne inkl. seiner Zeitstempel ('…_time'). Auch die
+    // schulbezogenen Varianten ('schools.<id>.vplan_cache_…') – sonst würde der
+    // Cache einer Nicht-Default-Schule mit exportiert.
+    if (key.contains('vplan_cache_')) return true;
     if (key.endsWith('_time') && key.contains('vplan_cache')) return true;
     return false;
   }
+
+  /// Prüft, ob [key] die lokal gespeicherten Pläne enthält – je nach aktiver
+  /// Schule `offlineVPData` oder `schools.<id>.offlineVPData`.
+  static bool isCachedPlansKey(String key) =>
+      key == 'offlineVPData' || key.endsWith('.offlineVPData');
 
   /// Liest die Konfiguration und baut daraus den Inhalt der Exportdatei.
   ///
@@ -105,8 +116,21 @@ class ConfigBackup {
     return <String, dynamic>{
       'app': _appIdentifier,
       'schema': schemaVersion,
+      'cachedPlans': countCachedPlans(settings),
       'settings': settings,
     };
+  }
+
+  /// Anzahl der in [settings] enthaltenen Pläne – steht als Metadatum in der
+  /// Exportdatei, damit man sieht, was im Backup steckt.
+  static int countCachedPlans(Map<String, dynamic> settings) {
+    int count = 0;
+    for (final MapEntry<String, dynamic> entry in settings.entries) {
+      if (!isCachedPlansKey(entry.key)) continue;
+      final Object? value = entry.value;
+      if (value is List) count += value.length;
+    }
+    return count;
   }
 
   /// Serialisiert den Export (mit Zeitstempel) als JSON-Text.
@@ -179,7 +203,19 @@ class ConfigBackup {
         skipped.add(key);
         continue;
       }
-      await _setValue(prefs, key, settings[key]);
+      Object? value = settings[key];
+      if (isCachedPlansKey(key)) {
+        value = _onlyValidPlans(value);
+        if (value == null) {
+          skipped.add(key);
+          continue;
+        }
+        // Beim Ergänzen werden die lokalen Pläne nicht ersetzt, sondern mit den
+        // Plänen der Datei vereinigt – sonst gingen gerade auf dem neuen Gerät
+        // nachgeladene Tage verloren.
+        if (!replace) value = _mergePlans(prefs, key, value as List<String>);
+      }
+      await _setValue(prefs, key, value);
       applied.add(key);
     }
 
@@ -188,6 +224,75 @@ class ConfigBackup {
       removedKeys: removed,
       skippedKeys: skipped,
     );
+  }
+
+  /// Vereinigt die lokal gespeicherten Pläne mit denen aus der Datei.
+  ///
+  /// Gleiche Tage werden nicht doppelt übernommen: Der Eintrag der Datei gewinnt
+  /// (er ist die gewünschte Wiederherstellung), die Reihenfolge bleibt
+  /// chronologisch nach dem Datum des Plans.
+  static List<String> _mergePlans(
+      SharedPreferences prefs, String key, List<String> imported) {
+    final List<String> existing = _onlyValidPlans(_getValue(prefs, key)) ??
+        <String>[];
+    if (existing.isEmpty) return imported;
+
+    final Map<String, String> byDate = <String, String>{};
+    final List<String> withoutDate = <String>[];
+    for (final String plan in <String>[...existing, ...imported]) {
+      final String? date = _planDate(plan);
+      if (date == null || date.isEmpty) {
+        // Plan ohne lesbares Datum: nicht zusammenfassen, aber behalten.
+        withoutDate.add(plan);
+        continue;
+      }
+      byDate[date] = plan;
+    }
+
+    final List<String> merged = byDate.values.toList()
+      ..sort((String a, String b) =>
+          (_planDate(a) ?? '').compareTo(_planDate(b) ?? ''));
+    return <String>[...merged, ...withoutDate];
+  }
+
+  /// Das Datum eines Plan-Eintrags (`dd.MM.yyyy` o.ä.), null wenn keins
+  /// gefunden wird.
+  static String? _planDate(String plan) {
+    try {
+      final dynamic decoded = jsonDecode(plan);
+      if (decoded is! Map) return null;
+      final Object? date = decoded['date'] ?? _nestedPlanDate(decoded['data']);
+      return date?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// `data.Kopf.DatumPlan` – der Ort, an dem die API das Plantag ablegt.
+  static Object? _nestedPlanDate(Object? data) {
+    if (data is! Map) return null;
+    final Object? kopf = data['Kopf'];
+    return kopf is Map ? kopf['DatumPlan'] : null;
+  }
+
+  /// Filtert beschädigte Pläne aus einer Importdatei heraus.
+  ///
+  /// Die Pläne werden beim Laden als JSON dekodiert; ein einzelner unlesbarer
+  /// Eintrag (etwa weil die Datei von Hand bearbeitet wurde) würde sonst beim
+  /// Anzeigen der Vergangenheit bzw. im Krankentracking einen Fehler
+  /// auslösen. Defekte Einträge werden deshalb stillschweigend verworfen.
+  static List<String>? _onlyValidPlans(Object? value) {
+    if (value is! List) return null;
+    final List<String> valid = <String>[];
+    for (final Object? entry in value) {
+      if (entry is! String) continue;
+      try {
+        if (jsonDecode(entry) is Map<String, dynamic>) valid.add(entry);
+      } catch (_) {
+        continue;
+      }
+    }
+    return valid;
   }
 
   /// Liest einen Wert typisiert – [SharedPreferences] bietet keine

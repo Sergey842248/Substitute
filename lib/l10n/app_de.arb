@@ -244,7 +244,7 @@
     "hidePreview": "Vorschau ausblenden",
     "showPreview": "Vorschau anzeigen",
     "backup": "Sichern & Wiederherstellen",
-    "backupSubtitle": "Einstellungen, Klassen und Personen exportieren und importieren",
+    "backupSubtitle": "Einstellungen, Klassen, Personen und gespeicherte Vertretungspläne exportieren und importieren",
     "backupExport": "Konfiguration exportieren",
     "backupExportSubtitle": "Alle Einstellungen als Datei teilen oder speichern",
     "backupImport": "Konfiguration importieren",

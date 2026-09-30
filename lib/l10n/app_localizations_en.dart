@@ -485,7 +485,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupSubtitle =>
-      'Export and import settings, classes and persons';
+      'Export and import settings, classes, persons and cached substitution plans';
 
   @override
   String get backupExport => 'Export configuration';

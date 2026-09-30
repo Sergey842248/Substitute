@@ -135,7 +135,7 @@ void main() {
       expect(jsonEncode(settings), isNot(contains('lehrer')));
     });
 
-    test('skips cached plans and developer overrides', () async {
+    test('skips the short-lived plan cache and developer overrides', () async {
       seedPrefs();
       final SharedPreferences prefs = await SharedPreferences.getInstance();
 
@@ -144,10 +144,47 @@ void main() {
       final Map<String, dynamic> settings =
           export['settings'] as Map<String, dynamic>;
 
-      expect(settings, isNot(contains('offlineVPData')));
-      expect(settings.keys.where((String k) => k.startsWith('vplan_cache_')),
+      // Der Kurzzeit-Cache ist reiner Zwischenspeicher und verfällt ohnehin…
+      expect(settings.keys.where((String k) => k.contains('vplan_cache_')),
           isEmpty);
       expect(settings, isNot(contains('overriddenNow')));
+    });
+
+    test('contains the cached plans of past days', () async {
+      seedPrefs();
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+      final Map<String, dynamic> export =
+          await ConfigBackup.buildExport(prefs);
+      final Map<String, dynamic> settings =
+          export['settings'] as Map<String, dynamic>;
+
+      // Ohne die lokal gespeicherten Pläne wäre die Vergangenheit nach einem
+      // Import auf einem neuen Gerät nicht mehr aufrufbar.
+      expect(settings['offlineVPData'], <String>['{"date":"x"}']);
+      expect(export['cachedPlans'], 1);
+    });
+
+    test('contains the cached plans of every school', () async {
+      seedPrefs(extra: {
+        'schools.abc123.offlineVPData': <String>[
+          '{"date":"a"}',
+          '{"date":"b"}',
+        ],
+        'schools.abc123.vplan_cache_2026-09-23': '{"date":"x"}',
+      });
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+      final Map<String, dynamic> settings =
+          (await ConfigBackup.buildExport(prefs))['settings']
+              as Map<String, dynamic>;
+
+      expect(
+        settings['schools.abc123.offlineVPData'],
+        <String>['{"date":"a"}', '{"date":"b"}'],
+      );
+      // …deren Kurzzeit-Cache aber nicht.
+      expect(settings, isNot(contains('schools.abc123.vplan_cache_2026-09-23')));
     });
 
     test('the encoded file is valid JSON with app metadata', () async {
@@ -233,8 +270,8 @@ void main() {
       expect(prefs.getBool('hideTeacher'), isTrue);
       expect(prefs.getStringList('classes'), isNull);
       expect(prefs.getString('teacherShorts'), isNull);
-      // Der Plan-Cache wird beim Ersetzen nicht angerührt.
-      expect(prefs.getStringList('offlineVPData'), <String>['{"date":"x"}']);
+      // Pläne stehen nicht in der Datei -> beim Ersetzen werden sie verworfen.
+      expect(prefs.getStringList('offlineVPData'), isNull);
       expect(result.removedKeys, contains('classes'));
     });
 
@@ -263,13 +300,12 @@ void main() {
       expect(result.appliedKeys, contains('vplanPassword'));
     });
 
-    test('cached plans are never imported from a file', () async {
+    test('the short-lived cache and overrides are never imported', () async {
       seedPrefs(extra: {'offlineVPData': <String>['alt']});
       final String text = ConfigBackup.encodeExport(<String, dynamic>{
         'app': 'substitute',
         'schema': ConfigBackup.schemaVersion,
         'settings': <String, dynamic>{
-          'offlineVPData': <String>['neu'],
           'vplan_cache_2026-09-23': '{"date":"x"}',
           'overriddenNow': '2026-01-01T00:00:00',
           'hideTeacher': true,
@@ -281,10 +317,87 @@ void main() {
           prefs, ConfigBackup.parseExport(text),
           replace: true);
 
-      expect(prefs.getStringList('offlineVPData'), <String>['alt']);
+      // Die Pläne stehen nicht in der Datei und werden beim Ersetzen wie
+      // jeder andere Konfigurationsschlüssel verworfen.
+      expect(prefs.getStringList('offlineVPData'), isNull);
+      expect(result.removedKeys, contains('offlineVPData'));
+      // Der lokale Kurzzeit-Cache bleibt unangetastet, wird aber nie aus einer
+      // Datei übernommen; der Dev-Override ebenso.
       expect(prefs.getString('vplan_cache_2026-09-23'), '{"date":"x"}');
       expect(prefs.getString('overriddenNow'), '2026-09-23T10:00:00');
-      expect(result.skippedKeys, contains('offlineVPData'));
+      expect(result.skippedKeys,
+          containsAll(<String>['vplan_cache_2026-09-23', 'overriddenNow']));
+    });
+
+    test('restores the cached plans of past days', () async {
+      seedPrefs(extra: {'offlineVPData': <String>['alt', 'aelter']});
+      final String text = ConfigBackup.encodeExport(<String, dynamic>{
+        'app': 'substitute',
+        'schema': ConfigBackup.schemaVersion,
+        'settings': <String, dynamic>{
+          'offlineVPData': <String>[
+            '{"date":"montag"}',
+            '{"date":"dienstag"}',
+          ],
+          'hideTeacher': true,
+        },
+      });
+
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final ConfigImportResult result = await ConfigBackup.applyImport(
+          prefs, ConfigBackup.parseExport(text),
+          replace: true);
+
+      expect(prefs.getStringList('offlineVPData'),
+          <String>['{"date":"montag"}', '{"date":"dienstag"}']);
+      expect(result.appliedKeys, contains('offlineVPData'));
+    });
+
+    test('merges the cached plans when importing (merge mode)', () async {
+      // Lokal sind Montag und Mittwoch geladen, die Datei bringt Dienstag.
+      seedPrefs(extra: {
+        'offlineVPData': <String>['{"date":"07.09.2026"}', '{"date":"09.09.2026"}'],
+      });
+      final String text = ConfigBackup.encodeExport(<String, dynamic>{
+        'app': 'substitute',
+        'schema': ConfigBackup.schemaVersion,
+        'settings': <String, dynamic>{
+          'offlineVPData': <String>[
+            '{"date":"08.09.2026"}',
+            '{"date":"09.09.2026"}',
+          ],
+        },
+      });
+
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await ConfigBackup.applyImport(prefs, ConfigBackup.parseExport(text));
+
+      // Beim Ergänzen geht nichts verloren; für den gleichen Tag gewinnt die
+      // Datei (hier identisch), und alles bleibt chronologisch sortiert.
+      expect(prefs.getStringList('offlineVPData'), <String>[
+        '{"date":"07.09.2026"}',
+        '{"date":"08.09.2026"}',
+        '{"date":"09.09.2026"}',
+      ]);
+    });
+
+    test('drops broken plans from an import file', () async {
+      seedPrefs();
+      final String text = ConfigBackup.encodeExport(<String, dynamic>{
+        'app': 'substitute',
+        'schema': ConfigBackup.schemaVersion,
+        'settings': <String, dynamic>{
+          // Beschädigter Eintrag: würde beim Laden der Vergangenheit einen
+          // Fehler auslösen und darf nicht übernommen werden.
+          'offlineVPData': <String>['{"date":"gut"}', 'kein json', '[]'],
+        },
+      });
+
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await ConfigBackup.applyImport(prefs, ConfigBackup.parseExport(text),
+          replace: true);
+
+      expect(prefs.getStringList('offlineVPData'), <String>['{"date":"gut"}']);
     });
 
     test('a full export/import round trip restores everything', () async {
@@ -306,6 +419,8 @@ void main() {
       expect(target.getString('languageCode'), 'de');
       expect(target.getString('teacherShorts'), '{"Weber":"W"}');
       expect(target.getInt('vplanCacheTTL'), 300);
+      // Auch die Pläne aus der Vergangenheit.
+      expect(target.getStringList('offlineVPData'), <String>['{"date":"x"}']);
       // Auch die Zugangsdaten – die App ist danach direkt nutzbar.
       expect(target.getString('vplanSchoolnumber'), '123456');
       expect(target.getString('vplanUsername'), 'user');
