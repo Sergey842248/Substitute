@@ -19,17 +19,26 @@ void main() {
   AppLocalizations en() => lookupAppLocalizations(const Locale('en'));
 
   group('export file name', () {
-    test('is the date and time as YYYY-MM-DD___HH-MM-SS', () {
+    test('is the prefix plus the date and time as YYYY-MM-DD___HH-MM-SS',
+        () {
       expect(
         ConfigBackupFlow.exportFileName(at: DateTime(2026, 9, 27, 14, 35, 2)),
-        '2026-09-27___14-35-02.json',
+        'Substitute-Export___2026-09-27___14-35-02.json',
+      );
+    });
+
+    test('starts with the Substitute-Export prefix', () {
+      expect(
+        ConfigBackupFlow.exportFileName(at: DateTime(2026, 9, 27, 14, 35, 2))
+            .startsWith('Substitute-Export___'),
+        isTrue,
       );
     });
 
     test('pads single digits', () {
       expect(
         ConfigBackupFlow.exportFileName(at: DateTime(2026, 1, 2, 3, 4, 5)),
-        '2026-01-02___03-04-05.json',
+        'Substitute-Export___2026-01-02___03-04-05.json',
       );
     });
 
@@ -37,7 +46,11 @@ void main() {
       final String name =
           ConfigBackupFlow.exportFileName(at: DateTime(2026, 9, 27, 14, 35, 2));
       // Genau ein Trenner mit drei Unterstrichen zwischen Datum und Uhrzeit.
-      expect(name, matches(RegExp(r'^\d{4}-\d{2}-\d{2}___\d{2}-\d{2}-\d{2}\.json$')));
+      expect(
+        name,
+        matches(RegExp(
+            r'^Substitute-Export___\d{4}-\d{2}-\d{2}___\d{2}-\d{2}-\d{2}\.json$')),
+      );
     });
 
     test('is actually used as the shared file name', () {
@@ -53,13 +66,15 @@ void main() {
       );
 
       expect(params.fileNameOverrides,
-          <String>['2026-09-27___14-35-02.json']);
+          <String>['Substitute-Export___2026-09-27___14-35-02.json']);
       expect(params.fileNameOverrides!.length, params.files!.length,
           reason: 'die Liste muss zur Anzahl der Dateien passen');
       // Der Name am XFile selbst ist auf Nicht-Web-Plattformen leer – deshalb
       // darf der Ablauf sich nicht darauf verlassen (das war der ursprüngliche
       // Fehler: Die Datei kam als zufällige ID an).
-      expect(params.files!.single.name, isNot('2026-09-27___14-35-02.json'),
+      expect(
+          params.files!.single.name,
+          isNot('Substitute-Export___2026-09-27___14-35-02.json'),
           reason: 'cross_file verwirft den Namen; nur der Override zählt');
     });
   });

@@ -160,8 +160,8 @@ class ConfigBackupFlow {
   /// ignoriert cross_file den im XFile angegebenen Namen auf allen Plattformen
   /// außer im Web und vergibt stattdessen eine zufällige ID als Dateinamen –
   /// die empfangene Datei hieße dann z.B. "3f2a9c….json" statt
-  /// "2026-09-27___14-35-02.json". Erst der Override setzt den Namen
-  /// tatsächlich durch.
+  /// "Substitute-Export___2026-09-27___14-35-02.json". Erst der Override
+  /// setzt den Namen tatsächlich durch.
   @visibleForTesting
   static ShareParams buildShareParams({
     required Uint8List bytes,
@@ -179,14 +179,17 @@ class ConfigBackupFlow {
     );
   }
 
-  /// Dateiname des Exports: Datum und Uhrzeit, z.B.
-  /// `2026-09-27___14-35-02.json`.
+  /// Präfix, das jeder Exportdateiname trägt.
+  static const String exportFileNamePrefix = 'Substitute-Export___';
+
+  /// Dateiname des Exports: Präfix, Datum und Uhrzeit, z.B.
+  /// `Substitute-Export___2026-09-27___14-35-02.json`.
   static String exportFileName({DateTime? at}) {
     final DateTime now = at ?? AppClock.now();
     String two(int v) => v.toString().padLeft(2, '0');
     final String date = '${now.year}-${two(now.month)}-${two(now.day)}';
     final String time = '${two(now.hour)}-${two(now.minute)}-${two(now.second)}';
-    return '${date}___$time.json';
+    return '${exportFileNamePrefix}${date}___$time.json';
   }
 
   /// Auswahl im Warn-Dialog: mit Zugangsdaten exportieren, ohne teilen oder
