@@ -61,8 +61,24 @@ class ListPage extends StatefulWidget {
 
 class _ListPageState extends State<ListPage> {
   late final ScrollController controller;
-  double topHeight = -10;
   final double cornerRadius = 30;
+
+  /// Höhe der Kopfzeile im vollständig ausgeklappten Zustand (10 % der
+  /// Bildschirmhöhe).
+  double _headerHeight = 0;
+
+  /// Wie stark die Kopfzeile gerade eingeklappt ist: 0 = vollständig
+  /// ausgeklappt, [_headerHeight] = vollständig eingeklappt.
+  ///
+  /// Der Wert folgt **direkt** dem Scroll-Offset (siehe [_onScroll]) und wird
+  /// nicht animiert: Jedes eingeklappte Pixel macht den sichtbaren Bereich
+  /// genau ein Pixel größer, `maxScrollExtent` der Liste wächst also im selben
+  /// Maß wie der Offset. Bliebe die Kopfzeile (wie vorher per Animation)
+  /// hinterher, schrumpfte der Scrollbereich unter dem aktuellen Offset,
+  /// Flutter klemmte diesen zurück und die Liste sprang wieder nach oben –
+  /// genau das passierte, wenn nur ein paar Zeilen unterhalb des Sichtbaren
+  /// überstanden.
+  double _collapse = 0;
 
   /// Wird true, sobald der Nutzer die Seite wirklich gescrollt hat. Davor
   /// wird die Kopfzeile nicht eingeklappt – programmatische Scrolls
@@ -71,33 +87,51 @@ class _ListPageState extends State<ListPage> {
   /// „hochgeschoben" aussehen lassen, als hätte man bereits gescrollt.
   bool _userScrolled = false;
 
+  /// Höhe der Kopfzeile über den konkaven Ecken, also der Teil, der beim
+  /// Scrollen ein- und ausklappt.
+  double get topHeight => _headerHeight - _collapse;
+
   @override
   void initState() {
     super.initState();
     controller = ScrollController(keepScrollOffset: widget.keepScrollOffset);
-    controller.addListener(() {
-      if (!widget.collapseHeaderOnScroll) {
-        if (topHeight != -10) {
-          setState(() => topHeight = -10);
-        }
-        return;
+    controller.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!mounted || !controller.hasClients) return;
+    final double offset = controller.offset;
+
+    if (offset <= 0) {
+      // Ganz oben angekommen: die Nutzer-Geste wird zurückgesetzt, damit
+      // programmatische Scrolls (Tastatur, Fokus) die Kopfzeile nicht mehr
+      // einklappen.
+      _userScrolled = false;
+    }
+
+    double collapse = 0;
+    if (widget.collapseHeaderOnScroll && _userScrolled && _headerHeight > 0) {
+      // Das Einklappen gibt Platz frei, verkleinert aber den Bereich, den die
+      // Liste abdecken kann. Übersteigt die Kopfzeilenhöhe den Scrollbereich
+      // (also liegen nur ein paar Zeilen unterhalb des Sichtbaren), würde der
+      // Inhalt beim Einklappen aus dem Sichtfeld springen und der Offset
+      // zurückgeklemmt – die Liste schnellt dann beim Scrollen wieder nach
+      // oben. In dem Fall bleibt die Kopfzeile offen.
+      //
+      // Der Wert wird aus dem aktuellen Zustand zurückgerechnet: Bei
+      // eingeklappter Kopfzeile ist der Scrollbereich um genau [_collapse]
+      // größer als bei ausgeklappter.
+      final double scrollRangeExpanded =
+          controller.position.maxScrollExtent - _collapse;
+      if (scrollRangeExpanded > _headerHeight) {
+        collapse = offset.clamp(0.0, _headerHeight);
       }
-      if (!_userScrolled) return;
-      // Kopfzeile wieder einblenden, sobald wieder ganz oben angekommen ist.
-      // Ein kleiner Schwellenwert verhindert, dass ein winziger
-      // Overscroll/Bounce (z.B. ein Tap auf einer BouncingScrollPhysics)
-      // die Kopfzeile schon einklappt.
-      if (controller.offset <= 8) {
-        topHeight = -10;
-        // Sobald wir wieder ganz oben sind, wird die Nutzer-Geste
-        // zurückgesetzt – programmatische Scrolls (Tastatur, Fokus)
-        // klappen die Kopfzeile dann nicht mehr ein.
-        if (controller.offset <= 0) _userScrolled = false;
-      } else {
-        topHeight = 0;
-      }
-      setState(() {});
-    });
+    }
+
+    // Nur bei spürbarer Änderung neu aufbauen (der Listener feuert bei jedem
+    // Pixel des Scrollens).
+    if ((collapse - _collapse).abs() < 0.5) return;
+    setState(() => _collapse = collapse);
   }
 
   @override
@@ -108,7 +142,7 @@ class _ListPageState extends State<ListPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (topHeight == -10) topHeight = MediaQuery.of(context).size.height * 0.1;
+    _headerHeight = MediaQuery.of(context).size.height * 0.1;
     widget.actions ??= [];
     widget.smallTitle ??= false;
     widget.onPop ??= () => Navigator.pop(context);
@@ -125,9 +159,13 @@ class _ListPageState extends State<ListPage> {
         child: Container(
           child: Stack(
           children: [
-            // HEADER mit konkaven Ecken
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+            // HEADER mit konkaven Ecken.
+            // Keine Animation der Höhe: Sie muss 1:1 dem Scroll-Offset folgen,
+            // sonst wächst der sichtbare Inhaltsbereich schneller als der
+            // Scrollbereich der Liste und der Offset wird zurückgeklemmt
+            // (die Liste springt dann beim Scrollen wieder nach oben).
+            Container(
+              key: const ValueKey('listpage_header'),
               alignment: Alignment.topCenter,
               color: Theme.of(context).colorScheme.surface,
               height: topHeight,
@@ -339,8 +377,13 @@ class _ListPageState extends State<ListPage> {
             ),
 
             // CONTENT
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 200),
+            // Folgt exakt der Einklappung (ohne Animation): Jedes
+            // eingeklappte Pixel holt genau ein Pixel Sichtfläche dazu, der
+            // Scrollbereich der Liste wächst also im gleichen Maß wie der
+            // Offset. Mit einer Animation (oder einem Sprung) schrumpfte der
+            // Scrollbereich kurzzeitig unter dem Offset, woraufhin Flutter
+            // diesen zurückklemmte und die Liste wieder nach oben sprang.
+            Positioned(
               top: topHeight + cornerRadius,
               left: 0,
               right: 0,
@@ -353,8 +396,11 @@ class _ListPageState extends State<ListPage> {
                   ),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.only(
-                    top: topHeight != 0 ? 15 : 0,
+                  padding: const EdgeInsets.only(
+                    // Konstant, damit die Höhe des Inhalts nicht vom
+                    // Scroll-Zustand abhängt - davon hängt ab, wie weit die
+                    // Liste scrollbar bleibt.
+                    top: 15,
                     left: 20,
                     right: 20,
                     bottom: 10,
