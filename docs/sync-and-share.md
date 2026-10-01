@@ -253,6 +253,28 @@ die Klasse `8a` haben, meinen dasselbe — und nach dem Merge steht sie genau
 einmal in der Liste. Ohne diese Regel wäre jeder Name auf beiden Geräten ein
 eigener Eintrag, und die Liste enthielte jede Klasse doppelt.
 
+### Wo die Funktionen liegen
+
+Sync, Share und „Shares finden" liegen **nicht** in den Einstellungen und
+**nicht** in der Navigationsleiste. Sie öffnen sich über ein Symbol in der
+Kopfzeile, links neben dem More-Menü, und führen auf eine Seite mit den drei
+Wegen.
+
+Beides ist ausprobiert und hat Gründe:
+
+* **In den Einstellungen** waren sie tief in einer Liste, zwischen Sprache,
+  Sicherung und Entwickleroptionen. Das trifft besonders die Funktionen, für
+  die man die App braucht: Wer ein zweites Gerät koppeln will, tippt nicht
+  zuerst auf „Einstellungen".
+* **Als vierter Eintrag in der Navigationsleiste** ergab es eine **zweite
+  Kopfzeile**. Ein Tab liegt bereits unter der Kopfzeile der App, und die Seite
+  bringt eine eigene mit – 10 % der Bildschirmhöhe für eine Zeile, direkt unter
+  einer 20 % hohen Leiste. Die anderen Tabs machen es richtig: Der
+  `Dashboard`-Tab ist eine nackte Liste mit fester Höhe ohne eigenen Header.
+
+Aufgeschoben ist die Kopfzeile der Seite die einzige, und damit richtig – so wie
+bei „Einstellungen" und „Krankentracking".
+
 ### Klassen sind immer sortiert
 
 `06.2` steht **vor** `11`, und `8a` **vor** `10`. Kein reiner

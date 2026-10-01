@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import 'models/swipe_page_transition.dart';
 import './android_colors.dart';
 
 import 'package:url_launcher/url_launcher.dart';
@@ -18,6 +19,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:page_transition/page_transition.dart';
 import 'package:lottie/lottie.dart';
 
 import 'dart:async';
@@ -35,7 +37,6 @@ import 'services/StorageStartupRepair.dart';
 import 'services/SchoolStorage.dart';
 import 'services/sync/SyncCoordinator.dart';
 import 'services/sync/SyncEngine.dart';
-import 'services/sync/SyncKeys.dart';
 import 'services/AppClock.dart';
 
 /// Compares two version strings (e.g. '3.7.10') numerically segment by segment.
@@ -76,8 +77,7 @@ void main() async {
   //
   // Beide Durchgänge prüfen vor dem Schreiben und tun bei bereits richtigen
   // Werten nichts – deshalb ist es gleichgültig, ob sie bei jedem Start laufen.
-  final StartupRepairReport repariert =
-      await StorageStartupRepair.run(prefs);
+  final StartupRepairReport repariert = await StorageStartupRepair.run(prefs);
   if (!repariert.isEmpty) {
     // ignore: avoid_print
     print('Start: repariert – $repariert');
@@ -251,9 +251,10 @@ class _MyAppState extends State<MyApp> {
             highlightColor: Colors.transparent,
             splashFactory: NoSplash.splashFactory,
           ),
-          home: widget.initialPage ?? Scaffold(
-            body: HomePage(),
-          ),
+          home: widget.initialPage ??
+              Scaffold(
+                body: HomePage(),
+              ),
         );
       },
     );
@@ -495,13 +496,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       },
       {
         // Sync und Share bekommen einen eigenen Platz in der Leiste. Vorher
-        // lagen sie tief in den Einstellungen – und zwischen Sprache, Sicherung
-        // und Entwickleroptionen, also dort, wo niemand sie sucht. Über die
-        // Leiste sind sie der vierte Bildschirm, und auf dem Bildschirm selbst
-        // stehen die drei Wege mit Überschrift: eigene Geräte, mit anderen
-        // teilen, deren Angebote finden.
+        // lagen sie tief in den Einstellungen – zwischen Sprache, Sicherung und
+        // Entwickleroptionen, also dort, wo niemand sie sucht. Über die Leiste
+        // sind sie ein eigener Bildschirm, und darauf stehen die drei Wege mit
+        // Überschrift: eigene Geräte, mit anderen teilen, deren Angebote
+        // finden.
         //
-        // **Vor** dem Dashboard, nicht danach: Wer auf „Dashboard" tippt, will
+        // **Nach** dem Dashboard, nicht davor: Wer auf „Dashboard" tippt, will
         // Einstellungen und Werkzeuge; die Leiste ist gewöhnlich, und ein
         // zusätzlicher Bildschirm, den man aus Versehen mitnimmt, gehört nicht
         // dorthin.
