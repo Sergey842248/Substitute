@@ -59,6 +59,8 @@ class SyncMerge {
       final List<Object> localItems = _itemsOf(local, key);
       final List<Object> remoteItems = _itemsOf(remote, key);
       final SyncMergeResult part = _mergePart(
+        local,
+        remote,
         key,
         localItems,
         remoteItems,
@@ -100,6 +102,86 @@ class SyncMerge {
       settings: settings,
       settingsAt: _mergedStamps(local, remote, settings),
     );
+  }
+
+  /// Die Reihenfolge der zusammengeführten Einträge.
+  ///
+  /// Die führende Seite ist die mit der neueren `orderAt` – wer die Anordnung
+  /// zuletzt geändert hat, gibt sie vor. Einträge, die nur auf der jeweils
+  /// anderen Seite standen, werden an der Stelle eingefügt, an der **dort**
+  /// standen. Eine neu hinzugekommene Klasse steht damit nicht zufällig am
+  /// Ende, sondern dort, wo die Seite, von der sie kam, sie hingestellt hat.
+  ///
+  /// Bei gleichem Alter entscheidet wieder der alphabetisch größere
+  /// Identitätszug. „Bei Gleichstand gewinnt die lokale Seite" wäre nicht
+  /// symmetrisch, und zwei Geräte würden sich ihre Anordnung endlos
+  /// gegenseitig umdrehen.
+  static List<Object> _orderWinner({
+    required String key,
+    required Map<String, Object> winner,
+    required SyncPart localPart,
+    required SyncPart remotePart,
+  }) {
+    final List<String> localOrder = localPart.identityOrder;
+    final List<String> remoteOrder = remotePart.identityOrder;
+
+    final bool localLeads = localPart.orderAt.isAfter(remotePart.orderAt)
+        ? true
+        : (remotePart.orderAt.isAfter(localPart.orderAt)
+            ? false
+            : _compareSequences(localOrder, remoteOrder) >= 0);
+
+    final List<String> leading = localLeads ? localOrder : remoteOrder;
+    final List<String> following = localLeads ? remoteOrder : localOrder;
+
+    // Sonderfall Pläne: Der Cache ist über das Datum geschlüsselt, und die App
+    // sucht darin nach Datum. Eine von einem Menschen zusammengestellte
+    // Reihenfolge gibt es hier nicht – jeder Geräte-Cache wächst beim
+    // Herunterladen in der Reihenfolge, in der die Tage kommen. Nach Identität
+    // zu ordnen ist hier also keine Bevormundung, sondern die natürliche
+    // Ordnung; und sie erspart das ständige Umsortieren beim Zusammenführen.
+    if (ConfigBackup.isCachedPlansKey(key)) {
+      final List<String> sorted = <String>[...winner.keys]..sort();
+      return <Object>[for (final String id in sorted) winner[id]!];
+    }
+
+    final List<String> ordered = <String>[];
+    for (final String id in <String>[...leading, ...following]) {
+      if (winner.containsKey(id) && !ordered.contains(id)) ordered.add(id);
+    }
+    // Was in keiner der beiden Reihenfolgen stand – ein Eintrag, dessen
+    // Identität beim Lesen leer war – kommt in fester Reihenfolge hinten an.
+    // Nicht elegant, aber gleichbleibend.
+    final List<String> rest = winner.keys
+        .where((String id) => !ordered.contains(id))
+        .toList()
+      ..sort();
+    ordered.addAll(rest);
+
+    return <Object>[
+      for (final String id in ordered)
+        if (winner[id] != null) winner[id]!,
+    ];
+  }
+
+  /// Wessen Anordnung im Ergebnis gilt – die neuere, bei Gleichstand die
+  /// größere.
+  static DateTime _winningOrderStamp(SyncPart localPart, SyncPart remotePart) {
+    if (localPart.orderAt.isAfter(remotePart.orderAt)) return localPart.orderAt;
+    if (remotePart.orderAt.isAfter(localPart.orderAt)) return remotePart.orderAt;
+    return _compareSequences(localPart.identityOrder, remotePart.identityOrder) >= 0
+        ? localPart.orderAt
+        : remotePart.orderAt;
+  }
+
+  /// Lexikografischer Vergleich zweier Identitätsfolgen.
+  static int _compareSequences(List<String> a, List<String> b) {
+    final int n = a.length < b.length ? a.length : b.length;
+    for (int i = 0; i < n; i++) {
+      final int c = a[i].compareTo(b[i]);
+      if (c != 0) return c;
+    }
+    return a.length.compareTo(b.length);
   }
 
   /// Die Änderungszeiten für die Werte, die es im Ergebnis gibt.
@@ -179,7 +261,18 @@ class SyncMerge {
   }
 
   /// Führt einen einzelnen Bestandteil zusammen.
+  /// Der Bestandteil aus [payload] – oder ein neu beschriebener, falls das
+  /// Paket ihn nicht enthält (etwa weil er lokal leer war).
+  static SyncPart partOf(SyncPayload payload, String key, List<Object> items) {
+    for (final SyncPart part in payload.parts) {
+      if (part.key == key) return part;
+    }
+    return SyncPayload.describePart(key, items);
+  }
+
   static SyncMergeResult _mergePart(
+    SyncPayload local,
+    SyncPayload remote,
     String key,
     List<Object> localItems,
     List<Object> remoteItems,
@@ -188,8 +281,12 @@ class SyncMerge {
     List<String> updated,
     List<String> removed,
   ) {
-    final SyncPart localPart = SyncPayload.describePart(key, localItems);
-    final SyncPart remotePart = SyncPayload.describePart(key, remoteItems);
+    // Die **Originalteile** des Pakets, nicht neu beschriebene. Nur so kommt
+    // die Änderungszeit der Reihenfolge (`orderAt`) überhaupt bis hierher – ein
+    // neu beschriebener Teil hätte sie nicht, beide Seiten stünden auf dem
+    // Anfang der Zeitachse, und die Reihenfolge entschiede der Zufall.
+    final SyncPart localPart = partOf(local, key, localItems);
+    final SyncPart remotePart = partOf(remote, key, remoteItems);
 
     // Die Identitäten beider Seiten und – wichtiger – **welche Fassung
     // gewinnt**. Bei doppelten IDs innerhalb einer Seite gewinnt die zuletzt
@@ -269,16 +366,26 @@ class SyncMerge {
       }
     }
 
-    // Feste Reihenfolge: nach Identität sortiert. Damit sind zwei
-    // zusammengeführte Stände unabhängig davon identisch, in welcher
-    // Reihenfolge die Geräte synchronisiert wurden – und die Listen in der
-    // App springen nicht bei jedem Sync um.
-    final List<Object> result = winner.values.toList()
-      ..sort((Object a, Object b) =>
-          (localPart.idOf(a) ?? '').compareTo(localPart.idOf(b) ?? ''));
+    // Die Reihenfolge kommt von der Seite, die sie zuletzt geändert hat.
+    //
+    // Vorher wurde hier nach Identität sortiert. Das war eindeutig und machte
+    // die Reihenfolge unbrauchbar: Wer seine Klassen in der Reihenfolge
+    // `XYZ, ABC` angelegt hatte, bekam sie nach dem Sync alphabetisch – und
+    // die Anordnung ist in der App benutzersichtbar.
+    final List<Object> result = _orderWinner(
+      key: key,
+      winner: winner,
+      localPart: localPart,
+      remotePart: remotePart,
+    );
 
     return SyncMergeResult(
-      parts: <SyncPart>[localPart.copyWithItems(result)],
+      parts: <SyncPart>[localPart.copyWithItems(
+        result,
+        // Die Reihenfolge wandert mit, sonst verlöre der nächste Lauf die
+        // Information, wessen Anordnung hier gerade gilt.
+        orderAt: _winningOrderStamp(localPart, remotePart),
+      )],
       tombstones: const <SyncTombstone>[],
       added: added,
       updated: updated,

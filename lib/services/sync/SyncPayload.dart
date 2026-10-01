@@ -35,7 +35,8 @@ class SyncPart {
     required this.items,
     required this.idOf,
     this.timestampOf,
-  });
+    DateTime? orderAt,
+  }) : _orderAt = orderAt;
 
   /// Der `SharedPreferences`-Schlüssel, unter dem die App diesen Bestandteil
   /// ablegt – z.B. `persons` oder `schools.12345.persons`.
@@ -66,12 +67,38 @@ class SyncPart {
   /// Gesamtzeit.
   final DateTime? Function(Object item)? timestampOf;
 
-  SyncPart copyWithItems(List<Object> newItems) => SyncPart(
+  /// Wann die **Reihenfolge** dieses Bestandteils zuletzt geändert wurde.
+  ///
+  /// Die Reihenfolge gehört zum Bestandteil, nicht zum einzelnen Eintrag:
+  /// „8a vor 8b" ist eine Aussage über die Liste und lässt sich aus keinem
+  /// Eintrag errechnen. Sie wird deshalb wie ein Wert behandelt – wer sie
+  /// zuletzt geändert hat, gibt sie vor.
+  ///
+  /// Vorher wurde hier einfach nach Identität sortiert. Das war eindeutig und
+  /// machte die Reihenfolge **unbrauchbar**: Ein Gerät, auf dem die Klassen in
+  /// der Reihenfolge `XYZ, ABC` angelegt waren, bekam sie nach dem Sync
+  /// alphabetisch – `ABC, XYZ`. Die Anordnung in der App ist aber
+  /// benutzersichtbar, sie ist das, woran sich jemand gewöhnt hat.
+  final DateTime? _orderAt;
+
+  /// Siehe [_orderAt]. Ohne Angabe gilt [SyncPayload.epoch]: dann hat sich
+  /// niemand die Reihenfolge verdient, und der Gleichstand entscheidet
+  /// einheitlich.
+  DateTime get orderAt => _orderAt ?? SyncPayload.epoch;
+
+  SyncPart copyWithItems(List<Object> newItems, {DateTime? orderAt}) => SyncPart(
         key: key,
         items: newItems,
         idOf: idOf,
         timestampOf: timestampOf,
+        orderAt: orderAt ?? _orderAt,
       );
+
+  /// Die Identitäten in der Reihenfolge, in der sie hier stehen.
+  List<String> get identityOrder => <String>[
+        for (final Object item in items)
+          if ((idOf(item) ?? '').isNotEmpty) idOf(item)!,
+      ];
 }
 
 /// Eine Lösch-Markierung: "Diesen Eintrag gab es, er ist aber weg".
@@ -222,6 +249,7 @@ class SyncPayload {
             .map((SyncPart part) => <String, dynamic>{
                   'key': part.key,
                   'items': part.items,
+                  'orderAt': part.orderAt.toUtc().toIso8601String(),
                 })
             .toList(growable: false),
       };
@@ -272,7 +300,11 @@ class SyncPayload {
           items.add(item);
         }
       }
-      parts.add(describePart(key, items));
+      parts.add(describePart(
+        key,
+        items,
+        orderAt: DateTime.tryParse(entry['orderAt']?.toString() ?? '')?.toUtc(),
+      ));
     }
 
     final List<SyncTombstone> tombstones = <SyncTombstone>[];
@@ -310,17 +342,23 @@ class SyncPayload {
   ///
   /// Die Zuordnung liegt hier zentral, weil sie an zwei Stellen gebraucht wird:
   /// beim Einlesen eines Pakets und beim Anwenden auf `SharedPreferences`.
-  static SyncPart describePart(String key, List<Object> items) {
+  static SyncPart describePart(
+    String key,
+    List<Object> items, {
+    DateTime? orderAt,
+  }) {
     if (ConfigBackup.isCachedPlansKey(key)) {
       return SyncPart(
         key: key,
         items: items,
         idOf: (Object item) => _planDate(item) ?? '',
+        orderAt: orderAt,
       );
     }
     return SyncPart(
       key: key,
       items: items,
+      orderAt: orderAt,
       idOf: (Object item) => _identityOf(key, item),
       timestampOf: (Object item) => item is Map
           ? DateTime.tryParse(item['_t']?.toString() ?? '')?.toUtc()

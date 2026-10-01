@@ -278,6 +278,63 @@ void main() {
     await host.deleteChain(classesChain);
   });
 
+  test('die Reihenfolge der Klassen wandert mit', () async {
+    if (!reachable) return;
+    // Der gemeldete Fall: Auf einem Gerät liegen die Klassen in der Reihenfolge
+    // `XYZ, ABC`, auf dem anderen angekommen sind sie alphabetisch – also
+    // umsortiert. Die Anordnung ist in der App benutzersichtbar.
+    const String orderChain = 'live-order-probe';
+    await host.deleteChain(orderChain);
+
+    SyncState orderState(String id) => SyncState(
+          passphrase: passphrase,
+          chainId: orderChain,
+          deviceId: id,
+          deviceName: 'Gerät $id',
+          includeSettings: false,
+          lastSync: null,
+        );
+
+    SharedPreferences prefsA = await diskWith(<String, Object>{
+      'classes': <String>['XYZ', 'ABC'],
+    });
+    // Einmal syncen, damit beide Geräte eine Historie haben – erst danach gilt
+    // eine geänderte Reihenfolge als geändert.
+    await SyncEngine(client: host).run(prefsA, orderState('ord-a'));
+
+    SharedPreferences prefsB = await diskWith(<String, Object>{
+      'classes': <String>['NUR-B'],
+    });
+    await SyncEngine(client: guest).run(prefsB, orderState('ord-b'));
+
+    // ignore: avoid_print
+    print('  A: ${prefsA.getStringList('classes')}  '
+        'B: ${prefsB.getStringList('classes')}');
+
+    final List<String> beiA = prefsA.getStringList('classes') ?? const <String>[];
+    final List<String> beiB = prefsB.getStringList('classes') ?? const <String>[];
+
+    expect(beiA.indexOf('XYZ'), lessThan(beiA.indexOf('ABC')),
+        reason: 'die eigene Anordnung ist zerschlagen: $beiA');
+    expect(beiB.indexOf('XYZ'), lessThan(beiB.indexOf('ABC')),
+        reason: 'die Anordnung des anderen Geräts ist nicht angekommen: $beiB');
+    expect(beiB, contains('NUR-B'), reason: 'die eigene Klasse ist weg');
+
+    // Und jetzt die entscheidende Probe: B ordnet um – und A folgt.
+    await prefsB.setStringList('classes', <String>['NUR-B', 'ABC', 'XYZ']);
+    await SyncEngine(client: guest).run(prefsB, orderState('ord-b'));
+    await SyncEngine(client: host).run(prefsA, orderState('ord-a'));
+
+    // ignore: avoid_print
+    print('  nach dem Umsortieren:  A: ${prefsA.getStringList('classes')}');
+
+    final List<String> danachA = prefsA.getStringList('classes') ?? const <String>[];
+    expect(danachA.indexOf('ABC'), lessThan(danachA.indexOf('XYZ')),
+        reason: 'die neue Anordnung von B ist nicht angekommen: $danachA');
+
+    await host.deleteChain(orderChain);
+  });
+
   test('nach einem Lauf ist die Kette auf dem Server vollständig',
       () async {
     if (!reachable) return;

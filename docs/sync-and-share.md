@@ -253,6 +253,41 @@ die Klasse `8a` haben, meinen dasselbe — und nach dem Merge steht sie genau
 einmal in der Liste. Ohne diese Regel wäre jeder Name auf beiden Geräten ein
 eigener Eintrag, und die Liste enthielte jede Klasse doppelt.
 
+### Die Reihenfolge gehört zum Bestandteil
+
+Wenn die Klassen auf einem Gerät in der Reihenfolge `XYZ, ABC` angelegt waren,
+kommen sie auf dem anderen **genauso** an — nicht alphabetisch.
+
+Das war vorher ausdrücklich so gebaut: Der Merge sortierte die Ergebnisse nach
+Identität, damit zwei Geräte unabhängig von der Reihenfolge ihrer
+Synchronisation denselben Stand haben. Das war richtig gedacht und praktisch
+falsch. Die Anordnung in der App ist benutzersichtbar — sie ist das, woran sich
+jemand gewöhnt hat — und sie ließ sich nicht wiederherstellen, weil
+Information fehlte, die niemand mitgeschickt hatte.
+
+Die Reihenfolge gehört **zum Bestandteil**, nicht zum einzelnen Eintrag: „XYZ
+vor ABC" ist eine Aussage über die Liste und aus keinem Eintrag errechenbar.
+Sie wird deshalb wie ein Wert behandelt:
+
+* `SyncPart.orderAt` sagt, wann die Anordnung zuletzt geändert wurde.
+* Wer sie zuletzt geändert hat, gibt sie vor.
+* Neue Einträge werden an der Stelle eingefügt, an der sie auf der Seite standen,
+  von der sie kamen — nicht am Ende.
+
+Und wie bei den Werten gilt: Die Zeit wird nur erneuert, wenn sich die
+Reihenfolge gegenüber dem zuletzt Gesendeten wirklich geändert hat. Sonst wäre
+bei jedem Lauf alles frisch umsortiert, und das Gerät, das die Anordnung zuletzt
+verändert hat, verlöre sie an das Gerät, das zufällig später dran war.
+
+Bei gleichem Alter entscheidet wieder der alphabetisch größere
+Identitätszug — „bei Gleichstand gewinnt die lokale Seite" wäre nicht
+symmetrisch, und zwei Geräte würden sich ihre Anordnung endlos umdrehen.
+
+**Eine Ausnahme:** Bei `offlineVPData` wird nach Datum sortiert. Der
+Vertretungsplan-Cache ist über das Datum geschlüsselt, und die App sucht darin
+nach Datum; eine von einem Menschen zusammengestellte Reihenfolge gibt es dort
+nicht, jeder Geräte-Cache wächst in der Reihenfolge, in der die Tage kommen.
+
 ### Woran man erkennt, was los ist
 
 In den Einstellungen stehen drei Kacheln, die die drei Fragen beantworten, an

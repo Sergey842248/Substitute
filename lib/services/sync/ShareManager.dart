@@ -429,14 +429,6 @@ class ShareManager {
       '${scope}teacherShorts',
     ]);
 
-    // `classNames` ist eine **Karte** `{classId: eigenerName}` – kein Array,
-    // kein Objekt je Klasse. Deshalb steht es nicht in der Liste der
-    // Bestandteile, sondern wird hier als Karte geholt und als Wert geteilt.
-    final Map<String, dynamic> classNames = Map<String, dynamic>.from(
-      (SyncDataReader.readMaps(prefs)['${scope}classNames'] as Map?) ??
-          const <String, dynamic>{},
-    );
-
     // Klassen: nur die ausgewählten. Ein Eintrag ist hier der **Name**
     // (`'8a'`), kein Objekt – so legt die App sie ab.
     final List<Object> classes = <Object>[];

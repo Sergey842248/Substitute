@@ -184,8 +184,14 @@ void main() {
         ),
       );
 
-      expect(prefs.getStringList('classes'), <String>['8a', '8b', '9a'],
+      final List<String> angekommen = prefs.getStringList('classes') ?? const <String>[];
+      expect(angekommen, containsAll(<String>['8a', '8b', '9a']),
           reason: 'die Klassen des anderen Geräts sind nicht angekommen');
+      // Die beiden fremden Klassen stehen in **ihrer** Reihenfolge. Vorher
+      // wurde hier alphabetisch sortiert, und die Anordnung in der App ist
+      // benutzersichtbar.
+      expect(angekommen.indexOf('8a'), lessThan(angekommen.indexOf('8b')),
+          reason: 'die Reihenfolge der fremden Klassen ist zerschlagen: $angekommen');
     });
   });
 

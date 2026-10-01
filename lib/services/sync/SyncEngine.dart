@@ -367,7 +367,11 @@ class SyncEngine {
     return SyncPayload(
       parts: [
         for (final MapEntry<String, List<Object>> entry in parts.entries)
-          SyncPayload.describePart(entry.key, entry.value),
+          SyncPayload.describePart(
+            entry.key,
+            entry.value,
+            orderAt: _orderStampFor(prefs, entry.key, entry.value),
+          ),
       ],
       tombstones: SyncMerge.readTombstones(prefs),
       settings: values,
@@ -376,6 +380,70 @@ class SyncEngine {
       deviceName: deviceName ?? state.deviceName,
     );
   }
+
+  /// Die Änderungszeit der **Reihenfolge** eines Bestandteils.
+  ///
+  /// Wie bei den Werten gilt: neu ist die Zeit nur, wenn sich die Reihenfolge
+  /// gegenüber dem zuletzt Gesendeten geändert hat. Sonst wäre bei jedem Lauf
+  /// alles „frisch umsortiert", und das Gerät, das die Anordnung zuletzt
+  /// verändert hat, verlöre sie beim nächsten Sync an das Gerät, das
+  /// zufällig später dran war.
+  ///
+  /// Der Schatten liegt zusammen mit dem der Werte in
+  /// [timestampsStorageKey] – dieselbe Datei, aus demselben Grund: Der Sync
+  /// fasst keine Schreibstelle der App an.
+  DateTime _orderStampFor(
+    SharedPreferences prefs,
+    String key,
+    List<Object> items,
+  ) {
+    final DateTime now = DateTime.now().toUtc();
+    final Map<String, dynamic> orders = _readSection(prefs, 'orders');
+    final Map<String, dynamic> orderStamps = _readSection(prefs, 'orderStamps');
+
+    // Die Reihenfolge als eine Zeichenkette. Zwei Folgen sind gleich, wenn die
+    // Zeichenketten gleich sind – das ist die einfachste Form von „unverändert",
+    // und sie braucht keine weitere Datenstruktur.
+    final String sequence =
+        SyncPayload.describePart(key, items).identityOrder.join(' ');
+
+    final Object? known = orders[key];
+    final DateTime stamp = known == null
+        // Erstmals gesehen: Wann die Anordnung entstanden ist, weiß dieses
+        // Gerät nicht. Es behauptet das deshalb nicht.
+        ? SyncPayload.epoch
+        : (known.toString() == sequence
+            ? (DateTime.tryParse(orderStamps[key]?.toString() ?? '')?.toUtc() ??
+                SyncPayload.epoch)
+            : now);
+
+    orders[key] = sequence;
+    orderStamps[key] = stamp.toUtc().toIso8601String();
+    _persistShadow(prefs, <String, dynamic>{
+      'values': _readShadow(prefs),
+      'stamps': _readSection(prefs, 'stamps'),
+      'orders': orders,
+      'orderStamps': orderStamps,
+    });
+    return stamp;
+  }
+
+  /// Einen benannten Abschnitt des Schattens lesen.
+  Map<String, dynamic> _readSection(SharedPreferences prefs, String name) {
+    try {
+      final String? raw = prefs.getString(timestampsStorageKey);
+      if (raw == null || raw.isEmpty) return <String, dynamic>{};
+      final Object? decoded = jsonDecode(raw);
+      if (decoded is! Map) return <String, dynamic>{};
+      final Object? section = decoded[name];
+      if (section is! Map) return <String, dynamic>{};
+      return section.cast<String, dynamic>();
+    } catch (_) {
+      return <String, dynamic>{};
+    }
+  }
+
+  /// Die Zeitangaben der Werte als Zeichenketten, unverändert.
 
   /// Nimmt die Zeitangaben beider Seiten für die Werte zusammen, die es jetzt
   /// gibt.
@@ -396,6 +464,44 @@ class SyncEngine {
       }
     }
     return merged;
+  }
+
+  /// Schreibt die **Werte**-Abschnitte und lässt die Reihenfolgen unberührt.
+  ///
+  /// [values]/[stamps] einerseits, [orders]/[orderStamps] andererseits teilen
+  /// sich eine Datei und werden unabhängig voneinander aktualisiert. Würde
+  /// jede Seite nur sich selbst schreiben, löschte ein Lauf die Angabe der
+  /// anderen – und beim nächsten Sync wären die Werte oder die Reihenfolge
+  /// wieder „unbekannt".
+  void _writeShadow(
+    SharedPreferences prefs,
+    Map<String, dynamic> values,
+    Map<String, DateTime> stamps,
+  ) {
+    _persistShadow(
+      prefs,
+      <String, dynamic>{
+        'values': values,
+        'stamps': _timesToStrings(stamps),
+        'orders': _readSection(prefs, 'orders'),
+        'orderStamps': _readSection(prefs, 'orderStamps'),
+      },
+    );
+  }
+
+  /// Wandelt eine Zeitkarte in eine Karte aus Zeichenketten.
+  static Map<String, dynamic> _timesToStrings(Map<String, DateTime> stamps) =>
+      <String, dynamic>{
+        for (final MapEntry<String, DateTime> entry in stamps.entries)
+          entry.key: entry.value.toUtc().toIso8601String(),
+      };
+
+  /// Der einzige Ort, der den Schatten auf die Platte schreibt.
+  void _persistShadow(SharedPreferences prefs, Map<String, dynamic> shadow) {
+    // Ein Fehler hier darf den Sync nicht abbrechen. Die Folge wäre nur, dass
+    // beim nächsten Lauf alles als unverändert gilt – ein ungenauer
+    // Zeitstempel, kein Datenverlust.
+    unawaited(prefs.setString(timestampsStorageKey, jsonEncode(shadow)));
   }
 
   /// Die Änderungszeit **je Wert**, und das Merken des neuen Stands.
@@ -484,24 +590,6 @@ class SyncEngine {
     } catch (_) {
       return <String, DateTime>{};
     }
-  }
-
-  void _writeShadow(
-    SharedPreferences prefs,
-    Map<String, dynamic> shadow,
-    Map<String, DateTime> stamps,
-  ) {
-    // Ein Fehler hier darf den Sync nicht abbrechen. Die Folge wäre nur, dass
-    // beim nächsten Lauf alles als frisch gilt – das ist ein ungenauer
-    // Zeitstempel, kein Datenverlust.
-    unawaited(prefs.setString(
-      timestampsStorageKey,
-      jsonEncode(<String, dynamic>{
-        'values': shadow,
-        'stamps': stamps.map((String k, DateTime v) =>
-            MapEntry<String, String>(k, v.toUtc().toIso8601String())),
-      }),
-    ));
   }
 
   /// Entschlüsselt eine Hülle zu einem [SyncPayload].
