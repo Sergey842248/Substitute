@@ -65,16 +65,20 @@ void main() {
       aufraeumen();
     });
 
-    testWidgets('der Sync-Eintrag steht hinten, nach dem Dashboard',
+    testWidgets('der Sync-Eintrag steht vor dem Dashboard, nicht am Rand',
         (WidgetTester tester) async {
       await starteApp(tester);
-      // Ein zusätzlicher Bildschirm, den man aus Versehen mitnimmt, gehört
-      // nicht neben die Leiterstufen.
+      // Das Dashboard trägt die Einstellungen, und ein Bildschirm, den man beim
+      // Tippen mitnimmt, gehört nicht an den rechten Rand. Die Reihenfolge ist
+      // ein Weg: Pläne ansehen, suchen, mit anderen teilen, Werkzeuge.
       final List<SvgPicture> eintraege = tester
           .widgetList<SvgPicture>(navigationsEintraege)
           .toList();
-      expect(eintraege.last.toString(), contains('sync.svg'),
-          reason: 'der Sync-Eintrag ist nicht der letzte');
+      expect(eintraege, hasLength(4));
+      expect(eintraege[2].toString(), contains('sync.svg'),
+          reason: 'der Sync-Eintrag ist nicht an dritter Stelle');
+      expect(eintraege.last.toString(), contains('dashboard.svg'),
+          reason: 'das Dashboard steht nicht am rechten Rand');
       aufraeumen();
     });
 

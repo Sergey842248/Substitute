@@ -488,13 +488,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'widget': SearchMenu(),
       },
       {
-        'key': 'dashboard',
-        'text': AppLocalizations.of(context)!.dashboard,
-        'index': 2,
-        'icon': 'assets/img/dashboard.svg',
-        'widget': Dashboard(),
-      },
-      {
         // Sync und Share bekommen einen eigenen Platz in der Leiste. Vorher
         // lagen sie tief in den Einstellungen – zwischen Sprache, Sicherung und
         // Entwickleroptionen, also dort, wo niemand sie sucht. Über die Leiste
@@ -502,15 +495,23 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         // Überschrift: eigene Geräte, mit anderen teilen, deren Angebote
         // finden.
         //
-        // **Nach** dem Dashboard, nicht davor: Wer auf „Dashboard" tippt, will
-        // Einstellungen und Werkzeuge; die Leiste ist gewöhnlich, und ein
-        // zusätzlicher Bildschirm, den man aus Versehen mitnimmt, gehört nicht
-        // dorthin.
+        // **Vor** dem Dashboard, nicht danach: Das Dashboard ist der
+        // Bildschirm mit Einstellungen und Werkzeugen, und ein Bildschirm, den
+        // man beim Tippen mitnimmt, gehört nicht an den rechten Rand. Die
+        // Leiste liest sich damit von links nach rechts wie ein Weg: Pläne
+        // ansehen, suchen, mit anderen teilen, Werkzeuge.
         'key': 'syncShare',
         'text': AppLocalizations.of(context)!.syncShareHub,
-        'index': 3,
+        'index': 2,
         'icon': 'assets/img/sync.svg',
         'widget': const SyncShareHub(),
+      },
+      {
+        'key': 'dashboard',
+        'text': AppLocalizations.of(context)!.dashboard,
+        'index': 3,
+        'icon': 'assets/img/dashboard.svg',
+        'widget': Dashboard(),
       },
     ];
     SystemChrome.setSystemUIOverlayStyle(
