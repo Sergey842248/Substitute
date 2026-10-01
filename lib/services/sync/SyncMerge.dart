@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../ConfigBackup.dart';
+import 'SyncKeys.dart';
 import 'SyncPayload.dart';
 
 /// Führt die Daten zweier Geräte zusammen.
@@ -325,6 +326,18 @@ class SyncMerge {
     return value.toString();
   }
 
+  /// Schreibt einen Wert in die Einstellungen – **in der Form, die die App
+  /// erwartet**.
+  ///
+  /// Das ist kein Detail. Ein Sync, der `persons` als `StringList` schreibt,
+  /// während `VPlanAPI` sie mit `getString` liest, macht die App beim nächsten
+  /// Start unbenutzbar: `main()` wirft, `runApp` wird nie erreicht, und die
+  /// App startet nicht wieder. Genau das ist geschehen.
+  ///
+  /// Für Bestandteile aus [SyncKeys.dataKeys] entscheidet deshalb
+  /// [SyncKeys.dataKeyForms] über die Form – und der Sync **schreibt nie
+  /// um**. Nur die Einstellungen und Werte unbekannter Herkunft fallen auf das
+  /// Typablehen zurück.
   static Future<void> _write(
     SharedPreferences prefs,
     String key,
@@ -332,15 +345,36 @@ class SyncMerge {
   ) async {
     if (value is bool) {
       await prefs.setBool(key, value);
-    } else if (value is int) {
-      await prefs.setInt(key, value);
-    } else if (value is double) {
-      await prefs.setDouble(key, value);
-    } else if (value is List) {
-      await prefs.setStringList(
-          key, value.map((Object? e) => e.toString()).toList());
-    } else {
-      await prefs.setString(key, value.toString());
+      return;
     }
+    if (value is int) {
+      await prefs.setInt(key, value);
+      return;
+    }
+    if (value is double) {
+      await prefs.setDouble(key, value);
+      return;
+    }
+    if (value is List) {
+      final List<String> lines = value
+          .map((Object? e) => e is String
+              ? e
+              : (e is Map ? jsonEncode(e) : e.toString()))
+          .toList();
+      switch (SyncKeys.formOf(key)) {
+        case StoredForm.jsonArray:
+          // So, wie die App es selbst ablegt: ein JSON-Array als String.
+          // `setStringList` wäre hier der direkte Weg in den Absturz, und ein
+          // Array von *Zeichenketten* statt von *Objekten* wäre zwar gültiges
+          // JSON, für die App aber unbrauchbar.
+          await prefs.setString(key, encodeJsonArray(lines));
+        case StoredForm.stringList:
+          await prefs.setStringList(key, lines);
+        case null:
+          await prefs.setStringList(key, lines);
+      }
+      return;
+    }
+    await prefs.setString(key, value.toString());
   }
 }

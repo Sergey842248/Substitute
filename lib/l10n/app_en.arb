@@ -1,530 +1,540 @@
 {
-    "settings": "Settings",
-    "credentials": "Credentials",
-    "credentialsSubtitle": "stundenplan24 credentials",
-    "notifications": "Notifications",
-    "notificationsSubtitle": "Notifications for substitution plan",
-    "setTeacherAbbreviations": "Set Teacher abbreviations",
-    "setTeacherAbbreviationsSubtitle": "Replace teacher abbreviations with Real ones",
-    "developerOptions": "Developer options",
-    "developerOptionsSubtitle": "Change Settings meant for developers",
-    "language": "Language",
-    "languageSubtitle": "Change the language of the app",
-    "freeRoomsTitle": "Free rooms - {time}",
-    "vplanStudents": "vplan students",
-    "vplanTeachers": "vplan teachers",
-    "dashboard": "dashboard",
-    "appTitle": "Substitute",
-    "newVersionAvailable": "New version available",
-    "newVersionMessage": "A new version ({version}) is available. Just download it and open the file to install it.",
-    "@newVersionMessage": {
-        "placeholders": {
-            "version": {
-                "type": "String"
-            }
-        }
-    },
-    "later": "Later",
-    "download": "Download",
-    "appInfo": "App Info",
-    "mainDeveloper": "Main-Developer: ",
-    "developerName": "Sergey842248",
-    "formerDeveloper": "Former Developer: ",
-    "formerDeveloperName": "Oskar",
-    "openIssue": "Open Issue",
-    "github": "GitHub",
-    "version": "version: {version}",
-    "@version": {
-        "placeholders": {
-            "version": {
-                "type": "String"
-            }
-        }
-    },
-    "findFreeRoom": "Find free room",
-    "findFreeRoomSubtitle": "Find a room which isn't occupied for a specific time",
-    "roomPlan": "Room plan",
-    "roomPlanSubtitle": "View the schedule of a room",
-    "selectRoom": "Select room",
-    "noLessonsInRoom": "No lessons in this room",
-    "noPlanForThisDay": "No substitution plan available for this day.",
-    "analysis": "Analysis",
-    "analysisSubtitle": "Get an analysis of the substitution plan",
-    "settingsTitle": "Settings",
-    "settingsSubtitle": "More Settings to personalize your experience",
-    "addNewClass": "Add a new class",
-    "dontForgetCredentials": "Don't forget your credentials!",
-    "add": "Add",
-    "selectClass": "Select a class",
-    "noNextLessonFound": "No next lesson found",
-    "nextHour": "next hour",
-    "weekend": "Weekend",
-    "room": "Room {room}",
-    "@room": {
-        "placeholders": {
-            "room": {
-                "type": "String"
-            }
-        }
-    },
-    "classSelection": "Class selection",
-    "selectClassTitle": "Select class",
-    "usernamePasswordWrong": "Username or password incorrect!",
-    "wrongSchoolNumber": "Wrong schoolnumber!\n\nor no substitution plan available!",
-    "noInternetConnection": "No internet connection",
-    "noSubstitutionPlan": "no substitution plan",
-    "wrongSchoolNumberAlt": "Wrong school-number or no substitution plan available",
-    "noNetworkConnection": "No Network connection",
-    "week": "Week",
-    "close": "Close",
-    "courses": "Courses",
-    "noAdditionalInformation": "No additional information available",
-    "search": "Search",
-    "searchTeachers": "Search Teachers",
-    "searchTeachersSubtitle": "Search teacher abbreviations and view a teacher's substitution plan",
-    "teacherAbbreviationHint": "Teacher abbreviation (like \"AB\")",
-    "selectedDate": "Selected Date: {day}.{month}.{year}",
-    "@selectedDate": {
-        "placeholders": {
-            "day": {
-                "type": "String"
-            },
-            "month": {
-                "type": "String"
-            },
-            "year": {
-                "type": "String"
-            }
-        }
-    },
-    "see": "See",
-    "scanningTeacherAbbreviations": "Scanning all Teacher abbreviations...",
-    "noTeachersFound": "No teachers found",
-    "noFavoriteClassesFound": "No favorite classes found.",
-    "addClassToFavoritesForAnalysis": "Please add a class to your favorites to see the analysis.",
-    "nameClass": "Name the class",
-    "renameClass": "Rename class",
-    "classNameHint": "Custom name (optional)",
-    "deleteClassTitle": "Delete class?",
-    "deleteClassMessage": "The class \"{className}\" will be removed. This cannot be undone.",
-    "@deleteClassMessage": {
-        "placeholders": {
-            "className": {
-                "type": "String"
-            }
-        }
-    },
-    "deletePersonTitle": "Delete person?",
-    "deletePersonMessage": "The person \"{personName}\" will be removed. This cannot be undone.",
-    "@deletePersonMessage": {
-        "placeholders": {
-            "personName": {
-                "type": "String"
-            }
-        }
-    },
-    "deleteAction": "Delete",
-    "deleteSickEntryTitle": "Delete entry?",
-    "deleteSickEntryMessage": "The sick track entry for \"{classId}\" will be removed. This cannot be undone.",
-    "@deleteSickEntryMessage": {
-        "placeholders": {
-            "classId": {
-                "type": "String"
-            }
-        }
-    },
-    "deleteLessonTitle": "Delete lesson time?",
-    "deleteLessonMessage": "The {count}. lesson time will be removed. This cannot be undone.",
-    "@deleteLessonMessage": {
-        "placeholders": {
-            "count": {
-                "type": "int"
-            }
-        }
-    },
-    "couldNotLoadVPlanData": "Could not load VPlan data.",
-    "noDataForAnalysisAvailable": "No data for analysis available.",
-    "teacherLabel": "Teacher: {name}",
-    "@teacherLabel": {
-        "placeholders": {
-            "name": {
-                "type": "String"
-            }
-        }
-    },
-    "lessonDetails": "{count}. Hour: {lesson} in Room: {place}",
-    "@lessonDetails": {
-        "placeholders": {
-            "count": {
-                "type": "String"
-            },
-            "lesson": {
-                "type": "String"
-            },
-            "place": {
-                "type": "String"
-            }
-        }
-    },
-    "loadingData": "Loading data...",
-    "loadingSubstitutionPlan": "Loading substitution plan...",
-    "substitutionPlanLoaded": "Substitution plan loaded",
-    "noSubstitutionPlanToday": "No Substitution plan available for today.",
-    "noSubstitutionPlanTomorrow": "No Substitution plan available for tomorrow.",
-    "browsingPlan": "Browsing plan...",
-    "analysingRooms": "Analysing Rooms...",
-    "checkRoom": "Check room {room}...",
-    "@checkRoom": {
-        "placeholders": {
-            "room": {
-                "type": "String"
-            }
-        }
-    },
-    "lessonsInThisRoom": "Lessons in this room",
-    "todayNoLessonsInThisRoom": "Today no lessons in this room",
-    "chooseTimeAndDay": "Choose time and day",
-    "today": "Today",
-    "tomorrow": "Tomorrow",
-    "cancel": "Cancel",
-    "ok": "OK",
-    "processCanTakeSeconds": "This process can take a few seconds!",
-    "loading": "loading...",
-    "classesFromTeacher": "Classes from {teacherName} - {displayDate}",
-    "@classesFromTeacher": {
-        "placeholders": {
-            "teacherName": {
-                "type": "String"
-            },
-            "displayDate": {
-                "type": "String"
-            }
-        }
-    },
-    "settingsCredentials": "Credentials",
-    "settingsNotifications": "Notifications",
-    "settingsSetTeacherAbbreviations": "Set Teacher abbreviations",
-    "realName": "Real name",
-    "saved": "Saved!",
-    "save": "Save",
-    "schoolNumber": "School-number",
-    "username": "Username",
-    "password": "Password",
-    "selfHost": "Your own URL",
-    "useSelfHost": "or use your own URL",
-    "useLogin": "or use official Login",
-    "shareCreds": "Share credentials",
-    "credsSaved": "Credentials saved!",
-    "loadPlanAuto": "Load Substitution plan automatically",
-    "general": "General",
-    "smartNotifs": "Smart notifications",
-    "prefClasses": "Preferred classes",
-    "other": "Other",
-    "callInterv": "Call interval",
-    "interv": "Interval",
-    "minutes": "Minutes",
-    "hours": "Hours",
-    "onlyRemOnChange": "Only remind when lesson changes",
-    "shareTeacherName": "Share teacher name",
-    "showLessonTimes": "Show lesson times",
-    "showLessonTimesSubtitle": "Show times of individual lessons in the substitution plan",
-    "hideLessonTimes": "Hide lesson times",
-    "hideLessonTimesSubtitle": "Hide times for individual lessons in the plan",
-    "planSettings": "Plan Settings",
-    "planSettingsSubtitle": "Settings for the substitution plan",
-    "hideTeacher": "Hide Teacher",
-    "hideTeacherSubtitle": "Hide teacher names in the substitution plan",
-    "hidePersons": "Hide Persons",
-    "hidePersonsSubtitle": "Hide the persons section",
-    "hidePreviewClasses": "Hide preview for classes",
-    "hidePreviewClassesSubtitle": "Hide the next lesson preview below the classes",
-    "hidePreviewPersons": "Hide preview for persons",
-    "hidePreviewPersonsSubtitle": "Hide the next lesson preview below the persons",
-    "hidePreview": "Hide preview",
-    "showPreview": "Show preview",
-    "backup": "Backup & Restore",
-    "backupSubtitle": "Export and import settings, classes, persons and cached substitution plans",
-    "backupExport": "Export configuration",
-    "backupExportSubtitle": "Share or save all settings as a file",
-    "backupImport": "Import configuration",
-    "backupImportSubtitle": "Read a previously exported file",
-    "backupImportRestore": "Import configuration",
-    "backupImportNoCredentials": "Imported – the file did not contain any credentials.",
-    "backupExportSubject": "Substitute configuration",
-    "backupExportText": "Substitute configuration (settings, classes, persons, credentials). It contains your password in plain text – please share it carefully.",
-    "backupNote": "Settings, classes, persons, courses, room data and credentials are backed up. Only cached plans are left out. Note: the file contains your password in plain text. After importing, restarting the app is recommended.",
-    "backupCredentialsTitle": "Contains credentials",
-    "backupCredentialsWarning": "The exported file contains your password in plain text. Only share it with people you trust – or share it without credentials.",
-    "backupCredentialsContinue": "With credentials",
-    "backupShareWithoutCredentials": "Share without credentials",
-    "backupExportTextWithoutCredentials": "Substitute configuration (settings, classes, persons) – without credentials.",
-    "backupImportTitle": "Import configuration",
-    "backupImportQuestion": "Should the existing settings be replaced?",
-    "backupImportMerge": "Merge",
-    "backupImportReplace": "Replace",
-    "backupImportDone": "Import done: {applied} settings applied, {removed} removed.",
-    "@backupImportDone": {
-        "placeholders": {
-            "applied": {
-                "type": "int"
-            },
-            "removed": {
-                "type": "int"
-            }
-        }
-    },
-    "backupImportFailed": "The file could not be read.",
-    "backupFailed": "Export failed.",
-    "backupErrorForeign": "This file was not created by this app.",
-    "backupErrorFutureSchema": "The file was created by a newer version of the app.",
-    "weekdayShortMon": "Mon",
-    "weekdayShortTue": "Tue",
-    "weekdayShortWed": "Wed",
-    "weekdayShortThu": "Thu",
-    "weekdayShortFri": "Fri",
-    "weekdayShortSat": "Sat",
-    "weekdayShortSun": "Sun",
-    "previewSettings": "Preview",
-    "previewSettingsSubtitle": "Show or hide the next lesson preview",
-    "persons": "Persons",
-    "noPersonsYet": "No persons yet. Add a person to show only the courses you want.",
-    "addPerson": "Add Person",
-    "personName": "Person's name",
-    "renamePerson": "Rename person",
-    "enterPersonName": "Please enter a name for the person.",
-    "savePerson": "Save Person",
-    "selectPersonClass": "Select a class for the new person",
-    "coursesFor": "Courses for {name}",
-    "@coursesFor": {
-        "placeholders": {
-            "name": {
-                "type": "String"
-            }
-        }
-    },
-    "sickTrack": "Sick-Track",
-    "sickTrackSubtitle": "Track missed lessons and get signatures for them",
-    "sickTrackAdd": "Add sick period",
-    "selectClassOrPerson": "Select class or person",
-    "selectClassOrPersonHint": "Choose a saved class or person to track",
-    "anotherClass": "Another class",
-    "selectCourses": "Select courses",
-    "selectSickDays": "Select sick days",
-    "sickDays": "Sick days",
-    "addDay": "Add day",
-    "noSickDaysSelected": "No days selected",
-    "missedLessons": "Missed lessons",
-    "noMissedLessons": "No missed lessons",
-    "noSickTrackEntries": "No sick periods yet. Add one to see which lessons you missed.",
-    "getSignature": "Get signature",
-    "missedLesson": "{date} · {count}. hour · {course}",
-    "@missedLesson": {
-        "placeholders": {
-            "date": {
-                "type": "String"
-            },
-            "count": {
-                "type": "String"
-            },
-            "course": {
-                "type": "String"
-            }
-        }
-    },
-    "markSignatureDone": "Mark signature as done",
-    "signatureDoneQuestion": "Do you want to mark the signature for {course} as done?",
-    "@signatureDoneQuestion": {
-        "placeholders": {
-            "course": {
-                "type": "String"
-            }
-        }
-    },
-    "done": "Done",
-    "time": "Time",
-    "hour": "Hour",
-    "fullDay": "Full day",
-    "fullDayMessage": "Show all lessons for this day without filtering by time.",
-    "selectDate": "Tap to select a date",
-    "selectTime": "Tap to select a time",
-    "lessonTimes": "Lesson times",
-    "lessonTimesSubtitle": "Manually set the times for each lesson",
-    "defaultPlanModePerson": "Persons",
-    "defaultPlanModePersonAuto": "Auto",
-    "defaultPlanModePersonAutoSubtitle": "Show today, unless the school day is over",
-    "defaultPlanModePersonLatest": "Latest",
-    "defaultPlanModePersonLatestSubtitle": "Always show the latest available plan",
-    "defaultPlanModePersonToday": "Today",
-    "defaultPlanModePersonTodaySubtitle": "Always show only today's plan",
-    "defaultPlanModeClass": "Classes",
-    "defaultPlanModeClassAuto": "Auto",
-    "defaultPlanModeClassAutoSubtitle": "Show today, unless the school day is over",
-    "defaultPlanModeClassLatest": "Latest",
-    "defaultPlanModeClassLatestSubtitle": "Always show the latest available plan",
-    "defaultPlanModeClassToday": "Today",
-    "defaultPlanModeClassTodaySubtitle": "Always show only today's plan",
-    "defaultPlanModePreview": "Preview",
-    "defaultPlanModePreviewAuto": "Auto",
-    "defaultPlanModePreviewAutoSubtitle": "Show today, unless the school day is over",
-    "defaultPlanModePreviewLatest": "Latest",
-    "defaultPlanModePreviewLatestSubtitle": "Always show the latest available plan",
-    "defaultPlanModePreviewToday": "Today",
-    "defaultPlanModePreviewTodaySubtitle": "Always show only today's plan",
-    "defaultPlanModePreviewClass": "Preview of classes",
-    "defaultPlanModePreviewClassAuto": "Auto",
-    "defaultPlanModePreviewClassAutoSubtitle": "Show today, unless the school day is over",
-    "defaultPlanModePreviewClassLatest": "Latest",
-    "defaultPlanModePreviewClassLatestSubtitle": "Always show the latest available plan",
-    "defaultPlanModePreviewClassToday": "Today",
-    "defaultPlanModePreviewClassTodaySubtitle": "Always show only today's plan",
-    "defaultPlanModePreviewPerson": "Preview of persons",
-    "defaultPlanModePreviewPersonAuto": "Auto",
-    "defaultPlanModePreviewPersonAutoSubtitle": "Show today, unless the school day is over",
-    "defaultPlanModePreviewPersonLatest": "Latest",
-    "defaultPlanModePreviewPersonLatestSubtitle": "Always show the latest available plan",
-    "defaultPlanModePreviewPersonToday": "Today",
-    "defaultPlanModePreviewPersonTodaySubtitle": "Always show only today's plan",
-    "defaultPlanModePreviewEntryTitle": "Default plan mode",
-    "defaultPlanModePreviewEntrySubtitle": "Separately for persons, classes and their previews",
-    "sync": "Sync",
-    "syncSubtitle": "Keep classes, persons and plans in sync across your devices",
-    "syncTitle": "Sync",
-    "syncServerRunning": "Server is running",
-    "syncServerStopped": "Server is stopped",
-    "syncServerCheck": "Check server",
-    "syncNotConfigured": "No sync server configured",
-    "syncStart": "Start sync",
-    "syncStartSubtitle": "Generates a code of ten words that connects your devices",
-    "syncJoin": "Join a sync",
-    "syncJoinSubtitle": "Enter the ten words of an existing sync on another device",
-    "syncPassphrase": "Sync code",
-    "syncPassphraseHint": "Ten words, e.g. blue sky river seven",
-    "syncPassphraseGenerate": "Generate new code",
-    "syncPassphraseCopy": "Copy code",
-    "syncPassphraseCopied": "Code copied to the clipboard",
-    "syncPassphraseUnknownWord": "These words are not in the list: {words}",
-    "syncPassphraseTooFewWords": "Please enter at least three words",
-    "syncPassphraseEmpty": "Please enter a code",
-    "syncSettingsToggle": "Include settings",
-    "syncSettingsToggleSubtitle": "When off, settings stay on each device and are not transferred",
-    "syncSettingsNote": "Classes, persons, courses and plans are always included. The school password is never transferred.",
-    "syncSettingsNotePlain": "Klassen, Personen, Kurse und Pläne werden immer übertragen. Das Schulpasswort niemals.",
-    "syncNow": "Sync now",
-    "syncNever": "Never synced",
-    "syncLastSync": "Last sync: {when}",
-    "syncInProgress": "Synchronising…",
-    "syncDone": "Sync done. {changes} changes from {devices} devices.",
-    "syncDoneNoChanges": "Sync done. Everything is up to date.",
-    "syncFailed": "Sync failed: {reason}",
-    "syncLeave": "Leave sync",
-    "syncLeaveConfirmTitle": "Leave the sync?",
-    "syncLeaveConfirm": "Your data stays on this device. It will only stop being kept in sync with the other devices.",
-    "syncLeaveDone": "You have left the sync. Your data is still on this device.",
-    "syncLeaveFailed": "The server could not be reached. The sync has been ended on this device anyway.",
-    "syncDevices": "Devices in this sync",
-    "syncDevicesEmpty": "No other device has joined this sync yet",
-    "syncDeviceThisOne": "This device",
-    "syncDeviceUnknown": "Unknown device",
-    "syncDeleteChain": "Delete sync completely",
-    "syncDeleteChainConfirmTitle": "Delete the whole sync?",
-    "syncDeleteChainConfirm": "The sync code is deleted on the server. Other devices keep their data but can no longer sync.",
-    "syncDeleteChainDone": "The sync has been deleted on the server.",
-    "syncResume": "Sync again",
-    "syncResumeSubtitle": "Continue the sync you left earlier",
-    "syncRestart": "Start a new sync",
-    "syncRestartConfirmTitle": "Start over?",
-    "syncRestartConfirm": "This device leaves the current sync. Your data stays. You get a new code.",
-    "syncErrorNetwork": "The sync server could not be reached",
-    "syncErrorTimeout": "The sync server took too long to answer",
-    "syncErrorNotFound": "This sync code is unknown – check the words and try again",
-    "syncErrorWrongPassphrase": "Wrong code – or the data was changed on the way",
-    "syncErrorForbidden": "The server rejected this request",
-    "syncErrorTooManyRequests": "Too many requests. Please try again in a minute",
-    "syncErrorConflict": "This sync is full, or too many shares exist",
-    "syncErrorServerError": "The sync server has a problem",
-    "syncErrorTooLarge": "The data is too large for the server",
-    "syncErrorInvalidShare": "This share is not allowed",
-    "syncErrorForeignApp": "These data were not created by Substitute",
-    "syncErrorFutureSchema": "These data come from a newer version of the app",
-    "share": "Share",
-    "shareTitle": "My shares",
-    "shareSubtitle": "Share selected classes and persons with other teachers",
-    "shareCreate": "New share",
-    "shareCreateSubtitle": "Choose what should be visible to others",
-    "shareEdit": "Edit share",
-    "shareEmpty": "No shares yet. Create one to give other teachers your classes and persons.",
-    "shareUsername": "My username",
-    "shareUsernameSubtitle": "Ten words that colleagues enter to open your shares",
-    "shareUsernameRegenerate": "New username",
-    "shareUsernameRegenerateConfirmTitle": "New username?",
-    "shareUsernameRegenerateConfirm": "All existing shares move to the new username. Colleagues who saved the old one have to enter the new one.",
-    "shareDisplayName": "My display name",
-    "shareDisplayNameSubtitle": "Shown in the search menu of your school",
-    "shareLabel": "Name of the share",
-    "shareLabelHint": "e.g. substitution plans autumn",
-    "shareSearchable": "Show in the search menu",
-    "shareSearchableSubtitle": "Colleagues of your school can find you and choose from your shares",
-    "shareGlobal": "Global share",
-    "shareGlobalSubtitle": "Also usable by teachers of other schools, who know your username",
-    "sharePassword": "Password",
-    "sharePasswordSubtitle": "Protects the share – even against people who have the school credentials",
-    "sharePasswordGenerate": "Generate password",
-    "sharePasswordOwn": "Your own password",
-    "sharePasswordHint": "Ten words, e.g. red moon water nine",
-    "sharePasswordRequired": "This share has a password. Enter it to open.",
-    "shareSelectWhat": "What should be shared?",
-    "shareSelectClasses": "Classes",
-    "shareSelectPersons": "Persons",
-    "shareSelectEverything": "Select all",
-    "shareSelectNothing": "Select none",
-    "shareIncludeSettings": "Include settings",
-    "shareIncludeSettingsSubtitle": "Share display settings as well",
-    "shareIncludePlans": "Include saved plans",
-    "shareIncludePlansSubtitle": "Share the substitution plans stored on this device",
-    "shareIncludeHistory": "Include plans from the past",
-    "shareIncludeHistorySubtitle": "Otherwise only the last {days} days are shared",
-    "shareSelectNothingSelected": "Please select at least one class or person",
-    "sharePublished": "Share created",
-    "shareUpdated": "Share updated",
-    "shareDeleted": "Share deleted",
-    "sharePasswordSaved": "Password saved on this device",
-    "shareDeleteConfirmTitle": "Delete this share?",
-    "shareDeleteConfirm": "Nobody can open it any more. Data already imported by others stay on their devices.",
-    "shareGlobalNote": "A global share can be opened by teachers of any school who know your username. It does not appear in their search menu.",
-    "shareBrowse": "Find shares",
-    "shareBrowseSubtitle": "See what colleagues of your school have shared",
-    "shareBrowseEmpty": "Nobody in your school has shared anything yet",
-    "shareBrowseEmptySubtitle": "As soon as a colleague marks a share as searchable, it appears here.",
-    "shareBrowseLoginRequired": "Sign in with your school number first",
-    "shareBrowseLoginRequiredSubtitle": "Shares can only be found within your own school. That is why signing in is required.",
-    "shareBrowseEnterUsername": "Enter a username",
-    "shareBrowseEnterUsernameSubtitle": "Know the ten words of a colleague? Enter them here to open their share directly.",
-    "shareBrowseGlobalOnly": "This share is global – it can also be opened by teachers of other schools.",
-    "shareOf": "Shares of {name}",
-    "shareContents": "Contents",
-    "shareContentsClasses": "{count} classes",
-    "shareContentsPersons": "{count} persons",
-    "shareContentsPlans": "{count} plans",
-    "shareSelectItems": "What do you want to import?",
-    "shareImportModeTitle": "How should it be imported?",
-    "shareImportMode": "Import as",
-    "shareImportModeOriginal": "Original",
-    "shareImportModeOriginalSubtitle": "Exactly as shared: classes, persons and courses stay as they are",
-    "shareImportModePlans": "Plans",
-    "shareImportModePlansSubtitle": "Every person becomes a plan with their courses",
-    "shareImportModePersons": "Persons",
-    "shareImportModePersonsSubtitle": "Only the names are taken over as persons",
-    "shareImport": "Import",
-    "shareImportDone": "Imported from {name}: {persons} persons, {classes} classes, {plans} plans",
-    "shareNothingToImport": "Nothing selected",
-    "shareNameBlocked": "This name is not allowed. Please choose another one.",
-    "shareNameTooShort": "Please enter at least two characters",
-    "shareNameTooLong": "This name is too long",
-    "shareNameEmpty": "Please enter a name",
-    "shareErrorNoUsername": "No username has been created yet",
-    "shareErrorNothingSelected": "Please select what should be shared",
-    "shareErrorWrongCredentials": "This share could not be opened – wrong code or wrong school number?",
-    "shareErrorUnreadable": "These data could not be read",
-    "shareDemoNoShares": "Nobody has shared anything yet",
-    "shareDelete": "Delete share"
+  "settings": "Settings",
+  "credentials": "Credentials",
+  "credentialsSubtitle": "stundenplan24 credentials",
+  "notifications": "Notifications",
+  "notificationsSubtitle": "Notifications for substitution plan",
+  "setTeacherAbbreviations": "Set Teacher abbreviations",
+  "setTeacherAbbreviationsSubtitle": "Replace teacher abbreviations with Real ones",
+  "developerOptions": "Developer options",
+  "developerOptionsSubtitle": "Change Settings meant for developers",
+  "language": "Language",
+  "languageSubtitle": "Change the language of the app",
+  "freeRoomsTitle": "Free rooms - {time}",
+  "vplanStudents": "vplan students",
+  "vplanTeachers": "vplan teachers",
+  "dashboard": "dashboard",
+  "appTitle": "Substitute",
+  "newVersionAvailable": "New version available",
+  "newVersionMessage": "A new version ({version}) is available. Just download it and open the file to install it.",
+  "@newVersionMessage": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "later": "Later",
+  "download": "Download",
+  "appInfo": "App Info",
+  "mainDeveloper": "Main-Developer: ",
+  "developerName": "Sergey842248",
+  "formerDeveloper": "Former Developer: ",
+  "formerDeveloperName": "Oskar",
+  "openIssue": "Open Issue",
+  "github": "GitHub",
+  "version": "version: {version}",
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "findFreeRoom": "Find free room",
+  "findFreeRoomSubtitle": "Find a room which isn't occupied for a specific time",
+  "roomPlan": "Room plan",
+  "roomPlanSubtitle": "View the schedule of a room",
+  "selectRoom": "Select room",
+  "noLessonsInRoom": "No lessons in this room",
+  "noPlanForThisDay": "No substitution plan available for this day.",
+  "analysis": "Analysis",
+  "analysisSubtitle": "Get an analysis of the substitution plan",
+  "settingsTitle": "Settings",
+  "settingsSubtitle": "More Settings to personalize your experience",
+  "addNewClass": "Add a new class",
+  "dontForgetCredentials": "Don't forget your credentials!",
+  "add": "Add",
+  "selectClass": "Select a class",
+  "noNextLessonFound": "No next lesson found",
+  "nextHour": "next hour",
+  "weekend": "Weekend",
+  "room": "Room {room}",
+  "@room": {
+    "placeholders": {
+      "room": {
+        "type": "String"
+      }
+    }
+  },
+  "classSelection": "Class selection",
+  "selectClassTitle": "Select class",
+  "usernamePasswordWrong": "Username or password incorrect!",
+  "wrongSchoolNumber": "Wrong schoolnumber!\n\nor no substitution plan available!",
+  "noInternetConnection": "No internet connection",
+  "noSubstitutionPlan": "no substitution plan",
+  "wrongSchoolNumberAlt": "Wrong school-number or no substitution plan available",
+  "noNetworkConnection": "No Network connection",
+  "week": "Week",
+  "close": "Close",
+  "courses": "Courses",
+  "noAdditionalInformation": "No additional information available",
+  "search": "Search",
+  "searchTeachers": "Search Teachers",
+  "searchTeachersSubtitle": "Search teacher abbreviations and view a teacher's substitution plan",
+  "teacherAbbreviationHint": "Teacher abbreviation (like \"AB\")",
+  "selectedDate": "Selected Date: {day}.{month}.{year}",
+  "@selectedDate": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "month": {
+        "type": "String"
+      },
+      "year": {
+        "type": "String"
+      }
+    }
+  },
+  "see": "See",
+  "scanningTeacherAbbreviations": "Scanning all Teacher abbreviations...",
+  "noTeachersFound": "No teachers found",
+  "noFavoriteClassesFound": "No favorite classes found.",
+  "addClassToFavoritesForAnalysis": "Please add a class to your favorites to see the analysis.",
+  "nameClass": "Name the class",
+  "renameClass": "Rename class",
+  "classNameHint": "Custom name (optional)",
+  "deleteClassTitle": "Delete class?",
+  "deleteClassMessage": "The class \"{className}\" will be removed. This cannot be undone.",
+  "@deleteClassMessage": {
+    "placeholders": {
+      "className": {
+        "type": "String"
+      }
+    }
+  },
+  "deletePersonTitle": "Delete person?",
+  "deletePersonMessage": "The person \"{personName}\" will be removed. This cannot be undone.",
+  "@deletePersonMessage": {
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteAction": "Delete",
+  "deleteSickEntryTitle": "Delete entry?",
+  "deleteSickEntryMessage": "The sick track entry for \"{classId}\" will be removed. This cannot be undone.",
+  "@deleteSickEntryMessage": {
+    "placeholders": {
+      "classId": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteLessonTitle": "Delete lesson time?",
+  "deleteLessonMessage": "The {count}. lesson time will be removed. This cannot be undone.",
+  "@deleteLessonMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "couldNotLoadVPlanData": "Could not load VPlan data.",
+  "noDataForAnalysisAvailable": "No data for analysis available.",
+  "teacherLabel": "Teacher: {name}",
+  "@teacherLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonDetails": "{count}. Hour: {lesson} in Room: {place}",
+  "@lessonDetails": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "lesson": {
+        "type": "String"
+      },
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "loadingData": "Loading data...",
+  "loadingSubstitutionPlan": "Loading substitution plan...",
+  "substitutionPlanLoaded": "Substitution plan loaded",
+  "noSubstitutionPlanToday": "No Substitution plan available for today.",
+  "noSubstitutionPlanTomorrow": "No Substitution plan available for tomorrow.",
+  "browsingPlan": "Browsing plan...",
+  "analysingRooms": "Analysing Rooms...",
+  "checkRoom": "Check room {room}...",
+  "@checkRoom": {
+    "placeholders": {
+      "room": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonsInThisRoom": "Lessons in this room",
+  "todayNoLessonsInThisRoom": "Today no lessons in this room",
+  "chooseTimeAndDay": "Choose time and day",
+  "today": "Today",
+  "tomorrow": "Tomorrow",
+  "cancel": "Cancel",
+  "ok": "OK",
+  "processCanTakeSeconds": "This process can take a few seconds!",
+  "loading": "loading...",
+  "classesFromTeacher": "Classes from {teacherName} - {displayDate}",
+  "@classesFromTeacher": {
+    "placeholders": {
+      "teacherName": {
+        "type": "String"
+      },
+      "displayDate": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsCredentials": "Credentials",
+  "settingsNotifications": "Notifications",
+  "settingsSetTeacherAbbreviations": "Set Teacher abbreviations",
+  "realName": "Real name",
+  "saved": "Saved!",
+  "save": "Save",
+  "schoolNumber": "School-number",
+  "username": "Username",
+  "password": "Password",
+  "selfHost": "Your own URL",
+  "useSelfHost": "or use your own URL",
+  "useLogin": "or use official Login",
+  "shareCreds": "Share credentials",
+  "credsSaved": "Credentials saved!",
+  "loadPlanAuto": "Load Substitution plan automatically",
+  "general": "General",
+  "smartNotifs": "Smart notifications",
+  "prefClasses": "Preferred classes",
+  "other": "Other",
+  "callInterv": "Call interval",
+  "interv": "Interval",
+  "minutes": "Minutes",
+  "hours": "Hours",
+  "onlyRemOnChange": "Only remind when lesson changes",
+  "shareTeacherName": "Share teacher name",
+  "showLessonTimes": "Show lesson times",
+  "showLessonTimesSubtitle": "Show times of individual lessons in the substitution plan",
+  "hideLessonTimes": "Hide lesson times",
+  "hideLessonTimesSubtitle": "Hide times for individual lessons in the plan",
+  "planSettings": "Plan Settings",
+  "planSettingsSubtitle": "Settings for the substitution plan",
+  "hideTeacher": "Hide Teacher",
+  "hideTeacherSubtitle": "Hide teacher names in the substitution plan",
+  "hidePersons": "Hide Persons",
+  "hidePersonsSubtitle": "Hide the persons section",
+  "hidePreviewClasses": "Hide preview for classes",
+  "hidePreviewClassesSubtitle": "Hide the next lesson preview below the classes",
+  "hidePreviewPersons": "Hide preview for persons",
+  "hidePreviewPersonsSubtitle": "Hide the next lesson preview below the persons",
+  "hidePreview": "Hide preview",
+  "showPreview": "Show preview",
+  "backup": "Backup & Restore",
+  "backupSubtitle": "Export and import settings, classes, persons and cached substitution plans",
+  "backupExport": "Export configuration",
+  "backupExportSubtitle": "Share or save all settings as a file",
+  "backupImport": "Import configuration",
+  "backupImportSubtitle": "Read a previously exported file",
+  "backupImportRestore": "Import configuration",
+  "backupImportNoCredentials": "Imported – the file did not contain any credentials.",
+  "backupExportSubject": "Substitute configuration",
+  "backupExportText": "Substitute configuration (settings, classes, persons, credentials). It contains your password in plain text – please share it carefully.",
+  "backupNote": "Settings, classes, persons, courses, room data and credentials are backed up. Only cached plans are left out. Note: the file contains your password in plain text. After importing, restarting the app is recommended.",
+  "backupCredentialsTitle": "Contains credentials",
+  "backupCredentialsWarning": "The exported file contains your password in plain text. Only share it with people you trust – or share it without credentials.",
+  "backupCredentialsContinue": "With credentials",
+  "backupShareWithoutCredentials": "Share without credentials",
+  "backupExportTextWithoutCredentials": "Substitute configuration (settings, classes, persons) – without credentials.",
+  "backupImportTitle": "Import configuration",
+  "backupImportQuestion": "Should the existing settings be replaced?",
+  "backupImportMerge": "Merge",
+  "backupImportReplace": "Replace",
+  "backupImportDone": "Import done: {applied} settings applied, {removed} removed.",
+  "@backupImportDone": {
+    "placeholders": {
+      "applied": {
+        "type": "int"
+      },
+      "removed": {
+        "type": "int"
+      }
+    }
+  },
+  "backupImportFailed": "The file could not be read.",
+  "backupFailed": "Export failed.",
+  "backupErrorForeign": "This file was not created by this app.",
+  "backupErrorFutureSchema": "The file was created by a newer version of the app.",
+  "weekdayShortMon": "Mon",
+  "weekdayShortTue": "Tue",
+  "weekdayShortWed": "Wed",
+  "weekdayShortThu": "Thu",
+  "weekdayShortFri": "Fri",
+  "weekdayShortSat": "Sat",
+  "weekdayShortSun": "Sun",
+  "previewSettings": "Preview",
+  "previewSettingsSubtitle": "Show or hide the next lesson preview",
+  "persons": "Persons",
+  "noPersonsYet": "No persons yet. Add a person to show only the courses you want.",
+  "addPerson": "Add Person",
+  "personName": "Person's name",
+  "renamePerson": "Rename person",
+  "enterPersonName": "Please enter a name for the person.",
+  "savePerson": "Save Person",
+  "selectPersonClass": "Select a class for the new person",
+  "coursesFor": "Courses for {name}",
+  "@coursesFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sickTrack": "Sick-Track",
+  "sickTrackSubtitle": "Track missed lessons and get signatures for them",
+  "sickTrackAdd": "Add sick period",
+  "selectClassOrPerson": "Select class or person",
+  "selectClassOrPersonHint": "Choose a saved class or person to track",
+  "anotherClass": "Another class",
+  "selectCourses": "Select courses",
+  "selectSickDays": "Select sick days",
+  "sickDays": "Sick days",
+  "addDay": "Add day",
+  "noSickDaysSelected": "No days selected",
+  "missedLessons": "Missed lessons",
+  "noMissedLessons": "No missed lessons",
+  "noSickTrackEntries": "No sick periods yet. Add one to see which lessons you missed.",
+  "getSignature": "Get signature",
+  "missedLesson": "{date} · {count}. hour · {course}",
+  "@missedLesson": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      },
+      "course": {
+        "type": "String"
+      }
+    }
+  },
+  "markSignatureDone": "Mark signature as done",
+  "signatureDoneQuestion": "Do you want to mark the signature for {course} as done?",
+  "@signatureDoneQuestion": {
+    "placeholders": {
+      "course": {
+        "type": "String"
+      }
+    }
+  },
+  "done": "Done",
+  "time": "Time",
+  "hour": "Hour",
+  "fullDay": "Full day",
+  "fullDayMessage": "Show all lessons for this day without filtering by time.",
+  "selectDate": "Tap to select a date",
+  "selectTime": "Tap to select a time",
+  "lessonTimes": "Lesson times",
+  "lessonTimesSubtitle": "Manually set the times for each lesson",
+  "defaultPlanModePerson": "Persons",
+  "defaultPlanModePersonAuto": "Auto",
+  "defaultPlanModePersonAutoSubtitle": "Show today, unless the school day is over",
+  "defaultPlanModePersonLatest": "Latest",
+  "defaultPlanModePersonLatestSubtitle": "Always show the latest available plan",
+  "defaultPlanModePersonToday": "Today",
+  "defaultPlanModePersonTodaySubtitle": "Always show only today's plan",
+  "defaultPlanModeClass": "Classes",
+  "defaultPlanModeClassAuto": "Auto",
+  "defaultPlanModeClassAutoSubtitle": "Show today, unless the school day is over",
+  "defaultPlanModeClassLatest": "Latest",
+  "defaultPlanModeClassLatestSubtitle": "Always show the latest available plan",
+  "defaultPlanModeClassToday": "Today",
+  "defaultPlanModeClassTodaySubtitle": "Always show only today's plan",
+  "defaultPlanModePreview": "Preview",
+  "defaultPlanModePreviewAuto": "Auto",
+  "defaultPlanModePreviewAutoSubtitle": "Show today, unless the school day is over",
+  "defaultPlanModePreviewLatest": "Latest",
+  "defaultPlanModePreviewLatestSubtitle": "Always show the latest available plan",
+  "defaultPlanModePreviewToday": "Today",
+  "defaultPlanModePreviewTodaySubtitle": "Always show only today's plan",
+  "defaultPlanModePreviewClass": "Preview of classes",
+  "defaultPlanModePreviewClassAuto": "Auto",
+  "defaultPlanModePreviewClassAutoSubtitle": "Show today, unless the school day is over",
+  "defaultPlanModePreviewClassLatest": "Latest",
+  "defaultPlanModePreviewClassLatestSubtitle": "Always show the latest available plan",
+  "defaultPlanModePreviewClassToday": "Today",
+  "defaultPlanModePreviewClassTodaySubtitle": "Always show only today's plan",
+  "defaultPlanModePreviewPerson": "Preview of persons",
+  "defaultPlanModePreviewPersonAuto": "Auto",
+  "defaultPlanModePreviewPersonAutoSubtitle": "Show today, unless the school day is over",
+  "defaultPlanModePreviewPersonLatest": "Latest",
+  "defaultPlanModePreviewPersonLatestSubtitle": "Always show the latest available plan",
+  "defaultPlanModePreviewPersonToday": "Today",
+  "defaultPlanModePreviewPersonTodaySubtitle": "Always show only today's plan",
+  "defaultPlanModePreviewEntryTitle": "Default plan mode",
+  "defaultPlanModePreviewEntrySubtitle": "Separately for persons, classes and their previews",
+  "sync": "Sync",
+  "syncSubtitle": "Keep classes, persons and plans in sync across your devices",
+  "syncTitle": "Sync",
+  "syncServerRunning": "Server is running",
+  "syncServerStopped": "Server is stopped",
+  "syncServerCheck": "Check server",
+  "syncNotConfigured": "No sync server configured",
+  "syncStart": "Start sync",
+  "syncStartSubtitle": "Generates a code of ten words that connects your devices",
+  "syncJoin": "Join a sync",
+  "syncJoinSubtitle": "Enter the ten words of an existing sync on another device",
+  "syncPassphrase": "Sync code",
+  "syncPassphraseHint": "Ten words, e.g. blue sky river seven",
+  "syncPassphraseGenerate": "Generate new code",
+  "syncPassphraseCopy": "Copy code",
+  "syncPassphraseCopied": "Code copied to the clipboard",
+  "syncPassphraseUnknownWord": "These words are not in the list: {words}",
+  "syncPassphraseTooFewWords": "Please enter at least three words",
+  "syncPassphraseEmpty": "Please enter a code",
+  "syncSettingsToggle": "Include settings",
+  "syncSettingsToggleSubtitle": "When off, settings stay on each device and are not transferred",
+  "syncSettingsNote": "Classes, persons, courses and plans are always included. The school password is never transferred.",
+  "syncSettingsNotePlain": "Klassen, Personen, Kurse und Pläne werden immer übertragen. Das Schulpasswort niemals.",
+  "syncNow": "Sync now",
+  "syncNever": "Never synced",
+  "syncLastSync": "Last sync: {when}",
+  "syncInProgress": "Synchronising…",
+  "syncDone": "Sync done. {changes} changes from {devices} devices.",
+  "syncDoneNoChanges": "Sync done. Everything is up to date.",
+  "syncAutoTitle": "Automatic sync",
+  "syncAutoOn": "Runs by itself: at start, when you return to the app, and then every {minutes} minutes.",
+  "syncAutoLast": "Last automatic: {when}",
+  "syncAutoNever": "Has not run automatically yet.",
+  "syncPeerCount": "{count} devices in this chain (including this one)",
+  "syncAutoFailing": "{count} failed attempts in a row – the server is contacted less often until it works again.",
+  "syncPayloadCount": "{count} entries are being transferred",
+  "syncPayloadEmpty": "There is nothing to transfer yet. Sync can only bring data once another device has some.",
+  "syncAloneNote": "This device is alone in the sync. Data is uploaded, but none comes back – that is not a failure.",
+  "syncDoneAlone": "Sync done. Your data was uploaded, but no other device has joined this sync yet.",
+  "syncFailed": "Sync failed: {reason}",
+  "syncLeave": "Leave sync",
+  "syncLeaveConfirmTitle": "Leave the sync?",
+  "syncLeaveConfirm": "Your data stays on this device. It will only stop being kept in sync with the other devices.",
+  "syncLeaveDone": "You have left the sync. Your data is still on this device.",
+  "syncLeaveFailed": "The server could not be reached. The sync has been ended on this device anyway.",
+  "syncDevices": "Devices in this sync",
+  "syncDevicesEmpty": "No other device has joined this sync yet",
+  "syncDeviceThisOne": "This device",
+  "syncDeviceUnknown": "Unknown device",
+  "syncDeleteChain": "Delete sync completely",
+  "syncDeleteChainConfirmTitle": "Delete the whole sync?",
+  "syncDeleteChainConfirm": "The sync code is deleted on the server. Other devices keep their data but can no longer sync.",
+  "syncDeleteChainDone": "The sync has been deleted on the server.",
+  "syncResume": "Sync again",
+  "syncResumeSubtitle": "Continue the sync you left earlier",
+  "syncRestart": "Start a new sync",
+  "syncRestartConfirmTitle": "Start over?",
+  "syncRestartConfirm": "This device leaves the current sync. Your data stays. You get a new code.",
+  "syncErrorNetwork": "The sync server could not be reached",
+  "syncErrorTimeout": "The sync server took too long to answer",
+  "syncErrorNotFound": "This sync code is unknown – check the words and try again",
+  "syncErrorWrongPassphrase": "Wrong code – or the data was changed on the way",
+  "syncErrorForbidden": "The server rejected this request",
+  "syncErrorTooManyRequests": "Too many requests. Please try again in a minute",
+  "syncErrorConflict": "This sync is full, or too many shares exist",
+  "syncErrorServerError": "The sync server has a problem",
+  "syncErrorTooLarge": "The data is too large for the server",
+  "syncErrorInvalidShare": "This share is not allowed",
+  "syncErrorForeignApp": "These data were not created by Substitute",
+  "syncErrorFutureSchema": "These data come from a newer version of the app",
+  "share": "Share",
+  "shareTitle": "My shares",
+  "shareSubtitle": "Share selected classes and persons with other teachers",
+  "shareCreate": "New share",
+  "shareCreateSubtitle": "Choose what should be visible to others",
+  "shareEdit": "Edit share",
+  "shareEmpty": "No shares yet. Create one to give other teachers your classes and persons.",
+  "shareUsername": "My username",
+  "shareUsernameSubtitle": "Ten words that colleagues enter to open your shares",
+  "shareUsernameRegenerate": "New username",
+  "shareUsernameRegenerateConfirmTitle": "New username?",
+  "shareUsernameRegenerateConfirm": "All existing shares move to the new username. Colleagues who saved the old one have to enter the new one.",
+  "shareDisplayName": "My display name",
+  "shareDisplayNameSubtitle": "Shown in the search menu of your school",
+  "shareLabel": "Name of the share",
+  "shareLabelHint": "e.g. substitution plans autumn",
+  "shareSearchable": "Show in the search menu",
+  "shareSearchableSubtitle": "Colleagues of your school can find you and choose from your shares",
+  "shareGlobal": "Global share",
+  "shareGlobalSubtitle": "Also usable by teachers of other schools, who know your username",
+  "sharePassword": "Password",
+  "sharePasswordSubtitle": "Protects the share – even against people who have the school credentials",
+  "sharePasswordGenerate": "Generate password",
+  "sharePasswordOwn": "Your own password",
+  "sharePasswordHint": "Ten words, e.g. red moon water nine",
+  "sharePasswordRequired": "This share has a password. Enter it to open.",
+  "shareSelectWhat": "What should be shared?",
+  "shareSelectClasses": "Classes",
+  "shareSelectPersons": "Persons",
+  "shareSelectEverything": "Select all",
+  "shareSelectNothing": "Select none",
+  "shareIncludeSettings": "Include settings",
+  "shareIncludeSettingsSubtitle": "Share display settings as well",
+  "shareIncludePlans": "Include saved plans",
+  "shareIncludePlansSubtitle": "Share the substitution plans stored on this device",
+  "shareIncludeHistory": "Include plans from the past",
+  "shareIncludeHistorySubtitle": "Otherwise only the last {days} days are shared",
+  "shareSelectNothingSelected": "Please select at least one class or person",
+  "sharePublished": "Share created",
+  "shareUpdated": "Share updated",
+  "shareDeleted": "Share deleted",
+  "sharePasswordSaved": "Password saved on this device",
+  "shareDeleteConfirmTitle": "Delete this share?",
+  "shareDeleteConfirm": "Nobody can open it any more. Data already imported by others stay on their devices.",
+  "shareGlobalNote": "A global share can be opened by teachers of any school who know your username. It does not appear in their search menu.",
+  "shareBrowse": "Find shares",
+  "shareBrowseSubtitle": "See what colleagues of your school have shared",
+  "shareBrowseEmpty": "Nobody in your school has shared anything yet",
+  "shareBrowseEmptySubtitle": "As soon as a colleague marks a share as searchable, it appears here.",
+  "shareBrowseLoginRequired": "Sign in with your school number first",
+  "shareBrowseLoginRequiredSubtitle": "Shares can only be found within your own school. That is why signing in is required.",
+  "shareBrowseEnterUsername": "Enter a username",
+  "shareBrowseEnterUsernameSubtitle": "Know the ten words of a colleague? Enter them here to open their share directly.",
+  "shareBrowseGlobalOnly": "This share is global – it can also be opened by teachers of other schools.",
+  "shareOf": "Shares of {name}",
+  "shareContents": "Contents",
+  "shareContentsClasses": "{count} classes",
+  "shareContentsPersons": "{count} persons",
+  "shareContentsPlans": "{count} plans",
+  "shareSelectItems": "What do you want to import?",
+  "shareImportModeTitle": "How should it be imported?",
+  "shareImportMode": "Import as",
+  "shareImportModeOriginal": "Original",
+  "shareImportModeOriginalSubtitle": "Exactly as shared: classes, persons and courses stay as they are",
+  "shareImportModePlans": "Plans",
+  "shareImportModePlansSubtitle": "Every person becomes a plan with their courses",
+  "shareImportModePersons": "Persons",
+  "shareImportModePersonsSubtitle": "Only the names are taken over as persons",
+  "shareImport": "Import",
+  "shareImportDone": "Imported from {name}: {persons} persons, {classes} classes, {plans} plans",
+  "shareNothingToImport": "Nothing selected",
+  "shareNameBlocked": "This name is not allowed. Please choose another one.",
+  "shareNameTooShort": "Please enter at least two characters",
+  "shareNameTooLong": "This name is too long",
+  "shareNameEmpty": "Please enter a name",
+  "shareErrorNoUsername": "No username has been created yet",
+  "shareErrorNothingSelected": "Please select what should be shared",
+  "shareErrorWrongCredentials": "This share could not be opened – wrong code or wrong school number?",
+  "shareErrorUnreadable": "These data could not be read",
+  "shareDemoNoShares": "Nobody has shared anything yet",
+  "shareDelete": "Delete share"
 }

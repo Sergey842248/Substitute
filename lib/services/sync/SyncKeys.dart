@@ -20,20 +20,59 @@ class SyncKeys {
   /// Sind genau die Daten, ohne die ein Sync keinen Sinn hätte: was ist auf
   /// welchem Plan, welche Personen und Kurse gibt es, welche Pläne wurden
   /// bereits gesehen (auch die aus der Vergangenheit).
+  ///
+  /// ## Warum nicht mehr
+  ///
+  /// `hiddenSubjectsByClass`, `previewHiddenClasses` und `previewHiddenPersons
+  /// sind hier **nicht** enthalten, obwohl sie vorher standen. Sie liegen als
+  /// JSON-**Map** in den Einstellungen (`{classId: true}`), nicht als Liste –
+  /// `SyncPayload` stellt sich jeden Bestandteil aber als Liste vor. Ein Sync
+  /// hätte daraus eine `StringList` geschrieben, während `VPlanAPI` dieselben
+  /// Schlüssel mit `getString` liest: derselbe Absturz wie bei `persons`, nur
+  /// eine Ebene tiefer und beim Blenden einer Vorschau statt beim Start.
+  ///
+  /// Bisher hat das nichts ausgelöst, weil der Leser eine Map stillschweigend
+  /// als „nichts zu lesen" behandelte. Das war Glück, keine Absicht.
+  /// Ausgeschlossene Vorschau- und Ausblende-Einstellungen sind ein
+  /// überschaubarer Verlust – ein Absturz beim Start ist es nicht.
   static const List<String> dataKeys = <String>[
     'classes',
     'classNames',
     'persons',
-    'hiddenSubjectsByClass',
     'initializedClasses',
     'teacherShorts',
     'lessontimes',
     'sickTrack',
     'offlineVPData',
     'cachedRooms',
-    'previewHiddenClasses',
-    'previewHiddenPersons',
   ];
+
+  /// In welcher Form die App einen Schlüssel speichert.
+  ///
+  /// **Die einzige verbindliche Stelle.** Wer hier und in `VPlanAPI`
+  /// unterschiedliche Angaben macht, bekommt einen Absturz beim Start – der
+  /// Leser in `VPlanAPI` ruft `getString`, der Sync-Leser `getStringList`,
+  /// und beide werfen, wenn der andere Typ dort steht.
+  ///
+  /// Deshalb zwei Regeln, die zusammen gelten:
+  ///
+  /// 1. Ein Sync **schreibt nie um**. Er schreibt in der Form, die hier steht.
+  /// 2. Ein Sync **liest verzeihend**. Er akzeptiert beide Formen und
+  ///    repariert eine falsche zurück, statt daran zu scheitern.
+  static const Map<String, StoredForm> dataKeyForms = <String, StoredForm>{
+    'classes': StoredForm.stringList,
+    'offlineVPData': StoredForm.stringList,
+    'cachedRooms': StoredForm.stringList,
+    'persons': StoredForm.jsonArray,
+    'classNames': StoredForm.jsonArray,
+    'sickTrack': StoredForm.jsonArray,
+    'lessontimes': StoredForm.jsonArray,
+    'teacherShorts': StoredForm.jsonArray,
+    'initializedClasses': StoredForm.jsonArray,
+  };
+
+  /// Die Form von [key] – für einen unbekannten Schlüssel `null`.
+  static StoredForm? formOf(String key) => dataKeyForms[_bareKey(key)];
 
   /// Reine Anzeige- und Verhaltenseinstellungen.
   static const List<String> settingKeys = <String>[
@@ -134,6 +173,142 @@ class SyncKeys {
   }
 }
 
+/// Wie die App einen Bestandteil in den Einstellungen ablegt.
+///
+/// Zwei Formen, und die Wahl ist nicht frei: Sie ergibt sich daraus, was
+/// `VPlanAPI` mit dem Schlüssel macht, und `VPlanAPI` benutzt typisierte
+/// Getter, die bei dem falschen Typ eine `TypeError` **werfen** statt `null`
+/// zu liefern. Deshalb steht sie hier ausdrücklich, statt sich aus dem
+/// gespeicherten Wert zu erraten.
+enum StoredForm {
+  /// Als `StringList` – für reine Zeichenketten wie die Pläne.
+  stringList,
+
+  /// Als `String` mit einem JSON-**Array** darin – für Einträge, die Objekte
+  /// sind (`persons`, `sickTrack`, …). `setStringList` nimmt keine Objekte
+  /// auf, deshalb ist das die einzig mögliche Form.
+  jsonArray,
+}
+
+/// Die eine Regel, wie aus den Zeilen eines Bestandteils der gespeicherte
+/// Wert wird.
+///
+/// Sie wird an drei Stellen gebraucht – dem Schreiber des Merge, dem Leser und
+/// dem Reparierer – und die drei dürfen sich nicht unterscheiden. Jeder von
+/// ihnen baut daraus sonst eine andere Zeichenkette, und die Form kippt
+/// zwischen zwei Läufen hin und her.
+///
+/// Wichtig: Die App legt ein Array von **Objekten** ab
+/// (`jsonEncode(persons)` in `VPlanAPI`), nicht ein Array von
+/// JSON-Zeichenketten. Beides ist ein gültiges JSON-Array und sieht auf den
+/// ersten Blick gleich aus – aber `jsonDecode` liefert beim einen
+/// `List<Map>`, beim anderen `List<String>`, und die zweite Varienz kann die
+/// App nicht verwenden.
+String encodeJsonArray(List<String> lines) {
+  return jsonEncode(<Object>[
+    for (final String line in lines) _decodeLine(line),
+  ]);
+}
+
+/// Dekodiert eine Zeile zu einem Objekt – sonst bleibt sie, wie sie ist.
+Object _decodeLine(String line) {
+  try {
+    final Object? decoded = jsonDecode(line);
+    if (decoded is Map) return decoded;
+  } catch (_) {}
+  return line;
+}
+
+/// Repariert einen Schlüssel auf die Form, die die App erwartet.
+///
+/// Ein Sync, der einen Schlüssel in der falschen Form zurückschreibt, macht
+/// die App beim nächsten Start **unbenutzbar**: `main()` wirft, `runApp` wird
+/// nie erreicht, und die App startet nie wieder. Genau das ist geschehen –
+/// der Sync hatte `persons` als `StringList` geschrieben, während
+/// `VPlanAPI.loadDisplayCache` sie mit `getString` liest.
+///
+/// Deshalb liest [SyncDataReader.readLines] nicht nur verzeihend, sondern
+/// **repariert**: Findet es einen Schlüssel in der falschen Form, schreibt es
+/// ihn einmalig in die richtige um. Der erste Start danach ist der langsame,
+/// danach ist die Form stabil – und zwar ohne, dass jemand die App
+/// neu installieren muss.
+class StorageHealer {
+  const StorageHealer._();
+
+  /// Repariert alle [keys], die in [SyncKeys.dataKeyForms] stehen.
+  ///
+  /// Ein Durchgang beim Start, aus zwei Gründen:
+  ///
+  /// * Ein Gerät, das eine frühere App-Version beschädigt hat, ist sonst
+  ///   **dauerhaft** tot – der Schlüssel steht ja weiterhin falsch da, und der
+  ///   Aufruf, der daran scheitert, ist bei `main()` einer vor `runApp`.
+  /// * Ein einmaliger Durchgang ist billig: Die Form ist danach stabil, und
+  ///   spätere Läufe finden nichts zu tun.
+  ///
+  /// Gibt die Zahl der reparierten Schlüssel zurück – für eine Meldung im Log,
+  ///   weil ein stiller Reparaturvorgang schwer zu finden ist.
+  static Future<int> healAll(
+    SharedPreferences prefs, [
+    List<String> keys = SyncKeys.dataKeys,
+  ]) async {
+    int repaired = 0;
+    for (final String key in keys) {
+      if (await heal(prefs, key)) repaired++;
+    }
+    return repaired;
+  }
+
+  /// Stellt [key] auf die in [SyncKeys.dataKeyForms] angegebene Form um.
+  ///
+  /// Gibt true zurück, wenn etwas repariert wurde.
+  static Future<bool> heal(SharedPreferences prefs, String key) async {
+    final StoredForm? wanted = SyncKeys.formOf(key);
+    if (wanted == null) return false;
+
+    // Was liegt tatsächlich dort? Beide typisierten Getter werfen, wenn der
+    // Typ nicht passt – deshalb einzeln und im try/catch.
+    List<String>? raw;
+    try {
+      raw = prefs.getStringList(key);
+    } catch (_) {
+      raw = null;
+    }
+    String? asString;
+    try {
+      asString = prefs.getString(key);
+    } catch (_) {
+      asString = null;
+    }
+
+    if (wanted == StoredForm.jsonArray && asString != null && asString.isNotEmpty) {
+      return false; // passt bereits
+    }
+    if (wanted == StoredForm.stringList && raw != null) {
+      return false; // passt bereits
+    }
+
+    // Die falsche Form: aus der einen in die andere überführen.
+    final List<String> lines = raw ?? const <String>[];
+    if (wanted == StoredForm.jsonArray) {
+      if (lines.isEmpty) return false;
+      await prefs.setString(key, encodeJsonArray(lines));
+      return true;
+    }
+    if (asString == null || asString.isEmpty) return false;
+    try {
+      final Object? decoded = jsonDecode(asString);
+      if (decoded is! List) return false;
+      await prefs.setStringList(
+        key,
+        decoded.map((Object? e) => e is String ? e : jsonEncode(e)).toList(),
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+}
+
 /// Lokale Schlüssel des Sync-Selbstverwaltung – nie übertragen.
 class SyncMergeLocalKeys {
   const SyncMergeLocalKeys._();
@@ -190,6 +365,35 @@ class SyncDataReader {
     return settings;
   }
 
+  /// Zählt, wie viele Einträge ein Sync von [key] übertragen würde.
+  ///
+  /// Bewusst über [_stringList] und nicht über `prefs.getStringList`: Die App
+  /// speichert die Hälfte dieser Schlüssel als **JSON-Zeichenkette**, nicht als
+  /// Liste – `persons`, `classNames`, `sickTrack`, `lessontimes` und
+  /// `teacherShorts` etwa. `getStringList` wirft daraufhin einen TypeError, und
+  /// der ganze Bildschirm stirbt an einer Zahl, die nur eine Anzeige tragen
+  /// soll. Ein Aufruf von `getStringList` über `dataKeys` ist deshalb ein
+  /// Fehler – auch in einer Kachel.
+  ///
+  /// Gezählt werden nur die Zeilen, die auch wirklich als Objekt lesbar sind.
+  /// Sonst würde die Anzeige eine Zahl nennen, die der Sync nicht liefert.
+  static int countItems(SharedPreferences prefs, String key) {
+    int count = 0;
+    for (final String entry in _stringList(prefs, key)) {
+      if (_decode(entry) != null) count++;
+    }
+    return count;
+  }
+
+  /// Die Summe über mehrere [keys] – die Zahl, die die Oberfläche anzeigt.
+  static int countItemsOf(SharedPreferences prefs, List<String> keys) {
+    int total = 0;
+    for (final String key in keys) {
+      total += countItems(prefs, key);
+    }
+    return total;
+  }
+
   /// Die verfügbaren Personen- und Klassen-Namen für die Oberfläche.
   static List<String> readClassNames(SharedPreferences prefs) {
     final List<String> raw = _stringList(prefs, 'classes');
@@ -201,24 +405,75 @@ class SyncDataReader {
         .toList();
   }
 
+  /// Liest einen Schlüssel als Liste von JSON-Zeichenketten.
+  ///
+  /// Die App speichert ihre Bestandteile auf **zwei** Arten, und der Leser
+  /// muss beide bedienen:
+  ///
+  /// * als `StringList` – so liegen die Pläne (`offlineVPData`) und einige
+  ///   Auswahllisten vor,
+  /// * als `String` mit einem JSON-Array darin – so liegen `persons`,
+  ///   `classes`, `classNames` und `sickTrack` vor, weil sie Objekte
+  ///   enthalten und `setStringList` keine aufnehmen würde.
+  ///
+  /// Deshalb wird der zweite Weg **immer** versucht, wenn der erste scheitert.
+  /// Ein `return` im `catch` – so stand es hier früher – hat sämtliche
+  /// JSON-gespeicherten Bestandteile übersprungen: `persons`, `classes`,
+  /// `classNames`, `sickTrack`, `lessontimes` und `teacherShorts` waren für
+  /// den Sync unsichtbar, ohne jeden Fehler. Ein Sync übertrug damit nur noch
+  /// die Pläne und meldete trotzdem Erfolg.
+  /// Die rohen Zeilen eines Bestandteils, unabhängig davon, ob er als
+  /// `StringList` oder als JSON-Zeichenkette gespeichert ist.
+  ///
+  /// Öffentlich, weil dieselbe Frage an mehreren Stellen gestellt wird – und
+  /// weil jede Stelle, die stattdessen `prefs.getStringList` aufruft, bei der
+  /// Hälfte der Daten-Schlüssel abstürzt.
+  static List<String> readLines(SharedPreferences prefs, String key) =>
+      _stringList(prefs, key);
+
   static List<String> _stringList(SharedPreferences prefs, String key) {
     try {
       final List<String>? value = prefs.getStringList(key);
-      if (value != null) return value;
+      if (value != null) {
+        // Steht hier eine Liste, obwohl die App eine JSON-Zeichenkette
+        // erwartet, ist das der Zustand, an dem die App beim Start stirbt.
+        // Der Wert wird zurückgegeben – und im Hintergrund repariert.
+        if (SyncKeys.formOf(key) == StoredForm.jsonArray) {
+          StorageHealer.heal(prefs, key);
+        }
+        return value;
+      }
     } catch (_) {
-      // Unter diesem Schlüssel liegt ein Wert eines anderen Typs (etwa ein
-      // Schalter). `SharedPreferences` wirft dann eine TypeError, statt null
-      // zu liefern – für uns heißt das: hier gibt es nichts zu lesen.
+      // Unter diesem Schlüssel liegt ein Wert eines anderen Typs.
+      // `SharedPreferences` wirft dafür eine TypeError, statt `null` zu
+      // liefern. **Weitergehen ist hier zwingend**: Der Wert ist vorhanden,
+      // nur nicht als Liste – typischerweise als JSON-Zeichenkette.
+    }
+    // Auch `getString` wirft, statt `null` zu liefern, wenn unter dem
+    // Schlüssel etwas anderes liegt – ein Boolean etwa. Das ist keine
+    // Ausnahme, sondern der Normalfall bei den Einstellungs-Schlüsseln, die
+    // `dataKeys` absichtlich *nicht* enthält, aber mit denen derselbe Aufruf
+    // rechnen muss.
+    String? raw;
+    try {
+      raw = prefs.getString(key);
+    } catch (_) {
       return const <String>[];
     }
-    // Manche Werte liegen als JSON-Zeichenkette statt als StringList vor –
-    // dann ist die gespeicherte Form das JSON-Array.
-    final String? raw = prefs.getString(key);
     if (raw == null || raw.isEmpty) return const <String>[];
     try {
       final Object? decoded = jsonDecode(raw);
       if (decoded is List) {
-        return decoded.map((Object? e) => e.toString()).toList();
+        // Jedes Element muss am Ende eine **JSON-Zeichenkette** sein, weil
+        // [_decode] genau das erwartet. Ein Objekt aus dieser Liste mit
+        // `toString()` zu nehmen ergibt `{id: 1, name: Hans}` – das ist
+        // kein JSON, `jsonDecode` scheitert daran, und der Eintrag fällt
+        // kommentarlos heraus. Auch das ist hier einmal passiert.
+        return decoded
+            .map((Object? e) => e is String
+                ? e
+                : (e is Map ? jsonEncode(e) : e.toString()))
+            .toList();
       }
     } catch (_) {
       // Kein JSON – dann eben nichts lesen.

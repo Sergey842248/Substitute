@@ -571,8 +571,7 @@ void main() {
       expect(outcome.merged, greaterThan(0));
       expect(outcome.devices, hasLength(2));
 
-      final List<String> persons =
-          prefs.getStringList('persons') ?? const <String>[];
+      final List<String> persons = SyncDataReader.readLines(prefs, 'persons');
       expect(persons, hasLength(2));
       expect(
         persons.map((String p) => (jsonDecode(p) as Map)['name']),
@@ -656,7 +655,7 @@ void main() {
     test('übernimmt die Pläne aus der Vergangenheit mit', () async {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       await engine.run(prefs, stateFor('blue sky river seven apple candle'));
-      expect(prefs.getStringList('offlineVPData'), hasLength(1));
+      expect(SyncDataReader.readLines(prefs, 'offlineVPData'), hasLength(1));
     });
 
     test('meldet einen Ausfall des Servers, ohne zu verlieren', () async {
@@ -668,7 +667,7 @@ void main() {
       );
       expect(outcome.succeeded, isFalse);
       // Die lokalen Daten sind unangetastet.
-      expect(prefs.getStringList('persons'), hasLength(1));
+      expect(SyncDataReader.readLines(prefs, 'persons'), hasLength(1));
     });
 
     test('findet einen fremden Snapshot mit falschem Schlüssel nicht', () async {
@@ -687,7 +686,7 @@ void main() {
       final SyncOutcome outcome = await engine.run(prefs, stateFor(passphrase));
       // Ein kaputter Snapshot darf den Rest nicht blockieren.
       expect(outcome.pushed, isTrue);
-      expect(prefs.getStringList('persons'), hasLength(1));
+      expect(SyncDataReader.readLines(prefs, 'persons'), hasLength(1));
     });
   });
 
@@ -725,8 +724,8 @@ void main() {
 
       // Der Snapshot ist weg, die Daten sind es nicht.
       expect(server.chains[state.chainId], isEmpty);
-      expect(prefs.getStringList('persons'), hasLength(1));
-      expect(prefs.getStringList('offlineVPData'), hasLength(1));
+      expect(SyncDataReader.readLines(prefs, 'persons'), hasLength(1));
+      expect(SyncDataReader.readLines(prefs, 'offlineVPData'), hasLength(1));
       expect(prefs.getBool('hideTeacher'), isTrue);
       // Und die Kette ist lokal beendet.
       expect(await SyncEngine.loadState(prefs), isNull);
@@ -734,8 +733,10 @@ void main() {
   });
 
   group('SyncMerge.applyToPreferences', () {
-    test('schreibt Listen als StringList mit JSON pro Eintrag', () async {
-      // Genau so erwarten es VPlanAPI und die Plan-Ansicht.
+    test('schreibt Personen als JSON-Array von Objekten', () async {
+      // So legt `VPlanAPI` sie ab – und nur so. Der Test hieß früher
+      // "schreibt Listen als StringList" und beschrieb damit genau die Form,
+      // die die App nicht starten ließ.
       SharedPreferences.setMockInitialValues(<String, Object>{});
       final SharedPreferences prefs = await SharedPreferences.getInstance();
 
@@ -744,9 +745,16 @@ void main() {
         payloadOf(<Map<String, dynamic>>[person('1', 'Hans')]),
       );
 
-      final List<String>? written = prefs.getStringList('persons');
-      expect(written, isNotNull);
-      expect(jsonDecode(written!.single), isA<Map<String, dynamic>>());
+      // Die **Form** ist hier die eigentliche Zusicherung. Als `StringList`
+      // gespeichert wirft `VPlanAPI.loadDisplayCache` beim Start einen
+      // TypeError, `main()` bricht ab, und die App startet nie wieder – das
+      // ist keine theoretische Sorge, sondern genau so geschehen.
+      final String? raw = prefs.getString('persons');
+      expect(raw, isNotNull, reason: 'als StringList gespeichert: Absturz beim Start');
+      final List<dynamic> decoded = jsonDecode(raw!) as List<dynamic>;
+      // Ein **Objekt**, nicht eine Zeichenkette, die ein Objekt enthält.
+      expect(decoded.single, isA<Map<String, dynamic>>());
+      expect((decoded.single as Map)['name'], 'Hans');
     });
 
     test('schreibt Pläne als StringList', () async {
@@ -767,7 +775,7 @@ void main() {
         ),
       );
 
-      final List<String>? written = prefs.getStringList('offlineVPData');
+      final List<String>? written = SyncDataReader.readLines(prefs, 'offlineVPData');
       expect(written, isNotNull);
       expect((jsonDecode(written!.single) as Map)['name'], 'Plan');
     });

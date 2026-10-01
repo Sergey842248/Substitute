@@ -47,7 +47,11 @@ class Passphrase {
       if (picked.contains(word)) continue;
       picked.add(word);
     }
-    return picked.join(' ');
+    // Sortiert zurückgeben, damit die angezeigte Phrase bereits die
+    // verbindliche Form aus [normalize] ist. Wer sie aufschreibt und auf
+    // einem zweiten Gerät eintippt, muss die Wörter dann nicht einmal in
+    // derselben Reihenfolge wiederkennen.
+    return normalize(picked.join(' '));
   }
 
   /// Zerlegt eine eingegebene Phrase in normalisierte Wörter.
@@ -80,10 +84,30 @@ class Passphrase {
         .toList();
   }
 
-  /// Wandelt eine Phrase in die Form um, in der sie als Schlüssel
-  /// weitergegeben wird – klein, mit einfachen Leerzeichen. Damit zählt
-  /// "Blue  Sky" genauso wie "blue-sky".
-  static String normalize(String input) => split(input).join(' ');
+  /// Die **verbindliche** Form einer Phrase: klein, sortiert, mit einfachen
+  /// Leerzeichen.
+  ///
+  /// Die Sortierung ist nicht Kosmetik, sie verhindert einen stillen
+  /// Totalausfall. Ohne sie ergibt "blue sky …" eine andere Kette als
+  /// "sky blue …" – dieselben zehn Wörter, dieselbe Kette für den einen,
+  /// eine leere, fremde Kette für den anderen. Beide Geräte melden dabei
+  /// Erfolg, beide zeigen "letzter Sync", und es fließt nichts. Das ist die
+  /// schlimmste Form eines Fehlers, weil niemand etwas zu sehen bekommt.
+  ///
+  /// Dasselbe Argument spricht für das Sortieren: Die Entropie bleibt bei rund
+  /// 100 Bit (10 Wörter aus über 1000), denn die Reihenfolge zu erraten, um
+  /// eine ganz bestimmte andere Kette zu treffen, bringt nichts – die Menge
+  /// aller Permutationen ist genau die Menge aller Phrasen.
+  ///
+  /// Nebenwirkung für bestehende Ketten: Ihre Kennung ändert sich, und der
+  /// Serverstand wird nicht mehr gefunden. Für alle Geräte derselben Kette
+  /// passiert das gleichzeitig, und nach dem nächsten Lauf ist alles wieder da
+  /// – außer es wird auf zwei Geräten gleichzeitig geprüft, was beim Umstieg
+  /// nicht passieren kann.
+  static String normalize(String input) {
+    final List<String> words = split(input)..sort();
+    return words.join(' ');
+  }
 
   /// Anzahl der Wörter in [wordList] – schützt die Testsuite davor, dass
   /// jemand die Liste unbemerkt leert.

@@ -931,8 +931,13 @@ class ShareManager {
       }
     }
     if (newPersons.isNotEmpty) {
+      // Über den Sync-Leser, nicht über `getStringList`: `persons` wird von
+      // `VPlanAPI` als JSON-Zeichenkette gespeichert, weil es Objekte
+      // enthält. Ein `getStringList` darauf wirft einen TypeError – und der
+      // Import bricht genau dann ab, wenn er eigentlich Personen übertragen
+      // sollte, also genau dann, wenn er gebraucht wird.
       final List<String> merged = <String>[
-        ...?prefs.getStringList('${scope}persons'),
+        ...SyncDataReader.readLines(prefs, '${scope}persons'),
       ];
       merged.addAll(newPersons.map(jsonEncode));
       await prefs.setStringList('${scope}persons', merged);

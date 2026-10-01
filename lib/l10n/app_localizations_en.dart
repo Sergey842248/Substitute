@@ -938,6 +938,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncDoneNoChanges => 'Sync done. Everything is up to date.';
 
   @override
+  String get syncAutoTitle => 'Automatic sync';
+
+  @override
+  String syncAutoOn(Object minutes) {
+    return 'Runs by itself: at start, when you return to the app, and then every $minutes minutes.';
+  }
+
+  @override
+  String syncAutoLast(Object when) {
+    return 'Last automatic: $when';
+  }
+
+  @override
+  String get syncAutoNever => 'Has not run automatically yet.';
+
+  @override
+  String syncPeerCount(Object count) {
+    return '$count devices in this chain (including this one)';
+  }
+
+  @override
+  String syncAutoFailing(Object count) {
+    return '$count failed attempts in a row – the server is contacted less often until it works again.';
+  }
+
+  @override
+  String syncPayloadCount(Object count) {
+    return '$count entries are being transferred';
+  }
+
+  @override
+  String get syncPayloadEmpty =>
+      'There is nothing to transfer yet. Sync can only bring data once another device has some.';
+
+  @override
+  String get syncAloneNote =>
+      'This device is alone in the sync. Data is uploaded, but none comes back – that is not a failure.';
+
+  @override
+  String get syncDoneAlone =>
+      'Sync done. Your data was uploaded, but no other device has joined this sync yet.';
+
+  @override
   String syncFailed(Object reason) {
     return 'Sync failed: $reason';
   }

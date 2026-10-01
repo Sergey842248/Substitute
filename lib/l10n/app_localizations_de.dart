@@ -946,6 +946,49 @@ class AppLocalizationsDe extends AppLocalizations {
   String get syncDoneNoChanges => 'Sync fertig. Alles ist aktuell.';
 
   @override
+  String get syncAutoTitle => 'Automatisch synchronisiert';
+
+  @override
+  String syncAutoOn(Object minutes) {
+    return 'Läuft von selbst: beim Start, beim Zurückkommen in die App und danach alle $minutes Minuten.';
+  }
+
+  @override
+  String syncAutoLast(Object when) {
+    return 'Zuletzt automatisch: $when';
+  }
+
+  @override
+  String get syncAutoNever => 'Noch nicht automatisch gelaufen.';
+
+  @override
+  String syncPeerCount(Object count) {
+    return '$count Geräte in dieser Kette (mit diesem)';
+  }
+
+  @override
+  String syncAutoFailing(Object count) {
+    return '$count Fehlversuche in Folge – der Server wird seltener angesprochen, bis es wieder klappt.';
+  }
+
+  @override
+  String syncPayloadCount(Object count) {
+    return '$count Einträge werden übertragen';
+  }
+
+  @override
+  String get syncPayloadEmpty =>
+      'Hier ist noch nichts zum Übertragen. Sync kann erst Daten bringen, wenn auf einem anderen Gerät welche vorhanden sind.';
+
+  @override
+  String get syncAloneNote =>
+      'Dieses Gerät ist allein im Sync. Es werden Daten hochgeladen, aber es kommen keine zurück – das ist kein Fehler.';
+
+  @override
+  String get syncDoneAlone =>
+      'Sync fertig. Deine Daten wurden übertragen, aber noch kein anderes Gerät ist diesem Sync beigetreten.';
+
+  @override
   String syncFailed(Object reason) {
     return 'Sync fehlgeschlagen: $reason';
   }

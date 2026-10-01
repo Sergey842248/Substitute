@@ -29,6 +29,152 @@ Kette beim Server, wer ihn nicht kennt, findet nichts.
 
 Ein zweites Gerät gibt denselben Code ein und ist damit dabei.
 
+### Die Reihenfolge der Wörter ist egal
+
+Dieselben zehn Wörter ergeben immer dieselbe Kette, in welcher Reihenfolge sie
+eingegeben werden. Die App sortiert sie vor der Berechnung.
+
+Das ist keine Kosmetik, sondern die Verhinderung eines stillen
+Totalausfalls: Ohne Sortierung wäre „blue sky …" eine andere Kette als
+„sky blue …". Beide Geräte meldeten Erfolg, beide zeigten „Letzter Sync", und
+es wäre nichts angekommen — weil jedes in einer eigenen, leeren Kette stand.
+Für den Nutzen sieht das exakt aus wie ein kaputter Sync, und die Meldung auf
+dem Bildschirm widerspricht dem.
+
+Die Entropie bleibt dabei rund 100 Bit. Zehn Wörter aus über 1000 ergeben
+mindestens 10 Bit pro Wort; die Reihenfolge zu erraten bringt nichts, denn die
+Menge aller Permutationen ist genau die Menge aller möglichen Phrasen.
+
+### Der Sync läuft von selbst
+
+| Wann | Was |
+|---|---|
+| Start der App | nach 20 Sekunden |
+| Zurückkehren aus dem Hintergrund | sofort |
+| danach | alle 5 Minuten, solange die App vorn ist |
+
+Der erste Lauf wartet bewusst: Um dieselbe Zeit lädt die App ohnehin ihre
+Vertretungspläne, und beides gleichzeitig auf dem Mobilfunknetz wäre doppelte
+Last für einen Sync, der auch zwei Minuten später käme.
+
+Ein Lauf findet **nicht** statt, wenn
+
+* keine Kette eingerichtet ist (es wird nicht einmal der Server gefragt),
+* bereits ein Lauf unterwegs ist – der Knopf und der Zeitgeber dürfen sich
+  nie in die Quere kommen, sonst schreiben zwei Läufe dasselbe Gerät
+  gegenseitig die Daten zurück,
+* seit dem letzten Lauf weniger als zwei Minuten vergangen sind,
+* gerade etwas schiefging. Dann wächst die Wartezeit (1, 2, 4, 8 … bis 30
+  Minuten). Ohne das versucht die App im Flugmodus alle paar Sekunden
+  denselben Fehler und macht die Leitung nur langsamer.
+
+Im Demo-Account läuft nichts: Dort gibt es nichts zu übertragen.
+
+### Woher die Daten kommen
+
+Nach einem Lauf, der etwas **herübergebracht** hat, meldet sich der Koordinator
+über einen Strom. Die Startseite hängt sich daran und baut sich neu auf.
+
+Ohne diesen Schritt lädt zwar die Datei, die angezeigte Liste aber nicht – was
+sich anfühlt, als sei nichts passiert. Genau das war einer der gemeldeten
+Fehler: Die Daten waren da, nur nirgends sichtbar.
+
+### Zwei Speicherformen, ein Leser
+
+Die App legt ihre Bestandteile auf zwei Arten ab:
+
+| Form | Schlüssel |
+|---|---|
+| `StringList` | `offlineVPData`, `classes`, `cachedRooms`, `previewHidden*` |
+| JSON-Zeichenkette eines Arrays | `persons`, `classNames`, `sickTrack`, `lessontimes`, `teacherShorts`, `hiddenSubjectsByClass` |
+
+Der Grund ist `setStringList`: Es nimmt nur `String` auf, und `persons`
+enthält Objekte. Wer sie also als Liste speichern will, muss sie erst zu
+Zeichenketten machen – und genau das tut `VPlanAPI` an anderer Stelle als
+`String`, nicht als Liste.
+
+Daraus folgt eine Falle, die **drei** Fehler verursacht hat, keiner davon mit
+einer Fehlermeldung:
+
+1. `prefs.getStringList` **wirft** einen `TypeError`, wenn unter dem Schlüssel
+   ein String liegt. Es liefert nicht `null`. Ein `?? []` fängt das nicht ab –
+   der Ausdruck wird gar nicht erreicht.
+2. `SharedPreferences.getString` wirft ebenso, wenn dort ein Boolean liegt.
+3. Wer den `TypeError` mit `try`/`catch` abfängt und dann `return` macht, hat
+   zwar keinen Absturz mehr, aber auch **keine Daten mehr**. Der Sync läuft,
+   meldet Erfolg und überträgt nur noch, was als Liste gespeichert war.
+
+Deshalb gibt es genau einen Leser dafür,
+`SyncDataReader.readLines` / `.readParts`, und die Regel lautet: **über
+`SyncKeys.dataKeys` niemals `getStringList` aufrufen.** Beide Speicherformen
+werden bedient, und beide nach denselben Regeln dekodiert.
+
+`readLines` ist öffentlich, weil mehrere Stellen dieselbe Frage stellen – der
+Sync, der Share-Import und die Personenauswahl beim Teilen. Jede Stelle, die
+stattdessen `getStringList` aufruft, ist bei der Hälfte der Schlüssel ein
+Absturz.
+
+### Der Sync darf die Speicherform nicht ändern
+
+Das ist die gefährlichste Regel im ganzen Feature, und sie ist einmal
+gebrochen.
+
+`VPlanAPI` liest ihre Bestandteile mit **typisierten** Gettern – `getString`
+für die JSON-Schlüssel, `getStringList` für die übrigen. Und diese Getter
+**werfen** einen `TypeError`, wenn unter dem Schlüssel der andere Typ steht;
+sie liefern nicht `null`. Deshalb gilt für jeden Bestandteil genau eine Form,
+und sie steht in `SyncKeys.dataKeyForms`:
+
+| Form | Schlüssel |
+|---|---|
+| `StringList` | `classes`, `offlineVPData`, `cachedRooms` |
+| String mit JSON-**Array** | `persons`, `classNames`, `sickTrack`, `lessontimes`, `teacherShorts`, `initializedClasses` |
+
+Ein Sync, der `persons` als `StringList` zurückschreibt, macht die App
+**dauerhaft unstartbar**: `loadDisplayCache` wirft, `main()` bricht ab,
+`runApp` wird nie erreicht – und weil der Schlüssel weiterhin falsch dasteht,
+endet *jeder* weitere Start an derselben Stelle. Es genügt ein einziger
+Sync-Lauf.
+
+Drei Regeln folgen daraus, alle drei werden von Tests festgehalten:
+
+1. **Ein Sync schreibt nie um.** Er schreibt in der Form aus
+   `SyncKeys.dataKeyForms`, nicht in der Form, die sich anbietet.
+2. **Ein Sync liest verzeihend.** `SyncDataReader.readLines` nimmt beide Formen
+   an.
+3. **Beim Start wird repariert.** `StorageHealer.healAll` bringt einmal alle
+   Bestandteile auf die erwartete Form. Ein Gerät, das eine frühere
+   App-Version beschädigt hat, ist sonst für immer tot.
+
+Und eine Form, die der Sync gar nicht erst anfassen darf: JSON-**Maps**.
+`hiddenSubjectsByClass`, `previewHiddenClasses` und `previewHiddenPersons`
+liegen als `{classId: true}`. Sie standen früher in `dataKeys` und sind jetzt
+herausgenommen – `SyncPayload` stellt sich jeden Bestandteil als Liste vor,
+und ein Sync hätte daraus eine `StringList` geschrieben, während `VPlanAPI`
+sie mit `getString` liest. Dieselbe Falle, eine Ebene tiefer, und ausgelöst
+beim Blenden einer Vorschau statt beim Start. Ausgeschlossene
+Vorschau-Einstellungen sind ein kleiner Verlust; ein Absturz ist keiner.
+
+### Woran man erkennt, was los ist
+
+In den Einstellungen stehen drei Kacheln, die die drei Fragen beantworten, an
+denen ein Sync scheitern kann, **ohne** dass irgendwo ein Fehler steht:
+
+| Kachel | Beantwortet |
+|---|---|
+| *Automatisch synchronisiert* | Läuft das ohne mich, und wann war der letzte automatische Lauf? |
+| *… Einträge werden übertragen* | Sind überhaupt Daten vorhanden? Bei einer frischen App: null. |
+| *… Geräte in dieser Kette* | Gibt es überhaupt jemanden, von dem etwas kommen könnte? |
+
+Die dritte ist die wichtigste. Nach einem Sync mit **einem einzigen** Gerät
+sieht alles erfolgreich aus, und es fließt trotzdem nichts – weil es niemanden
+gibt, von dem etwas kommen könnte. Ein einzelnes Feld „Letzter Sync" kann das
+nicht von einem funktionierenden Sync mit drei Geräten unterscheiden.
+
+Im Unterschied dazu meldet der Knopf in den Einstellungen ausdrücklich
+„Deine Daten wurden übertragen, aber noch kein anderes Gerät ist diesem Sync
+beigetreten", statt nur „Alles ist aktuell" zu sagen.
+
 ### Einstellungen mitnehmen oder nicht
 
 Klassen, Personen, Kurse und die gespeicherten Pläne werden **immer**

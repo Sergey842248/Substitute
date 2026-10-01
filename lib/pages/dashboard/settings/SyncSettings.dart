@@ -3,8 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/l10n/app_localizations.dart';
+import 'package:substitute/services/SchoolStorage.dart';
 import 'package:substitute/services/sync/SyncApiClient.dart';
+import 'package:substitute/services/sync/SyncCoordinator.dart';
 import 'package:substitute/services/sync/SyncEngine.dart';
+import 'package:substitute/services/sync/SyncKeys.dart';
 
 import '../../../models/Button.dart';
 import '../../../models/InputField.dart';
@@ -54,13 +57,21 @@ class _SyncSettingsState extends State<SyncSettings> {
     final SyncState? state = await SyncEngine.loadState(prefs);
     final SyncApiClient client =
         SyncApiClient(baseUrl: SyncEngine.serverUrl(prefs));
-    if (!mounted) return;
+    // Der bisherige Client wird nach jedem [_load] ersetzt – auch nach jedem
+    // Sync, denn die Anzeige lädt danach neu. Ohne dieses Schließen sammelt
+    // sich bei jedem Lauf eine offene Verbindung an.
+    final SyncApiClient? previous = _client;
+    if (!mounted) {
+      client.dispose();
+      return;
+    }
     setState(() {
       _prefs = prefs;
       _state = state;
       _client = client;
       _passphraseDraft = state?.passphrase ?? '';
     });
+    previous?.dispose();
   }
 
   @override
@@ -211,31 +222,29 @@ class _SyncSettingsState extends State<SyncSettings> {
   // -------------------------------------------------------------------- Lauf
 
   Future<void> _runSync() async {
-    final SharedPreferences? prefs = _prefs;
-    final SyncState? state = _state;
-    if (prefs == null || state == null) return;
+    if (_prefs == null || _state == null) return;
     final AppLocalizations l10n = AppLocalizations.of(context)!;
 
     setState(() => _busy = true);
-    final SyncApiClient client =
-        SyncApiClient(baseUrl: SyncEngine.serverUrl(prefs));
-    final SyncEngine engine = SyncEngine(client: client);
-
-    final SyncOutcome outcome = await engine.run(prefs, state);
-    if (!outcome.succeeded) {
-      await SyncEngine.saveState(
-        prefs,
-        state.copyWith(lastPushError: outcome.error),
-      );
-    } else {
-      await SyncEngine.saveState(
-        prefs,
-        state.copyWith(lastSync: DateTime.now(), clearError: true),
-      );
-    }
-    client.dispose();
+    // Bewusst über den Koordinator und nicht direkt über die Engine: Ein Lauf
+    // darf nie zweimal gleichzeitig stattfinden. Zwei gleichzeitig laufende
+    // Läufe könnten sich gegenseitig die Daten zurückschreiben – einer liest
+    // den Stand, den der andere gerade geschrieben hat, und entscheidet dann
+    // mit einer veralteten Grundlage. `force` übergeht nur die Zeitprüfung:
+    // wer auf den Knopf tippt, will jetzt etwas sehen.
+    final SyncOutcome? outcome =
+        await SyncCoordinator.instance.syncNow(reason: 'manual', force: true);
     if (!mounted) return;
     setState(() => _busy = false);
+    // Der Koordinator schreibt `lastSync` und `lastPushError` in den
+    // gespeicherten Zustand. Die Anzeige hier hat ihren eigenen Satz und
+    // würde sonst weiter den alten Zeitpunkt zeigen.
+    await _load();
+
+    // null heißt: Ein Lauf war bereits unterwegs. Der zweite wäre derselbe
+    // gewesen, also wird hier nichts gemeldet – zwei Erfolgsmeldungen für
+    // einen Vorgang verwirren mehr als eine.
+    if (outcome == null) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -243,7 +252,12 @@ class _SyncSettingsState extends State<SyncSettings> {
           outcome.succeeded
               ? (outcome.hasChanges
                   ? l10n.syncDone(outcome.merged, outcome.devices.length)
-                  : l10n.syncDoneNoChanges)
+                  // "Alles aktuell" und "da war nichts zu holen" sind
+                  // zwei verschiedene Nachrichten. Die zweite sagt dem
+                  // Nutzer, woran es liegt, statt ihn zu raten lassen.
+                  : (outcome.devices.length <= 1
+                      ? l10n.syncDoneAlone
+                      : l10n.syncDoneNoChanges))
               : '${l10n.syncFailed}: ${syncErrorMessage(l10n, outcome.error)}',
         ),
       ),
@@ -300,6 +314,11 @@ class _SyncSettingsState extends State<SyncSettings> {
       failure = error.toString();
     }
     client.dispose();
+    // Der Koordinator darf die gerade verlassene Kette nicht ein letztes Mal
+    // hochschieben. Sein gemerkter Zustand muss mit dem der App übereinstimmen,
+    // sonst schiebt der nächste Zeitgeberlauf Daten in eine Kette, die es
+    // offiziell nicht mehr gibt.
+    SyncCoordinator.instance.forget();
     if (!mounted) return;
     setState(() {
       _state = null;
@@ -349,6 +368,7 @@ class _SyncSettingsState extends State<SyncSettings> {
     }
     client.dispose();
     await prefs.remove(SyncEngine.stateStorageKey);
+    SyncCoordinator.instance.forget();
     if (!mounted) return;
     setState(() {
       _state = null;
@@ -500,6 +520,64 @@ class _SyncSettingsState extends State<SyncSettings> {
     ];
   }
 
+  /// Kachel, die sagt, ob der Sync **von selbst** läuft.
+  ///
+  /// Vorher stand hier nur "Letzter Sync: …", und das beantwortet die Frage
+  /// nicht, die man sich stellt, wenn einen der Knopf einen Klick lang
+  /// beschäftigt: Läuft das überhaupt ohne mich? Die Antwort war vorher
+  /// "nein" – ohne es irgendwo zu sagen.
+  Widget _autoSyncTile(AppLocalizations l10n, SyncState state) {
+    final SyncCoordinator coordinator = SyncCoordinator.instance;
+    final DateTime? last = coordinator.lastSuccess ?? state.lastSync;
+    final String subtitle = coordinator.consecutiveFailures > 0
+        ? l10n.syncAutoFailing(coordinator.consecutiveFailures)
+        : last == null
+            ? l10n.syncAutoNever
+            : l10n.syncAutoLast(_formatTime(last));
+    return _tile(
+      icon: Icons.autorenew_rounded,
+      title: l10n.syncAutoTitle,
+      subtitle: <String>[
+        coordinator.isAutomatic
+            ? l10n.syncAutoOn(SyncCoordinator.tickInterval.inMinutes)
+            : l10n.syncNever,
+        subtitle,
+        // Die Zahl der Geräte in der Kette. Ohne sie ist ein Sync mit einem
+        // einzigen Gerät nicht von einem Sync mit zwanzig zu unterscheiden –
+        // beide melden nur "alles aktuell".
+        if (coordinator.peerCount != null) l10n.syncPeerCount(coordinator.peerCount!),
+      ].join(' · '),
+      onTap: null,
+    );
+  }
+
+  /// Kachel, die zählt, was tatsächlich zum Übertragen bereitsteht.
+  ///
+  /// Sie beantwortet die Frage, an der ein Sync scheitern kann, ohne dass
+  /// irgendwo ein Fehler steht: "Sind überhaupt Daten da?" Bei einer frischen
+  /// App ist die Antwort null, und ein Sync meldet trotzdem Erfolg – weil es
+  /// ja auch nichts zu übertragen gab. Das sieht von außen genau aus wie ein
+  /// kaputter Sync.
+  Widget _payloadTile(AppLocalizations l10n) {
+    final SharedPreferences? prefs = _prefs;
+    if (prefs == null) return const SizedBox.shrink();
+    // Über `SyncDataReader`, nicht über `getStringList`: Die Hälfte dieser
+    // Schlüssel liegt als JSON-Zeichenkette in den Einstellungen. Ein
+    // `getStringList` darauf wirft einen TypeError und nimmt die ganze Seite
+    // mit – ausgerechnet beim Öffnen des Sync-Menüs.
+    final List<String> keys = <String>[
+      for (final String key in SyncKeys.dataKeys)
+        SchoolStorage.scopedKey(prefs, key),
+    ];
+    final int count = SyncDataReader.countItemsOf(prefs, keys);
+    return _tile(
+      icon: Icons.inventory_2_rounded,
+      title: l10n.syncPayloadCount(count),
+      subtitle: count == 0 ? l10n.syncPayloadEmpty : l10n.syncAloneNote,
+      onTap: null,
+    );
+  }
+
   List<Widget> _onlineChildren(AppLocalizations l10n, SyncState state) {
     final String lastSync = state.lastSync == null
         ? l10n.syncNever
@@ -511,6 +589,8 @@ class _SyncSettingsState extends State<SyncSettings> {
         subtitle: '$lastSync · ${state.deviceName.isEmpty ? l10n.syncDeviceUnknown : state.deviceName}',
         onTap: _runSync,
       ),
+      _autoSyncTile(l10n, state),
+      _payloadTile(l10n),
       SettingsSwitchTile(
         icon: Icons.tune_rounded,
         title: l10n.syncSettingsToggle,

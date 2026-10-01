@@ -391,8 +391,21 @@ class SyncApiClient {
       }));
 
   /// Löscht die ganze Kette auf dem Server (alle Geräte).
-  Future<void> deleteChain(String chainId) =>
-      _send('DELETE', _chainPath(chainId));
+  ///
+  /// Eine Kette, die es nicht gibt, ist dabei **kein Fehler**: „Löschen" ist
+  /// das gewünschte Ergebnis, und der Server hat nichts zu melden. Sonst
+  /// scheitert der Knopf genau dann, wenn er am wenigsten schadet – bei einer
+  /// frischen Installation, deren Ketten-ID noch niemandem bekannt ist.
+  Future<void> deleteChain(String chainId) async {
+    try {
+      await _send('DELETE', _chainPath(chainId));
+    } on SyncException catch (failure) {
+      // 404 = es gab nichts zu löschen. 410 sagen die Edge Functions, wenn
+      // eine Kette leer ist. Beides ist hier der gewünschte Endzustand.
+      if (failure.status == 404 || failure.status == 410) return;
+      rethrow;
+    }
+  }
 
   // ------------------------------------------------------------------ Shares
 

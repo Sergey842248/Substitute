@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:substitute/services/crypto/Hashing.dart';
 import 'package:substitute/services/crypto/Passphrase.dart';
 import 'package:substitute/services/sync/NameGuard.dart';
+import 'package:substitute/services/sync/SyncEngine.dart';
 
 void main() {
   group('Passphrase.generate', () {
@@ -66,14 +67,42 @@ void main() {
     test('ignores case, extra spaces and punctuation', () {
       const String messy = '  Blue   SKY,  river-seven!  Mango  ';
       expect(Passphrase.split(messy), <String>['blue', 'sky', 'river', 'seven', 'mango']);
-      expect(Passphrase.normalize(messy), 'blue sky river seven mango');
+      // Sortiert – siehe [Passphrase.normalize]. Wer die Wörter in anderer
+      // Reihenfolge eintippt, muss dieselbe Kette bekommen.
+      expect(Passphrase.normalize(messy), 'blue mango river seven sky');
     });
 
     test('treats a typed-out phrase and a scanned one identically', () {
       expect(
-        Passphrase.normalize('blue sky river seven mango'),
+        Passphrase.normalize('blue mango river seven sky'),
         Passphrase.normalize('Blue-Sky, River Seven Mango.'),
       );
+    });
+
+    // Das ist der Test, der den Grund für das Sortieren festhält. Ohne
+    // Sortierung wäre "blue mango river seven sky" eine andere Kette als
+    // "blue sky river seven mango": Beide Geräte meldeten Erfolg, beide zeigten
+    // "letzter Sync", und es wäre nichts angekommen.
+    test('die Reihenfolge der Wörter ist egal', () {
+      const String a = 'blue mango river seven sky apple candle six dog echo';
+      const String b = 'echo dog six candle apple sky river mango seven blue';
+      expect(Passphrase.normalize(a),
+          'apple blue candle dog echo mango river seven six sky');
+      expect(Passphrase.normalize(b), Passphrase.normalize(a));
+      expect(SyncEngine.chainIdFor(a), SyncEngine.chainIdFor(b));
+      // Auch der Schlüssel muss derselbe sein, sonst wäre die Kennung
+      // gleich und trotzdem würde nichts entschlüsseln.
+      expect(SyncEngine.keyFor(a).authenticationKey,
+          SyncEngine.keyFor(b).authenticationKey);
+    });
+
+    test('die erzeugte Phrase ist bereits die verbindliche Form', () {
+      for (int i = 0; i < 20; i++) {
+        final String phrase = Passphrase.generate();
+        expect(Passphrase.normalize(phrase), phrase,
+            reason: 'angezeigt wird "$phrase", gerechnet wird '
+                '"${Passphrase.normalize(phrase)}"');
+      }
     });
 
     test('recognises what is and is not a phrase', () {

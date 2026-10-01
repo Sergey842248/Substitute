@@ -1778,6 +1778,66 @@ abstract class AppLocalizations {
   /// **'Sync done. Everything is up to date.'**
   String get syncDoneNoChanges;
 
+  /// No description provided for @syncAutoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic sync'**
+  String get syncAutoTitle;
+
+  /// No description provided for @syncAutoOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs by itself: at start, when you return to the app, and then every {minutes} minutes.'**
+  String syncAutoOn(Object minutes);
+
+  /// No description provided for @syncAutoLast.
+  ///
+  /// In en, this message translates to:
+  /// **'Last automatic: {when}'**
+  String syncAutoLast(Object when);
+
+  /// No description provided for @syncAutoNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Has not run automatically yet.'**
+  String get syncAutoNever;
+
+  /// No description provided for @syncPeerCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} devices in this chain (including this one)'**
+  String syncPeerCount(Object count);
+
+  /// No description provided for @syncAutoFailing.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} failed attempts in a row – the server is contacted less often until it works again.'**
+  String syncAutoFailing(Object count);
+
+  /// No description provided for @syncPayloadCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} entries are being transferred'**
+  String syncPayloadCount(Object count);
+
+  /// No description provided for @syncPayloadEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'There is nothing to transfer yet. Sync can only bring data once another device has some.'**
+  String get syncPayloadEmpty;
+
+  /// No description provided for @syncAloneNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This device is alone in the sync. Data is uploaded, but none comes back – that is not a failure.'**
+  String get syncAloneNote;
+
+  /// No description provided for @syncDoneAlone.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync done. Your data was uploaded, but no other device has joined this sync yet.'**
+  String get syncDoneAlone;
+
   /// No description provided for @syncFailed.
   ///
   /// In en, this message translates to:

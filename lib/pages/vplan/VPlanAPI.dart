@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http_auth/http_auth.dart' as http_auth;
@@ -7,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/services/SchoolStorage.dart';
 import 'package:substitute/services/AppClock.dart';
+import 'package:substitute/services/sync/SyncKeys.dart';
 import 'package:xml2json/xml2json.dart';
 import 'package:xml/xml.dart';
 
@@ -111,17 +113,30 @@ Future<void> loadDisplayCache(SharedPreferences prefs) async {
 
   // Zuerst die Personen auslesen: Auch wenn (noch) keine Klassen gespeichert
   // sind, kann die Vorschau einer Person bereits im Cache liegen.
-  final String? personsRaw =
-      prefs.getString(SchoolStorage.scopedKey(prefs, 'persons'));
+  //
+  // `getString` **wirft**, wenn unter dem Schlüssel eine Liste steht – und
+  // nicht `null`, wie man erwarten würde. Genau das hat die App unstartbar
+  // gemacht: Ein Sync hatte `persons` als `StringList` geschrieben, dieser
+  // Aufruf warf, `main()` brach ab, `runApp` wurde nie erreicht. Der Vorschau-
+  // Cache ist ein Komfort, kein Bestandteil – er darf den Start niemals
+  // verhindern.
+  final String personsKey = SchoolStorage.scopedKey(prefs, 'persons');
   final List<String> nextLessonKeys = [];
-  if (personsRaw != null && personsRaw.isNotEmpty) {
-    try {
-      final List<dynamic> persons = jsonDecode(personsRaw) as List;
-      for (final dynamic person in persons) {
-        final String id = person is Map ? person['id']?.toString() ?? '' : '';
-        if (id.isNotEmpty) nextLessonKeys.add(nextLessonCacheKeyForPerson(id));
-      }
-    } catch (_) {}
+  try {
+    final String? personsRaw = prefs.getString(personsKey);
+    if (personsRaw != null && personsRaw.isNotEmpty) {
+      try {
+        final List<dynamic> persons = jsonDecode(personsRaw) as List;
+        for (final dynamic person in persons) {
+          final String id = person is Map ? person['id']?.toString() ?? '' : '';
+          if (id.isNotEmpty) nextLessonKeys.add(nextLessonCacheKeyForPerson(id));
+        }
+      } catch (_) {}
+    }
+  } catch (_) {
+    // Falsche Form hinterlassen (hier: eine Liste). Der Sync-Leser repariert
+    // das beim nächsten Lauf – hier reicht es, dass die App startet.
+    unawaited(StorageHealer.heal(prefs, personsKey));
   }
 
   final List<String>? classes =

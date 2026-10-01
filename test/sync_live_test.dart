@@ -176,10 +176,13 @@ void main() {
     test('ein kompletter Sync-Lauf funktioniert', () async {
       if (!reachable) return;
 
+      // Die Speicherform ist die aus der App: `persons` liegt als
+      // JSON-Zeichenkette, nicht als Liste. Ein Test, der hier eine Liste
+      // anlegt, prüft eine Welt, in der die App nicht existiert.
       SharedPreferences.setMockInitialValues(<String, Object>{
-        'persons': <String>[
-          jsonEncode(<String, dynamic>{'id': '1', 'name': 'Hans live'}),
-        ],
+        'persons': jsonEncode(<Map<String, dynamic>>[
+          <String, dynamic>{'id': '1', 'name': 'Hans live'},
+        ]),
         'offlineVPData': <String>[
           jsonEncode(<String, dynamic>{'date': '2026-10-01', 'name': 'Live'}),
         ],
@@ -204,10 +207,13 @@ void main() {
 
       // Und die Daten sind wieder da, was der Merge geschrieben hat.
       expect(
-        (prefs.getStringList(SchoolStorage.scopedKey(prefs, 'persons')) ?? [])
-            .length,
-        greaterThanOrEqualTo(1),
+        SyncDataReader.readLines(prefs, SchoolStorage.scopedKey(prefs, 'persons')),
+        hasLength(1),
       );
+      // Und die Form, in der die App ihre Daten erwartet, ist erhalten
+      // geblieben – sonst startet die App nicht mehr.
+      expect(() => prefs.getString(SchoolStorage.scopedKey(prefs, 'persons')),
+          returnsNormally);
     });
 
     test('ein Share legt an, liest und loescht sauber', () async {

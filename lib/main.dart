@@ -20,6 +20,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lottie/lottie.dart';
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -30,6 +31,9 @@ import 'pages/dashboard/Dashboard.dart';
 import 'pages/search/SearchMenu.dart';
 import 'pages/dashboard/settings/VPlanLogin.dart';
 import 'services/SchoolStorage.dart';
+import 'services/sync/SyncCoordinator.dart';
+import 'services/sync/SyncEngine.dart';
+import 'services/sync/SyncKeys.dart';
 import 'services/AppClock.dart';
 
 /// Compares two version strings (e.g. '3.7.10') numerically segment by segment.
@@ -50,6 +54,21 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SharedPreferences prefs = await SharedPreferences.getInstance();
   await SchoolStorage.ensureInitialized(prefs);
+
+  // Ein Sync, der einen Bestandteil in der falschen Form zurückgeschrieben
+  // hat, macht die App **dauerhaft** unstartbar: `VPlanAPI` liest dieselben
+  // Schlüssel mit typisierten Gettern, und die werfen bei falschem Typ einen
+  // TypeError statt `null` zu liefern. Genau das ist geschehen – `persons`
+  // stand als StringList da, `getString` warf, `runApp` wurde nie erreicht.
+  //
+  // Deshalb wird hier einmal Everything auf die Form gebracht, die die App
+  // selbst schreibt. Danach ist die Form stabil, weil der Schreiber des Sync
+  // sie jetzt auch einhält.
+  final int repaired = await StorageHealer.healAll(prefs);
+  if (repaired > 0) {
+    // ignore: avoid_print
+    print('Sync: $repaired Speicherwerte auf die erwartete Form gebracht');
+  }
 
   // Zuletzt angezeigte Pläne / Vorschauen synchron in den Speicher laden,
   // damit beim Öffnen sofort (ohne Ladezeit) der letzte Stand angezeigt wird.
@@ -274,7 +293,26 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     // Refresh all VPlans in the background when app opens
     _refreshAllPlans();
+
+    // Der automatische Sync. Ohne ihn passiert ein Sync nur, wenn jemand die
+    // Einstellungen öffnet und auf den Knopf tippt – wer die Einstellungen
+    // nie aufsucht, überträgt nie etwas. Der Koordinator richtet sich selbst
+    // aus, ist ohne eingerichtete Kette ein wirkungsloses Nichts und bricht
+    // nach Fehlern mit wachsender Wartezeit ab.
+    SyncCoordinator.instance.attach();
+
+    // Fremde Daten können mitten in der Sitzung eintreffen. Wer sie nicht
+    // bemerkt, glaubt, der Sync hätte nicht funktioniert – die Daten waren ja
+    // da, nur nirgends sichtbar.
+    _syncSubscription = SyncCoordinator.instance.changes.listen((outcome) {
+      if (!mounted) return;
+      // ignore: avoid_print
+      print('Sync hat ${outcome.merged} Änderungen gebracht');
+      setState(() {});
+    });
   }
+
+  StreamSubscription<SyncOutcome>? _syncSubscription;
 
   Future<void> _refreshAllPlans() async {
     try {
@@ -289,6 +327,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   void dispose() {
+    _syncSubscription?.cancel();
     eastereggController.dispose();
     super.dispose();
   }

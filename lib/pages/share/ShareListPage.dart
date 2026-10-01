@@ -8,6 +8,7 @@ import 'package:substitute/services/SchoolStorage.dart';
 import 'package:substitute/services/sync/NameGuard.dart';
 import 'package:substitute/services/sync/ShareManager.dart';
 import 'package:substitute/services/sync/SyncApiClient.dart';
+import 'package:substitute/services/sync/SyncKeys.dart';
 import 'package:substitute/services/sync/SyncEngine.dart';
 
 import '../../../models/Button.dart';
@@ -399,9 +400,11 @@ List<String> readClassShorts(SharedPreferences prefs) {
 
 /// Und die lokalen Personen als Auswahl.
 List<({String id, String name})> readPersons(SharedPreferences prefs) {
+  // Über den Sync-Leser, nicht über `getStringList`: `persons` wird als
+  // JSON-Zeichenkette gespeichert, weil es Objekte enthält. Ein
+  // `getStringList` darauf wirft einen TypeError und nimmt die Seite mit.
   final List<String> raw =
-      prefs.getStringList(SchoolStorage.scopedKey(prefs, 'persons')) ??
-          const <String>[];
+      SyncDataReader.readLines(prefs, SchoolStorage.scopedKey(prefs, 'persons'));
   final List<({String id, String name})> result =
       <({String id, String name})>[];
   for (final String entry in raw) {

@@ -1,530 +1,540 @@
 {
-    "settings": "Einstellungen",
-    "credentials": "Anmeldeinformationen",
-    "credentialsSubtitle": "stundenplan24 Anmeldeinformationen",
-    "notifications": "Benachrichtigungen",
-    "notificationsSubtitle": "Benachrichtigungen für den Vertretungsplan",
-    "setTeacherAbbreviations": "Lehrerkürzel festlegen",
-    "setTeacherAbbreviationsSubtitle": "Lehrerkürzel durch echte Namen ersetzen",
-    "developerOptions": "Entwickleroptionen",
-    "developerOptionsSubtitle": "Einstellungen für Entwickler ändern",
-    "language": "Sprache",
-    "languageSubtitle": "Sprache der App ändern",
-    "freeRoomsTitle": "Freie Räume - {time}",
-    "vplanStudents": "Vertretungsplan Schüler",
-    "vplanTeachers": "Vertretungsplan Lehrer",
-    "dashboard": "Dashboard",
-    "appTitle": "Substitute",
-    "newVersionAvailable": "Neue Version verfügbar",
-    "newVersionMessage": "Eine neue Version ({version}) ist verfügbar. Lade sie herunter und öffne die Datei um sie zu installieren.",
-    "@newVersionMessage": {
-        "placeholders": {
-            "version": {
-                "type": "String"
-            }
-        }
-    },
-    "later": "Später",
-    "download": "Herunterladen",
-    "appInfo": "App Info",
-    "mainDeveloper": "Hauptentwickler: ",
-    "developerName": "Sergey842248",
-    "formerDeveloper": "Ehemaliger Entwickler: ",
-    "formerDeveloperName": "Oskar",
-    "openIssue": "Issue öffnen",
-    "github": "GitHub",
-    "version": "Version: {version}",
-    "@version": {
-        "placeholders": {
-            "version": {
-                "type": "String"
-            }
-        }
-    },
-    "findFreeRoom": "Freien Raum finden",
-    "findFreeRoomSubtitle": "Einen Raum finden, der zu einer bestimmten Zeit nicht belegt ist",
-    "roomPlan": "Raumplan",
-    "roomPlanSubtitle": "Stundenplan eines Raums anzeigen",
-    "selectRoom": "Raum auswählen",
-    "noLessonsInRoom": "Keine Stunden in diesem Raum",
-    "noPlanForThisDay": "Kein Vertretungsplan für diesen Tag verfügbar.",
-    "analysis": "Analyse",
-    "analysisSubtitle": "Eine Analyse des Vertretungsplans erhalten",
-    "settingsTitle": "Einstellungen",
-    "settingsSubtitle": "Weitere Einstellungen zur Personalisierung Ihrer Erfahrung",
-    "addNewClass": "Neue Klasse hinzufügen",
-    "dontForgetCredentials": "Vergiss deine Anmeldedaten nicht!",
-    "add": "Hinzufügen",
-    "selectClass": "Klasse auswählen",
-    "noNextLessonFound": "Keine nächste Stunde gefunden",
-    "nextHour": "nächste Stunde",
-    "weekend": "Wochenende",
-    "room": "Raum {room}",
-    "@room": {
-        "placeholders": {
-            "room": {
-                "type": "String"
-            }
-        }
-    },
-    "classSelection": "Klassenauswahl",
-    "selectClassTitle": "Klasse auswählen",
-    "usernamePasswordWrong": "Benutzername oder Passwort falsch!",
-    "wrongSchoolNumber": "Falsche Schulnummer!\n\noder kein Vertretungsplan verfügbar!",
-    "noInternetConnection": "Keine Internetverbindung",
-    "noSubstitutionPlan": "kein Vertretungsplan",
-    "wrongSchoolNumberAlt": "Falsche Schulnummer oder kein Vertretungsplan verfügbar",
-    "noNetworkConnection": "Keine Netzwerkverbindung",
-    "week": "Woche",
-    "close": "Schließen",
-    "courses": "Kurse",
-    "noAdditionalInformation": "Keine zusätzlichen Informationen verfügbar",
-    "search": "Suche",
-    "searchTeachers": "Lehrer suchen",
-    "searchTeachersSubtitle": "Lehrerkürzel durchsuchen und den Vertretungsplan eines Lehrers ansehen",
-    "teacherAbbreviationHint": "Lehrerkürzel (z.B. \"AB\")",
-    "selectedDate": "Ausgewähltes Datum: {day}.{month}.{year}",
-    "@selectedDate": {
-        "placeholders": {
-            "day": {
-                "type": "String"
-            },
-            "month": {
-                "type": "String"
-            },
-            "year": {
-                "type": "String"
-            }
-        }
-    },
-    "see": "Ansehen",
-    "scanningTeacherAbbreviations": "Scanne alle Lehrerkürzel...",
-    "noTeachersFound": "Keine Lehrer gefunden",
-    "noFavoriteClassesFound": "Keine Lieblingsklassen gefunden.",
-    "addClassToFavoritesForAnalysis": "Bitte füge eine Klasse zu deinen Favoriten hinzu, um die Analyse zu sehen.",
-    "nameClass": "Klasse benennen",
-    "renameClass": "Klasse umbenennen",
-    "classNameHint": "Benutzerdefinierter Name (optional)",
-    "deleteClassTitle": "Klasse löschen?",
-    "deleteClassMessage": "Die Klasse \"{className}\" wird entfernt. Das kann nicht rückgängig gemacht werden.",
-    "@deleteClassMessage": {
-        "placeholders": {
-            "className": {
-                "type": "String"
-            }
-        }
-    },
-    "deletePersonTitle": "Person löschen?",
-    "deletePersonMessage": "Die Person \"{personName}\" wird entfernt. Das kann nicht rückgängig gemacht werden.",
-    "@deletePersonMessage": {
-        "placeholders": {
-            "personName": {
-                "type": "String"
-            }
-        }
-    },
-    "deleteAction": "Löschen",
-    "deleteSickEntryTitle": "Eintrag löschen?",
-    "deleteSickEntryMessage": "Der Krankheitseintrag für \"{classId}\" wird entfernt. Das kann nicht rückgängig gemacht werden.",
-    "@deleteSickEntryMessage": {
-        "placeholders": {
-            "classId": {
-                "type": "String"
-            }
-        }
-    },
-    "deleteLessonTitle": "Unterrichtszeit löschen?",
-    "deleteLessonMessage": "Die {count}. Unterrichtszeit wird entfernt. Das kann nicht rückgängig gemacht werden.",
-    "@deleteLessonMessage": {
-        "placeholders": {
-            "count": {
-                "type": "int"
-            }
-        }
-    },
-    "couldNotLoadVPlanData": "VPlan-Daten konnten nicht geladen werden.",
-    "noDataForAnalysisAvailable": "Keine Daten für Analyse verfügbar.",
-    "teacherLabel": "Lehrer: {name}",
-    "@teacherLabel": {
-        "placeholders": {
-            "name": {
-                "type": "String"
-            }
-        }
-    },
-    "lessonDetails": "{count}. Stunde: {lesson} im Raum: {place}",
-    "@lessonDetails": {
-        "placeholders": {
-            "count": {
-                "type": "String"
-            },
-            "lesson": {
-                "type": "String"
-            },
-            "place": {
-                "type": "String"
-            }
-        }
-    },
-    "loadingData": "Lade Daten...",
-    "loadingSubstitutionPlan": "Lade Vertretungsplan...",
-    "substitutionPlanLoaded": "Vertretungsplan geladen",
-    "noSubstitutionPlanToday": "Kein Vertretungsplan für heute verfügbar.",
-    "noSubstitutionPlanTomorrow": "Kein Vertretungsplan für morgen verfügbar.",
-    "browsingPlan": "Durchsuche Plan...",
-    "analysingRooms": "Analysiere Räume...",
-    "checkRoom": "Überprüfe Raum {room}...",
-    "@checkRoom": {
-        "placeholders": {
-            "room": {
-                "type": "String"
-            }
-        }
-    },
-    "lessonsInThisRoom": "Stunden in diesem Raum",
-    "todayNoLessonsInThisRoom": "Heute keine Stunden in diesem Raum",
-    "chooseTimeAndDay": "Zeit und Tag wählen",
-    "today": "Heute",
-    "tomorrow": "Morgen",
-    "cancel": "Abbrechen",
-    "ok": "OK",
-    "processCanTakeSeconds": "Dieser Vorgang kann einige Sekunden dauern!",
-    "loading": "lade...",
-    "classesFromTeacher": "Klassen von {teacherName} - {displayDate}",
-    "@classesFromTeacher": {
-        "placeholders": {
-            "teacherName": {
-                "type": "String"
-            },
-            "displayDate": {
-                "type": "String"
-            }
-        }
-    },
-    "settingsCredentials": "Anmeldeinformationen",
-    "settingsNotifications": "Benachrichtigungen",
-    "settingsSetTeacherAbbreviations": "Lehrerkürzel festlegen",
-    "realName": "Echter Name",
-    "saved": "Fertig!",
-    "save": "Speichern",
-    "schoolNumber": "Schulnummer",
-    "username": "Benutzername",
-    "password": "Passwort",
-    "selfHost": "Eigene URL",
-    "useSelfHost": "oder nutze deine eigene URL",
-    "useLogin": "oder nutze den offiziellen Login",
-    "shareCreds": "Zugangsdaten teilen",
-    "credsSaved": "Zugangsdaten gespeichert!",
-    "loadPlanAuto": "Vertretungsplan im Hintergrund laden",
-    "general": "Allgemein",
-    "smartNotifs": "Intelligente Benachrichtigungen",
-    "prefClasses": "Bevorzugte Klassen",
-    "other": "Andere",
-    "callInterv": "Abrufintervall",
-    "interv": "Intervall",
-    "minutes": "Minuten",
-    "hours": "Stunden",
-    "onlyRemOnChange": "Nur bei Änderung benachrichtigen",
-    "shareTeacherName": "Lehrernamen teilen",
-    "showLessonTimes": "Stundenzeiten anzeigen",
-    "showLessonTimesSubtitle": "Zeiten der einzelnen Stunden im Vertretungsplan anzeigen",
-    "hideLessonTimes": "Stundenzeiten ausblenden",
-    "hideLessonTimesSubtitle": "Zeiten der einzelnen Stunden im Vertretungsplan ausblenden",
-    "planSettings": "Plan-Einstellungen",
-    "planSettingsSubtitle": "Einstellungen für den Vertretungsplan",
-    "hideTeacher": "Lehrer ausblenden",
-    "hideTeacherSubtitle": "Lehrernamen im Vertretungsplan ausblenden",
-    "hidePersons": "Personen ausblenden",
-    "hidePersonsSubtitle": "Den Personenbereich ausblenden",
-    "hidePreviewClasses": "Vorschau bei Klassen ausblenden",
-    "hidePreviewClassesSubtitle": "Die „Nächste Stunde“-Vorschau unterhalb der Klassen ausblenden",
-    "hidePreviewPersons": "Vorschau bei Personen ausblenden",
-    "hidePreviewPersonsSubtitle": "Die „Nächste Stunde“-Vorschau unterhalb der Personen ausblenden",
-    "hidePreview": "Vorschau ausblenden",
-    "showPreview": "Vorschau anzeigen",
-    "backup": "Sichern & Wiederherstellen",
-    "backupSubtitle": "Einstellungen, Klassen, Personen und gespeicherte Vertretungspläne exportieren und importieren",
-    "backupExport": "Konfiguration exportieren",
-    "backupExportSubtitle": "Alle Einstellungen als Datei teilen oder speichern",
-    "backupImport": "Konfiguration importieren",
-    "backupImportSubtitle": "Eine zuvor exportierte Datei einlesen",
-    "backupImportRestore": "Konfiguration importieren",
-    "backupImportNoCredentials": "Importiert – die Datei enthielt keine Zugangsdaten.",
-    "backupExportSubject": "Konfiguration von Substitute",
-    "backupExportText": "Konfiguration von Substitute (Einstellungen, Klassen, Personen, Zugangsdaten). Enthält das Passwort im Klartext – bitte vorsichtig weitergeben.",
-    "backupNote": "Gesichert werden Einstellungen, Klassen, Personen, Kurse und Zugangsdaten. Nur zwischengespeicherte Pläne sind nicht enthalten. Achtung: Die Datei enthält das Passwort im Klartext. Nach dem Import empfiehlt es sich, die App neu zu starten.",
-    "backupCredentialsTitle": "Zugangsdaten enthalten",
-    "backupCredentialsWarning": "Die Exportdatei enthält dein Passwort im Klartext. Teile sie nur mit Personen, denen du vertraust – oder teile sie ohne Zugangsdaten.",
-    "backupCredentialsContinue": "Mit Zugangsdaten",
-    "backupShareWithoutCredentials": "Ohne Zugangsdaten teilen",
-    "backupExportTextWithoutCredentials": "Konfiguration von Substitute (Einstellungen, Klassen, Personen) – ohne Zugangsdaten.",
-    "backupImportTitle": "Konfiguration importieren",
-    "backupImportQuestion": "Sollen die vorhandenen Einstellungen ersetzt werden?",
-    "backupImportMerge": "Ergänzen",
-    "backupImportReplace": "Ersetzen",
-    "backupImportDone": "Import fertig: {applied} Einstellungen übernommen, {removed} entfernt.",
-    "@backupImportDone": {
-        "placeholders": {
-            "applied": {
-                "type": "int"
-            },
-            "removed": {
-                "type": "int"
-            }
-        }
-    },
-    "backupImportFailed": "Die Datei konnte nicht gelesen werden.",
-    "backupFailed": "Der Export ist fehlgeschlagen.",
-    "backupErrorForeign": "Diese Datei stammt nicht aus dieser App.",
-    "backupErrorFutureSchema": "Die Datei wurde mit einer neueren App-Version erstellt.",
-    "weekdayShortMon": "Mo",
-    "weekdayShortTue": "Di",
-    "weekdayShortWed": "Mi",
-    "weekdayShortThu": "Do",
-    "weekdayShortFri": "Fr",
-    "weekdayShortSat": "Sa",
-    "weekdayShortSun": "So",
-    "previewSettings": "Vorschau",
-    "previewSettingsSubtitle": "Die „Nächste Stunde“-Vorschau ein- und ausblenden",
-    "persons": "Personen",
-    "noPersonsYet": "Noch keine Personen. Füge eine Person hinzu, um nur die gewünschten Kurse anzuzeigen.",
-    "addPerson": "Person hinzufügen",
-    "personName": "Name der Person",
-    "renamePerson": "Person umbenennen",
-    "enterPersonName": "Bitte gib einen Namen für die Person ein.",
-    "savePerson": "Person speichern",
-    "selectPersonClass": "Wähle eine Klasse für die neue Person",
-    "coursesFor": "Kurse für {name}",
-    "@coursesFor": {
-        "placeholders": {
-            "name": {
-                "type": "String"
-            }
-        }
-    },
-    "sickTrack": "Krankheitstracker",
-    "sickTrackSubtitle": "Verpasste Stunden verfolgen und Unterschriften holen",
-    "sickTrackAdd": "Krankheitszeitraum hinzufügen",
-    "selectClassOrPerson": "Klasse oder Person auswählen",
-    "selectClassOrPersonHint": "Wähle eine gespeicherte Klasse oder Person zum Verfolgen",
-    "anotherClass": "Andere Klasse",
-    "selectCourses": "Kurse auswählen",
-    "selectSickDays": "Krankheitstage auswählen",
-    "sickDays": "Krankheitstage",
-    "addDay": "Tag hinzufügen",
-    "noSickDaysSelected": "Keine Tage ausgewählt",
-    "missedLessons": "Verpasste Stunden",
-    "noMissedLessons": "Keine verpassten Stunden",
-    "noSickTrackEntries": "Noch keine Krankheitszeiträume. Füge einen hinzu, um zu sehen, welche Stunden du verpasst hast.",
-    "getSignature": "Unterschrift holen",
-    "missedLesson": "{date} · {count}. Stunde · {course}",
-    "@missedLesson": {
-        "placeholders": {
-            "date": {
-                "type": "String"
-            },
-            "count": {
-                "type": "String"
-            },
-            "course": {
-                "type": "String"
-            }
-        }
-    },
-    "markSignatureDone": "Unterschrift als erledigt markieren",
-    "signatureDoneQuestion": "Möchtest du die Unterschrift für {course} als erledigt markieren?",
-    "@signatureDoneQuestion": {
-        "placeholders": {
-            "course": {
-                "type": "String"
-            }
-        }
-    },
-    "done": "Erledigt",
-    "time": "Zeit",
-    "hour": "Stunde",
-    "fullDay": "Ganzer Tag",
-    "fullDayMessage": "Alle Stunden dieses Tages ohne Zeitfilter anzeigen.",
-    "selectDate": "Tippen, um ein Datum zu wählen",
-    "selectTime": "Tippen, um eine Uhrzeit zu wählen",
-    "lessonTimes": "Stundenzeiten",
-    "lessonTimesSubtitle": "Zeiten der einzelnen Unterrichtsstunden manuell einstellen",
-    "defaultPlanModePerson": "Personen",
-    "defaultPlanModePersonAuto": "Automatisch",
-    "defaultPlanModePersonAutoSubtitle": "Zeige heute, außer der Schultag ist vorbei",
-    "defaultPlanModePersonLatest": "Neueste",
-    "defaultPlanModePersonLatestSubtitle": "Immer den neuesten verfügbaren Plan anzeigen",
-    "defaultPlanModePersonToday": "Heute",
-    "defaultPlanModePersonTodaySubtitle": "Immer nur den heutigen Plan anzeigen",
-    "defaultPlanModeClass": "Klassen",
-    "defaultPlanModeClassAuto": "Automatisch",
-    "defaultPlanModeClassAutoSubtitle": "Zeige heute, außer der Schultag ist vorbei",
-    "defaultPlanModeClassLatest": "Neueste",
-    "defaultPlanModeClassLatestSubtitle": "Immer den neuesten verfügbaren Plan anzeigen",
-    "defaultPlanModeClassToday": "Heute",
-    "defaultPlanModeClassTodaySubtitle": "Immer nur den heutigen Plan anzeigen",
-    "defaultPlanModePreview": "Vorschau",
-    "defaultPlanModePreviewAuto": "Automatisch",
-    "defaultPlanModePreviewAutoSubtitle": "Zeige heute, außer der Schultag ist vorbei",
-    "defaultPlanModePreviewLatest": "Neueste",
-    "defaultPlanModePreviewLatestSubtitle": "Immer den neuesten verfügbaren Plan anzeigen",
-    "defaultPlanModePreviewToday": "Heute",
-    "defaultPlanModePreviewTodaySubtitle": "Immer nur den heutigen Plan anzeigen",
-    "defaultPlanModePreviewClass": "Vorschau der Klassen",
-    "defaultPlanModePreviewClassAuto": "Automatisch",
-    "defaultPlanModePreviewClassAutoSubtitle": "Zeige heute, außer der Schultag ist vorbei",
-    "defaultPlanModePreviewClassLatest": "Neueste",
-    "defaultPlanModePreviewClassLatestSubtitle": "Immer den neuesten verfügbaren Plan anzeigen",
-    "defaultPlanModePreviewClassToday": "Heute",
-    "defaultPlanModePreviewClassTodaySubtitle": "Immer nur den heutigen Plan anzeigen",
-    "defaultPlanModePreviewPerson": "Vorschau der Personen",
-    "defaultPlanModePreviewPersonAuto": "Automatisch",
-    "defaultPlanModePreviewPersonAutoSubtitle": "Zeige heute, außer der Schultag ist vorbei",
-    "defaultPlanModePreviewPersonLatest": "Neueste",
-    "defaultPlanModePreviewPersonLatestSubtitle": "Immer den neuesten verfügbaren Plan anzeigen",
-    "defaultPlanModePreviewPersonToday": "Heute",
-    "defaultPlanModePreviewPersonTodaySubtitle": "Immer nur den heutigen Plan anzeigen",
-    "defaultPlanModePreviewEntryTitle": "Standard-Planmodus",
-    "defaultPlanModePreviewEntrySubtitle": "Getrennt für Personen, Klassen und deren Vorschauen",
-    "sync": "Sync",
-    "syncSubtitle": "Klassen, Personen und Pläne über mehrere Geräte gleich halten",
-    "syncTitle": "Sync",
-    "syncServerRunning": "Server läuft",
-    "syncServerStopped": "Server ist gestoppt",
-    "syncServerCheck": "Server prüfen",
-    "syncNotConfigured": "Kein Sync-Server eingetragen",
-    "syncStart": "Sync starten",
-    "syncStartSubtitle": "Erzeugt einen Code aus zehn Wörtern, der deine Geräte verbindet",
-    "syncJoin": "Sync beitreten",
-    "syncJoinSubtitle": "Auf einem anderen Gerät die zehn Wörter eines bestehenden Syncs eingeben",
-    "syncPassphrase": "Sync-Code",
-    "syncPassphraseHint": "Zehn Wörter, z.B. blue sky river seven",
-    "syncPassphraseGenerate": "Neuen Code erzeugen",
-    "syncPassphraseCopy": "Code kopieren",
-    "syncPassphraseCopied": "Code in die Zwischenablage kopiert",
-    "syncPassphraseUnknownWord": "Diese Wörter stehen nicht in der Liste: {words}",
-    "syncPassphraseTooFewWords": "Bitte mindestens drei Wörter eingeben",
-    "syncPassphraseEmpty": "Bitte einen Code eingeben",
-    "syncSettingsToggle": "Einstellungen mit übertragen",
-    "syncSettingsToggleSubtitle": "Ausgeschaltet bleiben die Einstellungen auf jedem Gerät und werden nicht übernommen",
-    "syncSettingsNote": "Klassen, Personen, Kurse und Pläne werden immer übertragen. Das Schulpasswort niemals.",
-    "syncSettingsNotePlain": "Klassen, Personen, Kurse und Pläne werden immer übertragen. Das Schulpasswort niemals.",
-    "syncNow": "Jetzt synchronisieren",
-    "syncNever": "Noch nie synchronisiert",
-    "syncLastSync": "Letzter Sync: {when}",
-    "syncInProgress": "Wird synchronisiert …",
-    "syncDone": "Sync fertig. {changes} Änderungen von {devices} Geräten.",
-    "syncDoneNoChanges": "Sync fertig. Alles ist aktuell.",
-    "syncFailed": "Sync fehlgeschlagen: {reason}",
-    "syncLeave": "Sync verlassen",
-    "syncLeaveConfirmTitle": "Sync verlassen?",
-    "syncLeaveConfirm": "Deine Daten bleiben auf diesem Gerät. Sie werden nur nicht mehr mit den anderen Geräten abgeglichen.",
-    "syncLeaveDone": "Du hast den Sync verlassen. Deine Daten sind weiterhin auf diesem Gerät.",
-    "syncLeaveFailed": "Der Server war nicht erreichbar. Der Sync wurde auf diesem Gerät trotzdem beendet.",
-    "syncDevices": "Geräte in diesem Sync",
-    "syncDevicesEmpty": "Noch kein anderes Gerät ist diesem Sync beigetreten",
-    "syncDeviceThisOne": "Dieses Gerät",
-    "syncDeviceUnknown": "Unbekanntes Gerät",
-    "syncDeleteChain": "Sync vollständig löschen",
-    "syncDeleteChainConfirmTitle": "Den ganzen Sync löschen?",
-    "syncDeleteChainConfirm": "Der Sync-Code wird vom Server gelöscht. Andere Geräte behalten ihre Daten, können aber nicht mehr synchronisieren.",
-    "syncDeleteChainDone": "Der Sync wurde auf dem Server gelöscht.",
-    "syncResume": "Weiter synchronisieren",
-    "syncResumeSubtitle": "Den Sync fortsetzen, den du früher verlassen hast",
-    "syncRestart": "Neuen Sync starten",
-    "syncRestartConfirmTitle": "Neu beginnen?",
-    "syncRestartConfirm": "Dieses Gerät verlässt den aktuellen Sync. Deine Daten bleiben. Du bekommst einen neuen Code.",
-    "syncErrorNetwork": "Der Sync-Server war nicht erreichbar",
-    "syncErrorTimeout": "Der Sync-Server hat zu lange gebraucht",
-    "syncErrorNotFound": "Dieser Sync-Code ist unbekannt – bitte die Wörter prüfen",
-    "syncErrorWrongPassphrase": "Falscher Code – oder die Daten wurden unterwegs verändert",
-    "syncErrorForbidden": "Der Server hat die Anfrage abgelehnt",
-    "syncErrorTooManyRequests": "Zu viele Anfragen. Bitte in einer Minute erneut versuchen",
-    "syncErrorConflict": "Dieser Sync ist voll, oder es gibt zu viele Shares",
-    "syncErrorServerError": "Der Sync-Server hat ein Problem",
-    "syncErrorTooLarge": "Die Daten sind zu groß für den Server",
-    "syncErrorInvalidShare": "Dieser Share ist nicht erlaubt",
-    "syncErrorForeignApp": "Diese Daten stammen nicht aus Substitute",
-    "syncErrorFutureSchema": "Diese Daten stammen aus einer neueren Version der App",
-    "share": "Teilen",
-    "shareTitle": "Meine Shares",
-    "shareSubtitle": "Ausgewählte Klassen und Personen mit anderen Kolleginnen und Kollegen teilen",
-    "shareCreate": "Neuer Share",
-    "shareCreateSubtitle": "Auswählen, was für andere sichtbar sein soll",
-    "shareEdit": "Share bearbeiten",
-    "shareEmpty": "Noch keine Shares. Lege einen an, um anderen deine Klassen und Personen zu geben.",
-    "shareUsername": "Mein Nutzername",
-    "shareUsernameSubtitle": "Zehn Wörter, die Kolleginnen und Kollegen eingeben, um deine Shares zu öffnen",
-    "shareUsernameRegenerate": "Neuer Nutzername",
-    "shareUsernameRegenerateConfirmTitle": "Neuer Nutzername?",
-    "shareUsernameRegenerateConfirm": "Alle Shares wandern auf den neuen Nutzernamen. Wer den alten gespeichert hat, muss den neuen eingeben.",
-    "shareDisplayName": "Mein Anzeigename",
-    "shareDisplayNameSubtitle": "Wird im Suchmenü deiner Schule angezeigt",
-    "shareLabel": "Name des Shares",
-    "shareLabelHint": "z.B. Vertretungspläne Herbst",
-    "shareSearchable": "Im Suchmenü anzeigen",
-    "shareSearchableSubtitle": "Kolleginnen und Kollegen deiner Schule können dich finden und aus deinen Shares auswählen",
-    "shareGlobal": "Globaler Share",
-    "shareGlobalSubtitle": "Auch von Lehrkräften anderer Schulen nutzbar, die deinen Nutzernamen kennen",
-    "sharePassword": "Passwort",
-    "sharePasswordSubtitle": "Schützt den Share – auch vor Menschen mit den Schulzugangsdaten",
-    "sharePasswordGenerate": "Passwort erzeugen",
-    "sharePasswordOwn": "Dein eigenes Passwort",
-    "sharePasswordHint": "Zehn Wörter, z.B. red moon water nine",
-    "sharePasswordRequired": "Dieser Share hat ein Passwort. Gib es ein, um ihn zu öffnen.",
-    "shareSelectWhat": "Was soll geteilt werden?",
-    "shareSelectClasses": "Klassen",
-    "shareSelectPersons": "Personen",
-    "shareSelectEverything": "Alle auswählen",
-    "shareSelectNothing": "Keine auswählen",
-    "shareIncludeSettings": "Einstellungen mitteilen",
-    "shareIncludeSettingsSubtitle": "Auch die Anzeigeeinstellungen teilen",
-    "shareIncludePlans": "Gespeicherte Pläne mitteilen",
-    "shareIncludePlansSubtitle": "Die auf diesem Gerät gespeicherten Vertretungspläne teilen",
-    "shareIncludeHistory": "Pläne aus der Vergangenheit mitteilen",
-    "shareIncludeHistorySubtitle": "Sonst werden nur die letzten {days} Tage geteilt",
-    "shareSelectNothingSelected": "Bitte mindestens eine Klasse oder Person auswählen",
-    "sharePublished": "Share erstellt",
-    "shareUpdated": "Share aktualisiert",
-    "shareDeleted": "Share gelöscht",
-    "sharePasswordSaved": "Passwort auf diesem Gerät gespeichert",
-    "shareDeleteConfirmTitle": "Diesen Share löschen?",
-    "shareDeleteConfirm": "Niemand kann ihn mehr öffnen. Bereits importierte Daten bleiben bei anderen auf ihren Geräten.",
-    "shareGlobalNote": "Ein globaler Share kann von Lehrkräften jeder Schule geöffnet werden, die den Nutzernamen kennen. In deren Suchmenü erscheint er nicht.",
-    "shareBrowse": "Shares finden",
-    "shareBrowseSubtitle": "Sieh, was Kolleginnen und Kollegen deiner Schule geteilt haben",
-    "shareBrowseEmpty": "In deiner Schule hat noch niemand etwas geteilt",
-    "shareBrowseEmptySubtitle": "Sobald jemand einen Share als suchbar markiert, erscheint er hier.",
-    "shareBrowseLoginRequired": "Melde dich zuerst mit deiner Schulnummer an",
-    "shareBrowseLoginRequiredSubtitle": "Shares werden nur innerhalb der eigenen Schule gefunden. Deshalb ist die Anmeldung nötig.",
-    "shareBrowseEnterUsername": "Nutzernamen eingeben",
-    "shareBrowseEnterUsernameSubtitle": "Du kennst die zehn Wörter einer Kollegin oder eines Kollegen? Gib sie hier ein, um den Share direkt zu öffnen.",
-    "shareBrowseGlobalOnly": "Dieser Share ist global – er kann auch von Lehrkräften anderer Schulen geöffnet werden.",
-    "shareOf": "Shares von {name}",
-    "shareContents": "Inhalt",
-    "shareContentsClasses": "{count} Klassen",
-    "shareContentsPersons": "{count} Personen",
-    "shareContentsPlans": "{count} Pläne",
-    "shareSelectItems": "Was möchtest du übernehmen?",
-    "shareImportModeTitle": "Wie soll es übernommen werden?",
-    "shareImportMode": "Übernehmen als",
-    "shareImportModeOriginal": "Original",
-    "shareImportModeOriginalSubtitle": "Genau wie geteilt: Klassen, Personen und Kurse bleiben, wie sie sind",
-    "shareImportModePlans": "Pläne",
-    "shareImportModePlansSubtitle": "Jede Person wird zu einem Plan mit ihren Kursen",
-    "shareImportModePersons": "Personen",
-    "shareImportModePersonsSubtitle": "Es werden nur die Namen als Personen übernommen",
-    "shareImport": "Übernehmen",
-    "shareImportDone": "Übernommen von {name}: {persons} Personen, {classes} Klassen, {plans} Pläne",
-    "shareNothingToImport": "Nichts ausgewählt",
-    "shareNameBlocked": "Dieser Name ist nicht erlaubt. Bitte wähle einen anderen.",
-    "shareNameTooShort": "Bitte mindestens zwei Zeichen eingeben",
-    "shareNameTooLong": "Dieser Name ist zu lang",
-    "shareNameEmpty": "Bitte einen Namen eingeben",
-    "shareErrorNoUsername": "Es wurde noch kein Nutzername erzeugt",
-    "shareErrorNothingSelected": "Bitte auswählen, was geteilt werden soll",
-    "shareErrorWrongCredentials": "Dieser Share ließ sich nicht öffnen – falscher Code oder falsche Schulnummer?",
-    "shareErrorUnreadable": "Diese Daten konnten nicht gelesen werden",
-    "shareDemoNoShares": "Es hat noch niemand etwas geteilt",
-    "shareDelete": "Share löschen"
+  "settings": "Einstellungen",
+  "credentials": "Anmeldeinformationen",
+  "credentialsSubtitle": "stundenplan24 Anmeldeinformationen",
+  "notifications": "Benachrichtigungen",
+  "notificationsSubtitle": "Benachrichtigungen für den Vertretungsplan",
+  "setTeacherAbbreviations": "Lehrerkürzel festlegen",
+  "setTeacherAbbreviationsSubtitle": "Lehrerkürzel durch echte Namen ersetzen",
+  "developerOptions": "Entwickleroptionen",
+  "developerOptionsSubtitle": "Einstellungen für Entwickler ändern",
+  "language": "Sprache",
+  "languageSubtitle": "Sprache der App ändern",
+  "freeRoomsTitle": "Freie Räume - {time}",
+  "vplanStudents": "Vertretungsplan Schüler",
+  "vplanTeachers": "Vertretungsplan Lehrer",
+  "dashboard": "Dashboard",
+  "appTitle": "Substitute",
+  "newVersionAvailable": "Neue Version verfügbar",
+  "newVersionMessage": "Eine neue Version ({version}) ist verfügbar. Lade sie herunter und öffne die Datei um sie zu installieren.",
+  "@newVersionMessage": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "later": "Später",
+  "download": "Herunterladen",
+  "appInfo": "App Info",
+  "mainDeveloper": "Hauptentwickler: ",
+  "developerName": "Sergey842248",
+  "formerDeveloper": "Ehemaliger Entwickler: ",
+  "formerDeveloperName": "Oskar",
+  "openIssue": "Issue öffnen",
+  "github": "GitHub",
+  "version": "Version: {version}",
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "findFreeRoom": "Freien Raum finden",
+  "findFreeRoomSubtitle": "Einen Raum finden, der zu einer bestimmten Zeit nicht belegt ist",
+  "roomPlan": "Raumplan",
+  "roomPlanSubtitle": "Stundenplan eines Raums anzeigen",
+  "selectRoom": "Raum auswählen",
+  "noLessonsInRoom": "Keine Stunden in diesem Raum",
+  "noPlanForThisDay": "Kein Vertretungsplan für diesen Tag verfügbar.",
+  "analysis": "Analyse",
+  "analysisSubtitle": "Eine Analyse des Vertretungsplans erhalten",
+  "settingsTitle": "Einstellungen",
+  "settingsSubtitle": "Weitere Einstellungen zur Personalisierung Ihrer Erfahrung",
+  "addNewClass": "Neue Klasse hinzufügen",
+  "dontForgetCredentials": "Vergiss deine Anmeldedaten nicht!",
+  "add": "Hinzufügen",
+  "selectClass": "Klasse auswählen",
+  "noNextLessonFound": "Keine nächste Stunde gefunden",
+  "nextHour": "nächste Stunde",
+  "weekend": "Wochenende",
+  "room": "Raum {room}",
+  "@room": {
+    "placeholders": {
+      "room": {
+        "type": "String"
+      }
+    }
+  },
+  "classSelection": "Klassenauswahl",
+  "selectClassTitle": "Klasse auswählen",
+  "usernamePasswordWrong": "Benutzername oder Passwort falsch!",
+  "wrongSchoolNumber": "Falsche Schulnummer!\n\noder kein Vertretungsplan verfügbar!",
+  "noInternetConnection": "Keine Internetverbindung",
+  "noSubstitutionPlan": "kein Vertretungsplan",
+  "wrongSchoolNumberAlt": "Falsche Schulnummer oder kein Vertretungsplan verfügbar",
+  "noNetworkConnection": "Keine Netzwerkverbindung",
+  "week": "Woche",
+  "close": "Schließen",
+  "courses": "Kurse",
+  "noAdditionalInformation": "Keine zusätzlichen Informationen verfügbar",
+  "search": "Suche",
+  "searchTeachers": "Lehrer suchen",
+  "searchTeachersSubtitle": "Lehrerkürzel durchsuchen und den Vertretungsplan eines Lehrers ansehen",
+  "teacherAbbreviationHint": "Lehrerkürzel (z.B. \"AB\")",
+  "selectedDate": "Ausgewähltes Datum: {day}.{month}.{year}",
+  "@selectedDate": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "month": {
+        "type": "String"
+      },
+      "year": {
+        "type": "String"
+      }
+    }
+  },
+  "see": "Ansehen",
+  "scanningTeacherAbbreviations": "Scanne alle Lehrerkürzel...",
+  "noTeachersFound": "Keine Lehrer gefunden",
+  "noFavoriteClassesFound": "Keine Lieblingsklassen gefunden.",
+  "addClassToFavoritesForAnalysis": "Bitte füge eine Klasse zu deinen Favoriten hinzu, um die Analyse zu sehen.",
+  "nameClass": "Klasse benennen",
+  "renameClass": "Klasse umbenennen",
+  "classNameHint": "Benutzerdefinierter Name (optional)",
+  "deleteClassTitle": "Klasse löschen?",
+  "deleteClassMessage": "Die Klasse \"{className}\" wird entfernt. Das kann nicht rückgängig gemacht werden.",
+  "@deleteClassMessage": {
+    "placeholders": {
+      "className": {
+        "type": "String"
+      }
+    }
+  },
+  "deletePersonTitle": "Person löschen?",
+  "deletePersonMessage": "Die Person \"{personName}\" wird entfernt. Das kann nicht rückgängig gemacht werden.",
+  "@deletePersonMessage": {
+    "placeholders": {
+      "personName": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteAction": "Löschen",
+  "deleteSickEntryTitle": "Eintrag löschen?",
+  "deleteSickEntryMessage": "Der Krankheitseintrag für \"{classId}\" wird entfernt. Das kann nicht rückgängig gemacht werden.",
+  "@deleteSickEntryMessage": {
+    "placeholders": {
+      "classId": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteLessonTitle": "Unterrichtszeit löschen?",
+  "deleteLessonMessage": "Die {count}. Unterrichtszeit wird entfernt. Das kann nicht rückgängig gemacht werden.",
+  "@deleteLessonMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "couldNotLoadVPlanData": "VPlan-Daten konnten nicht geladen werden.",
+  "noDataForAnalysisAvailable": "Keine Daten für Analyse verfügbar.",
+  "teacherLabel": "Lehrer: {name}",
+  "@teacherLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonDetails": "{count}. Stunde: {lesson} im Raum: {place}",
+  "@lessonDetails": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "lesson": {
+        "type": "String"
+      },
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "loadingData": "Lade Daten...",
+  "loadingSubstitutionPlan": "Lade Vertretungsplan...",
+  "substitutionPlanLoaded": "Vertretungsplan geladen",
+  "noSubstitutionPlanToday": "Kein Vertretungsplan für heute verfügbar.",
+  "noSubstitutionPlanTomorrow": "Kein Vertretungsplan für morgen verfügbar.",
+  "browsingPlan": "Durchsuche Plan...",
+  "analysingRooms": "Analysiere Räume...",
+  "checkRoom": "Überprüfe Raum {room}...",
+  "@checkRoom": {
+    "placeholders": {
+      "room": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonsInThisRoom": "Stunden in diesem Raum",
+  "todayNoLessonsInThisRoom": "Heute keine Stunden in diesem Raum",
+  "chooseTimeAndDay": "Zeit und Tag wählen",
+  "today": "Heute",
+  "tomorrow": "Morgen",
+  "cancel": "Abbrechen",
+  "ok": "OK",
+  "processCanTakeSeconds": "Dieser Vorgang kann einige Sekunden dauern!",
+  "loading": "lade...",
+  "classesFromTeacher": "Klassen von {teacherName} - {displayDate}",
+  "@classesFromTeacher": {
+    "placeholders": {
+      "teacherName": {
+        "type": "String"
+      },
+      "displayDate": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsCredentials": "Anmeldeinformationen",
+  "settingsNotifications": "Benachrichtigungen",
+  "settingsSetTeacherAbbreviations": "Lehrerkürzel festlegen",
+  "realName": "Echter Name",
+  "saved": "Fertig!",
+  "save": "Speichern",
+  "schoolNumber": "Schulnummer",
+  "username": "Benutzername",
+  "password": "Passwort",
+  "selfHost": "Eigene URL",
+  "useSelfHost": "oder nutze deine eigene URL",
+  "useLogin": "oder nutze den offiziellen Login",
+  "shareCreds": "Zugangsdaten teilen",
+  "credsSaved": "Zugangsdaten gespeichert!",
+  "loadPlanAuto": "Vertretungsplan im Hintergrund laden",
+  "general": "Allgemein",
+  "smartNotifs": "Intelligente Benachrichtigungen",
+  "prefClasses": "Bevorzugte Klassen",
+  "other": "Andere",
+  "callInterv": "Abrufintervall",
+  "interv": "Intervall",
+  "minutes": "Minuten",
+  "hours": "Stunden",
+  "onlyRemOnChange": "Nur bei Änderung benachrichtigen",
+  "shareTeacherName": "Lehrernamen teilen",
+  "showLessonTimes": "Stundenzeiten anzeigen",
+  "showLessonTimesSubtitle": "Zeiten der einzelnen Stunden im Vertretungsplan anzeigen",
+  "hideLessonTimes": "Stundenzeiten ausblenden",
+  "hideLessonTimesSubtitle": "Zeiten der einzelnen Stunden im Vertretungsplan ausblenden",
+  "planSettings": "Plan-Einstellungen",
+  "planSettingsSubtitle": "Einstellungen für den Vertretungsplan",
+  "hideTeacher": "Lehrer ausblenden",
+  "hideTeacherSubtitle": "Lehrernamen im Vertretungsplan ausblenden",
+  "hidePersons": "Personen ausblenden",
+  "hidePersonsSubtitle": "Den Personenbereich ausblenden",
+  "hidePreviewClasses": "Vorschau bei Klassen ausblenden",
+  "hidePreviewClassesSubtitle": "Die „Nächste Stunde“-Vorschau unterhalb der Klassen ausblenden",
+  "hidePreviewPersons": "Vorschau bei Personen ausblenden",
+  "hidePreviewPersonsSubtitle": "Die „Nächste Stunde“-Vorschau unterhalb der Personen ausblenden",
+  "hidePreview": "Vorschau ausblenden",
+  "showPreview": "Vorschau anzeigen",
+  "backup": "Sichern & Wiederherstellen",
+  "backupSubtitle": "Einstellungen, Klassen, Personen und gespeicherte Vertretungspläne exportieren und importieren",
+  "backupExport": "Konfiguration exportieren",
+  "backupExportSubtitle": "Alle Einstellungen als Datei teilen oder speichern",
+  "backupImport": "Konfiguration importieren",
+  "backupImportSubtitle": "Eine zuvor exportierte Datei einlesen",
+  "backupImportRestore": "Konfiguration importieren",
+  "backupImportNoCredentials": "Importiert – die Datei enthielt keine Zugangsdaten.",
+  "backupExportSubject": "Konfiguration von Substitute",
+  "backupExportText": "Konfiguration von Substitute (Einstellungen, Klassen, Personen, Zugangsdaten). Enthält das Passwort im Klartext – bitte vorsichtig weitergeben.",
+  "backupNote": "Gesichert werden Einstellungen, Klassen, Personen, Kurse und Zugangsdaten. Nur zwischengespeicherte Pläne sind nicht enthalten. Achtung: Die Datei enthält das Passwort im Klartext. Nach dem Import empfiehlt es sich, die App neu zu starten.",
+  "backupCredentialsTitle": "Zugangsdaten enthalten",
+  "backupCredentialsWarning": "Die Exportdatei enthält dein Passwort im Klartext. Teile sie nur mit Personen, denen du vertraust – oder teile sie ohne Zugangsdaten.",
+  "backupCredentialsContinue": "Mit Zugangsdaten",
+  "backupShareWithoutCredentials": "Ohne Zugangsdaten teilen",
+  "backupExportTextWithoutCredentials": "Konfiguration von Substitute (Einstellungen, Klassen, Personen) – ohne Zugangsdaten.",
+  "backupImportTitle": "Konfiguration importieren",
+  "backupImportQuestion": "Sollen die vorhandenen Einstellungen ersetzt werden?",
+  "backupImportMerge": "Ergänzen",
+  "backupImportReplace": "Ersetzen",
+  "backupImportDone": "Import fertig: {applied} Einstellungen übernommen, {removed} entfernt.",
+  "@backupImportDone": {
+    "placeholders": {
+      "applied": {
+        "type": "int"
+      },
+      "removed": {
+        "type": "int"
+      }
+    }
+  },
+  "backupImportFailed": "Die Datei konnte nicht gelesen werden.",
+  "backupFailed": "Der Export ist fehlgeschlagen.",
+  "backupErrorForeign": "Diese Datei stammt nicht aus dieser App.",
+  "backupErrorFutureSchema": "Die Datei wurde mit einer neueren App-Version erstellt.",
+  "weekdayShortMon": "Mo",
+  "weekdayShortTue": "Di",
+  "weekdayShortWed": "Mi",
+  "weekdayShortThu": "Do",
+  "weekdayShortFri": "Fr",
+  "weekdayShortSat": "Sa",
+  "weekdayShortSun": "So",
+  "previewSettings": "Vorschau",
+  "previewSettingsSubtitle": "Die „Nächste Stunde“-Vorschau ein- und ausblenden",
+  "persons": "Personen",
+  "noPersonsYet": "Noch keine Personen. Füge eine Person hinzu, um nur die gewünschten Kurse anzuzeigen.",
+  "addPerson": "Person hinzufügen",
+  "personName": "Name der Person",
+  "renamePerson": "Person umbenennen",
+  "enterPersonName": "Bitte gib einen Namen für die Person ein.",
+  "savePerson": "Person speichern",
+  "selectPersonClass": "Wähle eine Klasse für die neue Person",
+  "coursesFor": "Kurse für {name}",
+  "@coursesFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sickTrack": "Krankheitstracker",
+  "sickTrackSubtitle": "Verpasste Stunden verfolgen und Unterschriften holen",
+  "sickTrackAdd": "Krankheitszeitraum hinzufügen",
+  "selectClassOrPerson": "Klasse oder Person auswählen",
+  "selectClassOrPersonHint": "Wähle eine gespeicherte Klasse oder Person zum Verfolgen",
+  "anotherClass": "Andere Klasse",
+  "selectCourses": "Kurse auswählen",
+  "selectSickDays": "Krankheitstage auswählen",
+  "sickDays": "Krankheitstage",
+  "addDay": "Tag hinzufügen",
+  "noSickDaysSelected": "Keine Tage ausgewählt",
+  "missedLessons": "Verpasste Stunden",
+  "noMissedLessons": "Keine verpassten Stunden",
+  "noSickTrackEntries": "Noch keine Krankheitszeiträume. Füge einen hinzu, um zu sehen, welche Stunden du verpasst hast.",
+  "getSignature": "Unterschrift holen",
+  "missedLesson": "{date} · {count}. Stunde · {course}",
+  "@missedLesson": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      },
+      "course": {
+        "type": "String"
+      }
+    }
+  },
+  "markSignatureDone": "Unterschrift als erledigt markieren",
+  "signatureDoneQuestion": "Möchtest du die Unterschrift für {course} als erledigt markieren?",
+  "@signatureDoneQuestion": {
+    "placeholders": {
+      "course": {
+        "type": "String"
+      }
+    }
+  },
+  "done": "Erledigt",
+  "time": "Zeit",
+  "hour": "Stunde",
+  "fullDay": "Ganzer Tag",
+  "fullDayMessage": "Alle Stunden dieses Tages ohne Zeitfilter anzeigen.",
+  "selectDate": "Tippen, um ein Datum zu wählen",
+  "selectTime": "Tippen, um eine Uhrzeit zu wählen",
+  "lessonTimes": "Stundenzeiten",
+  "lessonTimesSubtitle": "Zeiten der einzelnen Unterrichtsstunden manuell einstellen",
+  "defaultPlanModePerson": "Personen",
+  "defaultPlanModePersonAuto": "Automatisch",
+  "defaultPlanModePersonAutoSubtitle": "Zeige heute, außer der Schultag ist vorbei",
+  "defaultPlanModePersonLatest": "Neueste",
+  "defaultPlanModePersonLatestSubtitle": "Immer den neuesten verfügbaren Plan anzeigen",
+  "defaultPlanModePersonToday": "Heute",
+  "defaultPlanModePersonTodaySubtitle": "Immer nur den heutigen Plan anzeigen",
+  "defaultPlanModeClass": "Klassen",
+  "defaultPlanModeClassAuto": "Automatisch",
+  "defaultPlanModeClassAutoSubtitle": "Zeige heute, außer der Schultag ist vorbei",
+  "defaultPlanModeClassLatest": "Neueste",
+  "defaultPlanModeClassLatestSubtitle": "Immer den neuesten verfügbaren Plan anzeigen",
+  "defaultPlanModeClassToday": "Heute",
+  "defaultPlanModeClassTodaySubtitle": "Immer nur den heutigen Plan anzeigen",
+  "defaultPlanModePreview": "Vorschau",
+  "defaultPlanModePreviewAuto": "Automatisch",
+  "defaultPlanModePreviewAutoSubtitle": "Zeige heute, außer der Schultag ist vorbei",
+  "defaultPlanModePreviewLatest": "Neueste",
+  "defaultPlanModePreviewLatestSubtitle": "Immer den neuesten verfügbaren Plan anzeigen",
+  "defaultPlanModePreviewToday": "Heute",
+  "defaultPlanModePreviewTodaySubtitle": "Immer nur den heutigen Plan anzeigen",
+  "defaultPlanModePreviewClass": "Vorschau der Klassen",
+  "defaultPlanModePreviewClassAuto": "Automatisch",
+  "defaultPlanModePreviewClassAutoSubtitle": "Zeige heute, außer der Schultag ist vorbei",
+  "defaultPlanModePreviewClassLatest": "Neueste",
+  "defaultPlanModePreviewClassLatestSubtitle": "Immer den neuesten verfügbaren Plan anzeigen",
+  "defaultPlanModePreviewClassToday": "Heute",
+  "defaultPlanModePreviewClassTodaySubtitle": "Immer nur den heutigen Plan anzeigen",
+  "defaultPlanModePreviewPerson": "Vorschau der Personen",
+  "defaultPlanModePreviewPersonAuto": "Automatisch",
+  "defaultPlanModePreviewPersonAutoSubtitle": "Zeige heute, außer der Schultag ist vorbei",
+  "defaultPlanModePreviewPersonLatest": "Neueste",
+  "defaultPlanModePreviewPersonLatestSubtitle": "Immer den neuesten verfügbaren Plan anzeigen",
+  "defaultPlanModePreviewPersonToday": "Heute",
+  "defaultPlanModePreviewPersonTodaySubtitle": "Immer nur den heutigen Plan anzeigen",
+  "defaultPlanModePreviewEntryTitle": "Standard-Planmodus",
+  "defaultPlanModePreviewEntrySubtitle": "Getrennt für Personen, Klassen und deren Vorschauen",
+  "sync": "Sync",
+  "syncSubtitle": "Klassen, Personen und Pläne über mehrere Geräte gleich halten",
+  "syncTitle": "Sync",
+  "syncServerRunning": "Server läuft",
+  "syncServerStopped": "Server ist gestoppt",
+  "syncServerCheck": "Server prüfen",
+  "syncNotConfigured": "Kein Sync-Server eingetragen",
+  "syncStart": "Sync starten",
+  "syncStartSubtitle": "Erzeugt einen Code aus zehn Wörtern, der deine Geräte verbindet",
+  "syncJoin": "Sync beitreten",
+  "syncJoinSubtitle": "Auf einem anderen Gerät die zehn Wörter eines bestehenden Syncs eingeben",
+  "syncPassphrase": "Sync-Code",
+  "syncPassphraseHint": "Zehn Wörter, z.B. blue sky river seven",
+  "syncPassphraseGenerate": "Neuen Code erzeugen",
+  "syncPassphraseCopy": "Code kopieren",
+  "syncPassphraseCopied": "Code in die Zwischenablage kopiert",
+  "syncPassphraseUnknownWord": "Diese Wörter stehen nicht in der Liste: {words}",
+  "syncPassphraseTooFewWords": "Bitte mindestens drei Wörter eingeben",
+  "syncPassphraseEmpty": "Bitte einen Code eingeben",
+  "syncSettingsToggle": "Einstellungen mit übertragen",
+  "syncSettingsToggleSubtitle": "Ausgeschaltet bleiben die Einstellungen auf jedem Gerät und werden nicht übernommen",
+  "syncSettingsNote": "Klassen, Personen, Kurse und Pläne werden immer übertragen. Das Schulpasswort niemals.",
+  "syncSettingsNotePlain": "Klassen, Personen, Kurse und Pläne werden immer übertragen. Das Schulpasswort niemals.",
+  "syncNow": "Jetzt synchronisieren",
+  "syncNever": "Noch nie synchronisiert",
+  "syncLastSync": "Letzter Sync: {when}",
+  "syncInProgress": "Wird synchronisiert …",
+  "syncDone": "Sync fertig. {changes} Änderungen von {devices} Geräten.",
+  "syncDoneNoChanges": "Sync fertig. Alles ist aktuell.",
+  "syncAutoTitle": "Automatisch synchronisiert",
+  "syncAutoOn": "Läuft von selbst: beim Start, beim Zurückkommen in die App und danach alle {minutes} Minuten.",
+  "syncAutoLast": "Zuletzt automatisch: {when}",
+  "syncAutoNever": "Noch nicht automatisch gelaufen.",
+  "syncPeerCount": "{count} Geräte in dieser Kette (mit diesem)",
+  "syncAutoFailing": "{count} Fehlversuche in Folge – der Server wird seltener angesprochen, bis es wieder klappt.",
+  "syncPayloadCount": "{count} Einträge werden übertragen",
+  "syncPayloadEmpty": "Hier ist noch nichts zum Übertragen. Sync kann erst Daten bringen, wenn auf einem anderen Gerät welche vorhanden sind.",
+  "syncAloneNote": "Dieses Gerät ist allein im Sync. Es werden Daten hochgeladen, aber es kommen keine zurück – das ist kein Fehler.",
+  "syncDoneAlone": "Sync fertig. Deine Daten wurden übertragen, aber noch kein anderes Gerät ist diesem Sync beigetreten.",
+  "syncFailed": "Sync fehlgeschlagen: {reason}",
+  "syncLeave": "Sync verlassen",
+  "syncLeaveConfirmTitle": "Sync verlassen?",
+  "syncLeaveConfirm": "Deine Daten bleiben auf diesem Gerät. Sie werden nur nicht mehr mit den anderen Geräten abgeglichen.",
+  "syncLeaveDone": "Du hast den Sync verlassen. Deine Daten sind weiterhin auf diesem Gerät.",
+  "syncLeaveFailed": "Der Server war nicht erreichbar. Der Sync wurde auf diesem Gerät trotzdem beendet.",
+  "syncDevices": "Geräte in diesem Sync",
+  "syncDevicesEmpty": "Noch kein anderes Gerät ist diesem Sync beigetreten",
+  "syncDeviceThisOne": "Dieses Gerät",
+  "syncDeviceUnknown": "Unbekanntes Gerät",
+  "syncDeleteChain": "Sync vollständig löschen",
+  "syncDeleteChainConfirmTitle": "Den ganzen Sync löschen?",
+  "syncDeleteChainConfirm": "Der Sync-Code wird vom Server gelöscht. Andere Geräte behalten ihre Daten, können aber nicht mehr synchronisieren.",
+  "syncDeleteChainDone": "Der Sync wurde auf dem Server gelöscht.",
+  "syncResume": "Weiter synchronisieren",
+  "syncResumeSubtitle": "Den Sync fortsetzen, den du früher verlassen hast",
+  "syncRestart": "Neuen Sync starten",
+  "syncRestartConfirmTitle": "Neu beginnen?",
+  "syncRestartConfirm": "Dieses Gerät verlässt den aktuellen Sync. Deine Daten bleiben. Du bekommst einen neuen Code.",
+  "syncErrorNetwork": "Der Sync-Server war nicht erreichbar",
+  "syncErrorTimeout": "Der Sync-Server hat zu lange gebraucht",
+  "syncErrorNotFound": "Dieser Sync-Code ist unbekannt – bitte die Wörter prüfen",
+  "syncErrorWrongPassphrase": "Falscher Code – oder die Daten wurden unterwegs verändert",
+  "syncErrorForbidden": "Der Server hat die Anfrage abgelehnt",
+  "syncErrorTooManyRequests": "Zu viele Anfragen. Bitte in einer Minute erneut versuchen",
+  "syncErrorConflict": "Dieser Sync ist voll, oder es gibt zu viele Shares",
+  "syncErrorServerError": "Der Sync-Server hat ein Problem",
+  "syncErrorTooLarge": "Die Daten sind zu groß für den Server",
+  "syncErrorInvalidShare": "Dieser Share ist nicht erlaubt",
+  "syncErrorForeignApp": "Diese Daten stammen nicht aus Substitute",
+  "syncErrorFutureSchema": "Diese Daten stammen aus einer neueren Version der App",
+  "share": "Teilen",
+  "shareTitle": "Meine Shares",
+  "shareSubtitle": "Ausgewählte Klassen und Personen mit anderen Kolleginnen und Kollegen teilen",
+  "shareCreate": "Neuer Share",
+  "shareCreateSubtitle": "Auswählen, was für andere sichtbar sein soll",
+  "shareEdit": "Share bearbeiten",
+  "shareEmpty": "Noch keine Shares. Lege einen an, um anderen deine Klassen und Personen zu geben.",
+  "shareUsername": "Mein Nutzername",
+  "shareUsernameSubtitle": "Zehn Wörter, die Kolleginnen und Kollegen eingeben, um deine Shares zu öffnen",
+  "shareUsernameRegenerate": "Neuer Nutzername",
+  "shareUsernameRegenerateConfirmTitle": "Neuer Nutzername?",
+  "shareUsernameRegenerateConfirm": "Alle Shares wandern auf den neuen Nutzernamen. Wer den alten gespeichert hat, muss den neuen eingeben.",
+  "shareDisplayName": "Mein Anzeigename",
+  "shareDisplayNameSubtitle": "Wird im Suchmenü deiner Schule angezeigt",
+  "shareLabel": "Name des Shares",
+  "shareLabelHint": "z.B. Vertretungspläne Herbst",
+  "shareSearchable": "Im Suchmenü anzeigen",
+  "shareSearchableSubtitle": "Kolleginnen und Kollegen deiner Schule können dich finden und aus deinen Shares auswählen",
+  "shareGlobal": "Globaler Share",
+  "shareGlobalSubtitle": "Auch von Lehrkräften anderer Schulen nutzbar, die deinen Nutzernamen kennen",
+  "sharePassword": "Passwort",
+  "sharePasswordSubtitle": "Schützt den Share – auch vor Menschen mit den Schulzugangsdaten",
+  "sharePasswordGenerate": "Passwort erzeugen",
+  "sharePasswordOwn": "Dein eigenes Passwort",
+  "sharePasswordHint": "Zehn Wörter, z.B. red moon water nine",
+  "sharePasswordRequired": "Dieser Share hat ein Passwort. Gib es ein, um ihn zu öffnen.",
+  "shareSelectWhat": "Was soll geteilt werden?",
+  "shareSelectClasses": "Klassen",
+  "shareSelectPersons": "Personen",
+  "shareSelectEverything": "Alle auswählen",
+  "shareSelectNothing": "Keine auswählen",
+  "shareIncludeSettings": "Einstellungen mitteilen",
+  "shareIncludeSettingsSubtitle": "Auch die Anzeigeeinstellungen teilen",
+  "shareIncludePlans": "Gespeicherte Pläne mitteilen",
+  "shareIncludePlansSubtitle": "Die auf diesem Gerät gespeicherten Vertretungspläne teilen",
+  "shareIncludeHistory": "Pläne aus der Vergangenheit mitteilen",
+  "shareIncludeHistorySubtitle": "Sonst werden nur die letzten {days} Tage geteilt",
+  "shareSelectNothingSelected": "Bitte mindestens eine Klasse oder Person auswählen",
+  "sharePublished": "Share erstellt",
+  "shareUpdated": "Share aktualisiert",
+  "shareDeleted": "Share gelöscht",
+  "sharePasswordSaved": "Passwort auf diesem Gerät gespeichert",
+  "shareDeleteConfirmTitle": "Diesen Share löschen?",
+  "shareDeleteConfirm": "Niemand kann ihn mehr öffnen. Bereits importierte Daten bleiben bei anderen auf ihren Geräten.",
+  "shareGlobalNote": "Ein globaler Share kann von Lehrkräften jeder Schule geöffnet werden, die den Nutzernamen kennen. In deren Suchmenü erscheint er nicht.",
+  "shareBrowse": "Shares finden",
+  "shareBrowseSubtitle": "Sieh, was Kolleginnen und Kollegen deiner Schule geteilt haben",
+  "shareBrowseEmpty": "In deiner Schule hat noch niemand etwas geteilt",
+  "shareBrowseEmptySubtitle": "Sobald jemand einen Share als suchbar markiert, erscheint er hier.",
+  "shareBrowseLoginRequired": "Melde dich zuerst mit deiner Schulnummer an",
+  "shareBrowseLoginRequiredSubtitle": "Shares werden nur innerhalb der eigenen Schule gefunden. Deshalb ist die Anmeldung nötig.",
+  "shareBrowseEnterUsername": "Nutzernamen eingeben",
+  "shareBrowseEnterUsernameSubtitle": "Du kennst die zehn Wörter einer Kollegin oder eines Kollegen? Gib sie hier ein, um den Share direkt zu öffnen.",
+  "shareBrowseGlobalOnly": "Dieser Share ist global – er kann auch von Lehrkräften anderer Schulen geöffnet werden.",
+  "shareOf": "Shares von {name}",
+  "shareContents": "Inhalt",
+  "shareContentsClasses": "{count} Klassen",
+  "shareContentsPersons": "{count} Personen",
+  "shareContentsPlans": "{count} Pläne",
+  "shareSelectItems": "Was möchtest du übernehmen?",
+  "shareImportModeTitle": "Wie soll es übernommen werden?",
+  "shareImportMode": "Übernehmen als",
+  "shareImportModeOriginal": "Original",
+  "shareImportModeOriginalSubtitle": "Genau wie geteilt: Klassen, Personen und Kurse bleiben, wie sie sind",
+  "shareImportModePlans": "Pläne",
+  "shareImportModePlansSubtitle": "Jede Person wird zu einem Plan mit ihren Kursen",
+  "shareImportModePersons": "Personen",
+  "shareImportModePersonsSubtitle": "Es werden nur die Namen als Personen übernommen",
+  "shareImport": "Übernehmen",
+  "shareImportDone": "Übernommen von {name}: {persons} Personen, {classes} Klassen, {plans} Pläne",
+  "shareNothingToImport": "Nichts ausgewählt",
+  "shareNameBlocked": "Dieser Name ist nicht erlaubt. Bitte wähle einen anderen.",
+  "shareNameTooShort": "Bitte mindestens zwei Zeichen eingeben",
+  "shareNameTooLong": "Dieser Name ist zu lang",
+  "shareNameEmpty": "Bitte einen Namen eingeben",
+  "shareErrorNoUsername": "Es wurde noch kein Nutzername erzeugt",
+  "shareErrorNothingSelected": "Bitte auswählen, was geteilt werden soll",
+  "shareErrorWrongCredentials": "Dieser Share ließ sich nicht öffnen – falscher Code oder falsche Schulnummer?",
+  "shareErrorUnreadable": "Diese Daten konnten nicht gelesen werden",
+  "shareDemoNoShares": "Es hat noch niemand etwas geteilt",
+  "shareDelete": "Share löschen"
 }
