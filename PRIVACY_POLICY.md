@@ -56,8 +56,9 @@ both work the same way: **your device encrypts the data before sending it.**
 
 ### The sync server
 
-- **Address:** `https://substitute-sync.open-nexor.org` (port 8384)
-- **Source code:** <https://github.com/Sergey842248/Substitute/tree/main/docs/server>
+- **Address:** `https://socgdoyooyiupnmzuaox.supabase.co`
+- **Source code:** <https://github.com/Sergey842248/Substitute/tree/main/supabase/functions>
+- **Database schema:** <https://github.com/Sergey842248/Substitute/tree/main/docs/server-supabase>
 
 ### What is transmitted, and in what form
 

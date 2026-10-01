@@ -45,10 +45,32 @@ class FakeServer {
 
           if (request.method == 'GET' && path.startsWith('/v1/chain/')) {
             final String chainId = _segment(path, 2);
+            final List<Map<String, dynamic>> stored =
+                chains[chainId] ?? const <Map<String, dynamic>>[];
+            // Der Anfragerumpf ist snake_case (Spaltennamen), die Antwort
+            // camelCase (Domänenmodell der App). Wer hier den gespeicherten
+            // Rumpf unveraendert zurueckgibt, liefert `device_id` statt
+            // `deviceId` – das Geraet bekommt dann eine leere Kennung,
+            // wird nie als eigenes erkannt und laesst fremde Daten doppelt
+            // laufen. Der Server baut dieses DTO, also tut der Nachbau hier
+            // dasselbe.
+            // Beim eigenen Server steht es im Pfad (`/devices`), bei Supabase
+            // als Query-Parameter. Dieser Nachbau bedient den eigenen.
+            final bool devicesOnly = path.endsWith('/devices');
+            final List<Map<String, dynamic>> dto = stored
+                .map((Map<String, dynamic> row) => <String, dynamic>{
+                      'deviceId': row['device_id'],
+                      'deviceName': row['device_name'],
+                      'updatedAt': row['updated_at'],
+                      'includesSettings': row['includes_settings'],
+                      if (!devicesOnly) 'envelope': row['envelope'],
+                    })
+                .toList();
             return http.Response(
               jsonEncode(<String, dynamic>{
                 'chainId': chainId,
-                'snapshots': chains[chainId] ?? const <Map<String, dynamic>>[],
+                if (devicesOnly) 'devices': dto else 'snapshots': dto,
+                'serverTime': '2026-10-01T00:00:00.000Z',
               }),
               200,
             );
@@ -61,7 +83,7 @@ class FakeServer {
             final List<Map<String, dynamic>> snapshots =
                 chains.putIfAbsent(chainId, () => <Map<String, dynamic>>[]);
             snapshots.removeWhere(
-                (Map<String, dynamic> s) => s['deviceId'] == body['deviceId']);
+                (Map<String, dynamic> s) => s['device_id'] == body['device_id']);
             snapshots.add(body);
             return http.Response('{}', 200);
           }
@@ -71,7 +93,7 @@ class FakeServer {
             if (path.contains('/devices/')) {
               final String deviceId = _segment(path, 4);
               (chains[chainId] ?? const <Map<String, dynamic>>[])
-                  .removeWhere((Map<String, dynamic> s) => s['deviceId'] == deviceId);
+                  .removeWhere((Map<String, dynamic> s) => s['device_id'] == deviceId);
             } else {
               chains.remove(chainId);
             }

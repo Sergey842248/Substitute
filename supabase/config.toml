@@ -1,0 +1,42 @@
+# Konfiguration der Supabase-CLI und der Edge Functions.
+#
+# Wird bei `supabase start` und `supabase functions deploy` gelesen.
+
+project_id = "socgdoyooyiupnmzuaox"
+
+[api]
+enabled = true
+# Ohne das erreicht die anonymKey-Rolle nichts (siehe schema.sql Abschnitt 5).
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+major_version = 15
+
+# --- Edge Functions ---------------------------------------------------------
+#
+# `verify_jwt = false` an jeder Function, und das ist hier richtig.
+#
+# Die App hat keine Konten: Der Sync-Code aus zehn Wörtern ist die Identität.
+# Ein JWT müsste sicher verteilt werden, und zwar an genau die Leute, die ihn
+# gerade nicht brauchen – wer den Code kennt, hat ohnehin schon alles. Die
+# Berechtigung steckt stattdessen in der Ketten- und Share-ID, die ein
+# SHA-256 über die Passphrase ist: 256 Bit, nicht erratbar.
+#
+# Die Gegenrichtung ist wichtig: Supabase verlangt von jedem Aufruf den
+# `apikey`-Header. Wer die App veröffentlicht, gibt den anon-Key mit – und
+# genau der darf die Functions aufrufen. Wer den Key nicht hat, kommt gar
+# nicht erst bis zu unserem Code.
+
+[functions.chain-snapshots]
+verify_jwt = false
+
+[functions.shares]
+verify_jwt = false
+
+[functions.directory]
+verify_jwt = false
+
+[functions.health]
+verify_jwt = false

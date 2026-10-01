@@ -1,0 +1,11 @@
+{
+  "nodeModulesDir": "auto",
+  "imports": {
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2"
+  },
+  "tasks": {
+    "check": "deno check functions/*/index.ts functions/_shared/*.ts functions/*_test.ts",
+    "test": "deno run --allow-env functions/unit_test.ts",
+    "test:e2e": "deno test --allow-net --allow-env functions/functions_test.ts"
+  }
+}

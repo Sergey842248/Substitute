@@ -5,13 +5,17 @@ name: Publish docs to GitHub Pages
 #   * `index.html`  – die Statusseite des Sync-Servers. Sie zeigt
 #                     ausschließlich "Server is running" oder
 #                     "Server is stopped" und fragt dafür
-#                     `GET /v1/health` ab.
-#   * `server/`     – der Quelltext des Sync- und Share-Servers. Er wird
-#                     *nicht* ausgeführt, sondern nur als Code veröffentlicht.
+#                     `GET /functions/v1/health` ab.
+#   * `server/`     – der eigenständige Dart-Server. Er wird *nicht*
+#                     ausgeführt, sondern nur als Code veröffentlicht.
+#   * `server-supabase/` – das Datenbankschema, gegen das die
+#                     Edge Functions laufen. Auch nur Quelltext.
 #
-# Die eigentliche API läuft auf einem eigenen Ubuntu-Server
-# (substitute-sync.open-nexor.org, Port 8384) – GitHub Pages kann nur
-# statische Dateien ausliefern, keinen Server betreiben.
+# Die eigentliche API läuft als Supabase Edge Functions
+# (socgdoyooyiupnmzuaox.supabase.co); der Quelltext dazu liegt in
+# `supabase/functions/`. GitHub Pages kann nur statische Dateien
+# ausliefern, keinen Server betreiben – deshalb steht der Functions-Code
+# bewusst außerhalb von `docs/` und wird nur verlinkt.
 
 on:
   push:

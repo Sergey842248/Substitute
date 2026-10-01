@@ -221,9 +221,40 @@ den passenden Schlüssel haben.
 
 ## Der Server
 
-Quelltext: [`docs/server`](server/) · läuft auf Ubuntu, Port 8384 ·
-Statusseite fragt `GET /v1/health` und zeigt **nur** „Server is running"
-oder „Server is stopped".
+Zwei Implementierungen derselben Schnittstelle. Welche läuft, entscheidet
+allein die Adresse in `lib/services/sync/SyncCredentials.dart` – erkennbar an
+`.supabase.co`.
+
+### Edge Functions auf Supabase (der aktuelle Stand)
+
+Quelltext: [`supabase/functions`](../supabase/functions) · Schema:
+[`docs/server-supabase/schema.sql`](server-supabase/schema.sql) ·
+Statusseite fragt `GET /functions/v1/health` und zeigt **nur** „Server is
+running" oder „Server is stopped".
+
+Vier Functions (`health`, `chain-snapshots`, `shares`, `directory`) auf
+PostgREST, ohne eigenen Prozess und ohne Server-Administration. Die
+Drosselung liegt in der Datenbank (`bump_rate_limit`), weil jede Function in
+einer kurzlebigen Umgebung läuft: Ein Zähler im Modulspeicher wäre beim
+nächsten Aufruf weg und würde nichts messen.
+
+Die Tabellen sind für `anon` und `authenticated` gesperrt (RLS, deny-all);
+erreichbar sind sie nur über `service_role` aus den Functions heraus.
+
+**Die Schnittstelle prüft keine Kennung.** `verify_jwt = false` heißt, dass
+das Gateway auch keinen `apikey`-Header verlangt – wer die Adresse kennt,
+kann alles aufrufen. Das ist hier gewollt: Der Server ist blind, und der
+Publishable Key stünde ohnehin im APK. Das eigentliche Geheimnis ist der
+zehnwörtige Code, die Bremse gegen Masseabfragen die Drosselung.
+
+**Ein Formatvertrag, der schon einmal geschnitten hat:** Anfragen tragen
+`snake_case` (Spaltennamen), Antworten `camelCase` (Domänenmodell der App).
+Beide Seiten sind jetzt vereinheitlicht; siehe
+[`supabase/README.md`](../supabase/README.md).
+
+### Eigenständiger Dart-Server (Alternative)
+
+Quelltext: [`docs/server`](server/) · läuft auf Ubuntu, Port 8384.
 
 Er ist ein einzelner Prozess ohne Abhängigkeiten, mit JSON-Dateien als
 Speicher und atomarem Schreiben. Drosselung, Obergrenzen und eine zweite

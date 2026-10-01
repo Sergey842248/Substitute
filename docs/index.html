@@ -70,15 +70,16 @@
   <h1 id="status"><span id="dot"></span><span id="text">…</span></h1>
   <footer>
     Substitute sync &amp; share server ·
-    <a href="https://github.com/Sergey842248/Substitute/tree/main/docs/server">source</a>
+    <a href="https://github.com/Sergey842248/Substitute/tree/main/supabase/functions">source</a>
   </footer>
 </main>
 
 <script>
   // Diese Adresse ist die einzige Konstante der Seite. Sie muss mit
-  // `SyncEngine.defaultServerUrl` in der App übereinstimmen
-  // (lib/services/sync/SyncEngine.dart).
-  const SERVER = 'https://substitute-sync.open-nexor.org';
+  // `SyncCredentials.defaultServerUrl` in der App übereinstimmen
+  // (lib/services/sync/SyncCredentials.dart).
+  const SERVER = 'https://socgdoyooyiupnmzuaox.supabase.co';
+  const HEALTH = `${SERVER}/functions/v1/health`;
 
   const text = document.getElementById('text');
   const dot = document.getElementById('dot');
@@ -92,16 +93,24 @@
   }
 
   // `no-cors` liefert eine undurchsichtige Antwort, deren Status man nicht
-  // prüfen kann – deshalb wird ohne `no-cors` gefragt. Der Server setzt
-  // dafür `access-control-allow-origin: *`.
-  fetch(`${SERVER}/v1/health`, { cache: 'no-store' })
+  // prüfen kann – deshalb wird ohne `no-cors` gefragt. Die Antwort trägt
+  // `access-control-allow-origin: *`; nachgemessen:
+  //
+  //   curl -i ".../functions/v1/health" -H "Origin: https://sergey84224.github.io"
+  //   → access-control-allow-origin: *
+  //
+  // Ein `apikey` wird nicht mitgeschickt. Das ist Absicht: die
+  // Edge Functions prüfen keine Kennung (siehe `config.toml`,
+  // `verify_jwt = false`), weil der zehnwörtige Code selbst die Identität
+  // ist. Ein Schlüssel in einer öffentlichen Seite wäre nur Scheinsicherheit.
+  fetch(HEALTH, { cache: 'no-store' })
     .then((response) => show(response.ok))
     .catch(() => show(false));
 
   // Alle fünf Sekunden neu fragen: Die Seite soll auch dann stimmen, wenn
   // jemand sie lange offen lässt.
   setInterval(() => {
-    fetch(`${SERVER}/v1/health`, { cache: 'no-store' })
+    fetch(HEALTH, { cache: 'no-store' })
       .then((response) => show(response.ok))
       .catch(() => show(false));
   }, 5000);

@@ -25,7 +25,24 @@ class ShareServer {
           if (request.method == 'PUT' && segments.first == 'v1' && segments[1] == 'share') {
             final Map<String, dynamic> body =
                 jsonDecode(request.body) as Map<String, dynamic>;
-            shares[segments[2]] = body;
+            // Wichtig: Der Anfragerumpf ist snake_case (Spaltennamen), die
+            // Antwort ist camelCase (Domänenmodell der App). Wer hier einfach
+            // den Rumpf zurueckgibt, spiegelt eine Serverform, die es nicht
+            // gibt – `isGlobal` kaeme dann als `is_global` an, faellt auf
+            // `false` zurueck, und der Share schiene nicht global.
+            shares[segments[2]] = <String, dynamic>{
+              'id': segments[2],
+              'owner': body['owner'],
+              'label': body['label'],
+              // Aus den Hüllen abgeleitet, wie es die generierte Spalte in
+              // der Datenbank auch tut.
+              'hasPassword': (body['envelopes'] as Map?)?.containsKey('byPassword') ?? false,
+              'unlockableWithSchoolCredentials':
+                  (body['envelopes'] as Map?)?.containsKey('bySchool') ?? false,
+              'isGlobal': body['is_global'] == true,
+              'updatedAt': body['updated_at'],
+              'envelopes': body['envelopes'],
+            };
             return http.Response('{}', 200);
           }
           if (request.method == 'GET' && segments.length == 3 && segments[1] == 'share') {

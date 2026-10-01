@@ -9,6 +9,7 @@ import '../crypto/PayloadCrypto.dart';
 import '../crypto/Passphrase.dart';
 import '../SchoolStorage.dart';
 import 'SyncApiClient.dart';
+import 'SyncCredentials.dart';
 import 'SyncKeys.dart';
 import 'SyncMerge.dart';
 import 'SyncPayload.dart';
@@ -183,7 +184,7 @@ class SyncEngine {
 
   /// Die Adresse des Sync-Servers.
   ///
-  /// Voreingestellt ist `substitute-sync.open-nexor.org`; ohne Server läuft
+  /// Voreingestellt ist das Supabase-Projekt; ohne Server läuft
   /// die App wie bisher, nur eben ohne Sync.
   static Uri serverUrl(SharedPreferences prefs) {
     final String? custom = prefs.getString(serverUrlKey);
@@ -193,7 +194,8 @@ class SyncEngine {
     return Uri.parse(defaultServerUrl);
   }
 
-  static const String defaultServerUrl = 'https://substitute-sync.open-nexor.org';
+  /// Die Adresse des Sync-Servers. Siehe [SyncCredentials.defaultServerUrl].
+  static const String defaultServerUrl = SyncCredentials.defaultServerUrl;
 
   /// Erzeugt eine neue Passphrase: zehn echte englische Wörter.
   ///

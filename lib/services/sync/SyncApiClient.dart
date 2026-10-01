@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import 'SyncCredentials.dart';
+
 /// Fehler des Sync-Servers, als verständlicher Code.
 ///
 /// Die Oberfläche übersetzt [SyncException.code] in eine Meldung; die
@@ -201,13 +203,28 @@ class SyncChainSnapshot {
 class SyncApiClient {
   SyncApiClient({required this.baseUrl, http.Client? client})
       : _client = client ?? http.Client(),
-        _ownsClient = client == null;
+        _ownsClient = client == null,
+        // Supabase verteilt die Functions unter /functions/v1/<name> und
+        // erwartet den Bezeichner als Query-Parameter. Der eigene Server
+        // nimmt ihn in den Pfad. Beides zu unterstuetzen kostet eine
+        // Verzweigung und haelt den Betrieb ohne Zusatzkonfiguration offen.
+        _isSupabase = SyncCredentials.isSupabase(baseUrl);
 
-  /// Die Adresse des Servers, z.B. `https://substitute-sync.open-nexor.org`.
+  /// Die Adresse des Servers.
   final Uri baseUrl;
 
   final http.Client _client;
   final bool _ownsClient;
+
+  /// true, wenn die Edge Functions von Supabase angesprochen werden.
+  final bool _isSupabase;
+
+  /// true, wenn dieses Geraet den Publishable Key mitschicken muss.
+  ///
+  /// Supabase laesst keinen Aufruf ohne `apikey` durch das Gateway – auch
+  /// dann nicht, wenn die Function selbst kein JWT prueft. Der eigene Server
+  /// braucht keinen.
+  bool get sendsApiKey => _isSupabase;
 
   static const Duration _timeout = Duration(seconds: 20);
 
@@ -215,6 +232,67 @@ class SyncApiClient {
     final String base = baseUrl.toString().replaceAll(RegExp(r'/+$'), '');
     return Uri.parse('$base$path');
   }
+
+  /// Wo ein eigener Snapshot hingesendet wird.
+  ///
+  /// Bei Supabase gibt es keine Kette im Pfad – sie steckt im Rumpf, und die
+  /// Function heißt `chain-snapshots`. Der eigene Server will beides im Pfad
+  /// haben (`/v1/chain/{id}`), sonst findet er die Kette nicht. Deshalb je
+  /// einen Helfer pro Fall und keine gemeinsame Namensabbildung: ein
+  /// generisches `/v1/<function-name>` hat beim eigenen Server den
+  /// Ketten-Namen im falschen Format.
+  String _chainWritePath(String chainId) =>
+      _isSupabase ? '/functions/v1/chain-snapshots' : '/v1/chain/$chainId';
+
+  /// Wo ein Share hingesendet wird. Aus demselben Grund wie oben.
+  String _shareWritePath(String shareId) =>
+      _isSupabase ? '/functions/v1/shares' : '/v1/share/$shareId';
+
+  /// Der Pfad zu einer Sync-Kette.
+  ///
+  /// Der eigene Server nimmt die ID in den Pfad
+  /// (`/v1/chain/abc`), Supabase als Query-Parameter (`?chain_id=abc`).
+  ///
+  /// Der Wert bekommt bewusst kein `eq.`-Präfix: Das ist PostgREST-Syntax und
+  /// gehört in die Function, die den Wert zerlegt. Wer es hier setzt,
+  /// bekommt `eq.abc` als Ketten-ID zurueck – und damit eine leere Kette ohne
+  /// Fehlermeldung.
+  Uri _chainPath(String chainId, {Map<String, String> query = const {}}) {
+    if (_isSupabase) {
+      return _uri('/functions/v1/chain-snapshots').replace(
+        queryParameters: <String, String>{'chain_id': chainId, ...query},
+      );
+    }
+    final String? device = query['device_id'];
+    final String suffix = query['devices'] == '1'
+        ? '/devices'
+        : (device == null ? '' : '/devices/$device');
+    return _uri('/v1/chain/$chainId$suffix');
+  }
+
+  /// Der Pfad zu einem Share. Gleiche Trennung wie bei der Kette.
+  Uri _sharePath(String shareId) {
+    if (_isSupabase) {
+      return _uri('/functions/v1/shares').replace(
+        queryParameters: <String, String>{'id': shareId},
+      );
+    }
+    return _uri('/v1/share/$shareId');
+  }
+
+  /// Der Pfad zum Suchverzeichnis.
+  Uri _directoryPath(String schoolNumber) {
+    if (_isSupabase) {
+      return _uri('/functions/v1/directory').replace(
+        queryParameters: <String, String>{'school_number': schoolNumber},
+      );
+    }
+    return _uri('/v1/directory/$schoolNumber');
+  }
+
+  /// Die Adresse des Status-Endpunkts.
+  Uri _healthUri() =>
+      _isSupabase ? _uri('/functions/v1/health') : _uri('/v1/health');
 
   void dispose() {
     if (_ownsClient) _client.close();
@@ -226,8 +304,11 @@ class SyncApiClient {
   /// antwortet der Server hier mit einem schlichten `status`-Feld.
   Future<bool> isServerRunning() async {
     try {
-      final http.Response response =
-          await _client.get(_uri('/v1/health')).timeout(const Duration(seconds: 8));
+      final http.Response response = await _client
+          .get(_healthUri(), headers: <String, String>{
+            if (sendsApiKey) 'apikey': SyncCredentials.publishableKey,
+          })
+          .timeout(const Duration(seconds: 8));
       if (response.statusCode != 200) return false;
       final Object? decoded = jsonDecode(response.body);
       return decoded is Map && decoded['status'] == 'running';
@@ -244,7 +325,7 @@ class SyncApiClient {
     String? deviceId,
   }) async {
     final Map<String, dynamic> body =
-        await _send('GET', '/v1/chain/$chainId');
+        await _send('GET', _chainPath(chainId));
     final List<dynamic> raw = body['snapshots'] as List<dynamic>? ?? <dynamic>[];
     final List<SyncDevice> devices = <SyncDevice>[];
     final List<ChainSnapshot> snapshots = <ChainSnapshot>[];
@@ -272,7 +353,7 @@ class SyncApiClient {
   /// Listet die Geräte einer Kette (ohne die Daten).
   Future<List<SyncDevice>> fetchDevices(String chainId) async {
     final Map<String, dynamic> body =
-        await _send('GET', '/v1/chain/$chainId/devices');
+        await _send('GET', _chainPath(chainId, query: <String, String>{'devices': '1'}));
     return (body['devices'] as List<dynamic>? ?? <dynamic>[])
         .whereType<Map<String, dynamic>>()
         .map(SyncDevice.fromJson)
@@ -288,23 +369,30 @@ class SyncApiClient {
     required bool includesSettings,
     required DateTime updatedAt,
   }) async {
-    await _send('PUT', '/v1/chain/$chainId', body: <String, dynamic>{
-      'deviceId': deviceId,
-      'deviceName': deviceName,
+    // Die Rumpf-Felder heissen snake_case, weil sie 1:1 in die Spalten der
+    // Datenbank gehen. Der Dart-Code ist camelCase, der Datenbank-Code
+    // snake_case, und an dieser Stelle gewinnt der Datenbank-Code: die
+    // Function liest genau diese Namen.
+    await _send('PUT', _chainWritePath(chainId), body: <String, dynamic>{
+      'chain_id': chainId,
+      'device_id': deviceId,
+      'device_name': deviceName,
       'envelope': envelope,
-      'includesSettings': includesSettings,
-      'updatedAt': updatedAt.toUtc().toIso8601String(),
+      'includes_settings': includesSettings,
+      'updated_at': updatedAt.toUtc().toIso8601String(),
     });
   }
 
   /// Nimmt ein Gerät aus der Kette. Die Daten auf dem Gerät bleiben erhalten –
   /// der Server löscht nur den Snapshot.
   Future<void> leaveChain(String chainId, String deviceId) =>
-      _send('DELETE', '/v1/chain/$chainId/devices/$deviceId');
+      _send('DELETE', _chainPath(chainId, query: <String, String>{
+        'device_id': deviceId,
+      }));
 
   /// Löscht die ganze Kette auf dem Server (alle Geräte).
   Future<void> deleteChain(String chainId) =>
-      _send('DELETE', '/v1/chain/$chainId');
+      _send('DELETE', _chainPath(chainId));
 
   // ------------------------------------------------------------------ Shares
 
@@ -314,7 +402,7 @@ class SyncApiClient {
   /// diejenigen, die ihre Shares ausdrücklich als *suchbar* markiert haben.
   Future<List<ShareOwner>> fetchDirectory(String schoolNumber) async {
     final Map<String, dynamic> body =
-        await _send('GET', '/v1/directory/$schoolNumber');
+        await _send('GET', _directoryPath(schoolNumber));
     return (body['people'] as List<dynamic>? ?? <dynamic>[])
         .whereType<Map<String, dynamic>>()
         .map(ShareOwner.fromJson)
@@ -323,7 +411,7 @@ class SyncApiClient {
 
   /// Holt einen Share samt seiner verschlüsselten Hüllen.
   Future<ShareRecord> fetchShare(String shareId) async {
-    final Map<String, dynamic> body = await _send('GET', '/v1/share/$shareId');
+    final Map<String, dynamic> body = await _send('GET', _sharePath(shareId));
     return ShareRecord(
       id: body['id']?.toString() ?? shareId,
       envelopes: (body['envelopes'] as Map<String, dynamic>? ??
@@ -348,37 +436,42 @@ class SyncApiClient {
     required bool isGlobal,
     required DateTime updatedAt,
   }) =>
-      _send('PUT', '/v1/share/$shareId', body: <String, dynamic>{
+      _send('PUT', _shareWritePath(shareId), body: <String, dynamic>{
         'id': shareId,
         'owner': <String, dynamic>{
           'username': username,
-          'schoolNumber': schoolNumber,
-          'displayName': displayName,
+          'school_number': schoolNumber,
+          'display_name': displayName,
         },
         'label': label,
         'envelopes': envelopes,
         'searchable': searchable,
-        'isGlobal': isGlobal,
-        'updatedAt': updatedAt.toUtc().toIso8601String(),
+        'is_global': isGlobal,
+        'updated_at': updatedAt.toUtc().toIso8601String(),
       });
 
   /// Löscht einen Share.
   Future<void> deleteShare(String shareId) =>
-      _send('DELETE', '/v1/share/$shareId');
+      _send('DELETE', _sharePath(shareId));
 
   // ----------------------------------------------------------------- Internes
 
+  /// Schickt eine Anfrage. [target] ist ein Pfad oder eine fertige Adresse.
   Future<Map<String, dynamic>> _send(
     String method,
-    String path, {
+    Object target, {
     Map<String, dynamic>? body,
   }) async {
-    final Uri uri = _uri(path);
+    final Uri uri = target is Uri ? target : _uri(target as String);
     late final http.Response response;
     try {
       final Map<String, String> headers = <String, String>{
         'accept': 'application/json',
         if (body != null) 'content-type': 'application/json; charset=utf-8',
+        // Supabases Gateway laesst keinen Aufruf ohne diesen Kopf durch. Der
+        // Key ist oeffentlich und gibt allein nichts frei – die Rechte stehen
+        // in der Datenbank.
+        if (sendsApiKey) 'apikey': SyncCredentials.publishableKey,
       };
       final String? payload =
           body == null ? null : jsonEncode(_sanitize(body));
