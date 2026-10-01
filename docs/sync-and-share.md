@@ -253,40 +253,75 @@ die Klasse `8a` haben, meinen dasselbe — und nach dem Merge steht sie genau
 einmal in der Liste. Ohne diese Regel wäre jeder Name auf beiden Geräten ein
 eigener Eintrag, und die Liste enthielte jede Klasse doppelt.
 
-### Die Reihenfolge gehört zum Bestandteil
+### Klassen sind immer sortiert
 
-Wenn die Klassen auf einem Gerät in der Reihenfolge `XYZ, ABC` angelegt waren,
-kommen sie auf dem anderen **genauso** an — nicht alphabetisch.
+`06.2` steht **vor** `11`, und `8a` **vor** `10`. Kein reiner
+Zeichenkettenvergleich kann das: dort käme `10` vor `8a`, weil `'1'` kleiner
+ist als `'8'`. Verglichen wird deshalb **natürlich** – Ziffernfolgen als Zahlen,
+alles andere ohne Rücksicht auf Groß- und Kleinschreibung
+(`ClassNames.compare`).
 
-Das war vorher ausdrücklich so gebaut: Der Merge sortierte die Ergebnisse nach
-Identität, damit zwei Geräte unabhängig von der Reihenfolge ihrer
-Synchronisation denselben Stand haben. Das war richtig gedacht und praktisch
-falsch. Die Anordnung in der App ist benutzersichtbar — sie ist das, woran sich
-jemand gewöhnt hat — und sie ließ sich nicht wiederherstellen, weil
-Information fehlte, die niemand mitgeschickt hatte.
+Das ist eine bewusste Abkehr von einer mitgewandten Reihenfolge. Die hätte zwei
+Mängel gehabt: Zwei Geräte müssten sich auf eine Reihenfolge einigen, die
+niemand verlangt hat, und eine unpassende bliebe erhalten, bis jemand sie von
+Hand ändert – die Liste enthielte dann `11, 06.2, 8a`.
 
-Die Reihenfolge gehört **zum Bestandteil**, nicht zum einzelnen Eintrag: „XYZ
-vor ABC" ist eine Aussage über die Liste und aus keinem Eintrag errechenbar.
-Sie wird deshalb wie ein Wert behandelt:
+Sortiert wird an **zwei** Stellen, die dieselbe Funktion benutzen:
 
-* `SyncPart.orderAt` sagt, wann die Anordnung zuletzt geändert wurde.
-* Wer sie zuletzt geändert hat, gibt sie vor.
-* Neue Einträge werden an der Stelle eingefügt, an der sie auf der Seite standen,
-  von der sie kamen — nicht am Ende.
+* beim Anlegen und Entfernen einer Klasse in `VPlan`, und beim Lesen der Liste –
+  damit ist auch eine App, die schon läuft, richtig, ohne dass jemand erst eine
+  Klasse hinzufügen muss;
+* beim Schreiben des Sync (`SyncMerge.canonicalOrder`).
 
-Und wie bei den Werten gilt: Die Zeit wird nur erneuert, wenn sich die
-Reihenfolge gegenüber dem zuletzt Gesendeten wirklich geändert hat. Sonst wäre
-bei jedem Lauf alles frisch umsortiert, und das Gerät, das die Anordnung zuletzt
-verändert hat, verlöre sie an das Gerät, das zufällig später dran war.
+Die zweite Stelle ist keine Zierde: Ein Gerät, das **allein** in der Kette ist,
+führt überhaupt keinen Merge durch – es hat nichts zum Zusammenführen. Eine
+Sortierung nur im Merge ließe die Liste dort für immer unsortiert, und es sind
+nicht nur die Anzeige, sondern auch Krankentracking, Auswertung und Teilen, die
+sie roh lesen. Deshalb schreibt `SyncEngine.run` auch dann zurück, wenn sich
+nichts geändert hat, aber eine Liste in der falschen Ordnung dasteht.
 
-Bei gleichem Alter entscheidet wieder der alphabetisch größere
-Identitätszug — „bei Gleichstand gewinnt die lokale Seite" wäre nicht
-symmetrisch, und zwei Geräte würden sich ihre Anordnung endlos umdrehen.
+### Auch die schon vorhandenen Listen
 
-**Eine Ausnahme:** Bei `offlineVPData` wird nach Datum sortiert. Der
-Vertretungsplan-Cache ist über das Datum geschlüsselt, und die App sucht darin
-nach Datum; eine von einem Menschen zusammengestellte Reihenfolge gibt es dort
-nicht, jeder Geräte-Cache wächst in der Reihenfolge, in der die Tage kommen.
+Das Update, in dem die Sortierung eingeführt wurde, erreicht die Listen nicht,
+die **vorher** geschrieben wurden. Sie folgen der Reihenfolge des Anlegens –
+wer `11` vor `06.2` angelegt hatte, hatte danach `11, 06.2` – und daran ändert
+das Sortieren beim Anlegen nichts mehr. Am Anlegen und Entfernen zu sortieren
+reicht also nicht: Wer die App updated und nicht synchronisiert, behält die alte
+Reihenfolge.
+
+Deshalb läuft beim Start ein Durchgang (`ListOrderRepair`), und zwar über
+**alle** Schulen, nicht nur über die gerade aktive. Und er läuft bei jedem Start,
+nicht einmalig: Er prüft vor dem Schreiben und tut bei bereits richtigen Listen
+nichts. Ein Versionsmerkmal wäre nur eine zusätzliche Stelle, an der etwas falsch
+sein kann, und würde die App daran hindern, sich selbst zu heilen, wenn später
+ein Fehler eingebaut wird, der wieder etwas verschiebt.
+
+Repariert werden die **Klassen** (nach der menschlichen Lesart) und die
+**Pläne** (nach Datum) – der Plancache ist über das Datum geschlüsselt, und die
+App sucht darin nach Datum.
+
+Zwei Schulen bleiben dabei üblicherweise unbeachtet, und beide sind abgedeckt:
+
+* **Die Listen sind nicht nur eine Anzeige.** Krankentracking, Auswertung und
+  das Teilen lesen dieselbe Liste roh. Eine unsortierte Liste fällt dort sofort
+  auf.
+* **Verwaiste Schulen.** Eine Schule, deren Profil gelöscht wurde, deren Daten
+  aber noch da sind, steht nicht mehr in der Profilliste. Aus der Profilliste
+  allein würde sie nicht gefunden – ihre Klassen blieben unsortiert und tauchten
+  beim Umschalten wieder auf. Deshalb werden die Schulen auch aus den
+  gespeicherten Schlüsseln gesammelt.
+
+Die Form wird dabei nicht verändert: `classes` bleibt eine `StringList`. Sie als
+JSON-Zeichenkette zu schreiben wäre der direkte Weg in den Absturz beim Start,
+siehe oben.
+
+**Die Reihenfolge der Personen** ist der Gegenfall: Sie ist benutzersichtbar,
+und jemand kann sie von Hand gestellt haben. Sie wandert deshalb mit – wer sie
+zuletzt geändert hat, gibt sie vor; neue Personen werden an der Stelle
+eingefügt, an der sie auf der Herkunftsseite standen. Bei gleichem Alter
+entscheidet der größere Identitätszug, denn „bei Gleichstand gewinnt die
+lokale Seite" wäre nicht symmetrisch und die Geräte würden sich endlos
+umdrehen.
 
 ### Woran man erkennt, was los ist
 

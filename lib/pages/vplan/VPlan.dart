@@ -15,6 +15,7 @@ import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/services/SchoolStorage.dart';
 import 'package:substitute/services/AppClock.dart';
+import 'package:substitute/services/ClassNames.dart';
 import 'package:substitute/services/PlanModePreferences.dart';
 
 import '../dashboard/settings/VPlanLogin.dart';
@@ -305,7 +306,8 @@ class _VPlanState extends State<VPlan> with RouteAware {
     }
     newClasses.remove(classId);
     prefs.setStringList(
-        SchoolStorage.scopedKey(prefs, 'classes'), newClasses);
+        SchoolStorage.scopedKey(prefs, 'classes'),
+        ClassNames.sortiert(newClasses));
     // Auch die gespeicherten Kurs-Auswahlen und den
     // benutzerdefinierten Namen der Klasse zurücksetzen,
     // damit eine später erneut hinzugefügte Klasse wieder
@@ -1317,8 +1319,14 @@ class _SelectClassState extends State<SelectClass> {
                 _classes = [];
               }
               _classes.add(className);
+              // Gleich sortiert ablegen: `06.2` gehört vor `11`, und die
+              // Reihenfolge ist das Erste, was jemand in der Liste prüft. Beim
+              // Sync wird ebenfalls sortiert – beide Stellen benutzen
+              // `ClassNames.compare`, sonst hätte das zuletzt bearbeitete
+              // Gerät eine andere Ordnung als das andere.
               instance.setStringList(
-                  SchoolStorage.scopedKey(instance, 'classes'), _classes);
+                  SchoolStorage.scopedKey(instance, 'classes'),
+                  ClassNames.sortiert(_classes));
 
               // Optional: ask for a custom name for the class
               final TextEditingController nameController =

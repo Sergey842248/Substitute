@@ -321,7 +321,14 @@ class SyncEngine {
     // 6. Zurückschreiben. Auch dann, wenn sich nur Einstellungen geändert
     //    haben und kein einziger Eintrag – sonst kämen reine
     //    Einstellungsänderungen eines anderen Geräts nie an.
-    if (changed > 0 || _settingsDiffer(local.settings, merged.settings)) {
+    // Auch dann schreiben, wenn sich nichts geändert hat, aber eine Liste in
+    // der falschen Ordnung dasteht – siehe [SyncMerge.needsRewrite]. Sonst
+    // bliebe auf einem Gerät, das allein in der Kette ist, eine unsortierte
+    // Klassenliste für immer stehen, und nicht nur die Anzeige, sondern auch
+    // Krankentracking, Auswertung und Teilen lesen sie roh.
+    if (changed > 0 ||
+        _settingsDiffer(local.settings, merged.settings) ||
+        merged.parts.any(SyncMerge.needsRewrite)) {
       await SyncMerge.applyToPreferences(prefs, merged);
       changed += _countSettingChanges(local.settings, merged.settings);
     }

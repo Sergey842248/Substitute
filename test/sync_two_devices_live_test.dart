@@ -278,11 +278,13 @@ void main() {
     await host.deleteChain(classesChain);
   });
 
-  test('die Reihenfolge der Klassen wandert mit', () async {
+  test('die Klassen kommen sortiert an – 06.2 vor 11', () async {
     if (!reachable) return;
-    // Der gemeldete Fall: Auf einem Gerät liegen die Klassen in der Reihenfolge
-    // `XYZ, ABC`, auf dem anderen angekommen sind sie alphabetisch – also
-    // umsortiert. Die Anordnung ist in der App benutzersichtbar.
+    // Klassen sind **immer** sortiert, und zwar so, wie Menschen lesen. Vorher
+    // wanderte die Reihenfolge mit, was zwei Nachteile hatte: Zwei Geräte
+    // mussten sich auf eine Reihenfolge einigen, die niemand verlangt hat, und
+    // eine unpassende Reihenfolge blieb erhalten, bis sie von Hand geändert
+    // wurde.
     const String orderChain = 'live-order-probe';
     await host.deleteChain(orderChain);
 
@@ -295,11 +297,11 @@ void main() {
           lastSync: null,
         );
 
+    // Absichtlich in „falscher" Reihenfolge angelegt – genau so, wie jemand
+    // tippt, der nicht sortiert.
     SharedPreferences prefsA = await diskWith(<String, Object>{
-      'classes': <String>['XYZ', 'ABC'],
+      'classes': <String>['11', '06.2', '8a', '10', '07.1'],
     });
-    // Einmal syncen, damit beide Geräte eine Historie haben – erst danach gilt
-    // eine geänderte Reihenfolge als geändert.
     await SyncEngine(client: host).run(prefsA, orderState('ord-a'));
 
     SharedPreferences prefsB = await diskWith(<String, Object>{
@@ -311,26 +313,31 @@ void main() {
     print('  A: ${prefsA.getStringList('classes')}  '
         'B: ${prefsB.getStringList('classes')}');
 
-    final List<String> beiA = prefsA.getStringList('classes') ?? const <String>[];
-    final List<String> beiB = prefsB.getStringList('classes') ?? const <String>[];
+    // `8a` ist die 8, `10` die 10 – also steht `8a` davor. Genau das ist der
+    // Punkt: ein Zeichenkettenvergleich hätte `10` vor `8a` gestellt.
+    const List<String> erwartet = <String>[
+      '06.2',
+      '07.1',
+      '8a',
+      '10',
+      '11',
+      'NUR-B',
+    ];
+    expect(prefsB.getStringList('classes'), erwartet,
+        reason: 'die Klassen sind nicht in der richtigen Reihenfolge angekommen');
+    // A hat seine eigenen fünf Klassen – und zwar ebenfalls sortiert, obwohl
+    // es sie in der Reihenfolge [11, 06.2, 8a, 10, 07.1] angelegt hat. Das
+    // passiert **ohne** dass es etwas anderes gäbe, mit dem es zusammenführen
+    // könnte: Ein Gerät allein in der Kette führt keinen Merge durch. Es
+    // schreibt aber trotzdem – deshalb die Bedingung in `SyncEngine.run`.
+    expect(prefsA.getStringList('classes'),
+        <String>['06.2', '07.1', '8a', '10', '11'],
+        reason: 'A hat seine eigenen Klassen nicht sortiert');
 
-    expect(beiA.indexOf('XYZ'), lessThan(beiA.indexOf('ABC')),
-        reason: 'die eigene Anordnung ist zerschlagen: $beiA');
-    expect(beiB.indexOf('XYZ'), lessThan(beiB.indexOf('ABC')),
-        reason: 'die Anordnung des anderen Geräts ist nicht angekommen: $beiB');
-    expect(beiB, contains('NUR-B'), reason: 'die eigene Klasse ist weg');
-
-    // Und jetzt die entscheidende Probe: B ordnet um – und A folgt.
-    await prefsB.setStringList('classes', <String>['NUR-B', 'ABC', 'XYZ']);
-    await SyncEngine(client: guest).run(prefsB, orderState('ord-b'));
+    // Und jetzt, wo B beigetreten ist, kommen auch Bs Klassen an – sortiert.
     await SyncEngine(client: host).run(prefsA, orderState('ord-a'));
-
-    // ignore: avoid_print
-    print('  nach dem Umsortieren:  A: ${prefsA.getStringList('classes')}');
-
-    final List<String> danachA = prefsA.getStringList('classes') ?? const <String>[];
-    expect(danachA.indexOf('ABC'), lessThan(danachA.indexOf('XYZ')),
-        reason: 'die neue Anordnung von B ist nicht angekommen: $danachA');
+    expect(prefsA.getStringList('classes'), erwartet,
+        reason: 'beide Geräte müssen am Ende dieselbe Reihenfolge haben');
 
     await host.deleteChain(orderChain);
   });

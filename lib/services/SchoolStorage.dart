@@ -47,6 +47,67 @@ class SchoolStorage {
     return 'schools.$schoolId.$key';
   }
 
+  /// Dasselbe für eine **benannte** Schule statt für die gerade aktive.
+  ///
+  /// Nötig für alles, das über alle Schulen hinweg etwas in Ordnung bringen
+  /// soll – etwa die Klassenliste. `scopedKey` sieht immer nur nach der
+  /// aktiven Schule, und wer nur sie repariert, lässt die Listen der anderen
+  /// unverändert stehen; die tauchen dann wieder auf, sobald jemand umschaltet.
+  static String keyForSchool(String schoolId, String key) {
+    if (schoolId == defaultSchoolId) return key;
+    return 'schools.$schoolId.$key';
+  }
+
+  /// Die Kennungen aller Schulen, für die es Daten gibt – die aktive zuerst.
+  ///
+  /// Gesucht wird in **zwei** Quellen, und das ist Absicht:
+  ///
+  /// * der Profilliste, damit jede angelegte Schule vorkommt, auch wenn für sie
+  ///   noch nichts gespeichert wurde;
+  /// * den gespeicherten Schlüsseln, damit auch die Daten einer **verwaisten**
+  ///   Schule gefunden werden – ein Profil wurde gelöscht, die Daten sind aber
+  ///   noch da. Aus der Profilliste allein würde sie nicht gefunden, ihre
+  ///   Klassen blieben unsortiert und tauchten beim Umschalten wieder auf.
+  ///
+  /// `ensureInitialized` wird bewusst **nicht** aufgerufen: Diese Liste dient
+  /// dem Reparieren, und das Anlegen eines Profils gehört nicht dazu.
+  static List<String> allSchoolIds(SharedPreferences prefs) {
+    final List<String> ids = <String>[activeSchoolId(prefs)];
+
+    final String? raw = prefs.getString(_profilesKey);
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final Object? decoded = jsonDecode(raw);
+        if (decoded is List) {
+          for (final Object? entry in decoded) {
+            if (entry is! Map) continue;
+            final String id = entry['id']?.toString() ?? defaultSchoolId;
+            if (!ids.contains(id)) ids.add(id);
+          }
+        }
+      } catch (_) {
+        // Beschädigte Profilliste: Es bleibt bei der aktiven Schule – besser so,
+        // als Profile zu erfinden, die es nicht gibt. Der Schlüssel-Durchgang
+        // unten findet deren Daten trotzdem.
+      }
+    }
+
+    for (final String key in prefs.getKeys()) {
+      final String? id = _schoolIdOfKey(key);
+      if (id != null && !ids.contains(id)) ids.add(id);
+    }
+    return ids;
+  }
+
+  /// `schools.<id>.classes` -> `<id>`, sonst null.
+  static String? _schoolIdOfKey(String key) {
+    const String praefix = 'schools.';
+    if (!key.startsWith(praefix)) return null;
+    final int punkt = key.indexOf('.', praefix.length);
+    if (punkt <= praefix.length) return null;
+    return key.substring(praefix.length, punkt);
+  }
+
   static Future<void> ensureInitialized(SharedPreferences prefs) async {
     if (prefs.getString(_profilesKey) != null) return;
 

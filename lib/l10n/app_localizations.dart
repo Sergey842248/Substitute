@@ -1616,6 +1616,18 @@ abstract class AppLocalizations {
   /// **'Keep classes, persons and plans in sync across your devices'**
   String get syncSubtitle;
 
+  /// No description provided for @syncShareHub.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync & Share'**
+  String get syncShareHub;
+
+  /// No description provided for @syncShareHubSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep data in step across your devices and share it with others'**
+  String get syncShareHubSubtitle;
+
   /// No description provided for @syncTitle.
   ///
   /// In en, this message translates to:

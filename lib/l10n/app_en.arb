@@ -388,6 +388,8 @@
   "defaultPlanModePreviewEntrySubtitle": "Separately for persons, classes and their previews",
   "sync": "Sync",
   "syncSubtitle": "Keep classes, persons and plans in sync across your devices",
+  "syncShareHub": "Sync & Share",
+  "syncShareHubSubtitle": "Keep data in step across your devices and share it with others",
   "syncTitle": "Sync",
   "syncServerRunning": "Server is running",
   "syncServerStopped": "Server is stopped",

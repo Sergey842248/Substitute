@@ -28,8 +28,10 @@ import 'dart:io';
 import 'pages/vplan/VPlan.dart';
 import 'pages/vplan/VPlanAPI.dart';
 import 'pages/dashboard/Dashboard.dart';
+import 'pages/share/SyncShareHub.dart';
 import 'pages/search/SearchMenu.dart';
 import 'pages/dashboard/settings/VPlanLogin.dart';
+import 'services/StorageStartupRepair.dart';
 import 'services/SchoolStorage.dart';
 import 'services/sync/SyncCoordinator.dart';
 import 'services/sync/SyncEngine.dart';
@@ -55,19 +57,30 @@ void main() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   await SchoolStorage.ensureInitialized(prefs);
 
-  // Ein Sync, der einen Bestandteil in der falschen Form zurückgeschrieben
-  // hat, macht die App **dauerhaft** unstartbar: `VPlanAPI` liest dieselben
-  // Schlüssel mit typisierten Gettern, und die werfen bei falschem Typ einen
-  // TypeError statt `null` zu liefern. Genau das ist geschehen – `persons`
-  // stand als StringList da, `getString` warf, `runApp` wurde nie erreicht.
+  // Beim Start kommt alles in die Form und in die Reihenfolge, die die App
+  // selbst schreibt:
   //
-  // Deshalb wird hier einmal Everything auf die Form gebracht, die die App
-  // selbst schreibt. Danach ist die Form stabil, weil der Schreiber des Sync
-  // sie jetzt auch einhält.
-  final int repaired = await StorageHealer.healAll(prefs);
-  if (repaired > 0) {
+  // * **Form** – ein Sync, der einen Bestandteil in der falschen Form
+  //   zurückgeschrieben hat, macht die App *dauerhaft* unstartbar. `VPlanAPI`
+  //   liest dieselben Schlüssel mit typisierten Gettern, und die werfen bei
+  //   falschem Typ einen `TypeError`, statt `null` zu liefern. Genau das ist
+  //   geschehen: `persons` stand als `StringList` da, `getString` warf, `runApp`
+  //   wurde nie erreicht.
+  //
+  // * **Ordnung** – Klassen sortiert nach der menschlichen Lesart (`06.2` vor
+  //   `11`), Pläne nach Datum. Das betrifft jeden, der die App schon benutzt:
+  //   Die Listen, die vor dem Update geschrieben wurden, folgen der Reihenfolge
+  //   des Anlegens, und daran ändert das Sortieren beim Anlegen nichts mehr.
+  //   Ohne diesen Durchgang bliebe es so, bis jemand zufällig eine Klasse
+  //   hinzufügt.
+  //
+  // Beide Durchgänge prüfen vor dem Schreiben und tun bei bereits richtigen
+  // Werten nichts – deshalb ist es gleichgültig, ob sie bei jedem Start laufen.
+  final StartupRepairReport repariert =
+      await StorageStartupRepair.run(prefs);
+  if (!repariert.isEmpty) {
     // ignore: avoid_print
-    print('Sync: $repaired Speicherwerte auf die erwartete Form gebracht');
+    print('Start: repariert – $repariert');
   }
 
   // Zuletzt angezeigte Pläne / Vorschauen synchron in den Speicher laden,
@@ -479,6 +492,24 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'index': 2,
         'icon': 'assets/img/dashboard.svg',
         'widget': Dashboard(),
+      },
+      {
+        // Sync und Share bekommen einen eigenen Platz in der Leiste. Vorher
+        // lagen sie tief in den Einstellungen – und zwischen Sprache, Sicherung
+        // und Entwickleroptionen, also dort, wo niemand sie sucht. Über die
+        // Leiste sind sie der vierte Bildschirm, und auf dem Bildschirm selbst
+        // stehen die drei Wege mit Überschrift: eigene Geräte, mit anderen
+        // teilen, deren Angebote finden.
+        //
+        // **Vor** dem Dashboard, nicht danach: Wer auf „Dashboard" tippt, will
+        // Einstellungen und Werkzeuge; die Leiste ist gewöhnlich, und ein
+        // zusätzlicher Bildschirm, den man aus Versehen mitnimmt, gehört nicht
+        // dorthin.
+        'key': 'syncShare',
+        'text': AppLocalizations.of(context)!.syncShareHub,
+        'index': 3,
+        'icon': 'assets/img/sync.svg',
+        'widget': const SyncShareHub(),
       },
     ];
     SystemChrome.setSystemUIOverlayStyle(

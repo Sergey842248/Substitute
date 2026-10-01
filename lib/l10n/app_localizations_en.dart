@@ -846,6 +846,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Keep classes, persons and plans in sync across your devices';
 
   @override
+  String get syncShareHub => 'Sync & Share';
+
+  @override
+  String get syncShareHubSubtitle =>
+      'Keep data in step across your devices and share it with others';
+
+  @override
   String get syncTitle => 'Sync';
 
   @override

@@ -388,6 +388,8 @@
   "defaultPlanModePreviewEntrySubtitle": "Getrennt für Personen, Klassen und deren Vorschauen",
   "sync": "Sync",
   "syncSubtitle": "Klassen, Personen und Pläne über mehrere Geräte gleich halten",
+  "syncShareHub": "Sync & Share",
+  "syncShareHubSubtitle": "Daten zwischen deinen Geräten abgleichen und mit anderen teilen",
   "syncTitle": "Sync",
   "syncServerRunning": "Server läuft",
   "syncServerStopped": "Server ist gestoppt",

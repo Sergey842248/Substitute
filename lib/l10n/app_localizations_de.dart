@@ -853,6 +853,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Klassen, Personen und Pläne über mehrere Geräte gleich halten';
 
   @override
+  String get syncShareHub => 'Sync & Share';
+
+  @override
+  String get syncShareHubSubtitle =>
+      'Daten zwischen deinen Geräten abgleichen und mit anderen teilen';
+
+  @override
   String get syncTitle => 'Sync';
 
   @override

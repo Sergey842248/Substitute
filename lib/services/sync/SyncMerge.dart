@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../ClassNames.dart';
 import '../ConfigBackup.dart';
 import 'SyncKeys.dart';
 import 'SyncPayload.dart';
@@ -104,6 +105,53 @@ class SyncMerge {
     );
   }
 
+  /// Die Ordnung, in der ein Bestandteil abgelegt **muss**.
+  ///
+  /// Für die Klassen ist das eine berechnete Ordnung: `06.2` vor `11`, und
+  /// dieselbe auf jedem Gerät. Es gibt dafür genau eine richtige Antwort, und
+  /// eine mitgewandte Reihenfolge hätte zwei Mängel – zwei Geräte müssten sich
+  /// auf eine Reihenfolge einigen, die niemand verlangt hat, und eine
+  /// unpassende bliebe erhalten, bis jemand sie von Hand ändert.
+  ///
+  /// Für die Pläne ist es das Datum, denn der Cache ist über das Datum
+  /// geschlüsselt und die App sucht darin nach Datum.
+  ///
+  /// Alle übrigen Bestandteile behalten ihre Reihenfolge – bei den Personen ist
+  /// die benutzersichtbar.
+  static SyncPart canonicalOrder(SyncPart part) {
+    if (_isClassList(part.key)) {
+      final Map<String, Object> nachName = <String, Object>{
+        for (final Object item in part.items)
+          if (_nameOf(item) != null) _nameOf(item)!: item,
+      };
+      return part.copyWithItems(<Object>[
+        for (final String name in ClassNames.sortiert(List<String>.of(nachName.keys)))
+          nachName[name]!,
+      ]);
+    }
+    if (ConfigBackup.isCachedPlansKey(part.key)) {
+      final Map<String, Object> nachId = <String, Object>{
+        for (final Object item in part.items) part.idOf(item)!: item,
+      };
+      final List<String> geordnet = nachId.keys.toList()..sort();
+      return part.copyWithItems(<Object>[
+        for (final String id in geordnet) nachId[id]!,
+      ]);
+    }
+    return part;
+  }
+
+  /// true, wenn [part] in einer anderen Ordnung dasteht, als er sollte.
+  static bool needsRewrite(SyncPart part) {
+    final SyncPart geordnet = canonicalOrder(part);
+    final List<String> vorher = part.identityOrder;
+    final List<String> nachher = geordnet.identityOrder;
+    for (int i = 0; i < vorher.length; i++) {
+      if (vorher[i] != nachher[i]) return true;
+    }
+    return vorher.length != nachher.length;
+  }
+
   /// Die Reihenfolge der zusammengeführten Einträge.
   ///
   /// Die führende Seite ist die mit der neueren `orderAt` – wer die Anordnung
@@ -122,36 +170,31 @@ class SyncMerge {
     required SyncPart localPart,
     required SyncPart remotePart,
   }) {
+    // Klassen und Pläne bekommen ihre **berechnete** Ordnung – es gibt dafür
+    // genau eine richtige Antwort, und beide Geräte kommen unabhängig
+    // voneinander zu ihr. Siehe [canonicalOrder].
+    if (_isClassList(key) || ConfigBackup.isCachedPlansKey(key)) {
+      return _canonicalise(key, winner);
+    }
+
     final List<String> localOrder = localPart.identityOrder;
     final List<String> remoteOrder = remotePart.identityOrder;
-
     final bool localLeads = localPart.orderAt.isAfter(remotePart.orderAt)
         ? true
         : (remotePart.orderAt.isAfter(localPart.orderAt)
             ? false
             : _compareSequences(localOrder, remoteOrder) >= 0);
 
-    final List<String> leading = localLeads ? localOrder : remoteOrder;
-    final List<String> following = localLeads ? remoteOrder : localOrder;
-
-    // Sonderfall Pläne: Der Cache ist über das Datum geschlüsselt, und die App
-    // sucht darin nach Datum. Eine von einem Menschen zusammengestellte
-    // Reihenfolge gibt es hier nicht – jeder Geräte-Cache wächst beim
-    // Herunterladen in der Reihenfolge, in der die Tage kommen. Nach Identität
-    // zu ordnen ist hier also keine Bevormundung, sondern die natürliche
-    // Ordnung; und sie erspart das ständige Umsortieren beim Zusammenführen.
-    if (ConfigBackup.isCachedPlansKey(key)) {
-      final List<String> sorted = <String>[...winner.keys]..sort();
-      return <Object>[for (final String id in sorted) winner[id]!];
-    }
-
     final List<String> ordered = <String>[];
-    for (final String id in <String>[...leading, ...following]) {
+    for (final String id in <String>[
+      ...(localLeads ? localOrder : remoteOrder),
+      ...(localLeads ? remoteOrder : localOrder),
+    ]) {
       if (winner.containsKey(id) && !ordered.contains(id)) ordered.add(id);
     }
     // Was in keiner der beiden Reihenfolgen stand – ein Eintrag, dessen
-    // Identität beim Lesen leer war – kommt in fester Reihenfolge hinten an.
-    // Nicht elegant, aber gleichbleibend.
+    // Identität beim Lesen leer war – kommt hinten an, aber immer an derselben
+    // Stelle.
     final List<String> rest = winner.keys
         .where((String id) => !ordered.contains(id))
         .toList()
@@ -164,8 +207,37 @@ class SyncMerge {
     ];
   }
 
-  /// Wessen Anordnung im Ergebnis gilt – die neuere, bei Gleichstand die
-  /// größere.
+  /// Die berechnete Ordnung, direkt auf einer Sammlung von Einträgen.
+  static List<Object> _canonicalise(String key, Map<String, Object> winner) {
+    if (_isClassList(key)) {
+      final Map<String, Object> nachName = <String, Object>{
+        for (final Object item in winner.values)
+          if (_nameOf(item) != null) _nameOf(item)!: item,
+      };
+      return <Object>[
+        for (final String name
+            in ClassNames.sortiert(List<String>.of(nachName.keys)))
+          nachName[name]!,
+      ];
+    }
+    final List<String> ids = winner.keys.toList()..sort();
+    return <Object>[for (final String id in ids) winner[id]!];
+  }
+
+  /// true, wenn [key] die Klassenliste ist.
+  static bool _isClassList(String key) => key == 'classes' || key.endsWith('.classes');
+
+  /// Der Klassenname eines Eintrags – die Klassen sind schlichte Namen.
+  static String? _nameOf(Object item) {
+    if (item is String) return item.isEmpty ? null : item;
+    if (item is Map) {
+      final Object? name = item['name'];
+      final String text = name?.toString() ?? '';
+      return text.isEmpty ? null : text;
+    }
+    return null;
+  }
+
   static DateTime _winningOrderStamp(SyncPart localPart, SyncPart remotePart) {
     if (localPart.orderAt.isAfter(remotePart.orderAt)) return localPart.orderAt;
     if (remotePart.orderAt.isAfter(localPart.orderAt)) return remotePart.orderAt;
@@ -441,7 +513,12 @@ class SyncMerge {
     final List<String> written = <String>[];
 
     for (final SyncPart part in payload.parts) {
-      final Object? value = _encodeForPreferences(part);
+      // **Hier** wird die Ordnung festgelegt, nicht beim Merge. Am Merge
+      // zusammenzuführen hieße: Ein Gerät, das allein in der Kette ist, führt
+      // keinen Merge durch – es hat nichts zum Zusammenführen – und eine
+      // unsortierte Liste bliebe dort für immer stehen. Am Schreibort ist die
+      // Ordnung dagegen garantiert, egal wie das Paket zustande kam.
+      final Object? value = _encodeForPreferences(canonicalOrder(part));
       if (value == null) continue;
       await _write(prefs, part.key, value);
       written.add(part.key);
