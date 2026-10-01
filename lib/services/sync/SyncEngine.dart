@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
@@ -306,6 +307,12 @@ class SyncEngine {
         settings: state.includeSettings
             ? (result.settings ?? merged.settings)
             : merged.settings,
+        // Die Zeit je Wert muss mitwandern, sonst weiß der nächste Merge
+        // nicht, wann ein Wert zuletzt geändert wurde, und alle Werte schienen
+        // gleich alt – mit derselben Folge wie vorher.
+        settingsAt: state.includeSettings
+            ? _mergeStamps(merged.settingsAt, result.settingsAt ?? const <String, DateTime>{})
+            : merged.settingsAt,
         updatedAt: startedAt,
         deviceName: state.deviceName,
       );
@@ -340,24 +347,161 @@ class SyncEngine {
     // Daten und Einstellungen werden getrennt gelesen: Einstellungen sind
     // einfache Werte, keine Listen – und `SharedPreferences` wirft einen
     // Typfehler, wenn man einen Schalter als Liste abfragt.
-    final Map<String, List<Map<String, dynamic>>> parts =
+    final Map<String, List<Object>> parts =
         await SyncDataReader.readParts(prefs, SyncKeys.dataKeysOf(scope));
+
+    // **Alle** übertragbaren Werte, nicht eine handgepflegte Liste. Siehe
+    // [SyncDataReader.readValues] – eine Positivliste kann nicht vollständig
+    // sein, und jede neue Einstellung bliebe sonst auf diesem Gerät.
+    final Map<String, dynamic> values = state.includeSettings
+        ? <String, dynamic>{
+            ...SyncDataReader.readValues(prefs),
+            // Die Karten dekodiert, damit sie einzeln zusammenführbar sind.
+            ...SyncDataReader.readMaps(prefs),
+          }
+        : <String, dynamic>{};
+    final Map<String, DateTime> stamps = state.includeSettings
+        ? _stampsFor(prefs, values)
+        : <String, DateTime>{};
+
     return SyncPayload(
       parts: [
-        for (final MapEntry<String, List<Map<String, dynamic>>> entry
-            in parts.entries)
+        for (final MapEntry<String, List<Object>> entry in parts.entries)
           SyncPayload.describePart(entry.key, entry.value),
       ],
       tombstones: SyncMerge.readTombstones(prefs),
-      settings: state.includeSettings
-          ? await SyncDataReader.readSettings(
-              prefs,
-              SyncKeys.settingKeysOf(scope),
-            )
-          : <String, dynamic>{},
+      settings: values,
+      settingsAt: stamps,
       updatedAt: DateTime.now().toUtc(),
       deviceName: deviceName ?? state.deviceName,
     );
+  }
+
+  /// Nimmt die Zeitangaben beider Seiten für die Werte zusammen, die es jetzt
+  /// gibt.
+  ///
+  /// Für jeden Wert zählt die **neuere** Zeit – so trägt der fremde Wert seine
+  /// eigene Änderungszeit mit, statt sie bei „jetzt" zu verlieren. Das ist der
+  /// Punkt, an dem die Kette sonst in einen Stillstand liefe: Ein Wert würde
+  /// einmal übernommen und danach bei jedem Lauf als alt behandelt.
+  static Map<String, DateTime> _mergeStamps(
+    Map<String, DateTime> local,
+    Map<String, DateTime> remote,
+  ) {
+    final Map<String, DateTime> merged = <String, DateTime>{...local};
+    for (final MapEntry<String, DateTime> entry in remote.entries) {
+      final DateTime? mine = local[entry.key];
+      if (mine == null || entry.value.isAfter(mine)) {
+        merged[entry.key] = entry.value;
+      }
+    }
+    return merged;
+  }
+
+  /// Die Änderungszeit **je Wert**, und das Merken des neuen Stands.
+  ///
+  /// Neu ist die Zeit nur dort, wo sich der Wert gegenüber dem zuletzt
+  /// gesendeten tatsächlich geändert hat. Alles andere behält seine
+  /// bisherige – sonst sähe bei jedem Lauf alles frisch aus, und die
+  /// Einstellungen hätten wieder denselben Fehler.
+  ///
+  /// Der Schatten des gesendeten Stands liegt in
+  /// [SyncEngine.timestampsStorageKey]. Der Sync muss dafür **keine einzige**
+  /// Schreibstelle der App anfassen – wichtig, weil es in `VPlanAPI`,
+  /// `Plan` und den Einstellungsseiten Dutzende davon gibt.
+  Map<String, DateTime> _stampsFor(
+    SharedPreferences prefs,
+    Map<String, dynamic> values,
+  ) {
+    final DateTime now = DateTime.now().toUtc();
+    final Map<String, dynamic> shadow = _readShadow(prefs);
+    final Map<String, DateTime> previousStamps = _readStamps(prefs);
+    final Map<String, DateTime> stamps = <String, DateTime>{};
+
+    for (final MapEntry<String, dynamic> entry in values.entries) {
+      final String encoded = jsonEncode(entry.value);
+      final Object? known = shadow[entry.key];
+      if (known == null) {
+        // Erstmals gesehen: Wann dieser Wert gesetzt wurde, weiß dieses Gerät
+        // nicht – die App merkt es sich nirgends. Es behauptet deshalb
+        // **nicht**, der neueste zu sein, sondern bekommt den Anfang der
+        // Zeitachse.
+        //
+        // Mit „jetzt" stattdessen behauptete jedes Gerät beim ersten Lauf, der
+        // Neueste zu sein – auch eines, das den Wert nie angefasst hat. Damit
+        // hätte das Gerät mit der echten Änderung immer gegen ein Gerät
+        // verloren, das nur zufällig später dran war, und keine Einstellung
+        // wäre je angekommen.
+        stamps[entry.key] = SyncPayload.epoch;
+      } else if (known.toString() != encoded) {
+        // Gegen den gesendeten Stand verglichen: hier wurde wirklich
+        // umgestellt, und genau dann ist „jetzt" berechtigt.
+        stamps[entry.key] = now;
+      } else {
+        stamps[entry.key] = previousStamps[entry.key] ?? SyncPayload.epoch;
+      }
+      shadow[entry.key] = encoded;
+    }
+
+    // Ein Wert, der lokal verschwunden ist, wird auch aus dem Schatten
+    // entfernt – sonst gälte er beim Zurückkommen als unverändert.
+    shadow.removeWhere((String key, dynamic _) => !values.containsKey(key));
+
+    _writeShadow(prefs, shadow, stamps);
+    return stamps;
+  }
+
+  /// Der zuletzt gesendete Werte- und Zeitstand.
+  static const String timestampsStorageKey = 'sync.settingsTimestamps';
+
+  Map<String, dynamic> _readShadow(SharedPreferences prefs) {
+    try {
+      final String? raw = prefs.getString(timestampsStorageKey);
+      if (raw == null || raw.isEmpty) return <String, dynamic>{};
+      final Object? decoded = jsonDecode(raw);
+      if (decoded is! Map) return <String, dynamic>{};
+      final Object? values = decoded['values'];
+      if (values is! Map) return <String, dynamic>{};
+      return values.cast<String, dynamic>();
+    } catch (_) {
+      return <String, dynamic>{};
+    }
+  }
+
+  Map<String, DateTime> _readStamps(SharedPreferences prefs) {
+    try {
+      final String? raw = prefs.getString(timestampsStorageKey);
+      if (raw == null || raw.isEmpty) return <String, DateTime>{};
+      final Object? decoded = jsonDecode(raw);
+      if (decoded is! Map) return <String, DateTime>{};
+      final Object? stamps = decoded['stamps'];
+      if (stamps is! Map) return <String, DateTime>{};
+      return stamps.map((dynamic key, dynamic value) => MapEntry<String, DateTime>(
+            key.toString(),
+            DateTime.tryParse(value.toString()) ??
+                DateTime.fromMillisecondsSinceEpoch(0),
+          ));
+    } catch (_) {
+      return <String, DateTime>{};
+    }
+  }
+
+  void _writeShadow(
+    SharedPreferences prefs,
+    Map<String, dynamic> shadow,
+    Map<String, DateTime> stamps,
+  ) {
+    // Ein Fehler hier darf den Sync nicht abbrechen. Die Folge wäre nur, dass
+    // beim nächsten Lauf alles als frisch gilt – das ist ein ungenauer
+    // Zeitstempel, kein Datenverlust.
+    unawaited(prefs.setString(
+      timestampsStorageKey,
+      jsonEncode(<String, dynamic>{
+        'values': shadow,
+        'stamps': stamps.map((String k, DateTime v) =>
+            MapEntry<String, String>(k, v.toUtc().toIso8601String())),
+      }),
+    ));
   }
 
   /// Entschlüsselt eine Hülle zu einem [SyncPayload].

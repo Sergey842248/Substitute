@@ -41,19 +41,32 @@ class SyncPart {
   /// ablegt – z.B. `persons` oder `schools.12345.persons`.
   final String key;
 
-  /// Die Einträge als dekodierte Maps (bei Plänen: die dekodierten Plan-JSONs).
-  final List<Map<String, dynamic>> items;
+  /// Die Einträge, dekodiert.
+  ///
+  /// Ein Eintrag ist entweder ein **Objekt** (`Map<String, dynamic>`) oder ein
+  /// **einfacher Name** (`String`). Beides kommt in der App vor:
+  ///
+  /// * `persons`, `offlineVPData`, `sickTrack` – Zeilen mit JSON-Objekten,
+  /// * `classes`, `classNames`, `cachedRooms` – Zeilen, die schlicht ein
+  ///   Klassen- oder Raumname sind.
+  ///
+  /// Vorher war ausschliesslich `Map<String, dynamic>` erlaubt, und der Leser
+  /// zerlegte jede Zeile mit `jsonDecode`. Ein Klassenname wie `8a` ist aber
+  /// **kein** JSON – `jsonDecode` scheitert daran, und die Zeile fiel
+  /// kommentarlos heraus. Damit sind die Klassen nie in einer Kette
+  /// angekommen: Der Sync meldete Erfolg, es war nur nichts zu senden.
+  final List<Object> items;
 
   /// Liefert die Identität eines Eintrags. Zwei Einträge mit gleicher Identität
   /// sind derselbe Eintrag.
-  final String? Function(Map<String, dynamic> item) idOf;
+  final String? Function(Object item) idOf;
 
   /// Liefert die Änderungszeit eines Eintrags. Fehlt sie, wird auf
   /// [SyncPayload.epoch] zurückgefallen, also gewinnt die höhere
   /// Gesamtzeit.
-  final DateTime? Function(Map<String, dynamic> item)? timestampOf;
+  final DateTime? Function(Object item)? timestampOf;
 
-  SyncPart copyWithItems(List<Map<String, dynamic>> newItems) => SyncPart(
+  SyncPart copyWithItems(List<Object> newItems) => SyncPart(
         key: key,
         items: newItems,
         idOf: idOf,
@@ -97,6 +110,7 @@ class SyncMergeResult {
     required this.removed,
     required this.tombstonesAdded,
     this.settings,
+    this.settingsAt,
   });
 
   final List<SyncPart> parts;
@@ -114,11 +128,18 @@ class SyncMergeResult {
   /// Lösch-Markierungen, die neu dazukamen.
   final List<SyncTombstone> tombstonesAdded;
 
-  /// Die zusammengeführten einfachen Einstellungen.
+  /// Die zusammengeführten Werte.
   ///
   /// [SyncMerge] füllt dieses Feld, die Teilergebnisse nicht – deshalb ist es
   /// hier nullable.
   final Map<String, dynamic>? settings;
+
+  /// Die zusammengeführten Änderungszeiten je Wert.
+  ///
+  /// Gehören zwingend zu [settings]: Ohne sie ist beim nächsten Lauf nicht mehr
+  /// unterscheidbar, ob ein Wert alt ist oder gerade eben übernommen wurde –
+  /// und die Kette käme nach einem erfolgreichen Lauf zum Stillstand.
+  final Map<String, DateTime>? settingsAt;
 
   bool get hasChanges =>
       added.isNotEmpty || updated.isNotEmpty || removed.isNotEmpty;
@@ -134,6 +155,7 @@ class SyncPayload {
     required this.tombstones,
     required this.settings,
     required this.updatedAt,
+    this.settingsAt = const <String, DateTime>{},
     this.deviceName = '',
   });
 
@@ -149,10 +171,29 @@ class SyncPayload {
   final List<SyncPart> parts;
   final List<SyncTombstone> tombstones;
 
-  /// Einfache Schlüssel/Wert-Paare (Schalter, Modus, Anzeigenamen). Ohne
-  /// Identität, deshalb gilt hier "zuletzt geändert gewinnt" – das ist für
-  /// Bool-Schalter genau das richtige Verhalten.
+  /// Alle Werte, die als Ganzes übertragen werden: Karten
+  /// (`hiddenSubjectsByClass`, `initializedClasses`, `previewHidden*`),
+  /// Schalter, Zahlen und Zeichenketten (`languageCode`,
+  /// `defaultPlanModeClass`).
+  ///
+  /// Ohne Identität, deshalb gilt hier "zuletzt geändert gewinnt" – für einen
+  /// Schalter genau das richtige Verhalten. **Die** Zeit dafür steht in
+  /// [settingsAt], nicht in [updatedAt].
   final Map<String, dynamic> settings;
+
+  /// Die Änderungszeit **je Wert**.
+  ///
+  /// Vorher stand hierfür ein einziger Zeitstempel für das ganze Paket, gesetzt
+  /// auf „jetzt" bei jedem Lauf. Damit war jedes Gerät beim letzten Sync
+  /// vermeintlich das neueste, und keine Einstellung wanderte jemals.
+  ///
+  /// Fehlt ein Eintrag – etwa bei einem Paket aus einer älteren App-Version –
+  /// gilt [updatedAt] als Ersatz. So können alte und neue Geräte zeitweise in
+  /// derselben Kette stehen, ohne dass etwas verloren geht.
+  final Map<String, DateTime> settingsAt;
+
+  /// Die Änderungszeit von [key], mit Rückfall auf [updatedAt].
+  DateTime stampOf(String key) => settingsAt[key] ?? updatedAt;
 
   /// Wann dieses Gerät den Stand zuletzt zusammengestellt hat.
   final DateTime updatedAt;
@@ -170,6 +211,10 @@ class SyncPayload {
         'updatedAt': updatedAt.toUtc().toIso8601String(),
         'deviceName': deviceName,
         'settings': settings,
+        'settingsAt': <String, String>{
+          for (final MapEntry<String, DateTime> entry in settingsAt.entries)
+            entry.key: entry.value.toUtc().toIso8601String(),
+        },
         'tombstones': tombstones
             .map((SyncTombstone t) => t.toJson())
             .toList(growable: false),
@@ -180,6 +225,23 @@ class SyncPayload {
                 })
             .toList(growable: false),
       };
+
+  /// Liest die Zeitangaben je Wert.
+  ///
+  /// Fehlt das Feld ganz – ein Paket aus einer älteren App-Version – kommt eine
+  /// leere Map zurück, und [stampOf] fällt dann auf [updatedAt] zurück. So
+  /// bleibt ein alter Stand lesbar, statt das Gerät mit einem Formatfehler
+  /// auszuschließen.
+  static Map<String, DateTime> _readStamps(Object? raw) {
+    if (raw is! Map) return <String, DateTime>{};
+    final Map<String, DateTime> stamps = <String, DateTime>{};
+    for (final MapEntry<Object?, Object?> entry in raw.entries) {
+      final DateTime? parsed =
+          DateTime.tryParse(entry.value.toString())?.toUtc();
+      if (parsed != null) stamps[entry.key.toString()] = parsed;
+    }
+    return stamps;
+  }
 
   /// Liest ein Paket aus entschlüsseltem JSON.
   ///
@@ -199,9 +261,16 @@ class SyncPayload {
       if (entry is! Map) continue;
       final String key = entry['key']?.toString() ?? '';
       if (key.isEmpty) continue;
-      final List<Map<String, dynamic>> items = <Map<String, dynamic>>[];
-      for (final Object? item in (entry['items'] as List<dynamic>? ?? <dynamic>[])) {
-        if (item is Map) items.add(item.cast<String, dynamic>());
+      final List<Object> items = <Object>[];
+      for (final Object? item
+          in (entry['items'] as List<dynamic>? ?? <dynamic>[])) {
+        // Objekte und einfache Zeichenketten sind beide gültige Einträge –
+        // siehe [SyncPart.items]. Alles andere wird übergangen.
+        if (item is Map) {
+          items.add(item.cast<String, dynamic>());
+        } else if (item is String) {
+          items.add(item);
+        }
       }
       parts.add(describePart(key, items));
     }
@@ -229,6 +298,7 @@ class SyncPayload {
       parts: parts,
       tombstones: tombstones,
       settings: settings,
+      settingsAt: _readStamps(json['settingsAt']),
       updatedAt:
           DateTime.tryParse(json['updatedAt']?.toString() ?? '')?.toUtc() ??
               epoch,
@@ -240,20 +310,21 @@ class SyncPayload {
   ///
   /// Die Zuordnung liegt hier zentral, weil sie an zwei Stellen gebraucht wird:
   /// beim Einlesen eines Pakets und beim Anwenden auf `SharedPreferences`.
-  static SyncPart describePart(String key, List<Map<String, dynamic>> items) {
+  static SyncPart describePart(String key, List<Object> items) {
     if (ConfigBackup.isCachedPlansKey(key)) {
       return SyncPart(
         key: key,
         items: items,
-        idOf: (Map<String, dynamic> item) => _planDate(item) ?? '',
+        idOf: (Object item) => _planDate(item) ?? '',
       );
     }
     return SyncPart(
       key: key,
       items: items,
-      idOf: (Map<String, dynamic> item) => _identityOf(key, item),
-      timestampOf: (Map<String, dynamic> item) =>
-          DateTime.tryParse(item['_t']?.toString() ?? '')?.toUtc(),
+      idOf: (Object item) => _identityOf(key, item),
+      timestampOf: (Object item) => item is Map
+          ? DateTime.tryParse(item['_t']?.toString() ?? '')?.toUtc()
+          : null,
     );
   }
 
@@ -263,21 +334,31 @@ class SyncPayload {
   /// Bewusst aus mehreren Feldern gebildet: Eine Kürzel-Liste kennt keine IDs,
   /// da ist das Kürzel selbst die Identität – bei den Zeiten ist es die
   /// Kombination aus Anzahl, Beginn und Ende, weil sich Uhrzeiten ändern.
-  static String _identityOf(String key, Map<String, dynamic> item) {
-    if (item['id'] != null) return item['id'].toString();
-    if (item['short'] != null) return item['short'].toString();
-    if (item['count'] != null) {
-      return '${item['count']}_${item['start']}_${item['end']}';
+  ///
+  /// Ein einfacher Name – etwa `8a` aus [SyncKeys.itemKeys] `classes` – ist
+  /// seine **eigene** Identität. Zwei Geräte, die beide die Klasse `8a`
+  /// haben, meinen dasselbe, und nach dem Merge steht sie genau einmal in der
+  /// Liste. Ohne diese Regel wäre jeder Name auf beiden Geräten ein eigener
+  /// Eintrag, und die Liste enthielte jede Klasse doppelt.
+  static String _identityOf(String key, Object item) {
+    if (item is String) return item;
+    if (item is! Map) return jsonEncode(item);
+    final Map<String, dynamic> record = item.cast<String, dynamic>();
+    if (record['id'] != null) return record['id'].toString();
+    if (record['short'] != null) return record['short'].toString();
+    if (record['count'] != null) {
+      return '${record['count']}_${record['start']}_${record['end']}';
     }
-    if (item['date'] != null) return item['date'].toString();
+    if (record['date'] != null) return record['date'].toString();
     // Fällt auf den ganzen Inhalt zurück: zwei wirklich verschiedene
     // Einträge gelten dann als verschieden, gleiche als gleicher Eintrag.
-    return jsonEncode(_withoutTimestamp(item));
+    return jsonEncode(_withoutTimestamp(record));
   }
 
   /// Das Datum eines Planeintrags – bei verschachtelten Plänen
   /// `data.Kopf.DatumPlan`.
-  static String? _planDate(Map<String, dynamic> item) {
+  static String? _planDate(Object item) {
+    if (item is! Map) return null;
     final Object? date = item['date'] ?? _nestedPlanDate(item['data']);
     final String? value = date?.toString();
     return (value == null || value.isEmpty) ? null : value;
@@ -295,6 +376,16 @@ class SyncPayload {
       ..remove(syncTimestampField);
     return copy;
   }
+
+  /// Wandelt einen Eintrag in die Zeile, in der er gespeichert wird.
+  ///
+  /// Ein Objekt wird als JSON abgelegt, ein einfacher Name **genau wie er
+  /// ist**. Das ist keine Feinheit: Die App schreibt die Klassen als
+  /// `setStringList(key, ['8a', '8b'])` – ohne JSON. Mit `jsonEncode` stünden
+  /// danach die Zeichenketten `"8a"` in der Liste, und die Klassenauswahl
+  /// zeigte sie mit Anführungszeichen.
+  static String encodeItem(Object item) =>
+      item is String ? item : jsonEncode(item);
 
   /// Der Schlüssel, unter dem ein Listen-Eintrag seine Änderungszeit
   /// mitführt. Mit einem führenden Unterstrich, damit er in der App

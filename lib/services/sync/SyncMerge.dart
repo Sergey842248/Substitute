@@ -56,8 +56,8 @@ class SyncMerge {
     final List<String> removed = <String>[];
 
     for (final String key in keys) {
-      final List<Map<String, dynamic>> localItems = _itemsOf(local, key);
-      final List<Map<String, dynamic>> remoteItems = _itemsOf(remote, key);
+      final List<Object> localItems = _itemsOf(local, key);
+      final List<Object> remoteItems = _itemsOf(remote, key);
       final SyncMergeResult part = _mergePart(
         key,
         localItems,
@@ -70,17 +70,24 @@ class SyncMerge {
       mergedParts.add(part.parts.single);
     }
 
-    // Schlüssel/Wert-Paare: bei einem Konflikt gewinnt die Seite mit der
-    // neueren Gesamtzeit. Bei gleicher Zeit gewinnt das lokale Gerät – das
-    // hält das Ergebnis stabil, wenn zwei Geräte gleichzeitig synchronisieren.
+    // Werte: Ganzes gegen Ganzes, und zwar **je Wert** nach seiner eigenen
+    // Änderungszeit. Vorher stand hier ein Vergleich über die Gesamtzeit des
+    // Pakets, gesetzt auf „jetzt" bei jedem Lauf: Jedes Gerät war damit beim
+    // letzten Sync das neueste, keine Einstellung wanderte jemals, und die
+    // Oberfläche zeigte dauerhaft „Alles ist aktuell".
     final Map<String, dynamic> settings = <String, dynamic>{...remote.settings};
-    final bool remoteIsNewer = remote.updatedAt.isAfter(local.updatedAt);
     for (final MapEntry<String, dynamic> entry in local.settings.entries) {
       if (!remote.settings.containsKey(entry.key)) {
         settings[entry.key] = entry.value;
-      } else if (!remoteIsNewer) {
-        settings[entry.key] = entry.value;
+        continue;
       }
+      settings[entry.key] = _winningValue(
+        key: entry.key,
+        local: entry.value,
+        localAt: local.stampOf(entry.key),
+        remote: remote.settings[entry.key],
+        remoteAt: remote.stampOf(entry.key),
+      );
     }
 
     return SyncMergeResult(
@@ -91,14 +98,91 @@ class SyncMerge {
       removed: removed,
       tombstonesAdded: addedTombstones,
       settings: settings,
+      settingsAt: _mergedStamps(local, remote, settings),
     );
+  }
+
+  /// Die Änderungszeiten für die Werte, die es im Ergebnis gibt.
+  ///
+  /// Für jeden Wert zählt die **neuere** der beiden Zeiten. Das ist der Punkt,
+  /// an dem die Kette sonst stillstünde: Ein übernommener Wert verlöre sonst
+  /// seine Herkunft, gälte beim nächsten Lauf als „unverändert alt" – und
+  /// könnte nie wieder von einem Gerät gewonnen werden, das ihn später ändert.
+  static Map<String, DateTime> _mergedStamps(
+    SyncPayload local,
+    SyncPayload remote,
+    Map<String, dynamic> settings,
+  ) {
+    final Map<String, DateTime> merged = <String, DateTime>{};
+    for (final String key in settings.keys) {
+      final DateTime localAt = local.stampOf(key);
+      final DateTime remoteAt = remote.stampOf(key);
+      merged[key] = remoteAt.isAfter(localAt) ? remoteAt : localAt;
+    }
+    return merged;
+  }
+
+  /// Welcher der beiden Werte gewinnt.
+  ///
+  /// Der Normalfall ist eindeutig: Der mit der neueren Änderungszeit gewinnt.
+  ///
+  /// Karten sind der Sonderfall, und der braucht mehr als „ein Gewinner für
+  /// alles". `hiddenSubjectsByClass` sagt zum Beispiel je Klasse, welche Kurse
+  /// ausgeblendet sind. Blendet die Kollegin auf ihrem Gerät Deutsch in der 8a
+  /// aus und hier Deutsch in der 8b, dann ist „eine Seite gewinnt ganz" falsch –
+  /// es ginge eine der beiden Angaben verloren, und zwar stillschweigend.
+  /// Deshalb werden Karten **einzeln** zusammengeführt: Jeder Eintrag, den nur
+  /// eine Seite hat, bleibt; nur wo beide denselben Eintrag unterschiedlich
+  /// belegen, entscheidet die Zeit.
+  ///
+  /// Der Gleichstand braucht ebenfalls mehr Sorgfalt. „Bei gleicher Zeit
+  /// gewinnt das lokale Gerät" ist **nicht symmetrisch**: Zwei Geräte mit
+  /// gleichem Stand kämen zu verschiedenen Ergebnissen, und weil beide ihr
+  /// Ergebnis wieder hochschieben, oszillierten sie dauerhaft. Dem Merge wird
+  /// ausdrücklich Symmetrie zugesagt, also darf hier nichts davon abhängen, wer
+  /// gerade rechnet. Stattdessen gewinnt der Wert, dessen kodierte Form
+  /// alphabetisch größer ist – beliebig, aber auf beiden Geräten gleich.
+  static Object? _winningValue({
+    required String key,
+    required Object? local,
+    required DateTime localAt,
+    required Object? remote,
+    required DateTime remoteAt,
+  }) {
+    if (remote is Map && local is Map) {
+      if (remoteAt.isAfter(localAt)) return <String, dynamic>{...local, ...remote};
+      if (localAt.isAfter(remoteAt)) return <String, dynamic>{...remote, ...local};
+      // Gleichstand: je Eintrag einzeln entscheiden, damit auch hier nichts
+      // verloren geht.
+      final Map<String, dynamic> merged = <String, dynamic>{};
+      for (final String entryKey in <String>{
+        ...local.keys.map((Object? k) => k.toString()),
+        ...remote.keys.map((Object? k) => k.toString()),
+      }) {
+        final Object? a = local[entryKey];
+        final Object? b = remote[entryKey];
+        if (!local.containsKey(entryKey)) {
+          merged[entryKey] = b;
+        } else if (!remote.containsKey(entryKey)) {
+          merged[entryKey] = a;
+        } else {
+          merged[entryKey] = jsonEncode(a).compareTo(jsonEncode(b)) >= 0 ? a : b;
+        }
+      }
+      return merged;
+    }
+    if (remoteAt.isAfter(localAt)) return remote;
+    if (localAt.isAfter(remoteAt)) return local;
+    final String a = jsonEncode(local);
+    final String b = jsonEncode(remote);
+    return a.compareTo(b) >= 0 ? local : remote;
   }
 
   /// Führt einen einzelnen Bestandteil zusammen.
   static SyncMergeResult _mergePart(
     String key,
-    List<Map<String, dynamic>> localItems,
-    List<Map<String, dynamic>> remoteItems,
+    List<Object> localItems,
+    List<Object> remoteItems,
     Map<String, SyncTombstone> tombstones,
     List<String> added,
     List<String> updated,
@@ -112,7 +196,7 @@ class SyncMerge {
     // gelesene; das kann nur bei Datenfehlern passieren.
     final Map<String, String> localIds = <String, String>{};
     final Map<String, DateTime> localTimes = <String, DateTime>{};
-    for (final Map<String, dynamic> item in localItems) {
+    for (final Object item in localItems) {
       final String? id = localPart.idOf(item);
       if (id == null || id.isEmpty) continue;
       localIds[id] = id;
@@ -120,7 +204,7 @@ class SyncMerge {
     }
     final Map<String, String> remoteIds = <String, String>{};
     final Map<String, DateTime> remoteTimes = <String, DateTime>{};
-    for (final Map<String, dynamic> item in remoteItems) {
+    for (final Object item in remoteItems) {
       final String? id = remotePart.idOf(item);
       if (id == null || id.isEmpty) continue;
       remoteIds[id] = id;
@@ -149,11 +233,11 @@ class SyncMerge {
     }
 
     // Die Gewinner-Fassung bestimmen.
-    final Map<String, Map<String, dynamic>> winner = <String, Map<String, dynamic>>{};
+    final Map<String, Object> winner = <String, Object>{};
     for (final String id in allIds) {
       if (dropped.contains(id)) continue;
-      final Map<String, dynamic>? local = _pick(localItems, localPart, id);
-      final Map<String, dynamic>? remote = _pick(remoteItems, remotePart, id);
+      final Object? local = _pick(localItems, localPart, id);
+      final Object? remote = _pick(remoteItems, remotePart, id);
 
       if (local == null && remote != null) {
         winner[id] = remote;
@@ -189,8 +273,8 @@ class SyncMerge {
     // zusammengeführte Stände unabhängig davon identisch, in welcher
     // Reihenfolge die Geräte synchronisiert wurden – und die Listen in der
     // App springen nicht bei jedem Sync um.
-    final List<Map<String, dynamic>> result = winner.values.toList()
-      ..sort((Map<String, dynamic> a, Map<String, dynamic> b) =>
+    final List<Object> result = winner.values.toList()
+      ..sort((Object a, Object b) =>
           (localPart.idOf(a) ?? '').compareTo(localPart.idOf(b) ?? ''));
 
     return SyncMergeResult(
@@ -204,12 +288,8 @@ class SyncMerge {
   }
 
   /// Der Eintrag mit dieser Identität, oder null, wenn es ihn hier nicht gibt.
-  static Map<String, dynamic>? _pick(
-    List<Map<String, dynamic>> items,
-    SyncPart part,
-    String id,
-  ) {
-    for (final Map<String, dynamic> item in items) {
+  static Object? _pick(List<Object> items, SyncPart part, String id) {
+    for (final Object item in items) {
       if (part.idOf(item) == id) return item;
     }
     return null;
@@ -222,23 +302,25 @@ class SyncMerge {
   }
 
   /// Vergleicht zwei Einträge ohne das interne Zeitfeld.
-  static bool _sameContent(
-    Map<String, dynamic> a,
-    Map<String, dynamic> b,
-  ) =>
-      jsonEncode(_stripTimestamp(a)) == jsonEncode(_stripTimestamp(b));
+  static bool _sameContent(Object a, Object b) =>
+      _stripTimestamp(a) == _stripTimestamp(b);
 
-  static Map<String, dynamic> _stripTimestamp(Map<String, dynamic> item) =>
-      Map<String, dynamic>.of(item)..remove(SyncPayload.syncTimestampField);
+  /// Entfernt das interne Zeitfeld, damit es nicht als Unterschied zählt.
+  static Object _stripTimestamp(Object item) {
+    if (item is! Map) return item;
+    final Map<dynamic, dynamic> copy = Map<dynamic, dynamic>.of(item)
+      ..remove(SyncPayload.syncTimestampField);
+    return jsonEncode(copy);
+  }
 
-  static DateTime _timestampOf(SyncPart part, Map<String, dynamic> item) =>
+  static DateTime _timestampOf(SyncPart part, Object item) =>
       part.timestampOf?.call(item) ?? SyncPayload.epoch;
 
-  static List<Map<String, dynamic>> _itemsOf(SyncPayload payload, String key) {
+  static List<Object> _itemsOf(SyncPayload payload, String key) {
     for (final SyncPart part in payload.parts) {
       if (part.key == key) return part.items;
     }
-    return const <Map<String, dynamic>>[];
+    return const <Object>[];
   }
 
   /// Schreibt ein zusammengeführtes Paket in die `SharedPreferences`.
@@ -260,9 +342,12 @@ class SyncMerge {
 
     for (final MapEntry<String, dynamic> entry in payload.settings.entries) {
       if (ConfigBackup.sensitiveKeys.contains(entry.key)) continue;
-      final Object? value = _plainValue(entry.value);
-      if (value == null) continue;
-      await _write(prefs, entry.key, value);
+      // Der Wert geht **unverändert** an den Schreiber. Eine Umformung davor
+      // wäre schädlich: `toString()` macht aus einer Karte `{c1: true}`, und das
+      // ist kein JSON – `VPlanAPI` scheitert daran, den Wert zu lesen, ohne
+      // dass irgendwo ein Fehler auftritt.
+      if (entry.value == null) continue;
+      await _write(prefs, entry.key, entry.value);
       written.add(entry.key);
     }
 
@@ -311,33 +396,17 @@ class SyncMerge {
   /// Die App speichert Listen als `StringList` mit **JSON-Zeichenkette pro
   /// Eintrag** – das ist das Format, das `VPlanAPI` und die Plan-Ansicht
   /// erwarten. Ein JSON-Array wäre an dieser Stelle ein stiller Datenverlust.
-  static Object? _encodeForPreferences(SyncPart part) {
-    if (ConfigBackup.isCachedPlansKey(part.key)) {
-      return part.items.map(jsonEncode).toList();
-    }
-    return part.items.map(jsonEncode).toList();
-  }
-
-  /// Wandelt einen einfachen Wert in etwas, das `setString` annimmt.
-  static Object? _plainValue(Object? value) {
-    if (value == null) return null;
-    if (value is bool || value is int || value is double) return value;
-    if (value is List) return value.map((Object? e) => e.toString()).toList();
-    return value.toString();
-  }
-
-  /// Schreibt einen Wert in die Einstellungen – **in der Form, die die App
-  /// erwartet**.
+  /// Die Einträge eines Bestandteils in der Form, in der sie gespeichert
+  /// werden.
   ///
-  /// Das ist kein Detail. Ein Sync, der `persons` als `StringList` schreibt,
-  /// während `VPlanAPI` sie mit `getString` liest, macht die App beim nächsten
-  /// Start unbenutzbar: `main()` wirft, `runApp` wird nie erreicht, und die
-  /// App startet nicht wieder. Genau das ist geschehen.
-  ///
-  /// Für Bestandteile aus [SyncKeys.dataKeys] entscheidet deshalb
-  /// [SyncKeys.dataKeyForms] über die Form – und der Sync **schreibt nie
-  /// um**. Nur die Einstellungen und Werte unbekannter Herkunft fallen auf das
-  /// Typablehen zurück.
+  /// Ein Objekt wird als JSON abgelegt, ein einfacher Name **genau wie er
+  /// ist** – siehe [SyncPayload.encodeItem]. Hier stand früher ein
+  /// `map(jsonEncode)` für beides, und damit landete die Klasse `8a` als
+  /// `"8a"` in der Liste. Die App liest `classes` aber als schlichte Namen, also
+  /// zeigte die Auswahl danach `"8a"` mit Anführungszeichen.
+  static Object? _encodeForPreferences(SyncPart part) =>
+      part.items.map(SyncPayload.encodeItem).toList();
+
   static Future<void> _write(
     SharedPreferences prefs,
     String key,
@@ -356,10 +425,13 @@ class SyncMerge {
       return;
     }
     if (value is List) {
+      // Ein einfacher Name wird **genau so** zurückgeschrieben, ein Objekt als
+      // JSON. Mit einem `jsonEncode` für beides stünden die Klassen danach als
+      // `"8a"` in der Liste – mit Anführungszeichen in der Auswahl.
       final List<String> lines = value
-          .map((Object? e) => e is String
-              ? e
-              : (e is Map ? jsonEncode(e) : e.toString()))
+          .map((Object? e) => e == null
+              ? ''
+              : SyncPayload.encodeItem(e))
           .toList();
       switch (SyncKeys.formOf(key)) {
         case StoredForm.jsonArray:
@@ -373,6 +445,18 @@ class SyncMerge {
         case null:
           await prefs.setStringList(key, lines);
       }
+      return;
+    }
+    if (value is Map) {
+      // Karten (`initializedClasses`, `hiddenSubjectsByClass`,
+      // `previewHidden*`) legt die App als JSON-Zeichenkette ab. `toString()`
+      // ergäbe `{c1: true}` – gültig für Dart, ungültig als JSON, und `VPlanAPI`
+      // würde `jsonDecode` daran scheitern lassen.
+      await prefs.setString(key, jsonEncode(value));
+      return;
+    }
+    if (value is String) {
+      await prefs.setString(key, value);
       return;
     }
     await prefs.setString(key, value.toString());

@@ -79,11 +79,11 @@ void main() {
       // `persons` eine leere Liste – kein Fehler, kein Logeintrag, einfach
       // nichts. Der Sync meldete Erfolg und übertrug nur noch die Pläne.
       final SharedPreferences prefs = await withAllDataKeys();
-      final Map<String, List<Map<String, dynamic>>> parts =
+      final Map<String, List<Object>> parts =
           await SyncDataReader.readParts(prefs, SyncKeys.dataKeys);
       expect(parts.keys, contains('persons'));
       expect(
-        parts['persons']!.map((Map<String, dynamic> p) => p['name']).toList(),
+        parts['persons']!.map((Object p) => (p as Map)['name']).toList(),
         <String>['Hans', 'Petra'],
       );
       expect(parts.keys, contains('classes'));
@@ -158,10 +158,10 @@ void main() {
           SchoolStorage.scopedKey(prefs, key),
       ];
       final int counted = SyncDataReader.countItemsOf(prefs, keys);
-      final Map<String, List<Map<String, dynamic>>> read =
+      final Map<String, List<Object>> read =
           await SyncDataReader.readParts(prefs, keys);
       final int actuallySent =
-          read.values.fold(0, (int sum, List<Map<String, dynamic>> l) => sum + l.length);
+          read.values.fold(0, (int sum, List<Object> l) => sum + l.length);
       expect(counted, actuallySent,
           reason: 'die Anzeige zählt $counted, der Sync schickt $actuallySent');
       expect(counted, greaterThan(0));

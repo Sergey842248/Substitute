@@ -118,12 +118,14 @@ SyncPayload payloadOf(
   String key = 'persons',
   DateTime? updatedAt,
   Map<String, dynamic>? settings,
+  Map<String, DateTime>? settingsAt,
   List<SyncTombstone> tombstones = const <SyncTombstone>[],
 }) =>
     SyncPayload(
       parts: <SyncPart>[SyncPayload.describePart(key, persons)],
       tombstones: tombstones,
       settings: settings ?? const <String, dynamic>{},
+      settingsAt: settingsAt ?? const <String, DateTime>{},
       updatedAt: updatedAt ?? DateTime.utc(2026, 9, 30, 12),
     );
 
@@ -227,7 +229,11 @@ void main() {
       );
     });
 
-    test('überspringt beschädigte Einträge statt zu scheitern', () {
+    test('nimmt Objekte und einfache Namen, überspringt den Rest', () async {
+      // Ein Eintrag ist ein Objekt **oder** ein einfacher Name – die App legt
+      // die Klassen als `['8a', '8b']` ab, ohne JSON. Nur echte Namen zählen;
+      // alles andere wird übergangen, statt das ganze Paket scheitern zu
+      // lassen.
       final SyncPayload restored = SyncPayload.fromJson(<String, dynamic>{
         'app': 'substitute',
         'schema': 1,
@@ -235,13 +241,16 @@ void main() {
           <String, dynamic>{
             'key': 'persons',
             'items': <dynamic>[
-              'kein map',
+              '8a',
               <String, dynamic>{'id': '1', 'name': 'Hans'},
+              42,
             ],
           },
         ],
       });
-      expect(restored.parts.single.items, hasLength(1));
+      expect(restored.parts.single.items, hasLength(2));
+      expect(restored.parts.single.items.first, '8a');
+      expect(restored.parts.single.items.last, isA<Map<String, dynamic>>());
     });
   });
 
@@ -251,7 +260,7 @@ void main() {
         payloadOf(<Map<String, dynamic>>[person('1', 'Hans')]),
         payloadOf(<Map<String, dynamic>>[person('1', 'Hans'), person('2', 'Petra')]),
       );
-      final List<Map<String, dynamic>> merged = result.parts.single.items;
+      final List<Object> merged = result.parts.single.items;
       expect(merged, hasLength(2));
       expect(result.added, <String>['2']);
     });
@@ -270,7 +279,7 @@ void main() {
         payloadOf(<Map<String, dynamic>>[person('1', 'Hans', at: '2026-09-30T10:00:00Z')]),
         payloadOf(<Map<String, dynamic>>[person('1', 'Renate', at: '2026-09-30T11:00:00Z')]),
       );
-      expect(result.parts.single.items.single['name'], 'Renate');
+      expect((result.parts.single.items.single as Map)['name'], 'Renate');
       expect(result.updated, <String>['1']);
     });
 
@@ -279,7 +288,7 @@ void main() {
         payloadOf(<Map<String, dynamic>>[person('1', 'Hans', at: '2026-09-30T11:00:00Z')]),
         payloadOf(<Map<String, dynamic>>[person('1', 'Renate', at: '2026-09-30T10:00:00Z')]),
       );
-      expect(result.parts.single.items.single['name'], 'Hans');
+      expect((result.parts.single.items.single as Map)['name'], 'Hans');
     });
 
     test('lässt eine gelöschte Person auch dann verschwunden, wenn ein '
@@ -300,7 +309,7 @@ void main() {
         ),
       );
       expect(
-        result.parts.single.items.map((Map<String, dynamic> i) => i['id']),
+        result.parts.single.items.map((Object i) => (i as Map)['id']),
         <String>['1'],
       );
       expect(result.removed, <String>['2']);
@@ -326,8 +335,8 @@ void main() {
       );
       expect(
         result.parts.single.items
-            .firstWhere((Map<String, dynamic> i) => i['id'] == '2')['name'],
-        'Petra neu',
+            .firstWhere((Object i) => (i as Map)['id'] == '2'),
+        containsPair('name', 'Petra neu'),
         reason: 'Eine Änderung nach dem Löschen ist eine neue Person.',
       );
     });
@@ -346,18 +355,18 @@ void main() {
         ],
       );
       List<String> idsOf(SyncMergeResult result) => result.parts.single.items
-          .map((Map<String, dynamic> i) => '${i['id']}:${i['name']}')
+          .map((Object i) => '${(i as Map)['id']}:${(i as Map)['name']}')
           .toList();
 
       expect(idsOf(SyncMerge.merge(a, b)), idsOf(SyncMerge.merge(b, a)));
     });
 
     test('führt Pläne nach Datum zusammen', () {
-      final SyncPart local = SyncPayload.describePart('offlineVPData', <Map<String, dynamic>>[
+      final SyncPart local = SyncPayload.describePart('offlineVPData', <Object>[
         <String, dynamic>{'date': '2026-09-28', 'name': 'A'},
         <String, dynamic>{'date': '2026-09-29', 'name': 'B'},
       ]);
-      final SyncPart remote = SyncPayload.describePart('offlineVPData', <Map<String, dynamic>>[
+      final SyncPart remote = SyncPayload.describePart('offlineVPData', <Object>[
         <String, dynamic>{'date': '2026-09-29', 'name': 'B'},
         <String, dynamic>{'date': '2026-09-30', 'name': 'C'},
       ]);
@@ -376,7 +385,7 @@ void main() {
         ),
       );
       expect(
-        result.parts.single.items.map((Map<String, dynamic> i) => i['date']),
+        result.parts.single.items.map((Object i) => (i as Map)['date']),
         <String>['2026-09-28', '2026-09-29', '2026-09-30'],
       );
     });
@@ -408,16 +417,36 @@ void main() {
   });
 
   group('SyncKeys', () {
-    test('nimmt die Daten immer, die Einstellungen nur auf Wunsch', () {
-      final List<String> without =
+    test('die Bestandteile sind die Arrays, der Rest sind Werte', () {
+      // Der Schalter in den Einstellungen entscheidet nur noch, ob die
+      // **Werte** mitgehen. Er bestimmt nicht mehr *welche* – dafür gibt es
+      // keine Liste mehr, und genau daran scheiterte es vorher: Eine
+      // Positivliste von Einstellungen kann nicht vollständig sein, also kamen
+      // `languageCode`, `newsfeeds` und die Plan-Einstellungen nie an.
+      final List<String> items =
           SyncKeys.forSchool((String k) => k, includeSettings: false);
-      final List<String> withSettings =
-          SyncKeys.forSchool((String k) => k, includeSettings: true);
-      expect(without, contains('persons'));
-      expect(without, contains('offlineVPData'));
-      expect(without, isNot(contains('hideTeacher')));
-      expect(withSettings, contains('hideTeacher'));
-      expect(withSettings.length, greaterThan(without.length));
+      expect(items, containsAll(<String>['persons', 'offlineVPData', 'classes']));
+      expect(items, isNot(contains('hideTeacher')),
+          reason: 'ein Schalter ist kein Bestandteil');
+
+      // Alles, was kein Array ist, ist übertragbar – ohne eingetragen zu sein.
+      for (final String key in <String>[
+        'hideTeacher',
+        'languageCode',
+        'defaultPlanModeClass',
+        'newsfeeds',
+        'initializedClasses',
+        'hiddenSubjectsByClass',
+        'previewHiddenClasses',
+      ]) {
+        expect(SyncKeys.isSyncable(key), isTrue,
+            reason: '$key wird nicht übertragen');
+        expect(SyncKeys.classify(key), SyncKeyKind.value);
+      }
+      // Die Arrays dagegen sind Bestandteile und werden einzeln geführt.
+      for (final String key in SyncKeys.itemKeys) {
+        expect(SyncKeys.classify(key), SyncKeyKind.items, reason: key);
+      }
     });
 
     test('schließt die Zugangsdaten immer aus', () {
@@ -433,20 +462,35 @@ void main() {
       expect(SyncKeys.isSyncable('vplan_cache_2026-09-30_time'), isFalse);
     });
 
-    test('hält gerätebezogene Einstellungen lokal', () {
-      expect(SyncKeys.isDeviceLocalKey('languageCode'), isTrue);
+    test('hält gerätebezogene Angaben lokal', () {
       expect(SyncKeys.isDeviceLocalKey('firstTime'), isTrue);
       expect(SyncKeys.isDeviceLocalKey('overriddenNow'), isTrue);
       expect(SyncKeys.isDeviceLocalKey('sync.tombstones'), isTrue);
-      // Sprache ist absichtlich nicht synchronisierbar: Wer auf dem Tablet
-      // Deutsch und auf dem Handy Englisch liest, soll das können.
-      expect(SyncKeys.settingKeys, isNot(contains('languageCode')));
+      // Sprache ist eine Vorliebe der **Person**, nicht des Geräts, und wird
+      // deshalb übertragen. Sie stand hier früher als geräteübergreifend auf der
+      // Sperrliste – mit der Begründung, sie hänge an der Bildschirmgröße. Das
+      // war eine Annahme, und sie hat eine Einstellung aus der Kette gehalten,
+      // die jeder erwartet, dass sie wandert.
+      expect(SyncKeys.isDeviceLocalKey('languageCode'), isFalse);
+      expect(SyncKeys.isSyncable('languageCode'), isTrue);
     });
 
     test('erkennt schulbezogene Schlüssel', () {
       expect(SyncKeys.isSyncable('schools.12345.persons'), isTrue);
       expect(SyncKeys.isSetting('schools.12345.hideTeacher'), isTrue);
       expect(SyncKeys.isSetting('persons'), isFalse);
+    });
+
+    test('jeder Array-Schlüssel hat eine angegebene Form', () {
+      // Die Form steht nicht am gespeicherten Wert, sondern in einer Liste –
+      // `classes` und `persons` sind beide Arrays, liegen aber verschieden ab.
+      // Fehlt ein Eintrag, fällt der Schreiber auf `setStringList` zurück und
+      // macht die App beim Start unbenutzbar.
+      for (final String key in SyncKeys.itemKeys) {
+        expect(SyncKeys.formOf(key), isNotNull, reason: '$key fehlt in dataKeyForms');
+      }
+      // Und umgekehrt: keine Form für etwas, das kein Bestandteil ist.
+      expect(SyncKeys.formOf('hideTeacher'), isNull);
     });
   });
 
@@ -613,13 +657,13 @@ void main() {
       expect(prefs.getBool('hidePreviewPersons'), isTrue);
     });
 
-    test('behält die Einstellungen des Geräts, die es selbst gesetzt hat',
-        () async {
+    test('behält eine Einstellung, die es nach dem Start der Kette selbst '
+        'geändert hat', () async {
       const String passphrase = 'blue sky river seven apple candle';
       final String chainId = SyncEngine.chainIdFor(passphrase);
       final DerivedKey key = SyncEngine.keyFor(passphrase);
 
-      // Das andere Gerät ist älter und sagt das Gegenteil.
+      // Das andere Gerät behauptet seit 2020 das Gegenteil.
       server.chains[chainId] = <Map<String, dynamic>>[
         <String, dynamic>{
           'deviceId': 'device-2',
@@ -631,14 +675,33 @@ void main() {
             payloadOf(
               const <Map<String, dynamic>>[],
               settings: <String, dynamic>{'hideTeacher': true},
+              // Die Zeit des **Wertes**, nicht die des Pakets. Genau hier ist
+              // vorher der Fehler passiert: Ein einziger Paket-Zeitstempel, auf
+              // "jetzt" bei jedem Lauf, ließ jedes Gerät das neueste sein –
+              // und damit keine Einstellung jemals ankommen.
+              settingsAt: <String, DateTime>{
+                'hideTeacher': DateTime.utc(2020, 1, 1),
+              },
             ).toJson(),
           ),
         },
       ];
 
       final SharedPreferences prefs = await SharedPreferences.getInstance();
+      // Der Wert muss **vor** dem ersten Lauf existieren. Ein Wert, den das
+      // Gerät zum ersten Mal sieht, bekommt den Anfang der Zeitachse – das ist
+      // keine Änderung, sondern ein Erstsehen, und genau so soll es behandelt
+      // werden.
+      await prefs.setBool('hideTeacher', true);
       await engine.run(prefs, stateFor(passphrase, includeSettings: true));
-      expect(prefs.getBool('hideTeacher'), isFalse);
+
+      // Und jetzt die eigene Änderung – die ist jünger als 2020.
+      await prefs.setBool('hideTeacher', false);
+      await engine.run(prefs, stateFor(passphrase, includeSettings: true));
+
+      expect(prefs.getBool('hideTeacher'), isFalse,
+          reason: 'eine eigene, nachweislich spätere Änderung darf nicht von '
+              'einem uralten Wert überschrieben werden');
     });
 
     test('überträgt niemals das Schulpasswort', () async {
@@ -765,7 +828,7 @@ void main() {
         prefs,
         SyncPayload(
           parts: <SyncPart>[
-            SyncPayload.describePart('offlineVPData', <Map<String, dynamic>>[
+            SyncPayload.describePart('offlineVPData', <Object>[
               <String, dynamic>{'date': '2026-09-30', 'name': 'Plan'},
             ]),
           ],

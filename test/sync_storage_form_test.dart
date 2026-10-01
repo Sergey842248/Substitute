@@ -100,10 +100,11 @@ void main() {
           reason: 'die Liste wäre der Absturz beim Start');
     });
 
-    test('jeder Daten-Schlüssel hat eine angegebene Form', () {
+    test('jeder Bestandteil hat eine angegebene Form', () {
       // Sonst fällt ein Schlüssel stillschweigend auf das Typablehen zurück
-      // und wird zur StringList – und damit zur Falle.
-      for (final String key in SyncKeys.dataKeys) {
+      // und wird zur StringList – und damit zur Falle. Nur die Arrays brauchen
+      // eine Formangabe; Karten und einfache Werte folgen aus ihrem Typ.
+      for (final String key in SyncKeys.itemKeys) {
         expect(SyncKeys.formOf(key), isNotNull,
             reason: '$key steht in dataKeys, hat aber keine Form');
       }

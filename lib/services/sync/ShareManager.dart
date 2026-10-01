@@ -420,77 +420,80 @@ class ShareManager {
   }) async {
     final String scope = scopeSuffix(prefs);
 
-    final Map<String, List<Map<String, dynamic>>> source =
+    final Map<String, List<Object>> source =
         await SyncDataReader.readParts(prefs, <String>[
       '${scope}classes',
-      '${scope}classNames',
       '${scope}persons',
       '${scope}offlineVPData',
       '${scope}lessontimes',
       '${scope}teacherShorts',
     ]);
 
-    // Klassen: nur die ausgewählten.
-    final List<Map<String, dynamic>> classes = <Map<String, dynamic>>[];
+    // `classNames` ist eine **Karte** `{classId: eigenerName}` – kein Array,
+    // kein Objekt je Klasse. Deshalb steht es nicht in der Liste der
+    // Bestandteile, sondern wird hier als Karte geholt und als Wert geteilt.
+    final Map<String, dynamic> classNames = Map<String, dynamic>.from(
+      (SyncDataReader.readMaps(prefs)['${scope}classNames'] as Map?) ??
+          const <String, dynamic>{},
+    );
+
+    // Klassen: nur die ausgewählten. Ein Eintrag ist hier der **Name**
+    // (`'8a'`), kein Objekt – so legt die App sie ab.
+    final List<Object> classes = <Object>[];
     final Set<String> sharedClasses = <String>{};
-    for (final Map<String, dynamic> item
-        in source['${scope}classes'] ?? const <Map<String, dynamic>>[]) {
+    for (final Object item
+        in source['${scope}classes'] ?? const <Object>[]) {
       final String short = classNameOf(item) ?? '';
       if (short.isEmpty || !selection.classIds.contains(short)) continue;
-      classes.add(<String, dynamic>{'name': short, 'displayName': short});
+      classes.add(short);
       sharedClasses.add(short);
-    }
-    // Anzeigenamen der Klassen (z.B. "5a" -> "Klasse 5a, Gymnasium").
-    for (final Map<String, dynamic> item
-        in source['${scope}classNames'] ?? const <Map<String, dynamic>>[]) {
-      final String short = classNameOf(item) ?? '';
-      if (!sharedClasses.contains(short)) continue;
-      final String display = item['displayName']?.toString() ?? '';
-      if (display.isEmpty || display == short) continue;
-      for (final Map<String, dynamic> target in classes) {
-        if (target['name'] == short) target['displayName'] = display;
-      }
     }
 
     // Personen: nur die ausgewählten. Die zugehörige Klasse wird
     // mitgenommen, damit die Kurse der Person einordbar bleiben.
     final List<Map<String, dynamic>> persons = <Map<String, dynamic>>[];
     final Set<String> impliedClasses = <String>{...sharedClasses};
-    for (final Map<String, dynamic> item
-        in source['${scope}persons'] ?? const <Map<String, dynamic>>[]) {
-      final String id = item['id']?.toString() ?? '';
+    for (final Object item
+        in source['${scope}persons'] ?? const <Object>[]) {
+      if (item is! Map) continue;
+      final Map<String, dynamic> record = item.cast<String, dynamic>();
+      final String id = record['id']?.toString() ?? '';
       if (!selection.personIds.contains(id)) continue;
-      persons.add(item);
-      final String classId = item['classId']?.toString() ?? '';
+      persons.add(record);
+      final String classId = record['classId']?.toString() ?? '';
       if (classId.isNotEmpty) impliedClasses.add(classId);
     }
     // Klassen, die nur wegen einer Person mitkommen, stehen in `classes`.
-    for (final Map<String, dynamic> item
-        in source['${scope}classes'] ?? const <Map<String, dynamic>>[]) {
+    for (final Object item
+        in source['${scope}classes'] ?? const <Object>[]) {
       final String short = classNameOf(item) ?? '';
-      if (!impliedClasses.contains(short)) continue;
-      if (classes.any((Map<String, dynamic> c) => c['name'] == short)) continue;
-      classes.add(<String, dynamic>{'name': short, 'displayName': short});
+      if (short.isEmpty || !impliedClasses.contains(short)) continue;
+      if (classes.contains(short)) continue;
+      classes.add(short);
     }
 
     // Pläne: die gespeicherten Vertretungspläne, ggf. auf die letzten
     // [historyDays] Tage beschränkt.
     final List<Map<String, dynamic>> plans = <Map<String, dynamic>>[];
     if (selection.includePlans) {
-      for (final Map<String, dynamic> item in source['${scope}offlineVPData'] ??
-          const <Map<String, dynamic>>[]) {
-        final String date = planDateOf(item) ?? '';
+      for (final Object item
+          in source['${scope}offlineVPData'] ?? const <Object>[]) {
+        if (item is! Map) continue;
+        final Map<String, dynamic> record = item.cast<String, dynamic>();
+        final String date = planDateOf(record) ?? '';
         if (!selection.includeHistory && !isRecent(date)) continue;
-        plans.add(item);
+        plans.add(record);
       }
     }
 
     final Map<String, dynamic> settings = <String, dynamic>{};
     if (selection.includeSettings) {
-      settings.addAll(await SyncDataReader.readSettings(
-        prefs,
-        SyncKeys.settingKeys.map((String key) => '$scope$key').toList(),
-      ));
+      // Dieselbe Regel wie beim Sync: **alle** übertragbaren Werte, nicht eine
+      // Positivliste. Eine Liste kann nicht vollständig sein, und eine neue
+      // Einstellung bliebe sonst auf dem Gerät, von dem geteilt wurde – der
+      // Empfänger bekäme dann einen Plan ohne die Ansicht, die die Kollegin
+      // sieht, und wunderte sich.
+      settings.addAll(SyncDataReader.readValues(prefs));
     }
 
     return SyncPayload(
@@ -768,7 +771,12 @@ class ShareManager {
         .toSet();
 
     final List<Map<String, dynamic>> newPersons = <Map<String, dynamic>>[];
-    final List<Map<String, dynamic>> newClasses = <Map<String, dynamic>>[];
+    // Die App legt Klassen als **einfache Zeichenketten** ab
+    // (`setStringList(key, ['8a'])`). Hier werden keine Objekte gebaut – das
+    // ist seit der Umstellung auf [SyncPart.items] ohnehin nicht mehr möglich,
+    // und ein Objekt mit `name`/`displayName` kennt die Klassenauswahl nicht.
+    final List<String> newClasses = <String>[];
+    final Map<String, String> classLabels = <String, String>{};
     final List<String> newPlans = <String>[];
 
     /// Vergibt einen freien Kürzel und merkt ihn sich.
@@ -782,8 +790,18 @@ class ShareManager {
     }
 
     /// Die Kurse einer Person.
-    List<String> coursesOf(Map<String, dynamic> person) =>
-        stringList(person['courses']);
+    List<String> coursesOf(Object person) {
+      if (person is! Map) return const <String>[];
+      return stringList(person['courses']);
+    }
+
+    Map<String, dynamic>? record(Object item) =>
+        item is Map ? item.cast<String, dynamic>() : null;
+
+    String field(Object item, String name) {
+      final Map<String, dynamic>? r = record(item);
+      return r?[name]?.toString() ?? '';
+    }
 
     switch (mode) {
       case ShareImportMode.original:
@@ -792,30 +810,29 @@ class ShareManager {
         final Map<String, String> classMapping = <String, String>{};
         for (final SyncPart part in data.parts) {
           if (!part.key.endsWith('classes')) continue;
-          for (final Map<String, dynamic> item in part.items) {
+          for (final Object item in part.items) {
             final String short = classNameOf(item) ?? '';
             if (short.isEmpty) continue;
             final String unique = nextShort(short);
             classMapping[short] = unique;
-            newClasses.add(<String, dynamic>{
-              'name': unique,
-              'displayName': item['displayName']?.toString() ?? short,
-            });
+            // Die App legt Klassen als einfache Zeichenkette ab – ein Objekt
+            // mit `name` und `displayName` kennt sie gar nicht.
+            newClasses.add(unique);
           }
         }
         for (final SyncPart part in data.parts) {
           if (part.key.endsWith('offlineVPData')) {
-            for (final Map<String, dynamic> item in part.items) {
-              newPlans.add(jsonEncode(item));
+            for (final Object item in part.items) {
+              newPlans.add(SyncPayload.encodeItem(item));
             }
           }
         }
         for (final SyncPart part in data.parts) {
           if (!part.key.endsWith('persons')) continue;
-          for (final Map<String, dynamic> item in part.items) {
-            final String name = item['name']?.toString().trim() ?? '';
+          for (final Object item in part.items) {
+            final String name = field(item, 'name').trim();
             if (name.isEmpty) continue;
-            final String originalClass = item['classId']?.toString() ?? '';
+            final String originalClass = field(item, 'classId');
             newPersons.add(<String, dynamic>{
               'id': _importedId(displayName, name, newPersons.length),
               'name': name,
@@ -832,15 +849,12 @@ class ShareManager {
         // hatte, ohne die fremde Klassenstruktur zu übernehmen.
         for (final SyncPart part in data.parts) {
           if (!part.key.endsWith('persons')) continue;
-          for (final Map<String, dynamic> item in part.items) {
-            final String name = item['name']?.toString().trim() ?? '';
+          for (final Object item in part.items) {
+            final String name = field(item, 'name').trim();
             if (name.isEmpty) continue;
             final String short = nextShort(name);
-            newClasses.add(<String, dynamic>{
-              'name': short,
-              'displayName': name,
-              'importedFrom': displayName,
-            });
+            newClasses.add(short);
+            classLabels[short] = name;
             for (final String course in coursesOf(item)) {
               newPlans.add(jsonEncode(<String, dynamic>{
                 'date': 'import-${DateTime.now().toUtc().millisecondsSinceEpoch}',
@@ -862,11 +876,8 @@ class ShareManager {
           final String name = rawName.trim();
           if (name.isEmpty || !seen.add(name)) return;
           final String short = nextShort(name);
-          newClasses.add(<String, dynamic>{
-            'name': short,
-            'displayName': name,
-            'importedFrom': displayName,
-          });
+          newClasses.add(short);
+          classLabels[short] = name;
           newPersons.add(<String, dynamic>{
             'id': _importedId(displayName, name, newPersons.length),
             'name': name,
@@ -878,19 +889,18 @@ class ShareManager {
 
         for (final SyncPart part in data.parts) {
           if (part.key.endsWith('persons')) {
-            for (final Map<String, dynamic> item in part.items) {
-              addAsPerson(item['name']?.toString() ?? '', coursesOf(item));
+            for (final Object item in part.items) {
+              addAsPerson(field(item, 'name'), coursesOf(item));
             }
           } else if (part.key.endsWith('classes')) {
-            for (final Map<String, dynamic> item in part.items) {
-              addAsPerson(
-                item['displayName']?.toString() ?? classNameOf(item) ?? '',
-                const <String>[],
-              );
+            // Eine Klasse ist bei der App schlicht ein Name – es gibt kein
+            // `displayName` an diesem Eintrag.
+            for (final Object item in part.items) {
+              addAsPerson(classNameOf(item) ?? '', const <String>[]);
             }
           } else if (part.key.endsWith('offlineVPData')) {
-            for (final Map<String, dynamic> item in part.items) {
-              addAsPerson(item['name']?.toString() ?? '', const <String>[]);
+            for (final Object item in part.items) {
+              addAsPerson(field(item, 'name'), const <String>[]);
             }
           }
         }
@@ -903,11 +913,13 @@ class ShareManager {
       final List<String> merged = <String>[
         ...?prefs.getStringList('${scope}classes'),
       ];
-      for (final Map<String, dynamic> item in newClasses) {
-        merged.add(jsonEncode(<String, dynamic>{'name': item['name']}));
+      for (final String name in newClasses) {
+        if (!merged.contains(name)) merged.add(name);
       }
       await prefs.setStringList('${scope}classes', merged);
 
+      // `classNames` ist eine **Karte** `{classId: eigenerName}`
+      // (`VPlanAPI._decodeClassNames`) – keine Liste, kein Objekt je Klasse.
       final Map<String, dynamic> names =
           (prefs.getString('${scope}classNames') != null)
               ? Map<String, dynamic>.of(
@@ -915,16 +927,9 @@ class ShareManager {
                       .cast<String, dynamic>(),
                 )
               : <String, dynamic>{};
-      for (final Map<String, dynamic> item in newClasses) {
-        final String short = item['name'].toString();
-        final String display = item['displayName']?.toString() ?? short;
-        if (display.isNotEmpty && display != short) {
-          names[short] = <String, dynamic>{
-            'id': short,
-            'displayName': display,
-            'importedFrom': displayName,
-          };
-        }
+      for (final String short in newClasses) {
+        final String label = classLabels[short] ?? short;
+        if (label.isNotEmpty && label != short) names[short] = label;
       }
       if (names.isNotEmpty) {
         await prefs.setString('${scope}classNames', jsonEncode(names));
@@ -977,18 +982,30 @@ class ShareManager {
   }
 
   /// Der Kürzel eines Klassen-Eintrags, oder null, wenn keiner lesbar ist.
-  static String? classNameOf(Map<String, dynamic> item) {
+  /// Der Klassenname eines Eintrags – beide Formen annehmend.
+  ///
+  /// Die App speichert Klassen als **einfache Zeichenketten**
+  /// (`setStringList(key, ['8a'])`), nicht als Objekte. Ein alter Share oder ein
+  /// Bestand aus einer früheren App-Version kann beides enthalten, deshalb wird
+  /// hier nicht auf eine Form bestanden.
+  static String? classNameOf(Object item) {
+    if (item is String) return item.isEmpty ? null : item;
+    if (item is! Map) return null;
     final String name = item['name']?.toString() ?? '';
-    return name.isEmpty ? null : name;
+    if (name.isNotEmpty) return name;
+    final String? plain = item['value']?.toString();
+    return (plain == null || plain.isEmpty) ? null : plain;
   }
 
   /// Dasselbe für den rohen JSON-String aus `SharedPreferences`.
   static String? classNameOfRaw(String raw) {
     try {
       final Object? decoded = jsonDecode(raw);
-      if (decoded is Map<String, dynamic>) return classNameOf(decoded);
+      if (decoded is String) return decoded.isEmpty ? null : decoded;
+      if (decoded is Map) return classNameOf(decoded);
     } catch (_) {
-      return null;
+      // Kein JSON – dann ist es ein gewöhnlicher Klassenname wie `8a`.
+      return raw.isEmpty ? null : raw;
     }
     return null;
   }

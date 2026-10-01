@@ -155,6 +155,104 @@ sie mit `getString` liest. Dieselbe Falle, eine Ebene tiefer, und ausgelöst
 beim Blenden einer Vorschau statt beim Start. Ausgeschlossene
 Vorschau-Einstellungen sind ein kleiner Verlust; ein Absturz ist keiner.
 
+### Alles wandert mit – außer Geheimnissen
+
+Der Sync überträgt **jede** Einstellung, die die App kennt, und zwar ohne
+Positivliste. Vorher gab es zwei handgepflegte Listen: zwölf Daten-Schlüssel
+und noch einmal zehn Einstellungen. Eine solche Liste kann nicht vollständig
+sein, und deshalb sind `languageCode`, `newsfeeds`, sämtliche Plan-Einstellungen
+und die als Karte gespeicherten Angaben nie angekommen – stillschweigend, ohne
+Fehler, ohne Logeintrag.
+
+Entschieden wird nach dem Typ, nicht nach einer Liste:
+
+| Art | Übertragung | Schlüssel |
+|---|---|---|
+| Array | einzeln, mit Lösch-Markierungen | Klassen, Personen, Pläne, Krankentracking, Kürzel, Zeiten, Räume |
+| Karte | einzeln je Eintrag | `classNames`, `initializedClasses`, `hiddenSubjectsByClass`, `previewHidden*` |
+| Schalter, Zahl, Text | als Ganzes, nach Änderungszeit | Sprache, Anzeigeoptionen, Planmodus, Material-Design … |
+
+Der Schalter *Einstellungen mit übertragen* entscheidet nur noch, ob die letzten
+beiden Gruppen mitgehen. Er bestimmt nicht mehr **welche** – das ist der Punkt.
+
+Nicht übertragen werden, und nur das (`SyncKeys.neverSync`): Zugangsdaten, der
+Sync-Zustand selbst, die Schulverwaltung, der Einstieg in die App, der
+Kurzzeit-Cache der Pläne und eine Developer-Zeitüberschreibung.
+
+Die Liste ist bewusst eine **Sperrliste**. Sie ist nur dann gefährlich, wenn
+jemand etwas Neues hinzufügt, was nicht hineingehört – und dafür stehen dort die
+eigentlichen Geheimnisse. Eine zu kleine Positivliste hätte dagegen ein
+vergessenes Geheimnis bedeutet, und das ist der teurere Fehler.
+
+### Die Änderungszeit gehört zum einzelnen Wert
+
+Das war der Grund, warum **keine** Einstellung angekommen ist.
+
+Früher stand im Paket **ein** Zeitstempel, gesetzt auf „jetzt" bei jedem Lauf –
+ob sich etwas geändert hatte oder nicht. Damit behauptete jedes Gerät beim
+letzten Sync das neueste zu sein. Bei Gleichstand gewann laut Regel das lokale
+Gerät, also blieb überall der eigene Wert stehen. Die Oberfläche meldete dazu
+zu Recht „Alles ist aktuell": Nichts war ja angekommen.
+
+Jetzt führt der Sync **je Wert** eine Änderungszeit, und er erneuert sie nur
+dann, wenn sich der Wert gegenüber dem zuletzt gesendeten tatsächlich geändert
+hat. Der Vergleichsmaßstab liegt in `sync.settingsTimestamps`; der Sync fasst
+dafür **keine einzige** Schreibstelle der App an – in `VPlanAPI`, `Plan` und den
+Einstellungsseiten gibt es Dutzende davon.
+
+Ein Wert, den ein Gerät zum **ersten Mal** sieht, bekommt den Anfang der
+Zeitachse. Es weiß nicht, wann der Wert gesetzt wurde, und behauptet deshalb
+nicht, der neueste zu sein. Der Preis: eine Änderung, die **vor** dem ersten
+Sync gemacht wurde, ist nicht von einem Voreinstellungswert zu unterscheiden.
+Nach dem ersten Lauf nicht mehr.
+
+Bei gleichem Alter entscheidet der Wert, dessen kodierte Form alphabetisch
+größer ist. Beliebig, aber auf **beiden** Geräten gleich – „bei Gleichstand
+gewinnt das lokale Gerät" wäre nicht symmetrisch, und zwei Geräte würden den
+Wert endlos hin- und herschieben, ohne zur Ruhe zu kommen.
+
+### Ein Eintrag ist ein Objekt **oder** ein Name
+
+Das war der Grund, warum die Klassen nie ankamen.
+
+Die App legt ihre Bestandteile in zwei Formen ab, und der Unterschied steht
+nirgends:
+
+| Schlüssel | Zeile in der Liste |
+|---|---|
+| `persons`, `offlineVPData`, `sickTrack`, `teacherShorts`, `lessontimes` | JSON-Objekt |
+| `classes`, `cachedRooms` | schlicht ein Name, etwa `8a` |
+
+Beim Tippen auf „Klasse auswählen" passiert das hier:
+
+```dart
+_classes.add(className);                                  // '8a'
+instance.setStringList(SchoolStorage.scopedKey(prefs, 'classes'), _classes);
+```
+
+Der Leser zerlegte aber **jede** Zeile mit `jsonDecode` und ließ nur Zeilen
+durch, die ein Objekt ergaben. Bei `8a` scheitert `jsonDecode` — und damit ist
+die Zeile kommentarlos weggefallen. Der Sync übertrug nie eine Klasse, meldete
+aber Erfolg, und die Oberfläche zeigte dauerhaft „Alles ist aktuell". Genau das
+ist gemeldet worden.
+
+Drei Regeln daraus, alle drei mit Test:
+
+1. Ein Eintrag ist ein `Object` – ein Objekt **oder** ein `String`. Nichts
+   anderes wird zugelassen.
+2. Gelesen wird verzeihend: Was `jsonDecode` als Objekt oder Zeichenkette
+   ergibt, wird übernommen; was gar nicht JSON ist, bleibt der rohe Text. Eine
+   Zahl wie `123` ist zwar gültiges JSON, war aber als Zeichenkette gespeichert
+   — und muss `123` bleiben, nicht zur Zahl werden.
+3. Geschrieben wird **genau so, wie es gelesen wurde**. Ein Objekt als JSON, ein
+   Name als Name. Mit einem `jsonEncode` für beides stünde danach `"8a"` in der
+   Liste, und die Auswahl zeigte die Anführungszeichen mit.
+
+Die Identität eines einfachen Namens ist **er selbst**. Zwei Geräte, die beide
+die Klasse `8a` haben, meinen dasselbe — und nach dem Merge steht sie genau
+einmal in der Liste. Ohne diese Regel wäre jeder Name auf beiden Geräten ein
+eigener Eintrag, und die Liste enthielte jede Klasse doppelt.
+
 ### Woran man erkennt, was los ist
 
 In den Einstellungen stehen drei Kacheln, die die drei Fragen beantworten, an
@@ -176,6 +274,11 @@ Im Unterschied dazu meldet der Knopf in den Einstellungen ausdrücklich
 beigetreten", statt nur „Alles ist aktuell" zu sagen.
 
 ### Einstellungen mitnehmen oder nicht
+
+Sprache, Anzeigeoptionen, Planmodus und Material-Design wandern mit, wenn der
+Schalter eingeschaltet ist. Wer auf dem Tablet Deutsch und auf dem Handy
+Englisch liest, schaltet ihn für dieses Gerät aus – dann bleibt die Sprache
+dort, wie sie ist, und alle anderen Einstellungen ebenfalls.
 
 Klassen, Personen, Kurse und die gespeicherten Pläne werden **immer**
 synchronisiert. Die **Einstellungen** sind ein Schalter: Ausgeschaltet

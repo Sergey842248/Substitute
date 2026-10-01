@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/services/crypto/PayloadCrypto.dart';
 import 'package:substitute/services/sync/NameGuard.dart';
 import 'package:substitute/services/sync/ShareManager.dart';
+import 'package:substitute/services/sync/SyncKeys.dart';
 import 'package:substitute/services/sync/SyncApiClient.dart';
 
 /// Ein Server, der nur Share-Aufrufe versteht.
@@ -72,11 +73,15 @@ List<String> namesOf(SharedPreferences prefs, [String key = 'persons']) {
       .toList();
 }
 
-List<String> classesOf(SharedPreferences prefs, [String key = 'classes']) {
-  return (prefs.getStringList(key) ?? const <String>[])
-      .map((String raw) => (jsonDecode(raw) as Map)['name'].toString())
-      .toList();
-}
+/// Die Klassen – schlichte Namen, wie die App sie ablegt.
+///
+/// Über [SyncDataReader.readItems] statt über `getStringList` plus
+/// `jsonDecode`: die Zeile `7c` ist kein JSON, und `jsonDecode` lässt die
+/// ganze Liste scheitern statt sie zu lesen.
+List<String> classesOf(SharedPreferences prefs, [String key = 'classes']) =>
+    SyncDataReader.readItems(prefs, key)
+        .map((Object item) => item.toString())
+        .toList();
 
 const String userA = 'blue sky river seven apple candle';
 const String userB = 'red moon water nine tiger mango';
@@ -98,10 +103,10 @@ void main() {
         }),
         jsonEncode(<String, dynamic>{'date': '2025-01-15', 'name': 'Plan von 2025'}),
       ],
-      'classes': <String>[
-        jsonEncode(<String, dynamic>{'name': '7c'}),
-        jsonEncode(<String, dynamic>{'name': '5a'}),
-      ],
+      // So legt die App sie ab: `setStringList(key, ['7c', '5a'])` – ohne
+      // JSON. Der Test hat lange die gegenteilige Form benutzt und damit eine
+      // Welt geprüft, in der die Klassenauswahl nicht existiert.
+      'classes': <String>['7c', '5a'],
       'persons': <String>[
         jsonEncode(<String, dynamic>{
           'id': 'p1',
@@ -780,9 +785,7 @@ void main() {
 
     test('lässt vorhandene Daten unangetastet', () async {
       final SharedPreferences prefs = await emptyApp();
-      await prefs.setStringList('classes', <String>[
-        jsonEncode(<String, dynamic>{'name': '5a'}),
-      ]);
+      await prefs.setStringList('classes', <String>['5a']);
       await prefs.setStringList('persons', <String>[
         jsonEncode(<String, dynamic>{'id': 'own', 'name': 'Sven'}),
       ]);
@@ -831,9 +834,7 @@ void main() {
 
     test('lässt bei zwei Klassen mit gleichem Kürzel keine Kollision zu', () async {
       final SharedPreferences prefs = await emptyApp();
-      await prefs.setStringList('classes', <String>[
-        jsonEncode(<String, dynamic>{'name': '7c'}),
-      ]);
+      await prefs.setStringList('classes', <String>['7c']);
       await ShareManager.applyImport(
         prefs,
         payload,

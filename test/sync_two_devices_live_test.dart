@@ -78,6 +78,12 @@ void main() {
             key: SyncDataReader.readLines(prefs, key),
       };
 
+  /// Legt eine Platte mit beliebigen Werten an.
+  Future<SharedPreferences> diskWith(Map<String, Object> values) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{...values});
+    return SharedPreferences.getInstance();
+  }
+
   List<String> namesOn(SharedPreferences prefs, String key) =>
       SyncDataReader.readLines(prefs, SchoolStorage.scopedKey(prefs, key))
           .map((String raw) => (jsonDecode(raw) as Map)['name'].toString())
@@ -157,6 +163,119 @@ void main() {
         reason: 'Die Person von B kam bei A nicht an');
     expect(namesOn(prefsA, 'persons'), contains('Nur auf A'),
         reason: 'As eigene Person ist verschwunden');
+  });
+
+  test('Einstellungen wandern zwischen zwei Geräten', () async {
+    if (!reachable) return;
+    // Der Punkt, an dem es zuletzt klemmte: Einstellungen wurden gesendet, aber
+    // nie angenommen, weil ein einziger Paket-Zeitstempel auf „jetzt" bei jedem
+    // Lauf jedes Gerät zum neuesten machte.
+    const String passphrase = 'blue sky river seven apple candle';
+    final String settingsChain = '$chainId-settings';
+    await host.deleteChain(settingsChain);
+
+    SyncState settingsState(String id) => SyncState(
+          passphrase: passphrase,
+          chainId: settingsChain,
+          deviceId: id,
+          deviceName: 'Gerät $id',
+          includeSettings: true,
+          lastSync: null,
+        );
+
+    // Gerät B: die Kette einmal aufbauen, damit beide Geräte eine Historie
+    // haben. Erst danach zählt eine Änderung als Änderung.
+    SharedPreferences prefsB = await diskWith(<String, Object>{
+      'hideTeacher': false,
+      'languageCode': 'de',
+    });
+    await SyncEngine(client: guest).run(prefsB, settingsState('b'));
+
+    SharedPreferences prefsA = await diskWith(<String, Object>{
+      'hideTeacher': false,
+      'languageCode': 'de',
+    });
+    await SyncEngine(client: host).run(prefsA, settingsState('a'));
+
+    // Jetzt ändert B wirklich etwas – Sprache und Plan-Einstellung.
+    await prefsB.setString('languageCode', 'en');
+    await prefsB.setBool('hideTeacher', true);
+    final SyncOutcome b = await SyncEngine(client: guest)
+        .run(prefsB, settingsState('b'));
+    expect(b.succeeded, isTrue, reason: 'B: ${b.error}');
+
+    // Und A holt nach.
+    final SyncOutcome a = await SyncEngine(client: host)
+        .run(prefsA, settingsState('a'));
+    expect(a.succeeded, isTrue, reason: 'A: ${a.error}');
+    expect(a.pulled, 1, reason: 'B wurde nicht gelesen');
+
+    expect(prefsA.getString('languageCode'), 'en',
+        reason: 'die Sprache ist nicht angekommen');
+    expect(prefsA.getBool('hideTeacher'), isTrue,
+        reason: 'der Schalter ist nicht angekommen');
+
+    await host.deleteChain(settingsChain);
+  });
+
+  test('Klassen aus der Auswahl wandern auf das andere Gerät', () async {
+    if (!reachable) return;
+    // Genau der gemeldete Fall: eine neue Kette starten, auf dem zweiten Gerät
+    // beitreten, und die ausgewählten Klassen bleiben lokal.
+    //
+    // Die Platte wird hier so angelegt, wie es `VPlan.dart` beim Tippen auf
+    // „Klasse auswählen" tut – `setStringList(key, ['8a', '8b'])` mit schlichten
+    // Namen, ohne JSON. Ein Test mit JSON-Objekten würde eine Welt prüfen, in
+    // der die App nicht existiert, und genau daran ist der Fehler entstanden.
+    const String classesChain = 'live-classes-probe';
+    await host.deleteChain(classesChain);
+
+    SyncState classesState(String id) => SyncState(
+          passphrase: passphrase,
+          chainId: classesChain,
+          deviceId: id,
+          deviceName: 'Gerät $id',
+          includeSettings: false,
+          lastSync: null,
+        );
+
+    // Gerät A: zwei Klassen ausgewählt, wie nach dem Tippen in der Auswahl.
+    SharedPreferences prefsA = await diskWith(<String, Object>{
+      'classes': <String>['8a', '8b'],
+    });
+    final SyncOutcome a = await SyncEngine(client: host)
+        .run(prefsA, classesState('klasse-a'));
+    expect(a.succeeded, isTrue, reason: 'A: ${a.error}');
+    expect(a.pushed, isTrue);
+
+    // Gerät B tritt bei und hat eine eigene Klasse.
+    SharedPreferences prefsB = await diskWith(<String, Object>{
+      'classes': <String>['9a'],
+    });
+    final SyncOutcome b = await SyncEngine(client: guest)
+        .run(prefsB, classesState('klasse-b'));
+    expect(b.succeeded, isTrue, reason: 'B: ${b.error}');
+    expect(b.pulled, 1, reason: 'Gerät A wurde nicht gelesen');
+
+    // ignore: avoid_print
+    print('  B sieht: ${prefsB.getStringList('classes')}');
+
+    final List<String> beiB = prefsB.getStringList('classes') ?? const <String>[];
+    expect(beiB, containsAll(<String>['8a', '8b']),
+        reason: 'die Klassen von A sind nicht angekommen');
+    expect(beiB, contains('9a'), reason: 'die eigene Klasse von B ist weg');
+    // Und zwar als schlichte Namen – kein `"8a"` mit Anführungszeichen.
+    for (final String name in beiB) {
+      expect(name, isNot(startsWith('"')), reason: 'als JSON geschrieben: $name');
+    }
+
+    // Und zurück zu A.
+    final SyncOutcome a2 = await SyncEngine(client: host)
+        .run(prefsA, classesState('klasse-a'));
+    expect(a2.succeeded, isTrue, reason: 'A2: ${a2.error}');
+    expect(prefsA.getStringList('classes'), contains('9a'));
+
+    await host.deleteChain(classesChain);
   });
 
   test('nach einem Lauf ist die Kette auf dem Server vollständig',
