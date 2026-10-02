@@ -324,6 +324,68 @@ verlangt die Werte, die WCAG für Text (4,5) und für Symbole (3) nennt. Der
 alte Light-Modus fiel bei drei davon durch – grauer Grund, weiße Trennlinien,
 unlesbares Fehlerrot.
 
+#### Rot – und warum es eine eigene Farbe je Theme ist
+
+Die ausgefallenen Stunden, Fehlermeldungen und der Löschtext waren an fünf
+Stellen fest eingetragen: `Colors.red` bzw. `Color.fromARGB(158, 119, 18, 18)`.
+Beide Werte sind **für den dunklen Modus gewählt** und im hellen falsch.
+
+Gemessen (WCAG-Kontrast) mit den alten Werten im hellen Modus:
+
+| Was                        | Kontrast | Beurteilt als |
+|----------------------------|---------:|---------------|
+| schwarzer Text auf der roten Stunde | **1,54:1** | unlesbar |
+| `Colors.red` als Text auf der Karte | **3,68:1** | unter der Norm |
+
+Der Grund ist immer derselbe: **Der Text auf einer farbigen Fläche wird nicht
+fest eingetragen, sondern erbt die Theme-Farbe.** Erbt er im hellen Modus
+fast Schwarz, muss die Fläche hell genug sein – und ein dunkles Rot ist sie
+nicht.
+
+Deshalb liegen die Farben jetzt in `lib/services/AppColors.dart`, je nach Rolle
+und Theme:
+
+| Rolle                              | Dunkel                 | Hell                    |
+|------------------------------------|------------------------|-------------------------|
+| Fläche einer ausgefallenen Stunde  | `ARGB(158,119,18,18)`  | `#c62828`               |
+| Schrift auf dieser Fläche          | `focusColor` (weiß)    | `#ffffff`               |
+| Text in Dialogen („Löschen")       | `Colors.red`           | `#c62828`               |
+| Fehlermeldung                      | `Colors.red.shade300`  | `#c62828`               |
+
+Zwei Entscheidungen darin:
+
+* **Eine kräftige Fläche und schwarzer Text darauf schließen sich aus.**
+  Schwarz auf Rot kommt nicht über 1,54:1. Eine Fläche, auf der schwarzer Text
+  gerade noch lesbar wäre, ist so blass, dass man die Stunde überliest – auch
+  das ist gemeldet worden. Deshalb: kräftige Fläche, **weißer** Text. Damit
+  hält beides: Die Fläche ist auf den ersten Blick rot, und die Schrift darauf
+  steht bei über 4,5:1.
+* **Die Zusage wird gemessen, nicht behauptet.** Der Test verlangt
+  gleichzeitig „von der Karte abhebend um mindestens 3:1" **und** „Text darauf
+  lesbar mit mindestens 4,5:1". Die blasse Variante scheitert an der ersten
+  Forderung, die kräftige mit schwarzem Text an der zweiten. Nur die
+  Kombination aus kräftiger Fläche und weißem Text hält beide.
+
+Ebenfalls aus demselben Grund: Innerhalb einer Hinweiszeile gibt es **keine
+rote Beschriftung** mehr (Ortswechsel, Fehlermeldung). Rot auf Rot ist
+unsichtbar; dort gilt die Schriftfarbe der Zeile, und das Rot der Fläche ist
+die Aussage.
+
+Die Zeile bekommt dafür eine eigene Schriftfarbe (`ListItem.foreground`).
+Zwei Fehler kamen dabei erst im Test heraus:
+
+* `DefaultTextStyle` von außen nützt nichts – `ListTile` setzt für Titel und
+  Untertitel **selbst** eine Farbe aus dem Theme und überdeckt sie. Richtig ist
+  `ListTile.textColor`.
+* `IconTheme` von außen greift nur für Icons **im Titel**. `leading` und
+  `trailing` bekommen ihr eigenes, und das muss man zusätzlich über
+  `iconColor` setzen – sonst bleibt das Ortssymbol schwarz auf Rot.
+
+**Im dunklen Modus ändert sich nichts.** Fläche, Deckkraft und Schriftfarbe
+bleiben, wie sie waren; nur der dunkle Modus ist so schwach, dass die Fläche
+dort weiterhin nur 1,7:1 vom Grund absteht. Das ist Absicht – so sieht der
+dunkle Modus seit jeher aus.
+
 #### Der Platz unter dem Inhalt
 
 Der Inhaltsbereich in `main.dart` reserviert den Platz für die

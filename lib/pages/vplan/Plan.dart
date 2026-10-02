@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:substitute/services/AppColors.dart';
 import 'package:substitute/models/Button.dart';
 import 'package:flutter/material.dart';
 import 'package:substitute/l10n/app_localizations.dart';
@@ -194,7 +195,8 @@ class _PlanState extends State<Plan> {
   /// inklusive dem automatischen Wechsel auf den nächsten Schultag, sobald
   /// der heutige Tag vorbei ist. [allowNextDay] == false (Cache-Pfad) zeigt
   /// vorerst nur die vorhandenen Daten ohne weitere Netzwerkanfrage.
-  Future<dynamic> _displayData(dynamic lessons, {bool allowNextDay = true}) async {
+  Future<dynamic> _displayData(dynamic lessons,
+      {bool allowNextDay = true}) async {
     if (lessons == null) return null;
 
     if (_planMode == 'today') {
@@ -278,8 +280,8 @@ class _PlanState extends State<Plan> {
     // 2) Im Hintergrund frische Daten laden und nur bei Änderung ersetzen.
     dynamic fresh;
     try {
-      fresh = await vplanAPI
-          .getLessonsForToday(widget.classId, forceRefresh: true);
+      fresh =
+          await vplanAPI.getLessonsForToday(widget.classId, forceRefresh: true);
     } catch (e) {
       fresh = {'error': 'no internet'};
     }
@@ -406,8 +408,8 @@ class _PlanState extends State<Plan> {
 
     DateTime displayedDate;
     try {
-      displayedDate = VPlanAPI()
-          .parseStringDatatoDateTime(data['data']['date'].toString());
+      displayedDate =
+          VPlanAPI().parseStringDatatoDateTime(data['data']['date'].toString());
     } catch (_) {
       _setNewerPlanCount(0);
       return;
@@ -503,12 +505,12 @@ class _PlanState extends State<Plan> {
               true;
       hideTeacher =
           prefs.getBool(SchoolStorage.scopedKey(prefs, 'hideTeacher')) ?? false;
-      _defaultPlanModePerson =
-          prefs.getString(SchoolStorage.scopedKey(prefs, 'defaultPlanModePerson')) ??
-              'auto';
-      _defaultPlanModeClass =
-          prefs.getString(SchoolStorage.scopedKey(prefs, 'defaultPlanModeClass')) ??
-              'auto';
+      _defaultPlanModePerson = prefs.getString(
+              SchoolStorage.scopedKey(prefs, 'defaultPlanModePerson')) ??
+          'auto';
+      _defaultPlanModeClass = prefs.getString(
+              SchoolStorage.scopedKey(prefs, 'defaultPlanModeClass')) ??
+          'auto';
       className = customName;
     });
     _checkForNewerPlan();
@@ -615,7 +617,7 @@ class _PlanState extends State<Plan> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
-                color: Colors.red.shade300,
+                color: AppColors.fehlerton(context),
               ),
             ),
           ),
@@ -813,9 +815,26 @@ class _PlanState extends State<Plan> {
         signatureShown.add(course);
         showSignature = true;
       }
+      // Innerhalb einer Hinweiszeile ist die rote Textfarbe tabu: Sie wäre
+      // rot auf rot und damit unsichtbar. Deshalb gilt dort die Schriftfarbe
+      // der Zeile – und das Rot der Zeile ist die Aussage.
+      final bool hinweis = e['info'] != null;
+      final Color akzent = hinweis
+          ? AppColors.hinweisText(context)
+          : AppColors.aktionston(context);
+
       return ListItem(
         onClick: () {},
-        color: e['info'] == null ? null : Color.fromARGB(158, 119, 18, 18),
+        // Die Fläche einer Stunde mit Hinweistext („Entfall" …). Sie richtet
+        // sich nach dem Theme, weil der Text darauf die Theme-Farbe erbt: Ein
+        // fest eingetragenes dunkles Rot funktionierte nur im dunklen Modus
+        // und machte den Text im hellen unlesbar.
+        color: hinweis ? AppColors.hinweisFlaeche(context) : null,
+        // Die Zeile bekommt ihre eigene Schriftfarbe: Auf der kräftigen
+        // Fläche wäre die schwarze Schrift der App nicht zu erkennen. Die
+        // Texte einzeln umzustellen wäre an drei Stellen in dieser Zeile
+        // geschehen – und beim nächsten Feld wieder vergessen.
+        foreground: hinweis ? AppColors.hinweisText(context) : null,
         leading: Text(
           printValue('${e['count']}'),
           style: TextStyle(fontSize: 18),
@@ -854,14 +873,14 @@ class _PlanState extends State<Plan> {
                       Icon(
                         Icons.location_on_rounded,
                         size: 16,
-                        color: e['placeChanged'] == true ? Colors.red : null,
+                        color: e['placeChanged'] == true ? akzent : null,
                       ),
                       SizedBox(width: 3),
                       Text(
                         printValue(e['place']),
                         style: e['placeChanged'] == true
                             ? TextStyle(
-                                color: Colors.red,
+                                color: akzent,
                                 fontWeight: FontWeight.bold,
                               )
                             : null,
@@ -971,8 +990,7 @@ class _CoursesState extends State<Courses> {
   bool _previewHidden = VPlanAPI.defaultPreviewClassesHidden;
 
   Future<void> _loadPreviewHidden() async {
-    final bool hidden =
-        await vplanAPI.isPreviewHiddenForClass(widget.classId);
+    final bool hidden = await vplanAPI.isPreviewHiddenForClass(widget.classId);
     if (mounted && hidden != _previewHidden) {
       setState(() => _previewHidden = hidden);
     }

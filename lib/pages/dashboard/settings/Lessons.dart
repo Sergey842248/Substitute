@@ -1,3 +1,4 @@
+import 'package:substitute/services/AppColors.dart';
 import 'package:substitute/models/ModalBottomSheet.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -246,9 +247,9 @@ class _LessonsState extends State<Lessons> {
             onPressed: () => Navigator.pop(context, true),
             child: Text(
               l10n.deleteAction,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.red,
+                color: AppColors.aktionston(context),
               ),
             ),
           ),

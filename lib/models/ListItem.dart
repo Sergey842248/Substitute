@@ -13,6 +13,7 @@ class ListItem extends StatelessWidget {
     this.color,
     this.shadow,
     this.borderRadius,
+    this.foreground,
   }) : super(key: key);
 
   final Widget title;
@@ -24,14 +25,21 @@ class ListItem extends StatelessWidget {
   final double? padding;
   final double? margin;
   final BorderRadius? borderRadius;
+
+  /// Die Schriftfarbe der ganzen Zeile – falls sie von der Theme-Farbe
+  /// abweichen soll.
+  ///
+  /// Nötig bei der ausgefallenen Stunde: Ihre Fläche ist kräftig rot, und die
+  /// schwarze Schrift der App wäre darauf nicht zu erkennen. Die Zeile setzt
+  /// deshalb ihre eigene Farbe, statt die Texte einzeln umzustellen.
+  final Color? foreground;
   bool? shadow;
 
   @override
   Widget build(BuildContext context) {
     shadow ??= false;
-    final BorderRadius radius = borderRadius == null
-        ? BorderRadius.circular(25)
-        : borderRadius!;
+    final BorderRadius radius =
+        borderRadius == null ? BorderRadius.circular(25) : borderRadius!;
     return Container(
       margin: EdgeInsets.all(margin == null ? 5 : margin!),
       decoration: BoxDecoration(
@@ -62,15 +70,36 @@ class ListItem extends StatelessWidget {
           onTap: () => this.onClick(),
           child: Padding(
             padding: EdgeInsets.all(padding == null ? 9 : padding!),
-            child: ListTile(
-              leading: this.leading,
-              title: this.title,
-              subtitle: this.subtitle != null ? this.subtitle : null,
-              trailing: this.actionButton,
-            ),
+            // `ListTile` umschließt nur `leading` und `trailing` mit einem
+            // `IconTheme`. Icons **im Titel** – etwa das Ortssymbol in einer
+            // Hinweiszeile – holen sich ihre Farbe von weiter außen, blieben
+            // also schwarz auf der roten Fläche. Dieses Theme gilt für den
+            // ganzen Inhalt und greift dort, wo `ListTile` nichts setzt.
+            child: foreground == null
+                ? _zeile()
+                : IconTheme.merge(
+                    data: IconThemeData(color: foreground),
+                    child: _zeile(),
+                  ),
           ),
         ),
       ),
     );
   }
+
+  /// Der eigentliche Inhalt der Zeile.
+  ///
+  /// Die Schriftfarbe läuft über [ListTile.textColor] und nicht über ein
+  /// umschließendes `DefaultTextStyle`: `ListTile` setzt für Titel und
+  /// Untertitel **selbst** eine Textfarbe aus dem Theme. Eine von außen
+  /// gesetzte Farbe wird davon überdeckt – der Test zeigte genau das, die
+  /// Zeile blieb schwarz.
+  Widget _zeile() => ListTile(
+        leading: this.leading,
+        title: this.title,
+        subtitle: this.subtitle,
+        trailing: this.actionButton,
+        textColor: foreground,
+        iconColor: foreground,
+      );
 }

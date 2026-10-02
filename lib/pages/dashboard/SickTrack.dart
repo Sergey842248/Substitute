@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:substitute/services/AppColors.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:page_transition/page_transition.dart';
 
@@ -98,9 +99,9 @@ class _SickTrackState extends State<SickTrack> {
             onPressed: () => Navigator.pop(context, true),
             child: Text(
               l10n.deleteAction,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.red,
+                color: AppColors.aktionston(context),
               ),
             ),
           ),

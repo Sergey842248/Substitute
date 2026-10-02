@@ -1,3 +1,4 @@
+import 'package:substitute/services/AppColors.dart';
 import 'package:substitute/models/Button.dart';
 import 'package:substitute/models/ListPage.dart';
 import 'package:substitute/pages/dashboard/settings/Lessons.dart';
@@ -233,9 +234,9 @@ class _VPlanState extends State<VPlan> with RouteAware {
             onPressed: () => Navigator.pop(context, true),
             child: Text(
               l10n.deleteAction,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.red,
+                color: AppColors.aktionston(context),
               ),
             ),
           ),
@@ -282,9 +283,9 @@ class _VPlanState extends State<VPlan> with RouteAware {
             onPressed: () => Navigator.pop(context, true),
             child: Text(
               l10n.deleteAction,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.red,
+                color: AppColors.aktionston(context),
               ),
             ),
           ),
@@ -1272,7 +1273,7 @@ class _SelectClassState extends State<SelectClass> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
-                color: Colors.red.shade300,
+                color: AppColors.fehlerton(context),
               ),
             ),
           ),
