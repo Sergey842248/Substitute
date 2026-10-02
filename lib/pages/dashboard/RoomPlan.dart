@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:substitute/services/AppClock.dart';
+import 'package:substitute/services/AppColors.dart';
 
 import '../vplan/VPlanAPI.dart';
 
@@ -336,73 +337,87 @@ class _RoomPlanState extends State<RoomPlan> {
               ),
             )
           else
-            ...roomLessons.map(
-              (e) => ListItem(
-                onClick: () {},
-                color: e['info'] == null ? null : const Color(0x889E1414),
-                leading: Text(
-                  printValue('${e['count']}'),
-                  style: const TextStyle(fontSize: 18),
-                ),
-                title: Container(
-                  alignment: Alignment.centerLeft,
-                  width: MediaQuery.of(context).size.width * 0.1,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        printValue(e['lesson']),
-                        style: const TextStyle(fontSize: 19),
-                      ),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.access_time_rounded,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 3),
-                              Text(
-                                '${printValue(e['begin'])} - ${printValue(e['end'])}',
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 5),
-                          Row(
-                            children: [
-                              const Icon(Icons.group_rounded, size: 16),
-                              const SizedBox(width: 3),
-                              Text(printValue(e['class'])),
-                            ],
-                          ),
-                          const SizedBox(height: 5),
-                          Row(
-                            children: [
-                              const Icon(Icons.person_rounded, size: 16),
-                              const SizedBox(width: 3),
-                              Text(printValue(e['teacher'])),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 50),
-                    ],
-                  ),
-                ),
-                subtitle: e['info'] == null
-                    ? null
-                    : Text(
-                        '${e['info']}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-              ),
-            ),
+            ...roomLessons.map(_stundenZeile),
         ],
       ],
+    );
+  }
+
+  /// Eine Stunde in der Raumliste.
+  ///
+  /// Die Einfärbung ist dieselbe wie im Plan: **Rot** nur für eine
+  /// ausgefallene Stunde, **Orange** für eine geänderte (im VPlan ein
+  /// Hinweistext bei noch vorhandenem Lehrer – eine Vertretung etwa). Siehe
+  /// `AppColors.hinweisTonVon`.
+  ///
+  /// Eigene Methode, weil Fläche und Schriftfarbe nur **gemeinsam** gesetzt
+  /// werden dürfen und beides aus derselben Antwort folgt.
+  Widget _stundenZeile(dynamic e) {
+    final HinweisTon ton =
+        AppColors.hinweisTonVon(e as Map<String, dynamic>);
+    return ListItem(
+      onClick: () {},
+      color: AppColors.hinweisFlaecheVon(context, ton),
+      // Nur die Hinweiszeilen bekommen eine eigene Schriftfarbe; alle
+      // anderen behalten die der App.
+      foreground:
+          ton == HinweisTon.keiner ? null : AppColors.hinweisText(context),
+      leading: Text(
+        printValue('${e['count']}'),
+        style: const TextStyle(fontSize: 18),
+      ),
+      title: Container(
+        alignment: Alignment.centerLeft,
+        width: MediaQuery.of(context).size.width * 0.1,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              printValue(e['lesson']),
+              style: const TextStyle(fontSize: 19),
+            ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.access_time_rounded, size: 16),
+                    const SizedBox(width: 3),
+                    Text(
+                      '${printValue(e['begin'])} - ${printValue(e['end'])}',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    const Icon(Icons.group_rounded, size: 16),
+                    const SizedBox(width: 3),
+                    Text(printValue(e['class'])),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    const Icon(Icons.person_rounded, size: 16),
+                    const SizedBox(width: 3),
+                    Text(printValue(e['teacher'])),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(width: 50),
+          ],
+        ),
+      ),
+      subtitle: e['info'] == null
+          ? null
+          : Text(
+              '${e['info']}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
     );
   }
 }

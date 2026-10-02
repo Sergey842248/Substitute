@@ -354,6 +354,14 @@ class DemoData {
 
   static String? _randomInfo(DateTime date, String cls, int period) {
     final seed = (date.day + cls.hashCode + period * 3).abs();
+    if (seed % 11 == 0) {
+      // Eine **echte** Ausfallstunde: Der VPlan lässt den Lehrer leer und
+      // schreibt den Grund in das Hinweisfeld. Genau so sieht eine aus, die
+      // `AppColors` rot einfärbt – die Meldungen darunter sind Änderungen und
+      // werden orange. Ohne diese Zeile wäre im Demo-Modus nie ein Rot zu
+      // sehen und die Abstufung nicht prüfbar.
+      return 'Entfall';
+    }
     if (seed % 7 == 0) {
       const msgs = [
         'Vertretung',
@@ -393,14 +401,20 @@ class DemoData {
 
     final classPlan = _schedule[classId]![dow % 5];
     for (int p = 0; p < classPlan.length; p++) {
-      final entry = classPlan[p];
-      final period = _periods[p];
-      final info = _randomInfo(date, classId, p);
+      final Map<String, dynamic> entry = classPlan[p];
+      final Map<String, dynamic> period = _periods[p];
+      final String? info = _randomInfo(date, classId, p);
+      // Eine ausgefallene Stunde hat **keinen Lehrer** – so meldet der VPlan
+      // sie, und nur so ist sie von einer Vertretung zu unterscheiden. Die
+      // Anzeige färbt sie deshalb rot und die anderen Meldungen orange.
+      final bool entfall = info == 'Entfall';
 
       lessons.add({
         'count': period['St'],
         'lesson': entry['subject'],
-        'teacher': _teacherNames[entry['teacherShort']] ?? entry['teacherShort'],
+        'teacher': entfall
+            ? ''
+            : _teacherNames[entry['teacherShort']] ?? entry['teacherShort'],
         'place': entry['room'],
         'placeChanged': false,
         'begin': period['Beginn'],

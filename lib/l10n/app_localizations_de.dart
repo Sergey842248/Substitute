@@ -949,6 +949,25 @@ class AppLocalizationsDe extends AppLocalizations {
   String get syncPassphraseEmpty => 'Bitte einen Code eingeben';
 
   @override
+  String get syncPassphraseShow => 'Sync-Code anzeigen';
+
+  @override
+  String get syncPassphraseShowSubtitle =>
+      'Die zehn Wörter dieses Syncs, damit ein weiteres Gerät beitreten kann';
+
+  @override
+  String get syncPassphraseNoDevicesTitle =>
+      'In diesem Sync ist kein Gerät mehr';
+
+  @override
+  String get syncPassphraseNoDevicesConfirm =>
+      'Dieses Gerät ist nicht mehr im Sync – die Kette ist leer. Der Sync wird jetzt beendet, deine Daten bleiben auf diesem Gerät.';
+
+  @override
+  String get syncPassphraseNoDevicesDone =>
+      'Der Sync wurde beendet: Es war kein Gerät mehr darin.';
+
+  @override
   String get syncSettingsToggle => 'Einstellungen mit übertragen';
 
   @override

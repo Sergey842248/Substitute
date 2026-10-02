@@ -164,6 +164,24 @@ class SyncEngine {
   static const String stateStorageKey = 'sync.state';
   static const String serverUrlKey = 'sync.serverUrl';
 
+  /// Der Entwicklerschalter für die zusätzlichen Sync-Anzeigen.
+  ///
+  /// "Server prüfen", "Automatisch synchronisiert" und der Zähler der
+  /// übertragenen Einträge beantworten Fragen, die nur beim Einrichten oder
+  /// bei einer Störung wichtig sind. Im Alltag sind sie nur eine dritte Kachel
+  /// mit Text, den niemand liest – deshalb bleiben sie hinter diesem Schalter
+  /// in den Entwickleroptionen verborgen.
+  ///
+  /// Der Schlüssel beginnt mit `sync.` und ist damit per [SyncKeys.isSyncable]
+  /// **nie** übertragbar: Das ist eine Einstellung dieses Geräts. Wer den Sync
+  /// auf dem Telefon einschaltet, will ihn auf dem Tablet nicht automatisch
+  /// mitbekommen.
+  static const String showDetailsStorageKey = 'sync.showDetails';
+
+  /// true, wenn die zusätzlichen Sync-Anzeigen freigeschaltet sind.
+  static bool showsDetails(SharedPreferences prefs) =>
+      prefs.getBool(showDetailsStorageKey) ?? false;
+
   // ------------------------------------------------------------- Lokaler Zustand
 
   /// Liest den gespeicherten Zustand.

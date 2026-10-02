@@ -69,7 +69,7 @@ class _SyncDevicesState extends State<SyncDevices> {
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.later),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),

@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 import '../../../models/ListPage.dart';
+import '../../../models/SettingsSwitchTile.dart';
 import '../../../services/SchoolStorage.dart';
 import '../../../services/AppClock.dart';
+import '../../../services/sync/SyncEngine.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -21,6 +23,7 @@ class DeveloperOptions extends StatefulWidget {
 
 class _DeveloperOptionsState extends State<DeveloperOptions> {
   bool _isAnalysisEnabled = false;
+  bool _showSyncDetails = false;
   DateTime? _customDate;
 
   @override
@@ -28,6 +31,28 @@ class _DeveloperOptionsState extends State<DeveloperOptions> {
     super.initState();
     _loadAnalysisStatus();
     _loadCustomDate();
+    _loadSyncDetails();
+  }
+
+  /// Liest den Schalter für die zusätzlichen Sync-Anzeigen.
+  ///
+  /// Gespeichert wird er unter `sync.showDetails`, also gerätelokal: Er ist eine
+  /// Frage der Anzeige auf **diesem** Gerät, keine Eigenschaft der Kette.
+  Future<void> _loadSyncDetails() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _showSyncDetails = SyncEngine.showsDetails(prefs);
+    });
+  }
+
+  Future<void> _setSyncDetails(bool value) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(SyncEngine.showDetailsStorageKey, value);
+    if (!mounted) return;
+    setState(() {
+      _showSyncDetails = value;
+    });
   }
 
   Future<void> _loadAnalysisStatus() async {
@@ -197,6 +222,14 @@ class _DeveloperOptionsState extends State<DeveloperOptions> {
                 ),
               ],
             ),
+          ),
+          SettingsSwitchTile(
+            icon: Icons.sync_rounded,
+            title: 'Show additional sync options and information',
+            subtitle: 'Adds server status, automatic sync and the number of '
+                'transferred entries to the sync page',
+            value: _showSyncDetails,
+            onChanged: _setSyncDetails,
           ),
           ...options.map(
             (e) => Container(

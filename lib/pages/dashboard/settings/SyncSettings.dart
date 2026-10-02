@@ -25,7 +25,16 @@ import 'SyncDevices.dart';
 /// * **Aus** – entweder einen neuen Sync starten (die App erzeugt zehn Wörter)
 ///   oder mit den zehn Wörtern eines anderen Geräts beitreten.
 /// * **An**  – "Jetzt synchronisieren", die Liste der Geräte und die Option,
-///   ob die Einstellungen dazugehören.
+///   ob die Einstellungen dazugehören. Dazu kommt der Code der Kette: Er ist
+///   der Weg, ein weiteres Gerät hinzuzufügen, und er wird auch dann gezeigt,
+///   wenn bisher nur dieses eine Gerät darin ist. Erst wenn die Kette gar kein
+///   Gerät mehr enthält, wird sie aufgelöst.
+///
+/// Drei Kacheln – "Server prüfen", "Automatisch synchronisiert" und der
+/// Zähler der übertragenen Einträge – erscheinen nur, wenn in den
+/// Entwickleroptionen "Show additional sync options and information"
+/// eingeschaltet ist. Sie sagen, was hinter der Kette passiert; im Alltag ist
+/// das eine Zeile Text, die niemand liest.
 ///
 /// Wer den Sync verlässt, behält alle Daten. Das steht ausdrücklich so auf der
 /// Seite, weil es die häufigste Sorge ist.
@@ -44,7 +53,7 @@ class _SyncSettingsState extends State<SyncSettings> {
   bool _busy = false;
   bool _serverRunning = false;
   bool _checkedServer = false;
-  String? _passphraseDraft = '';
+  bool _showDetails = false;
 
   @override
   void initState() {
@@ -69,7 +78,11 @@ class _SyncSettingsState extends State<SyncSettings> {
       _prefs = prefs;
       _state = state;
       _client = client;
-      _passphraseDraft = state?.passphrase ?? '';
+      // Der Entwicklerschalter wird bei jedem [_load] neu gelesen, nicht nur
+      // beim Öffnen der Seite: Er wird in den Entwickleroptionen umgelegt, und
+      // wer danach hierher zurückkehrt, soll die Kacheln sehen – ohne die App
+      // neu zu starten.
+      _showDetails = SyncEngine.showsDetails(prefs);
     });
     previous?.dispose();
   }
@@ -128,7 +141,6 @@ class _SyncSettingsState extends State<SyncSettings> {
     if (!mounted) return;
     setState(() {
       _state = state;
-      _passphraseDraft = passphrase;
     });
 
     // Der Code wird gezeigt, damit er notiert oder weitergegeben werden kann.
@@ -212,7 +224,6 @@ class _SyncSettingsState extends State<SyncSettings> {
     if (!mounted) return;
     setState(() {
       _state = state;
-      _passphraseDraft = passphrase;
       _busy = false;
     });
 
@@ -279,7 +290,83 @@ class _SyncSettingsState extends State<SyncSettings> {
     await _runSync();
   }
 
+  /// Zeigt den Code der Kette – oder löst sie auf, wenn sie leer ist.
+  ///
+  /// Der Code ist nicht nur beim Einrichten interessant: Er ist der einzige
+  /// Weg, ein weiteres Gerät in eine bestehende Kette zu holen – und zwar auch
+  /// dann, wenn schon zwei oder mehr Geräte im Sync sind oder bisher nur
+  /// dieses eine. Gerade im letzten Fall ist er die Chance, den Sync nicht
+  /// verwaist auf dem Telefon sterben zu lassen, sondern das Tablet noch
+  /// nachzuholen. Er wird deshalb **immer** gezeigt.
+  ///
+  /// Nur wenn die Kette gar kein Gerät mehr enthält, gibt es nichts zu zeigen:
+  /// Dann ist auch dieses Gerät nicht mehr darin – etwa weil es in der
+  /// Geräteliste entfernt wurde oder der Server die Kette nicht mehr kennt. Der
+  /// Code führt ins Leere, und die Kette wird nach Rückfrage aufgelöst. Sie zu
+  /// behalten wäre auch eine gültige Antwort, nur eben eine, die niemanden
+  /// mehr erreicht.
+  Future<void> _showPassphraseOrDissolve() async {
+    final SharedPreferences? prefs = _prefs;
+    final SyncState? state = _state;
+    if (prefs == null || state == null) return;
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+
+    setState(() => _busy = true);
+    final SyncApiClient client =
+        SyncApiClient(baseUrl: SyncEngine.serverUrl(prefs));
+    final List<SyncDevice> devices;
+    try {
+      devices = await client.fetchDevices(state.chainId);
+    } on SyncException catch (failure) {
+      client.dispose();
+      if (!mounted) return;
+      setState(() => _busy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(syncErrorMessage(l10n, failure.code))),
+      );
+      return;
+    }
+    client.dispose();
+    if (!mounted) return;
+    setState(() => _busy = false);
+
+    // Nur die ganz leere Kette zählt hier – **nicht** "außer mir ist niemand
+    // mehr drin". Solange dieses Gerät noch in der Kette steht, gibt es einen
+    // Code, mit dem ein weiteres Gerät beitreten kann, und der gehört gezeigt.
+    if (devices.isEmpty) {
+      await _confirmAndLeave(
+        title: l10n.syncPassphraseNoDevicesTitle,
+        message: l10n.syncPassphraseNoDevicesConfirm,
+        actionLabel: l10n.syncLeave,
+        doneMessage: l10n.syncPassphraseNoDevicesDone,
+      );
+      return;
+    }
+    await _showPassphrase(state.passphrase);
+  }
+
   Future<void> _leaveChain() async {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    await _confirmAndLeave(
+      title: l10n.syncLeaveConfirmTitle,
+      message: l10n.syncLeaveConfirm,
+      actionLabel: l10n.syncLeave,
+      doneMessage: l10n.syncLeaveDone,
+    );
+  }
+
+  /// Nimmt dieses Gerät nach Rückfrage aus der Kette.
+  ///
+  /// Die Beschriftungen unterscheiden nur, **woher** der Weg herauskam – das
+  /// "Sync verlassen" und das "Kette auflösen" machen technisch dasselbe: Der
+  /// Snapshot dieses Geräts wird vom Server gelöscht, der lokale Zustand
+  /// verschwindet, und die Daten auf dem Gerät bleiben, wo sie sind.
+  Future<void> _confirmAndLeave({
+    required String title,
+    required String message,
+    required String actionLabel,
+    required String doneMessage,
+  }) async {
     final SharedPreferences? prefs = _prefs;
     final SyncState? state = _state;
     if (prefs == null || state == null) return;
@@ -288,16 +375,16 @@ class _SyncSettingsState extends State<SyncSettings> {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        title: Text(l10n.syncLeaveConfirmTitle),
-        content: Text(l10n.syncLeaveConfirm),
+        title: Text(title),
+        content: Text(message),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.later),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.syncLeave),
+            child: Text(actionLabel),
           ),
         ],
       ),
@@ -322,12 +409,11 @@ class _SyncSettingsState extends State<SyncSettings> {
     if (!mounted) return;
     setState(() {
       _state = null;
-      _passphraseDraft = '';
       _busy = false;
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(failure == null ? l10n.syncLeaveDone : l10n.syncLeaveFailed),
+        content: Text(failure == null ? doneMessage : l10n.syncLeaveFailed),
       ),
     );
   }
@@ -346,7 +432,7 @@ class _SyncSettingsState extends State<SyncSettings> {
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.later),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
@@ -438,8 +524,17 @@ class _SyncSettingsState extends State<SyncSettings> {
 
   /// Fragt die zehn Wörter eines bestehenden Syncs ab.
   Future<String?> _askForPassphrase() async {
+    // Das Feld bekommt nur den Code einer **laufenden** Kette. Stand hier der
+    // zuletzt benutzte Code, wäre nach dem Verlassen eines Syncs genau dessen
+    // Wortfolge wieder im Feld – und wer dann auf "Beitreten" tippt, landet
+    // wieder in derselben Kette, ohne es zu bemerken. Das war der gemeldete
+    // Fehler: Nach dem Wechsel in einen neuen Sync stand noch der alte Code
+    // drin.
+    //
+    // Beim Beitreten selbst (ohne laufende Kette) startet das Feld deshalb
+    // **leer**, und ein verlassener oder gelöschter Sync hinterlässt nichts.
     final TextEditingController controller =
-        TextEditingController(text: _passphraseDraft);
+        TextEditingController(text: _state?.passphrase ?? '');
     return showDialog<String>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
@@ -451,7 +546,7 @@ class _SyncSettingsState extends State<SyncSettings> {
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.later),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, controller.text),
@@ -476,7 +571,12 @@ class _SyncSettingsState extends State<SyncSettings> {
           onRefresh: state == null ? null : _runSync,
           children: <Widget>[
             if (_busy) const Center(child: LoadingProcess()),
-            _serverTile(l10n),
+            // Die Server-Kachel ist Werbung für den Server und für niemanden
+            // sonst: Im Alltag ist sie eine Zeile, die man nicht liest. Sie
+            // erscheint deshalb nur, wenn die Entwickleroption
+            // "Show additional sync options and information" eingeschaltet ist –
+            // dann nämlich, wenn man wirklich wissen will, ob der Server läuft.
+            if (_showDetails) _serverTile(l10n),
             if (state == null) ..._offlineChildren(l10n) else ..._onlineChildren(l10n, state),
             if (!_busy) const SizedBox(height: 30),
           ],
@@ -589,14 +689,27 @@ class _SyncSettingsState extends State<SyncSettings> {
         subtitle: '$lastSync · ${state.deviceName.isEmpty ? l10n.syncDeviceUnknown : state.deviceName}',
         onTap: _runSync,
       ),
-      _autoSyncTile(l10n, state),
-      _payloadTile(l10n),
+      // "Automatisch synchronisiert" und der Zähler der Einträge sagen, was im
+      // Hintergrund passiert. Das ist beim Einrichten und bei einer Störung
+      // Gold wert und im Alltag eine Kachel, die man überliest – deshalb
+      // beide hinter dem Entwicklerschalter.
+      if (_showDetails) _autoSyncTile(l10n, state),
+      if (_showDetails) _payloadTile(l10n),
       SettingsSwitchTile(
         icon: Icons.tune_rounded,
         title: l10n.syncSettingsToggle,
         subtitle: l10n.syncSettingsToggleSubtitle,
         value: state.includeSettings,
         onChanged: _busy ? (_) {} : _toggleIncludeSettings,
+      ),
+      // Der Code ist auch dann noch da, wenn schon zwei oder mehr Geräte im
+      // Sync sind – er ist der einzige Weg, ein drittes Gerät hinzuzufügen,
+      // und der Grund, warum die Kette überhaupt funktioniert.
+      _tile(
+        icon: Icons.password_rounded,
+        title: l10n.syncPassphraseShow,
+        subtitle: l10n.syncPassphraseShowSubtitle,
+        onTap: _showPassphraseOrDissolve,
       ),
       _tile(
         icon: Icons.devices_rounded,

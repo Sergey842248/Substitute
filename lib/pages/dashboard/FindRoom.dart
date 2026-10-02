@@ -8,6 +8,7 @@ import 'package:substitute/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:substitute/services/AppClock.dart';
+import 'package:substitute/services/AppColors.dart';
 
 import '../vplan/VPlanAPI.dart';
 import '../../services/SchoolStorage.dart';
@@ -427,73 +428,7 @@ class _FindRoomState extends State<FindRoom> {
                                       textAlign: TextAlign.center,
                                     )
                                   : SizedBox(),
-                              ...roomData.map(
-                                (e) => ListItem(
-                                  onClick: () {},
-                                  color: e['info'] == null
-                                      ? null
-                                      : Color(0x889E1414),
-                                  leading: Text(
-                                    printValue('${e['count']}'),
-                                    style: TextStyle(fontSize: 18),
-                                  ),
-                                  title: Container(
-                                    alignment: Alignment.centerLeft,
-                                    width:
-                                        MediaQuery.of(context).size.width * 0.1,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          printValue(e['lesson']),
-                                          style: TextStyle(fontSize: 19),
-                                        ),
-                                        Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.group_rounded,
-                                                  size: 16,
-                                                ),
-                                                SizedBox(width: 3),
-                                                Text(printValue(e['class'])),
-                                              ],
-                                            ),
-                                            SizedBox(height: 5),
-                                            Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.person_rounded,
-                                                  size: 16,
-                                                ),
-                                                SizedBox(width: 3),
-                                                Text(printValue(e['teacher'])),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                        SizedBox(width: 50),
-                                      ],
-                                    ),
-                                  ),
-                                  subtitle: e['info'] == null
-                                      ? null
-                                      : Text(
-                                          '${e['info']}',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                ),
-                              )
+                              ...roomData.map(_stundenZeile),
                             ],
                           ),
                         ),
@@ -514,6 +449,73 @@ class _FindRoomState extends State<FindRoom> {
       return '---';
     }
     return value;
+  }
+
+  /// Eine Stunde in der Raumliste.
+  ///
+  /// Dieselbe Einfärbung wie im Plan: **Rot** nur für eine ausgefallene
+  /// Stunde, **Orange** für eine geänderte (im VPlan ein Hinweistext bei noch
+  /// vorhandenem Lehrer – eine Vertretung etwa). Siehe
+  /// `AppColors.hinweisTonVon`.
+  Widget _stundenZeile(dynamic e) {
+    final HinweisTon ton =
+        AppColors.hinweisTonVon(e as Map<String, dynamic>);
+    return ListItem(
+      onClick: () {},
+      color: AppColors.hinweisFlaecheVon(context, ton),
+      // Nur die Hinweiszeilen bekommen eine eigene Schriftfarbe; alle
+      // anderen behalten die der App.
+      foreground:
+          ton == HinweisTon.keiner ? null : AppColors.hinweisText(context),
+      leading: Text(
+        printValue('${e['count']}'),
+        style: TextStyle(fontSize: 18),
+      ),
+      title: Container(
+        alignment: Alignment.centerLeft,
+        width: MediaQuery.of(context).size.width * 0.1,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              printValue(e['lesson']),
+              style: TextStyle(fontSize: 19),
+            ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.group_rounded, size: 16),
+                    SizedBox(width: 3),
+                    Text(printValue(e['class'])),
+                  ],
+                ),
+                SizedBox(height: 5),
+                Row(
+                  children: [
+                    Icon(Icons.person_rounded, size: 16),
+                    SizedBox(width: 3),
+                    Text(printValue(e['teacher'])),
+                  ],
+                ),
+              ],
+            ),
+            SizedBox(width: 50),
+          ],
+        ),
+      ),
+      subtitle: e['info'] == null
+          ? null
+          : Text(
+              '${e['info']}',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+    );
   }
 
   /// Shows the combined date/time/hour selection dialog.

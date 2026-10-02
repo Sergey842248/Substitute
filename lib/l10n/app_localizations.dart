@@ -1790,6 +1790,36 @@ abstract class AppLocalizations {
   /// **'Please enter a code'**
   String get syncPassphraseEmpty;
 
+  /// No description provided for @syncPassphraseShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show sync code'**
+  String get syncPassphraseShow;
+
+  /// No description provided for @syncPassphraseShowSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The ten words of this sync, so another device can join it'**
+  String get syncPassphraseShowSubtitle;
+
+  /// No description provided for @syncPassphraseNoDevicesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No device is in this sync any more'**
+  String get syncPassphraseNoDevicesTitle;
+
+  /// No description provided for @syncPassphraseNoDevicesConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This device is not in the sync any more – the chain is empty. It is ended now; your data stays on this device.'**
+  String get syncPassphraseNoDevicesConfirm;
+
+  /// No description provided for @syncPassphraseNoDevicesDone.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync was ended: no device was left in it.'**
+  String get syncPassphraseNoDevicesDone;
+
   /// No description provided for @syncSettingsToggle.
   ///
   /// In en, this message translates to:

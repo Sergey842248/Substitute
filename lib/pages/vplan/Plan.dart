@@ -817,8 +817,15 @@ class _PlanState extends State<Plan> {
       }
       // Innerhalb einer Hinweiszeile ist die rote Textfarbe tabu: Sie wäre
       // rot auf rot und damit unsichtbar. Deshalb gilt dort die Schriftfarbe
-      // der Zeile – und das Rot der Zeile ist die Aussage.
-      final bool hinweis = e['info'] != null;
+      // der Zeile – und die Farbe der Zeile ist die Aussage.
+      //
+      // **Rot** heißt dabei ausschließlich "fällt aus" – also eine Stunde ohne
+      // Lehrer. Eine Vertretung, ein anderes Fach oder eine Raumänderung ist
+      // **orange**; vorher war sie genauso rot wie ein Ausfall, und damit war
+      // der Plan voller Ausfälle, als es sind. Siehe
+      // `AppColors.hinweisTonVon`.
+      final HinweisTon ton = AppColors.hinweisTonVon(e);
+      final bool hinweis = ton != HinweisTon.keiner;
       final Color akzent = hinweis
           ? AppColors.hinweisText(context)
           : AppColors.aktionston(context);
@@ -829,7 +836,7 @@ class _PlanState extends State<Plan> {
         // sich nach dem Theme, weil der Text darauf die Theme-Farbe erbt: Ein
         // fest eingetragenes dunkles Rot funktionierte nur im dunklen Modus
         // und machte den Text im hellen unlesbar.
-        color: hinweis ? AppColors.hinweisFlaeche(context) : null,
+        color: AppColors.hinweisFlaecheVon(context, ton),
         // Die Zeile bekommt ihre eigene Schriftfarbe: Auf der kräftigen
         // Fläche wäre die schwarze Schrift der App nicht zu erkennen. Die
         // Texte einzeln umzustellen wäre an drei Stellen in dieser Zeile
