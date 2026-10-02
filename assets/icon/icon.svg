@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!--
+    Das Icon der App – die Quelle aller Dateien.
+
+    **Kalender und Tauschpfeile.** Kalender, weil es um den Stundenplan geht;
+    die zwei gegenläufigen Pfeile, weil es um *Vertretung* geht – sie sind das
+    Zeichen, das auch in der App selbst steht. Das alte Icon war ein Kalender
+    mit sechs Punkten darin, und die Punkte bedeuteten nichts: Sie sahen aus wie
+    ein Raster und trugen keinen Namen.
+
+    **Alle Maße liegen im sicheren Bereich.** Für Android muss die Zeichnung in
+    den mittleren 66 von 108 Punkten bleiben, weil der Rest vom Launcher
+    abgeschnitten oder maskiert wird (Kreise, Squircle, auf manchen Geräten
+    sogar ein Vollbild). Das ist hier eingehalten: Die Zeichnung reicht von 208
+    bis 816, also genau die 608 Punkte, die übrig bleiben, wenn man den Rahmen
+    wegdacht. Wer das später vergrößert, soll daran denken.
+
+    **Kein Weiss am Rand, keine Rundungen.** iOS schneidet zu; eine Runde im
+    Bild würde mit der des Systems eine doppelte Kante ergeben.
+  -->
+  <defs>
+    <!-- Der Verlauf geht von oben hell nach unten tief. Flacher Verlauf, weil
+         ein Icon kein Bild ist: Ein Farbverlauf, der als Muster auffällt,
+         konkurriert mit dem Zeichen darauf. -->
+    <linearGradient id="grund" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b878f5"/>
+      <stop offset="1" stop-color="#6f37b4"/>
+    </linearGradient>
+
+    <!-- Ein Schimmer oben links. Er lässt das Quadrat nicht flach wirken und
+         wird von iOS unter dem Glas noch einmal gebrochen. -->
+    <radialGradient id="schimmer" cx="0.3" cy="0.18" r="0.8">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Die Aussparungen. Bewusst als Maske und nicht als eingefärbte Flächen:
+         Ein ausgesparter Pfeil zeigt den Verlauf **darunter** und sitzt
+         dadurch sauber auf jedem Untergrund. -->
+    <mask id="aus">
+      <rect width="1024" height="1024" fill="#ffffff"/>
+      <g fill="#000000">
+        <!-- Trennlinie unter der Kopfzeile des Kalenders -->
+        <rect x="208" y="390" width="608" height="22" rx="11"/>
+        <!-- Nach rechts. Der Schaft hat eine **Dicke** – ohne sie bleibt nur
+             die Spitze, und ein Pfeil ohne Schaft ist ein Dreieck. -->
+        <path d="M 300 492 L 648 492 L 648 458 L 760 520 L 648 582 L 648 548 L 300 548 Z"/>
+        <!-- Nach links, spiegelbildlich an der Mitte -->
+        <path d="M 724 640 L 376 640 L 376 606 L 264 668 L 376 730 L 376 696 L 724 696 Z"/>
+      </g>
+    </mask>
+  </defs>
+
+  <!-- Der Grund reicht bis in die Ecken: iOS erwartet ein randloses Quadrat. -->
+  <rect width="1024" height="1024" fill="url(#grund)"/>
+  <rect width="1024" height="1024" fill="url(#schimmer)"/>
+
+  <g fill="#ffffff" mask="url(#aus)">
+    <!-- Die beiden Aufhängungen -->
+    <rect x="352" y="210" width="56" height="130" rx="28"/>
+    <rect x="616" y="210" width="56" height="130" rx="28"/>
+    <!-- Der Kalender -->
+    <rect x="208" y="250" width="608" height="524" rx="96"/>
+  </g>
+</svg>

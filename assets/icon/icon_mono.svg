@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!--
+    Die monochrome Fassung – für die Icons mit Farbschema (Android 13 und
+    neuer) und für „Im Tintenmodus färben" auf iOS.
+
+    **Kein Hintergrund.** Das System legt die Farbe fest: Es färbt diese Ebene
+    ein. Eine eigene Fläche würde die Farbe des Systems überdecken, und genau
+    das ist der Zweck dieser Ebene.
+
+    **Nur eine Form, keine Details.** Wenn mehrere gleich helle Flächen
+    nebeneinanderliegen, verschmelzen sie zu einem Fleck. Deshalb sind es hier
+    ein Kalender mit zwei ausgesparten Pfeilen und sonst nichts: Der
+    Unterschied zwischen Zeichnung und Aussparung bleibt erhalten, weil die
+    Aussparung einfach **fehlt** – dort steht das Weiß des Systems durch.
+
+    **Dieselben Maße wie die farbige Fassung**, damit beide Ebenen
+    übereinanderliegen.
+  -->
+  <defs>
+    <mask id="aus">
+      <rect width="1024" height="1024" fill="#ffffff"/>
+      <g fill="#000000">
+        <rect x="208" y="390" width="608" height="22" rx="11"/>
+        <path d="M 300 492 L 648 492 L 648 458 L 760 520 L 648 582 L 648 548 L 300 548 Z"/>
+        <path d="M 724 640 L 376 640 L 376 606 L 264 668 L 376 730 L 376 696 L 724 696 Z"/>
+      </g>
+    </mask>
+  </defs>
+
+  <g fill="#ffffff" mask="url(#aus)">
+    <rect x="352" y="210" width="56" height="130" rx="28"/>
+    <rect x="616" y="210" width="56" height="130" rx="28"/>
+    <rect x="208" y="250" width="608" height="524" rx="96"/>
+  </g>
+</svg>

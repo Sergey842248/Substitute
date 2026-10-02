@@ -125,6 +125,23 @@ Color darken(Color c, [int percent = 10]) {
   );
 }
 
+/// Groesse des Logos oben links in der Kopfzeile.
+///
+/// Das Feld, in dem es sitzt, ist 45 x 45 Punkte – so hoch wie die Zeile mit
+/// dem Wort „Substitute“. Das Logo selbst fuellt dieses Feld aber **nicht** aus:
+/// 45 Punkte sind fast so breit wie das Wort daneben und damit der mit
+/// Abstand groesste Gegenstand der Kopfzeile; die Symbole der Leiste unten
+/// sind 28 Punkte breit, daneben wirkt das Logo riesig.
+///
+/// 30 x 30 haelt es sichtbar, ohne mit der Schrift zu konkurrieren, und
+/// laesst ringsum Luft, sodass es nicht am Rand klebt. `BoxFit.contain`
+/// verhindert zusaetzlich, dass das Logo verzerrt wird – es ist nicht
+/// quadratisch (608 zu 564 Pixeln).
+///
+/// Eine Zahl an zwei Stellen, damit Taschen-Hase und Kopfzeile nach einem
+/// Tippen auf das Logo nicht unterschiedlich gross aussehen.
+const double kLogoGroesse = 30;
+
 class MyApp extends StatefulWidget {
   const MyApp({Key? key, this.initialPage}) : super(key: key);
 
@@ -565,7 +582,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'assets/img/logo.png',
         key: ValueKey(2),
         color: Theme.of(context).focusColor,
-        width: 100,
+        // **Deutlich kleiner als sein Feld.** Vorher fuellte das Bild die Box
+        // von 45x45 Punkten voll aus (und einmal sogar mehr, mit einer Breite
+        // von 100), dann lief es in die Kopfzeile hinein. `kLogoGroesse`
+        // laesst ringsum Luft; `BoxFit.contain` verhindert, dass es dabei
+        // verzerrt wird.
+        width: kLogoGroesse,
+        height: kLogoGroesse,
+        fit: BoxFit.contain,
       );
     } else {
       eastereggIcon = LottieBuilder.asset(
@@ -588,7 +612,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (eastereggIcon.runtimeType == SizedBox)
       eastereggIcon = Image.asset(
         'assets/img/logo.png',
-        width: 100,
+        // Wie im anderen Zweig: dieselbe Groesse wie beim Tippen auf das
+        // Logo, sonst waechselt es beim Antippen sichtbar die Groesse.
+        width: kLogoGroesse,
+        height: kLogoGroesse,
+        fit: BoxFit.contain,
         key: ValueKey(2),
         color: Theme.of(context).focusColor,
       );
