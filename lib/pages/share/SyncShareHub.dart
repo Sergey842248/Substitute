@@ -89,15 +89,10 @@ class _SyncShareHubState extends State<SyncShareHub> {
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
     return Container(
-      // Feste Höhe und unterer Rand: Der Tab sitzt zwischen der Kopfzeile der
-      // App und der Leiste, und die Leiste braucht ihren Platz. Ohne diese
-      // Höhe liefe die Liste unter der Navigationsleiste hindurch, und die
-      // untersten Einträge wären nicht erreichbar.
-      height: MediaQuery.of(context).size.height * 0.69,
-      margin: EdgeInsets.only(
-        bottom: MediaQuery.of(context).size.height * 0.1,
-      ),
-      alignment: Alignment.center,
+      // **Keine** eigene Höhe und **kein** eigener unterer Rand: Den Platz für
+      // die Navigationsleiste reserviert der Inhaltsbereich in `main.dart`, und
+      // zwar für jeden Bildschirm. Ein zweiter Abstand addiert sich, und die
+      // Liste schöbe sich sichtbar nach oben.
       child: Scrollbar(
         thickness: 3,
         radius: const Radius.circular(100),

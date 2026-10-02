@@ -305,8 +305,7 @@ class _VPlanState extends State<VPlan> with RouteAware {
       newClasses = [];
     }
     newClasses.remove(classId);
-    prefs.setStringList(
-        SchoolStorage.scopedKey(prefs, 'classes'),
+    prefs.setStringList(SchoolStorage.scopedKey(prefs, 'classes'),
         ClassNames.sortiert(newClasses));
     // Auch die gespeicherten Kurs-Auswahlen und den
     // benutzerdefinierten Namen der Klasse zurücksetzen,
@@ -487,35 +486,53 @@ class _VPlanState extends State<VPlan> with RouteAware {
                 ),
               ),
             ),
-            Container(
-              height: MediaQuery.of(context).size.height * 0.5,
-              child: Scrollbar(
-                radius: Radius.circular(100),
-                child: AnimatedList(
-                  padding: EdgeInsets.zero,
-                  physics: BouncingScrollPhysics(),
-                  key: listKey,
-                  initialItemCount: classes.length,
-                  itemBuilder: (context, index, animation) => SizeTransition(
-                    sizeFactor: animation,
-                    child: ClassWidget(
-                      classId: classes[index],
-                      classIndex: index,
-                      onDelete: () => _deleteClass(index),
-                      openContainer: () => Navigator.push(
-                        context,
-                        SwipePageTransition(
-                          type: PageTransitionType.rightToLeft,
-                          child: Plan(
-                            classId: classes[index],
-                          ),
-                        ),
+            // **Kein eigener Bereich zum Scrollen und keine feste Höhe.**
+            //
+            // Vorher stand hier eine Liste von der halben Bildschirmhöhe, in
+            // der man scrollen musste. Sie lag in einem Bildschirm, der
+            // selbst scrollt – und damit waren es zwei Bereiche, in denen man
+            // scrollen konnte, und der Finger entschied, welcher davon
+            // bewegt wurde.
+            //
+            // Das ist der gemeldete Fehler: Man zieht an den Karten, weil man
+            // die Karten sehen will, die innere Liste bewegt sich, der äußere
+            // Bereich nicht. Die letzte Karte bleibt deshalb unter der
+            // Navigationsleiste liegen, und ganz unten angekommen federt die
+            // Liste zurück – sie erscheint nur während der Bewegung und
+            // verschwindet wieder.
+            //
+            // `shrinkWrap` lässt die Liste so hoch werden wie ihre Karten,
+            // `NeverScrollableScrollPhysics` nimmt ihr das eigene Scrollen.
+            // Scrollt wird nur noch der Bildschirm, und dort ist Platz für die
+            // Leiste reserviert (`main.dart`).
+            //
+            // Die Animationen bleiben: `AnimatedList` wird behalten, weil beim
+            // Hinzufügen und Löschen etwas passieren soll, und dafür ist es
+            // zuständig.
+            AnimatedList(
+              key: listKey,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
+              initialItemCount: classes.length,
+              itemBuilder: (context, index, animation) => SizeTransition(
+                sizeFactor: animation,
+                child: ClassWidget(
+                  classId: classes[index],
+                  classIndex: index,
+                  onDelete: () => _deleteClass(index),
+                  openContainer: () => Navigator.push(
+                    context,
+                    SwipePageTransition(
+                      type: PageTransitionType.rightToLeft,
+                      child: Plan(
+                        classId: classes[index],
                       ),
-                    ), // closes ClassWidget
-                  ), // closes SizeTransition
-                ), // closes AnimatedList
-              ), // closes Scrollbar
-            ), // closes the height Container
+                    ),
+                  ),
+                ), // closes ClassWidget
+              ), // closes SizeTransition
+            ), // closes AnimatedList
           ], // closes Column's children
         ), // closes Column
       ), // closes SingleChildScrollView
@@ -662,8 +679,8 @@ class _ClassWidgetState extends State<ClassWidget> {
     dynamic vplan;
     try {
       vplan = forceRefresh
-          ? await vplanAPI
-              .getLessonsForToday(widget.classId, forceRefresh: true)
+          ? await vplanAPI.getLessonsForToday(widget.classId,
+              forceRefresh: true)
           : await vplanAPI.getCachedLessonsForToday(widget.classId);
     } catch (_) {
       refreshIfChanged();
@@ -856,8 +873,7 @@ class _PersonWidgetState extends State<PersonWidget> {
             child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
-            onPressed: () =>
-                Navigator.pop(context, nameController.text.trim()),
+            onPressed: () => Navigator.pop(context, nameController.text.trim()),
             child: Text(
               AppLocalizations.of(context)!.save,
               style: const TextStyle(fontWeight: FontWeight.bold),
@@ -885,6 +901,7 @@ class _PersonWidgetState extends State<PersonWidget> {
     // hier direkt aktualisiert, damit die neue Anzeige sofort stimmt.
     setState(() => widget.person['name'] = resolved);
   }
+
   String get _cacheKey => nextLessonCacheKeyForPerson(_personId);
 
   List<String> _coursesOf(Map<String, dynamic> person) {
@@ -1096,6 +1113,7 @@ class _PersonWidgetState extends State<PersonWidget> {
     );
   }
 }
+
 class SelectClass extends StatefulWidget {
   const SelectClass({
     Key? key,

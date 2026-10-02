@@ -212,23 +212,67 @@ class _MyAppState extends State<MyApp> {
         Color primaryColor = Color(0xffAF69EE); //1fbe88); // ECA44D
         int scaffoldBGDark = snapshot.data?.neutral2.shade900 == null ? 50 : 70;
 
+        // ---------------------------------------------------------------
+        // Die beiden Farbwelten
+        // ---------------------------------------------------------------
+        //
+        // **Hell ist keine Umkehrung von Dunkel.** Die beiden Welten sind
+        // unabhängig voneinander festgelegt, weil eine Umkehrung genau das
+        // ergibt, was man in der App sieht: graue Flächen, auf denen weiße
+        // Karten liegen, weiße Trennlinien auf weißem Grund (also gar keine),
+        // und eine Textfarbe, die für den dunklen Grund gewählt war und auf
+        // hellem zu schwer wirkt.
+        //
+        // Die Rollen sind im ganzen Bildschirm dieselben, nur die Werte nicht:
+        //
+        // | Rolle            | Dunkel                    | Hell                    |
+        // |------------------|---------------------------|-------------------------|
+        // | Hintergrund      | `neutral2.shade900`       | `neutral2.shade50`      |
+        // | Flächen (Karten) | ein wenig dunkler        | **weiß**                |
+        // | Linien           | `accent3`/fast schwarz    | `neutral2.shade300`     |
+        // | Text und Symbole | `focusColor` = weiß      | `focusColor` = fast Schwarz |
+        // | Akzent           | `accent1.shade200` (hell)| `accent1.shade600` (dunkel) |
+        //
+        // Zwei Entscheidungen sind dabei nicht selbstverständlich:
+        //
+        // * **Der Hintergrund ist nicht weiß, die Karten sind es.** Umgekehrt
+        //   heißen die Karten nicht – weißes Quadrat auf weißem Grund, und
+        //   die Karte verschwindet. Ein sehr helles Grau als Grund gibt den
+        //   weißen Karten ihren Rand, ohne aufzufallen.
+        // * **Der Akzent wird im Hellen dunkler, nicht heller.** Der helle
+        //   Akzent ist auf dunklem Grund gut lesbar, auf Weiß verschwindet
+        //   er. Dasselbe gilt für die Linien: Sie mussten dort *dunkler*
+        //   werden, nicht heller.
         final backgroundColor = snapshot.data?.neutral2.shade900 ??
             Color(0xff1e1f25); //Color(0xff101012);
+
+        // Der Grund: fast weiß, aber nicht weiß – siehe die Tabelle oben.
         final backgroundColorLight =
-            snapshot.data?.neutral2.shade100 ?? Colors.grey.shade300;
+            snapshot.data?.neutral2.shade50 ?? Color(0xfff5f5f8);
+
+        // Die Karten und die Kopf- und Fußleiste liegen **auf** dem Grund und
+        // sollen sich von ihm abheben. Auf Weiß ist das der einzige Weg.
+        final surfaceLight = snapshot.data?.neutral2.shade50 ?? Colors.white;
 
         final primarySwatch = snapshot.data?.accent1.shade200 ?? primaryColor;
+        // Im Hellen eine dunklere Stufe desselben Akzents, damit er auf Weiß
+        // steht. `shade400` war hell genug, um auf dem Grund zu verschwinden.
         final primarySwatchLight =
-            snapshot.data?.accent1.shade400 ?? primaryColor;
+            snapshot.data?.accent1.shade600 ?? Color(0xff7d43c4);
+
+        // Linien: auf dunklem Grund schwarz, auf hellem ein sichtbares Grau.
         final dividerColor =
             snapshot.data?.accent3.shade100 ?? Color(0xff0d0d0f);
         final dividerColorLight =
-            snapshot.data?.accent3.shade100 ?? Colors.white;
+            snapshot.data?.neutral2.shade300 ?? Color(0xffdcdae3);
+
+        // Text und Symbole: fast schwarz statt reinem Schwarz. Reines Schwarz
+        // auf Weiß ist hart und lässt den Buchstaben dicker wirken, als er ist.
+        final focusColorLight = const Color(0xff1b1b1f);
 
         final indicatorColor = snapshot.data?.accent1.shade100 ?? primaryColor;
 
-        final indicatorColorLight =
-            snapshot.data?.accent1.shade100 ?? primaryColor;
+        final indicatorColorLight = primarySwatchLight;
 
         return MaterialApp(
           locale: _locale,
@@ -280,14 +324,24 @@ class _MyAppState extends State<MyApp> {
             brightness: Brightness.light,
             primaryColor: primarySwatchLight,
             indicatorColor: indicatorColorLight,
-            focusColor: Colors.black,
+            focusColor: focusColorLight,
             dividerColor: dividerColorLight,
             colorScheme: ColorScheme.light(
-              error: Color.fromARGB(158, 119, 18, 18),
-              surface: backgroundColorLight,
+              // Ein Fehler, der auf Weiß lesbar ist. Der alte Wert war eine
+              // dunkelrote Fläche mit halber Deckkraft – auf dunklem Grund ein
+              // Hauch von Rot, auf Weiß ein brauner Fleck.
+              error: const Color(0xffc5221f),
+              // Die Flächen (Karten, Kopf- und Fußleiste) sind weiß, der
+              // Grund ist das helle Grau. Nicht umgekehrt – siehe die Tabelle
+              // bei den Farbwerten.
+              surface: surfaceLight,
+              onSurface: focusColorLight,
+              // Der Akzent wird auf Weiß abgedunkelt, damit er als Text und als
+              // Symbol steht.
+              primary: primarySwatchLight,
             ),
-            scaffoldBackgroundColor: Colors.white,
-            splashColor: Colors.black,
+            scaffoldBackgroundColor: backgroundColorLight,
+            splashColor: Colors.black.withValues(alpha: 0.06),
             highlightColor: Colors.transparent,
             splashFactory: NoSplash.splashFactory,
           ),
@@ -538,6 +592,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         key: ValueKey(2),
         color: Theme.of(context).focusColor,
       );
+    // Die Farbe der **nicht** gewaehlten Symbole.
+    //
+    // Im Hellen ist das nicht die Textfarbe: Fast schwarze Symbole fuer vier
+    // nicht ausgewaehlte Eintraege wirken schwer und lenken vom gewaehlten ab.
+    // `onSurfaceVariant` ist dafuer gedacht – ein gedaempftes Grau, das als
+    // "nur Andeutung" liest. **Im Dunkeln bleibt alles wie es war**, weil dort
+    // die weisse Textfarbe gerade richtig ist und der Dunkelmodus der ist, den
+    // die App seit jeher zeigt.
+    final Color inaktiv = Theme.of(context).brightness == Brightness.light
+        ? Theme.of(context).colorScheme.onSurfaceVariant
+        : Theme.of(context).focusColor;
+
     List<Map<String, dynamic>> pages = [
       {
         'key': 'vplanStudents',
@@ -836,9 +902,24 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   margin: EdgeInsets.only(
                     top: MediaQuery.of(context).size.height * 0.14,
                   ),
-                  padding: const EdgeInsets.only(
+                  padding: EdgeInsets.only(
                     left: 10,
                     right: 10,
+                    // **Der Platz für die Navigationsleiste wird hier
+                    // reserviert, nicht in jedem Bildschirm einzeln.**
+                    //
+                    // Der Stapel reicht bis zum unteren Rand, und die Leiste
+                    // liegt darüber. Ohne diesen Abstand erreicht kein
+                    // scrollbarer Bildschirm sein Ende über der Leiste: Der
+                    // letzte Eintrag bleibt dahinter, und beim Scrollen sieht
+                    // man ihn nur während der Bewegung – der Bereich ist zu
+                    // kurz, um ihn vollständig hineinzuschieben.
+                    //
+                    // Vorher hat sich jeder Bildschirm selbst beholfen, mit
+                    // festen Prozentwerten (`0.69` Höhe, `0.1` Rand), und der
+                    // Startbildschirm eben nicht – daher der Fehler dort.
+                    bottom: MediaQuery.of(context).size.height * 0.1 +
+                        MediaQuery.paddingOf(context).bottom,
                   ),
                   decoration: BoxDecoration(
                     borderRadius: const BorderRadius.only(
@@ -897,7 +978,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                       colorFilter: ColorFilter.mode(
                                         activeText == e['key']
                                             ? Theme.of(context).primaryColor
-                                            : Theme.of(context).focusColor,
+                                            : inaktiv,
                                         BlendMode.srcIn,
                                       ),
                                       width: 28,

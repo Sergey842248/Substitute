@@ -255,25 +255,98 @@ eigener Eintrag, und die Liste enthielte jede Klasse doppelt.
 
 ### Wo die Funktionen liegen
 
-Sync, Share und „Shares finden" liegen **nicht** in den Einstellungen und
-**nicht** in der Navigationsleiste. Sie öffnen sich über ein Symbol in der
-Kopfzeile, links neben dem More-Menü, und führen auf eine Seite mit den drei
-Wegen.
+Sync, Share und „Shares finden" liegen als **dritter Eintrag in der
+Navigationsleiste** – zwischen „Suche" und „Dashboard". Die Seite hat **keine
+eigene Kopfzeile**, genau wie der `Dashboard`-Tab.
 
-Beides ist ausprobiert und hat Gründe:
+Zwei Entscheidungen, beide ausprobiert:
 
-* **In den Einstellungen** waren sie tief in einer Liste, zwischen Sprache,
-  Sicherung und Entwickleroptionen. Das trifft besonders die Funktionen, für
-  die man die App braucht: Wer ein zweites Gerät koppeln will, tippt nicht
-  zuerst auf „Einstellungen".
-* **Als vierter Eintrag in der Navigationsleiste** ergab es eine **zweite
-  Kopfzeile**. Ein Tab liegt bereits unter der Kopfzeile der App, und die Seite
-  bringt eine eigene mit – 10 % der Bildschirmhöhe für eine Zeile, direkt unter
-  einer 20 % hohen Leiste. Die anderen Tabs machen es richtig: Der
-  `Dashboard`-Tab ist eine nackte Liste mit fester Höhe ohne eigenen Header.
+* **Nicht in den Einstellungen.** Dort lagen sie tief in einer Liste, zwischen
+  Sprache, Sicherung und Entwickleroptionen. Das trifft besonders die
+  Funktionen, für die man die App braucht: Wer ein zweites Gerät koppeln will,
+  tippt nicht zuerst auf „Einstellungen".
+* **Als dritter statt als vierter Eintrag.** Das `Dashboard` ist der Bildschirm
+  mit Einstellungen und Werkzeugen, und ein Bildschirm, den man beim Tippen
+  mitnimmt, gehört nicht an den rechten Rand. Von links nach rechts liest sich
+  die Leiste damit wie ein Weg: Pläne ansehen, suchen, mit anderen teilen,
+  Werkzeuge.
 
-Aufgeschoben ist die Kopfzeile der Seite die einzige, und damit richtig – so wie
-bei „Einstellungen" und „Krankentracking".
+Ohne eigene Kopfzeile, weil ein Tab bereits unter der Kopfzeile der App liegt:
+Eine zweite brächte 10 % der Bildschirmhöhe für eine Zeile, direkt unter einer
+20 % hohen Leiste. Genau deshalb hat der Tab **keinen** Header – dieselbe
+Entscheidung, die der `Dashboard`-Tab schon vorher getroffen hat.
+
+#### Der Eintrag lässt sich ausblenden
+
+Wer die drei Funktionen nicht braucht, schaltet den Eintrag unter
+**Einstellungen → Aussehen** ab. Dann hat die Leiste wieder drei Einträge.
+
+Ausgeschaltet wird nur der **Eintrag**. Die Funktionen selbst bleiben
+erreichbar, sonst wären sie weg – und wer sie wieder braucht, hat genau einen
+Schalter dafür.
+
+Die Einstellung wirkt an einem Bildschirm, der beim Ändern gar nicht im
+Vordergrund ist: Die Leiste gehört zum Startbildschirm, die Einstellungsseite
+ist eine eigene Seite. Ohne gemeinsame Quelle (`AppAppearance`) wüsste beim
+Zurückkehren niemand, dass sich etwas geändert hat, und man käme auf die alte
+Leiste zurück, ohne dass sich etwas bewegt hätte.
+
+#### Hell und dunkel
+
+Der Standard ist **dunkel**, weil die App vorher nur so aussah.
+
+Hell ist **keine Umkehrung** von dunkel. Die beiden Farbwelten sind unabhängig
+voneinander festgelegt (`main.dart`), weil eine Umkehrung genau das ergibt, was
+man in der App sieht – und was nicht stimmt:
+
+| Rolle            | Dunkel                     | Hell                          |
+|------------------|----------------------------|-------------------------------|
+| Hintergrund      | `neutral2.shade900`        | `neutral2.shade50`            |
+| Flächen (Karten) | ein wenig dunkler         | **weiß**                      |
+| Linien           | fast schwarz               | `neutral2.shade300`           |
+| Text und Symbole | `focusColor` = weiß        | `focusColor` = fast Schwarz   |
+| Akzent           | `accent1.shade200` (hell)  | `accent1.shade600` (dunkel)   |
+
+Zwei Entscheidungen sind dabei nicht selbstverständlich und werden gern
+umgedreht:
+
+* **Der Grund ist nicht weiß, die Karten sind es.** Umgekehrt heißen die
+  Karten nicht – ein weißes Quadrat auf weißem Grund ist eine unsichtbare
+  Fläche. Ein sehr helles Grau als Grund gibt den weißen Karten ihren Rand,
+  ohne selbst aufzufallen.
+* **Der Akzent wird im Hellen dunkler, nicht heller.** Ebenso die Linien: Sie
+  mussten dort *dunkler* werden. Ein heller Akzent, der auf dunklem Grund gut
+  steht, verschwindet auf Weiß.
+
+Geprüft wird das nicht am Aussehen, sondern an Zahlen: Der Test
+`test/appearance_test.dart` misst für jede Rolle den Kontrast zum Grund und
+verlangt die Werte, die WCAG für Text (4,5) und für Symbole (3) nennt. Der
+alte Light-Modus fiel bei drei davon durch – grauer Grund, weiße Trennlinien,
+unlesbares Fehlerrot.
+
+#### Der Platz unter dem Inhalt
+
+Der Inhaltsbereich in `main.dart` reserviert den Platz für die
+Navigationsleiste **einmal für alle Bildschirme**. Vorher hat sich jeder
+Bildschirm selbst beholfen, mit festen Prozentwerten – und der Startbildschirm
+eben nicht.
+
+Zwei Fehler steckten darin, und der zweite war der, den man bemerkt:
+
+**Erstens** fehlte der Platz. Zwischen dem letzten Eintrag und dem Leistenoberrand
+gab es keinen Abstand, also half auch Scrollen nichts – die letzte Karte war nur
+während der Bewegung sichtbar und dann wieder weg.
+
+**Zweitens** gab es zwei Bereiche, in denen man scrollen konnte: Der
+Startbildschirm scrollt, und die Liste der Klassenpläne darin hatte eine eigene
+Höhe und ihr eigenes Scrollen. Welcher sich bewegte, entschied der Finger – und
+man zieht naturgemäß an den Karten, weil man die Karten sehen will. Die Liste
+wuchs dabei über den Bildschirm hinaus und ihrer Rand federte zurück.
+
+Die Planliste ist deshalb kein eigener Bereich mehr: `shrinkWrap` lässt sie so
+hoch werden wie ihre Karten, `NeverScrollableScrollPhysics` nimmt ihr das
+Scrollen. Scrollt wird nur noch der Bildschirm. Die Animationen beim Hinzufügen
+und Löschen bleiben – dafür ist `AnimatedList` zuständig.
 
 ### Klassen sind immer sortiert
 

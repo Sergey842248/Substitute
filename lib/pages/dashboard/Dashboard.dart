@@ -44,9 +44,10 @@ class Dashboard extends StatelessWidget {
       },
     ];
     return Container(
-      height: MediaQuery.of(context).size.height * 0.69,
-      margin: EdgeInsets.only(bottom: MediaQuery.of(context).size.height * 0.1),
-      alignment: Alignment.center,
+      // **Keine** eigene Höhe und **kein** eigener unterer Rand: Den Platz für
+      // die Navigationsleiste reserviert der Inhaltsbereich in `main.dart` für
+      // jeden Bildschirm. Ein zweiter Abstand addiert sich und schöbe die Liste
+      // sichtbar nach oben.
       child: Scrollbar(
         thickness: 3,
         radius: Radius.circular(100),
