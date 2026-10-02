@@ -152,6 +152,66 @@ abstract class AppLocalizations {
   /// **'Change Settings meant for developers'**
   String get developerOptionsSubtitle;
 
+  /// No description provided for @appearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get appearance;
+
+  /// No description provided for @appearanceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Light or dark, and what the navigation bar shows'**
+  String get appearanceSubtitle;
+
+  /// No description provided for @appearanceTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get appearanceTheme;
+
+  /// No description provided for @appearanceThemeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark is the default. Light is easier on the eyes in daylight.'**
+  String get appearanceThemeSubtitle;
+
+  /// No description provided for @appearanceThemeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get appearanceThemeDark;
+
+  /// No description provided for @appearanceThemeLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get appearanceThemeLight;
+
+  /// No description provided for @appearanceShowSyncTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Show sync menu in the bar'**
+  String get appearanceShowSyncTab;
+
+  /// No description provided for @appearanceShowSyncTabSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'When off it stays reachable – switch it back on under Settings → Appearance.'**
+  String get appearanceShowSyncTabSubtitle;
+
+  /// No description provided for @appearanceNavBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Navigation bar'**
+  String get appearanceNavBar;
+
+  /// No description provided for @appearanceNavBarSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Which entries sit at the bottom'**
+  String get appearanceNavBarSubtitle;
+
   /// No description provided for @language.
   ///
   /// In en, this message translates to:

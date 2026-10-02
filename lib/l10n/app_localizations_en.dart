@@ -37,6 +37,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get developerOptionsSubtitle => 'Change Settings meant for developers';
 
   @override
+  String get appearance => 'Appearance';
+
+  @override
+  String get appearanceSubtitle =>
+      'Light or dark, and what the navigation bar shows';
+
+  @override
+  String get appearanceTheme => 'Theme';
+
+  @override
+  String get appearanceThemeSubtitle =>
+      'Dark is the default. Light is easier on the eyes in daylight.';
+
+  @override
+  String get appearanceThemeDark => 'Dark';
+
+  @override
+  String get appearanceThemeLight => 'Light';
+
+  @override
+  String get appearanceShowSyncTab => 'Show sync menu in the bar';
+
+  @override
+  String get appearanceShowSyncTabSubtitle =>
+      'When off it stays reachable – switch it back on under Settings → Appearance.';
+
+  @override
+  String get appearanceNavBar => 'Navigation bar';
+
+  @override
+  String get appearanceNavBarSubtitle => 'Which entries sit at the bottom';
+
+  @override
   String get language => 'Language';
 
   @override

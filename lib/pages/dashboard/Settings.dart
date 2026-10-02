@@ -9,6 +9,7 @@ import 'settings/VPlanLogin.dart';
 import 'settings/DeveloperOptions.dart';
 import 'settings/TeacherShorts.dart';
 import 'settings/PlanSettings.dart';
+import 'settings/AppearanceSettings.dart';
 import 'settings/ConfigBackupSettings.dart';
 
 import '../../models/ListPage.dart';
@@ -66,6 +67,14 @@ class _SettingsState extends State<Settings> {
         'icon': Icons.settings_backup_restore_rounded,
         'subtitle': AppLocalizations.of(context)!.backupSubtitle,
         'link': const ConfigBackupSettings(),
+      },
+      {
+        // Hell oder dunkel, und was in der Navigationsleiste steht. Beides
+        // betrifft das Aussehen, deshalb steht beides hier zusammen.
+        'title': AppLocalizations.of(context)!.appearance,
+        'icon': Icons.palette_rounded,
+        'subtitle': AppLocalizations.of(context)!.appearanceSubtitle,
+        'link': const AppearanceSettings(),
       },
       {
         'title': AppLocalizations.of(context)!.developerOptions,

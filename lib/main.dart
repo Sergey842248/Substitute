@@ -33,6 +33,7 @@ import 'pages/dashboard/Dashboard.dart';
 import 'pages/share/SyncShareHub.dart';
 import 'pages/search/SearchMenu.dart';
 import 'pages/dashboard/settings/VPlanLogin.dart';
+import 'services/AppAppearance.dart';
 import 'services/StorageStartupRepair.dart';
 import 'services/SchoolStorage.dart';
 import 'services/sync/SyncCoordinator.dart';
@@ -145,6 +146,44 @@ class _MyAppState extends State<MyApp> {
   Locale? _locale;
   bool _orientationLocked = false;
 
+  /// Das gewählte Theme. `null` bedeutet: noch nicht gelesen.
+  ///
+  /// Ohne `themeMode` folgt `MaterialApp` dem **System**, und die App sieht auf
+  /// einem hellen Telefon hell aus. Sie war aber immer dunkel – deshalb wird
+  /// hier die Einstellung gesetzt, und deren Standard ist dunkel.
+  ThemeMode? _themeMode;
+
+  /// Es meldet jede Änderung an den Darstellungseinstellungen. Ohne diesen
+  /// Zuhörer käme man nach dem Umschalten auf den alten Bildschirm zurück und
+  /// nichts hätte sich bewegt.
+  late final VoidCallback _appearanceListener;
+
+  @override
+  void initState() {
+    super.initState();
+    _appearanceListener = () {
+      if (!mounted) return;
+      _ladeTheme().then((ThemeMode mode) {
+        if (mounted) setState(() => _themeMode = mode);
+      });
+    };
+    AppAppearance.aenderung.addListener(_appearanceListener);
+    _ladeTheme().then((ThemeMode mode) {
+      if (mounted) setState(() => _themeMode = mode);
+    });
+  }
+
+  @override
+  void dispose() {
+    AppAppearance.aenderung.removeListener(_appearanceListener);
+    super.dispose();
+  }
+
+  Future<ThemeMode> _ladeTheme() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return AppAppearance.modeOf(AppAppearance.themeOf(prefs));
+  }
+
   setLocale(Locale locale) {
     setState(() {
       _locale = locale;
@@ -193,6 +232,7 @@ class _MyAppState extends State<MyApp> {
 
         return MaterialApp(
           locale: _locale,
+          themeMode: _themeMode,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           builder: (BuildContext context, Widget? child) {
@@ -315,6 +355,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     // nach Fehlern mit wachsender Wartezeit ab.
     SyncCoordinator.instance.attach();
 
+    // Der Sync-Eintrag in der Leiste folgt der Einstellung aus „Aussehen".
+    // Der Zuhörer sorgt dafür, dass die Leiste sich auch dann neu aufbaut,
+    // wenn die Einstellung auf einer **anderen** Seite geändert wurde – ohne
+    // ihn käme man auf eine Leiste zurück, die den Eintrag noch zeigt.
+    _appearanceListener = _ladeEintrag;
+    AppAppearance.aenderung.addListener(_appearanceListener);
+    unawaited(_ladeEintrag());
+
     // Fremde Daten können mitten in der Sitzung eintreffen. Wer sie nicht
     // bemerkt, glaubt, der Sync hätte nicht funktioniert – die Daten waren ja
     // da, nur nirgends sichtbar.
@@ -340,8 +388,26 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
+  /// Ob der Sync-Eintrag in der Leiste steht.
+  ///
+  /// `true` bis die Einstellung gelesen ist, damit der Eintrag beim allerersten
+  /// Aufbau nicht kurzzeitig fehlt und die Leiste springt.
+  bool _zeigeSyncEintrag = true;
+
+  /// Es meldet jede Änderung an den Darstellungseinstellungen – sonst käme man
+  /// nach dem Ausschalten auf eine Leiste zurück, die den Eintrag noch zeigt.
+  late final VoidCallback _appearanceListener;
+
+  Future<void> _ladeEintrag() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final bool wert = AppAppearance.showSyncShareTab(prefs);
+    if (!mounted || wert == _zeigeSyncEintrag) return;
+    setState(() => _zeigeSyncEintrag = wert);
+  }
+
   void dispose() {
     _syncSubscription?.cancel();
+    AppAppearance.aenderung.removeListener(_appearanceListener);
     eastereggController.dispose();
     super.dispose();
   }
@@ -487,25 +553,30 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'icon': 'assets/img/search.svg',
         'widget': SearchMenu(),
       },
-      {
-        // Sync und Share bekommen einen eigenen Platz in der Leiste. Vorher
-        // lagen sie tief in den Einstellungen – zwischen Sprache, Sicherung und
-        // Entwickleroptionen, also dort, wo niemand sie sucht. Über die Leiste
-        // sind sie ein eigener Bildschirm, und darauf stehen die drei Wege mit
-        // Überschrift: eigene Geräte, mit anderen teilen, deren Angebote
-        // finden.
-        //
-        // **Vor** dem Dashboard, nicht danach: Das Dashboard ist der
-        // Bildschirm mit Einstellungen und Werkzeugen, und ein Bildschirm, den
-        // man beim Tippen mitnimmt, gehört nicht an den rechten Rand. Die
-        // Leiste liest sich damit von links nach rechts wie ein Weg: Pläne
-        // ansehen, suchen, mit anderen teilen, Werkzeuge.
-        'key': 'syncShare',
-        'text': AppLocalizations.of(context)!.syncShareHub,
-        'index': 2,
-        'icon': 'assets/img/sync.svg',
-        'widget': const SyncShareHub(),
-      },
+      // Sync und Share bekommen einen eigenen Platz in der Leiste. Vorher
+      // lagen sie tief in den Einstellungen – zwischen Sprache, Sicherung und
+      // Entwickleroptionen, also dort, wo niemand sie sucht. Über die Leiste
+      // sind sie ein eigener Bildschirm, und darauf stehen die drei Wege mit
+      // Überschrift: eigene Geräte, mit anderen teilen, deren Angebote
+      // finden.
+      //
+      // **Vor** dem Dashboard, nicht danach: Das Dashboard ist der
+      // Bildschirm mit Einstellungen und Werkzeugen, und ein Bildschirm, den
+      // man beim Tippen mitnimmt, gehört nicht an den rechten Rand. Die
+      // Leiste liest sich damit von links nach rechts wie ein Weg: Pläne
+      // ansehen, suchen, mit anderen teilen, Werkzeuge.
+      //
+      // Wer den Eintrag nicht braucht, schaltet ihn unter Einstellungen →
+      // Aussehen ab. Ausgeschaltet verschwindet nur der **Eintrag** – die
+      // drei Funktionen bleiben erreichbar, sonst wären sie weg.
+      if (_zeigeSyncEintrag)
+        {
+          'key': 'syncShare',
+          'text': AppLocalizations.of(context)!.syncShareHub,
+          'index': 2,
+          'icon': 'assets/img/sync.svg',
+          'widget': const SyncShareHub(),
+        },
       {
         'key': 'dashboard',
         'text': AppLocalizations.of(context)!.dashboard,

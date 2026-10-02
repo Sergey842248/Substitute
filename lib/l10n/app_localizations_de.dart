@@ -38,6 +38,39 @@ class AppLocalizationsDe extends AppLocalizations {
   String get developerOptionsSubtitle => 'Einstellungen für Entwickler ändern';
 
   @override
+  String get appearance => 'Aussehen';
+
+  @override
+  String get appearanceSubtitle =>
+      'Hell oder dunkel, und was in der Navigationsleiste steht';
+
+  @override
+  String get appearanceTheme => 'Erscheinungsbild';
+
+  @override
+  String get appearanceThemeSubtitle =>
+      'Dunkel ist der Standard. Hell ist angenehmer bei Tageslicht.';
+
+  @override
+  String get appearanceThemeDark => 'Dunkel';
+
+  @override
+  String get appearanceThemeLight => 'Hell';
+
+  @override
+  String get appearanceShowSyncTab => 'Sync-Menü in der Leiste zeigen';
+
+  @override
+  String get appearanceShowSyncTabSubtitle =>
+      'Ausgeschaltet bleibt es erreichbar – unter Einstellungen → Aussehen lässt es sich wieder einschalten.';
+
+  @override
+  String get appearanceNavBar => 'Navigationsleiste';
+
+  @override
+  String get appearanceNavBarSubtitle => 'Welche Einträge unten stehen';
+
+  @override
   String get language => 'Sprache';
 
   @override
