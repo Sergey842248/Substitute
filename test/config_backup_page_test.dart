@@ -40,7 +40,8 @@ void main() {
     expect(find.text('With credentials'), findsOneWidget);
   });
 
-  testWidgets('choosing "share without credentials" does not share with password',
+  testWidgets(
+      'choosing "share without credentials" does not share with password',
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'vplanSchoolnumber': '123456',
@@ -101,8 +102,31 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Sucht einen Eintrag in der Einstellungsliste – **auch unterhalb des
+  /// Bildrands**.
+  ///
+  /// Die Liste baut ihre Zeilen nach Bedarf: Was nicht im Bild ist, existiert
+  /// im Widget-Baum nicht und kann deshalb nicht gefunden werden. Der Test
+  /// würde dann melden, der Eintrag fehle – während er lediglich eine Zeile
+  /// weiter unten steht.
+  ///
+  /// Der Vergleich gilt doppelt: Wer einen Eintrag sucht, scrollt, und wer
+  /// scrollen muss, hat ihn nicht auf Anhieb gefunden. Beides soll der Test
+  /// mitmachen, statt es zu überspielen.
+  Future<void> scrolleZu(WidgetTester tester, String text) async {
+    for (int i = 0; i < 12 && find.text(text).evaluate().isEmpty; i++) {
+      // Die **letzte** Liste, nicht die erste: Die Seite baut zwei – eine
+      // außen um den Kopfbereich und eine für die Einträge. An der falschen
+      // zu ziehen bewegt nichts, und man hielte den Eintrag für nicht vorhanden.
+      await tester.drag(find.byType(ListView).last, const Offset(0, -200));
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('settings offers a backup entry', (WidgetTester tester) async {
     await pumpSettings(tester);
+    await scrolleZu(tester, 'Backup & Restore');
 
     expect(find.text('Backup & Restore'), findsWidgets);
   });

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:substitute/main.dart';
+import 'package:substitute/pages/dashboard/Settings.dart';
 import 'package:substitute/pages/dashboard/settings/AppearanceSettings.dart';
 import 'package:substitute/services/AppAppearance.dart';
 import 'package:substitute/services/sync/SyncCoordinator.dart';
@@ -151,8 +152,9 @@ void main() {
   /// kommt es an: Zwei Farben können gleich hell wirken und sich trotzdem
   /// deutlich unterscheiden.
   double helligkeit(Color c) {
-    double kanal(double v) =>
-        v <= 0.03928 ? v / 12.92 : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
+    double kanal(double v) => v <= 0.03928
+        ? v / 12.92
+        : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
     return 0.2126 * kanal(c.r) + 0.7152 * kanal(c.g) + 0.0722 * kanal(c.b);
   }
 
@@ -250,6 +252,48 @@ void main() {
           greaterThanOrEqualTo(4.5));
 
       aufraeumen();
+    });
+  });
+
+  group('Der Eintrag in den Einstellungen', () {
+    testWidgets('steht ganz oben, über den Plan-Einstellungen',
+        (WidgetTester tester) async {
+      // Die Position ist eine Festlegung, kein Zufall: Wer die App auf Anhieb
+      // zu dunkel findet, sucht **oben**. Ein Eintrag in der Mitte einer
+      // siebenzeiligen Liste wird nicht gefunden.
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'languageCode': 'de',
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('de'),
+          home: Settings(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Die Reihenfolge wird über die **Höhe** geprüft, nicht über die
+      // Reihenfolge im Widget-Baum: Beim breiten Bildschirm baut die Seite
+      // zwei Spalten, und in der Quelle steht der Eintrag dann an anderer
+      // Stelle. Was zählt, ist was oben steht.
+      final double aussehen = tester.getTopLeft(find.text('Aussehen')).dy;
+      final double plan = tester.getTopLeft(find.text('Plan-Einstellungen')).dy;
+
+      expect(aussehen, lessThan(plan),
+          reason: '"Aussehen" steht unter den Plan-Einstellungen');
+      // Und ganz oben: über allem anderen, was dort steht.
+      for (final String weiter in <String>[
+        'Zugangsdaten',
+        'Sprache',
+        'Sicherung/Backup',
+      ]) {
+        final Finder f = find.text(weiter);
+        if (f.evaluate().isEmpty) continue;
+        expect(aussehen, lessThan(tester.getTopLeft(f).dy),
+            reason: '"Aussehen" steht unter "$weiter"');
+      }
     });
   });
 

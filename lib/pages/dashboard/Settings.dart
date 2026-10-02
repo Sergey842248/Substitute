@@ -14,7 +14,6 @@ import 'settings/ConfigBackupSettings.dart';
 
 import '../../models/ListPage.dart';
 
-
 /// Die Einstellungen.
 ///
 /// Sync, Share und „Shares finden" stehen hier **nicht** mehr. Sie haben einen
@@ -37,6 +36,24 @@ class _SettingsState extends State<Settings> {
   Widget build(BuildContext context) {
     List<dynamic> settingPages = [
       {
+        // Hell oder dunkel, und was in der Navigationsleiste steht. Beides
+        // betrifft das Aussehen, deshalb steht beides hier zusammen.
+        //
+        // **Ganz oben**, noch vor den Plan-Einstellungen. Das ist die einzige
+        // Einstellung, die man sucht, wenn einem die App **auf Anhieb** nicht
+        // gefällt: Das Bildschirmbild ist dunkel, obwohl es das System hell
+        // macht; ein Eintrag, den man nicht erwartet, stört. Wer danach sucht,
+        // blättert nicht die Liste durch – er nimmt die erste Zeile. Und die
+        // beiden anderen Punkte an dieser Seite (hell/dunkel, ob die Leiste den
+        // Sync-Eintrag zeigt) sind Beschwerden über die **Darstellung**, nicht
+        // über den Plan: Sie gehören neben die Darstellung und nicht zwischen
+        // „Unterrichtszeiten" und „Zugangsdaten".
+        'title': AppLocalizations.of(context)!.appearance,
+        'icon': Icons.palette_rounded,
+        'subtitle': AppLocalizations.of(context)!.appearanceSubtitle,
+        'link': const AppearanceSettings(),
+      },
+      {
         'title': AppLocalizations.of(context)!.planSettings,
         'icon': Icons.schedule_rounded,
         'subtitle': AppLocalizations.of(context)!.planSettingsSubtitle,
@@ -48,7 +65,6 @@ class _SettingsState extends State<Settings> {
         'subtitle': AppLocalizations.of(context)!.credentialsSubtitle,
         'link': VPlanLogin(),
       },
-
       {
         'title': AppLocalizations.of(context)!.setTeacherAbbreviations,
         'icon': Icons.people_alt_outlined,
@@ -69,14 +85,6 @@ class _SettingsState extends State<Settings> {
         'link': const ConfigBackupSettings(),
       },
       {
-        // Hell oder dunkel, und was in der Navigationsleiste steht. Beides
-        // betrifft das Aussehen, deshalb steht beides hier zusammen.
-        'title': AppLocalizations.of(context)!.appearance,
-        'icon': Icons.palette_rounded,
-        'subtitle': AppLocalizations.of(context)!.appearanceSubtitle,
-        'link': const AppearanceSettings(),
-      },
-      {
         'title': AppLocalizations.of(context)!.developerOptions,
         'icon': Icons.developer_mode_rounded,
         'subtitle': AppLocalizations.of(context)!.developerOptionsSubtitle,
@@ -88,56 +96,56 @@ class _SettingsState extends State<Settings> {
       children: [
         ...settingPages
             .map(
-            // Material statt einer farbigen Box: Sonst malt das ListTile
-            // seinen Hintergrund und die Ripple-Effekte auf den Container
-            // darüber und die Berührung wird unsichtbar.
-            (e) => Material(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              child: Container(
-                margin: const EdgeInsets.all(10),
-                child: Center(
-                  child: ListTile(
-                    onTap: () => Navigator.push(
-                      context,
-                      SwipePageTransition(
-                        type: PageTransitionType.rightToLeft,
-                        child: e['link'],
-                      ),
-                    ),
-                    leading: Container(
-                      margin: EdgeInsets.all(4),
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: Icon(e['icon']),
-                    ),
-                    title: Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Text(
-                        e['title'],
-                        style: TextStyle(
-                          fontSize: 18,
+              // Material statt einer farbigen Box: Sonst malt das ListTile
+              // seinen Hintergrund und die Ripple-Effekte auf den Container
+              // darüber und die Berührung wird unsichtbar.
+              (e) => Material(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: Container(
+                  margin: const EdgeInsets.all(10),
+                  child: Center(
+                    child: ListTile(
+                      onTap: () => Navigator.push(
+                        context,
+                        SwipePageTransition(
+                          type: PageTransitionType.rightToLeft,
+                          child: e['link'],
                         ),
                       ),
-                    ),
-                    subtitle: Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Text(
-                        e['subtitle'],
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w100,
-                          color: Colors.grey,
+                      leading: Container(
+                        margin: EdgeInsets.all(4),
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Icon(e['icon']),
+                      ),
+                      title: Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Text(
+                          e['title'],
+                          style: TextStyle(
+                            fontSize: 18,
+                          ),
                         ),
                       ),
-                    ),
+                      subtitle: Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Text(
+                          e['subtitle'],
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w100,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-          )
-          .toList(),
+            )
+            .toList(),
       ],
     );
   }
