@@ -72,12 +72,12 @@ class _ListPageState extends State<ListPage> {
   ///
   /// Der Wert folgt **direkt** dem Scroll-Offset (siehe [_onScroll]) und wird
   /// nicht animiert: Jedes eingeklappte Pixel macht den sichtbaren Bereich
-  /// genau ein Pixel größer, `maxScrollExtent` der Liste wächst also im selben
-  /// Maß wie der Offset. Bliebe die Kopfzeile (wie vorher per Animation)
-  /// hinterher, schrumpfte der Scrollbereich unter dem aktuellen Offset,
-  /// Flutter klemmte diesen zurück und die Liste sprang wieder nach oben –
-  /// genau das passierte, wenn nur ein paar Zeilen unterhalb des Sichtbaren
-  /// überstanden.
+  /// genau ein Pixel größer, `maxScrollExtent` der Liste schrumpft also im
+  /// selben Maß wie der Offset wächst. Bliebe die Kopfzeile (wie vorher per
+  /// Animation) hinterher, schrumpfte der Scrollbereich unter dem aktuellen
+  /// Offset, Flutter klemmte diesen zurück und die Liste sprang wieder nach
+  /// oben – genau das passierte, wenn nur ein paar Zeilen unterhalb des
+  /// Sichtbaren überstanden.
   double _collapse = 0;
 
   /// Wird true, sobald der Nutzer die Seite wirklich gescrollt hat. Davor
@@ -111,19 +111,32 @@ class _ListPageState extends State<ListPage> {
 
     double collapse = 0;
     if (widget.collapseHeaderOnScroll && _userScrolled && _headerHeight > 0) {
-      // Das Einklappen gibt Platz frei, verkleinert aber den Bereich, den die
-      // Liste abdecken kann. Übersteigt die Kopfzeilenhöhe den Scrollbereich
-      // (also liegen nur ein paar Zeilen unterhalb des Sichtbaren), würde der
-      // Inhalt beim Einklappen aus dem Sichtfeld springen und der Offset
-      // zurückgeklemmt – die Liste schnellt dann beim Scrollen wieder nach
-      // oben. In dem Fall bleibt die Kopfzeile offen.
-      //
-      // Der Wert wird aus dem aktuellen Zustand zurückgerechnet: Bei
-      // eingeklappter Kopfzeile ist der Scrollbereich um genau [_collapse]
-      // größer als bei ausgeklappter.
+      // Das Einklappen der Kopfzeile GIBT Platz frei: Der sichtbare Bereich
+      // wird um genau [_collapse] Pixel größer, `maxScrollExtent` schrumpft
+      // also im selben Maß. Der Scrollbereich der *ausgeklappten* Kopfzeile
+      // ist deshalb `maxScrollExtent + _collapse` (vorher stand hier ein
+      // Minuszeichen - dadurch wurde die Bedingung mit jedem eingeklappten
+      // Pixel immer unwahrer, die Kopfzeile klappte mitten im Scrollen wieder
+      // auf, der Sichtbereich schrumpfte unter den Offset, Flutter klemmte
+      // ihn zurück und die Liste sprang nach oben. Genau das passierte bei
+      // einer bestimmten Inhaltslänge).
       final double scrollRangeExpanded =
-          controller.position.maxScrollExtent - _collapse;
-      if (scrollRangeExpanded > _headerHeight) {
+          controller.position.maxScrollExtent + _collapse;
+
+      // Eingeklappt wird weiterhin 1:1 mit dem Offset (höchstens
+      // [_headerHeight] Pixel). Damit dabei der Offset nie über
+      // `maxScrollExtent` hinausläuft - und damit Flutter ihn nicht
+      // zurückklemmt und die Liste zurückschnellt - muss die Bedingung auch am
+      // Ende des Wegs gelten: `offset == _headerHeight` ist nur sicher, wenn
+      // `scrollRangeExpanded - _headerHeight >= _headerHeight`, also
+      // `scrollRangeExpanded >= 2 * _headerHeight`.
+      //
+      // Reicht der Scrollbereich nicht dafür (liegen nur ein paar Zeilen
+      // unterhalb des Sichtbaren über), bleibt die Kopfzeile offen und die
+      // Liste lässt sich über den vollen Bereich scrollen. [_headerHeight]
+      // lässt sich von [_collapse] nicht mehr beeinflussen, die Kopfzeile
+      // klappt also nicht mehr mitten im Scrollen auf und zu.
+      if (scrollRangeExpanded >= 2 * _headerHeight + 1) {
         collapse = offset.clamp(0.0, _headerHeight);
       }
     }
