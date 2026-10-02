@@ -133,14 +133,16 @@ Color darken(Color c, [int percent = 10]) {
 /// Abstand groesste Gegenstand der Kopfzeile; die Symbole der Leiste unten
 /// sind 28 Punkte breit, daneben wirkt das Logo riesig.
 ///
-/// 30 x 30 haelt es sichtbar, ohne mit der Schrift zu konkurrieren, und
-/// laesst ringsum Luft, sodass es nicht am Rand klebt. `BoxFit.contain`
-/// verhindert zusaetzlich, dass das Logo verzerrt wird – es ist nicht
-/// quadratisch (608 zu 564 Pixeln).
+/// 24 x 24 ist noch kleiner als die Symbole der Leiste unten (28 Punkte) – es
+/// ist ein Erkennungszeichen, kein Gegenstand der Anzeige. Es bleibt gross
+/// genug, um auf dem Startbildschirm, in der Suche und im Werkzeugkasten
+/// wiedererkannt zu werden, und laesst ringsum Luft, sodass es nicht am Rand
+/// klebt. `BoxFit.contain` verhindert zusaetzlich, dass das Logo verzerrt wird
+/// – es ist nicht quadratisch (608 zu 564 Pixeln).
 ///
 /// Eine Zahl an zwei Stellen, damit Taschen-Hase und Kopfzeile nach einem
 /// Tippen auf das Logo nicht unterschiedlich gross aussehen.
-const double kLogoGroesse = 30;
+const double kLogoGroesse = 24;
 
 class MyApp extends StatefulWidget {
   const MyApp({Key? key, this.initialPage}) : super(key: key);
