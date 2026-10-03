@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:substitute/main.dart';
+import 'package:substitute/models/ListPage.dart';
 import 'package:substitute/pages/dashboard/Settings.dart';
 import 'package:substitute/pages/dashboard/settings/AppearanceSettings.dart';
 import 'package:substitute/services/AppAppearance.dart';
@@ -171,6 +172,18 @@ void main() {
     return (hell + 0.05) / (dunkel + 0.05);
   }
 
+  /// Eine halbtransparente Farbe auf einem Grund – so, wie das Auge sie sieht.
+  ///
+  /// Ohne das rechnete der Kontrast mit den reinen Farbkanälen: Ein
+  /// `splashColor` von Schwarz mit 6 % Deckkraft zählte dann wie reines
+  /// Schwarz, und der Test hätte den Fehler durchgewinkt, den er sucht.
+  Color gemischt(Color grund, Color deck) => Color.from(
+        alpha: 1,
+        red: grund.r + (deck.r - grund.r) * deck.a,
+        green: grund.g + (deck.g - grund.g) * deck.a,
+        blue: grund.b + (deck.b - grund.b) * deck.a,
+      );
+
   group('Der helle Modus', () {
     /// Liest das Theme, das die App für den gewaehlten Modus tatsächlich
     /// verwendet – nicht die Wunschvorstellung und nicht das Theme des
@@ -251,6 +264,67 @@ void main() {
       expect(kontrast(hell.focusColor, hell.colorScheme.surface),
           greaterThanOrEqualTo(4.5));
 
+      aufraeumen();
+    });
+  });
+
+  group('Der Zurück-Button', () {
+    /// Der Pfeil links oben in der Kopfzeile – zusammen mit der Farbe seines
+    /// Kreises, so wie die App sie einfärbt.
+    ///
+    /// Geprüft wird nicht das Theme allein, sondern das, was der Bildschirm
+    /// wirklich zeichnet: Ein Pfeil kann eine gute Theme-Farbe bekommen und
+    /// trotzdem unlesbar sein, wenn er auf einem Kreis steht, dessen Farbe
+    /// zufällig ähnlich ist.
+    Future<(Color pfeil, Color kreis)> pfeilAufKreis(
+        WidgetTester tester, String modus) async {
+      await starteApp(tester, <String, Object>{'appearance.theme': modus});
+      final MaterialApp app =
+          tester.widget<MaterialApp>(find.byType(MaterialApp));
+      final ThemeData theme =
+          modus == AppAppearance.light ? app.theme! : app.darkTheme!;
+
+      await tester.pumpWidget(MaterialApp(
+        theme: theme,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('de'),
+        home: ListPage(title: 'Kopfzeile', children: const <Widget>[]),
+      ));
+      await tester.pumpAndSettle();
+
+      // Es gibt zwei Pfeile: einen in der aus-, einen in der eingefahrenen
+      // Kopfzeile. Beide müssen sich absetzen – geprüft wird deshalb jeder.
+      final List<Icon> pfeile = tester
+          .widgetList<Icon>(find.byIcon(Icons.arrow_back_rounded))
+          .toList();
+      expect(pfeile, isNotEmpty, reason: 'es gibt keinen Zurück-Pfeil');
+      for (final Icon pfeil in pfeile) {
+        expect(pfeil.color, isNotNull,
+            reason: 'der Pfeil hat keine eigene Farbe');
+      }
+      return (pfeile.first.color!, theme.dividerColor);
+    }
+
+    testWidgets('steht im hellen Modus deutlich auf seinem Kreis',
+        (WidgetTester tester) async {
+      // Er war mit `splashColor` eingefärbt, und die ist im hellen Modus
+      // Schwarz mit 6 % Deckkraft: auf dem hellen Kreis ein Pfeil, den man
+      // praktisch nicht sieht.
+      final (Color pfeil, Color kreis) =
+          await pfeilAufKreis(tester, AppAppearance.light);
+      expect(kontrast(gemischt(kreis, pfeil), kreis), greaterThanOrEqualTo(3.0),
+          reason: 'der Zurück-Pfeil ist auf dem Kreis zu schwer zu sehen: '
+              '$pfeil auf $kreis');
+      aufraeumen();
+    });
+
+    testWidgets('und im dunklen bleibt er, wie er war',
+        (WidgetTester tester) async {
+      final (Color pfeil, Color kreis) =
+          await pfeilAufKreis(tester, AppAppearance.dark);
+      expect(kontrast(gemischt(kreis, pfeil), kreis), greaterThanOrEqualTo(3.0),
+          reason: 'der Zurück-Pfeil ist auch im dunklen Modus zu schwach');
       aufraeumen();
     });
   });

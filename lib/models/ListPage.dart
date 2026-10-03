@@ -222,7 +222,12 @@ class _ListPageState extends State<ListPage> {
                                       child: Icon(
                                         backIcon,
                                         size: 19,
-                                        color: Theme.of(context).splashColor,
+                                        // Nicht `splashColor`: Die ist im hellen
+                                        // Modus Schwarz mit 6 % Deckkraft und damit
+                                        // auf dem grauen Kreis praktisch unsichtbar.
+                                        // `focusColor` ist die Textfarbe des Themes
+                                        // (fast Schwarz im Hellen, Weiß im Dunkeln).
+                                        color: Theme.of(context).focusColor,
                                       ),
                                     ),
                                   ),
@@ -358,7 +363,8 @@ class _ListPageState extends State<ListPage> {
                           child: Icon(
                             backIcon,
                             size: 16,
-                            color: Theme.of(context).splashColor,
+                            // Siehe Kommentar am Zurück-Button oben.
+                            color: Theme.of(context).focusColor,
                           ),
                         ),
                       ),

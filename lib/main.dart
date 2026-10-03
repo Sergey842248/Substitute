@@ -749,7 +749,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                   child: Icon(
                                     Icons.arrow_back_rounded,
                                     size: 19,
-                                    color: Theme.of(context).splashColor,
+                                    // Nicht `splashColor`: Die ist im hellen
+                                    // Modus Schwarz mit 6 % Deckkraft und damit
+                                    // auf dem grauen Kreis praktisch unsichtbar.
+                                    // `focusColor` ist die Textfarbe des Themes
+                                    // (fast Schwarz im Hellen, Weiß im Dunkeln).
+                                    color: Theme.of(context).focusColor,
                                   ),
                                 ),
                               ),
