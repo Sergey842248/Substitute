@@ -102,9 +102,26 @@ class AppColors {
   ///
   /// Die Werte folgen denselben Regeln wie [hinweisFlaeche]: kräftige Fläche,
   /// [hinweisText] darauf, und im dunklen Modus dieselbe Deckkraft wie das Rot.
+  ///
+  /// ## Wie hell das Orange im hellen Modus werden darf
+  ///
+  /// Zwei Zusagen müssen gleichzeitig gelten: Der **Text** darauf muss bei
+  /// mindestens 4,5:1 lesbar sein, und die Fläche muss sich vom Grund abheben.
+  /// Im hellen Modus ist [hinweisText] weiß – und das ist die Schranke. Ein
+  /// helleres Orange verliert gegen Weiß zuerst den Kontrast, also liegt die
+  /// Grenze bei einer relativen Helligkeit von 0,183. `#D66502` ist der
+  /// hellste Wert, der sie noch hält (4,52:1 gegen Weiß, 4,33:1 gegen die
+  /// Karte).
+  ///
+  /// Deshalb ist der Ton gegenüber dem früheren `#b35c00` nicht nur heller,
+  /// sondern auch weiter ins **Bernstein** verschoben: Bei gleichem Kontrast
+  /// ist ein gelberes Orange das hellere Orange. Wer hier mehr Helligkeit
+  /// will, muss [hinweisText] für diese Zeilen auf einen dunklen Ton umstellen
+  /// – dann sind auch `#e67c00` und darüber lesbar, aber das ist eine andere
+  /// Entscheidung als die hier.
   static Color aenderungFlaeche(BuildContext context) =>
       Theme.of(context).brightness == Brightness.light
-          ? const Color(0xffb35c00)
+          ? const Color(0xffD66502)
           : const Color.fromARGB(158, 156, 106, 20);
 
   /// Die Fläche einer Hinweiszeile – je nachdem, ob sie ausgefallen oder nur
