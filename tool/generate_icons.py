@@ -277,6 +277,40 @@ def ios():
     with open(os.path.join(IOS, 'Contents.json')) as f:
         inhalt = json.load(f)
 
+    # **Zuerst aufraeumen, dann erzeugen.**
+    #
+    # Die beiden Ebenen fuer dunkle Anzeige und Tintenmodus haengt dieser
+    # Generator unten an die Liste an. Tut er das, ohne die Eintraege eines
+    # früheren Laufs vorher zu entfernen, waechst die Liste bei jedem Lauf um
+    # zwei Eintraege weiter – und mit ihr der Dateiname: Aus ``-dark.png``
+    # wird beim naechsten Mal ``-dark-dark.png``, dann ``-dark-dark-dark.png``.
+    #
+    # Genau das ist passiert: In diesem Ordner lagen 24 solche Eintraege, jeder
+    # mit einer eigenen Datei, alle dieselbe Ebene in mehrfacher Ausfertigung.
+    # Sie sind nicht nur Ballast: Xcode waehlt unter mehreren Eintraegen fuer
+    # dieselbe Anzeige Light Glass und Liquid Glass einen aus, und welcher das
+    # ist, haengt an der Reihenfolge in der Datei. Eine Liste, die sich bei
+    # jedem Build ein neues Ende anhaengt, entscheidet damit bei jedem Build
+    # anders.
+    #
+    # Deshalb: Alle Eintraege mit ``appearances`` und alle Dateinamen mit
+    # ``-dark`` oder ``-tinted`` sind von diesem Generator erzeugt. Sie
+    # werden hier **entfernt** – mitsamt ihren Dateien – und weiter unten
+    # genau einmal neu erzeugt.
+    bleiben, geraeumt = [], []
+    for eintrag in inhalt['images']:
+        datei = eintrag.get('filename', '')
+        erzeugt = ('appearances' in eintrag or '-dark' in datei
+                   or '-tinted' in datei)
+        (geraeumt if erzeugt else bleiben).append(eintrag)
+    inhalt['images'] = bleiben
+    for eintrag in geraeumt:
+        pfad = os.path.join(IOS, eintrag['filename'])
+        if os.path.exists(pfad):
+            os.remove(pfad)
+    if geraeumt:
+        print(f'  {len(geraeumt)} Eintraege eines frueheren Laufs entfernt')
+
     # Ueber eine **Kopie** iterieren: Unten werden zwei weitere Eintraege
     # angehaengt (dunkel und getoent). Ueber die Liste selbst zu laufen hiesse,
     # dass man die eigenen Eintraege mitverarbeitet – und zwar endlos.

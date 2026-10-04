@@ -9,20 +9,25 @@
 
     **Nur eine Form, keine Details.** Wenn mehrere gleich helle Flächen
     nebeneinanderliegen, verschmelzen sie zu einem Fleck. Deshalb sind es hier
-    ein Kalender mit zwei ausgesparten Pfeilen und sonst nichts: Der
+    ein Kalender mit einem ausgesparten Tauschring und sonst nichts: Der
     Unterschied zwischen Zeichnung und Aussparung bleibt erhalten, weil die
     Aussparung einfach **fehlt** – dort steht das Weiß des Systems durch.
 
-    **Dieselben Maße wie die farbige Fassung**, damit beide Ebenen
-    übereinanderliegen.
+    **Dieselben Maße und dieselben Zahlen wie die farbige Fassung**, damit
+    beide Ebenen übereinanderliegen: Radius 126, Dicke 64, Spitzen 92 breit,
+    Ringmitte (512, 587).
   -->
   <defs>
     <mask id="aus">
       <rect width="1024" height="1024" fill="#ffffff"/>
       <g fill="#000000">
-        <rect x="208" y="390" width="608" height="22" rx="11"/>
-        <path d="M 300 492 L 648 492 L 648 458 L 760 520 L 648 582 L 648 548 L 300 548 Z"/>
-        <path d="M 724 640 L 376 640 L 376 606 L 264 668 L 376 730 L 376 696 L 724 696 Z"/>
+        <rect x="208" y="380" width="608" height="20" rx="10"/>
+        <path d="M 456.8 700.2 A 126 126 0 0 1 456.8 473.8" fill="none"
+              stroke="#000000" stroke-width="64"/>
+        <path d="M 567.2 473.8 A 126 126 0 0 1 567.2 700.2" fill="none"
+              stroke="#000000" stroke-width="64"/>
+        <path d="M 476.9 515.1 L 523.3 441.3 L 436.6 432.4 Z"/>
+        <path d="M 547.1 658.9 L 500.7 732.7 L 587.4 741.6 Z"/>
       </g>
     </mask>
   </defs>

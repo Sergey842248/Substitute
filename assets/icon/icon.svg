@@ -2,21 +2,32 @@
   <!--
     Das Icon der App – die Quelle aller Dateien.
 
-    **Kalender und Tauschpfeile.** Kalender, weil es um den Stundenplan geht;
-    die zwei gegenläufigen Pfeile, weil es um *Vertretung* geht – sie sind das
-    Zeichen, das auch in der App selbst steht. Das alte Icon war ein Kalender
-    mit sechs Punkten darin, und die Punkte bedeuteten nichts: Sie sahen aus wie
-    ein Raster und trugen keinen Namen.
+    **Kalender und Tauschring.** Kalender, weil es um den Stundenplan geht;
+    der Ring, weil es um *Vertretung* geht – er ist das Zeichen, das auch in
+    der App selbst steht. Die beiden geraden Pfeile, die vorher im Kalender
+    lagen, sind durch zwei Pfeile auf einem Ring ersetzt: Sie sagen ohne
+    Übersetzung, dass etwas im Kreis herum läuft, A ersetzt B und B ersetzt A.
+
+    Warum ein Ring und nicht zwei Balken:
+
+    * Zwei gegenläufige Gerade brauchen an ihren Enden Platz und kommen dort
+      einander nahe. Im Ring ist der Abstand fest, und er sitzt in den beiden
+      Lücken – dort ist jede Spitze am weitesten von der anderen entfernt.
+    * Der Ring ist in jeder Richtung gleich breit und liegt damit in jeder
+      Größe ruhig mittig. Die Balken füllten die Breite des Kalenders aus und
+      wirkten dabei wie zwei Beschriftungen im Kalender, nicht wie ein Zeichen.
 
     **Alle Maße liegen im sicheren Bereich.** Für Android muss die Zeichnung in
     den mittleren 66 von 108 Punkten bleiben, weil der Rest vom Launcher
     abgeschnitten oder maskiert wird (Kreise, Squircle, auf manchen Geräten
     sogar ein Vollbild). Das ist hier eingehalten: Die Zeichnung reicht von 208
     bis 816, also genau die 608 Punkte, die übrig bleiben, wenn man den Rahmen
-    wegdacht. Wer das später vergrößert, soll daran denken.
+    wegdacht. Der Ring selbst liegt bei 308 mal 308 und damit weit innerhalb
+    des Kalenders. Wer das später vergrößert, soll daran denken.
 
-    **Kein Weiss am Rand, keine Rundungen.** iOS schneidet zu; eine Runde im
-    Bild würde mit der des Systems eine doppelte Kante ergeben.
+    **Kein Weiß am Rand, keine Rundungen.** iOS schneidet zu; eine Runde im
+    Bild würde mit der des Systems eine doppelte Kante ergeben. Das ist unter
+    Liquid Glass der schlimmste Fall: zwei Kanten übereinander.
   -->
   <defs>
     <!-- Der Verlauf geht von oben hell nach unten tief. Flacher Verlauf, weil
@@ -35,18 +46,38 @@
     </radialGradient>
 
     <!-- Die Aussparungen. Bewusst als Maske und nicht als eingefärbte Flächen:
-         Ein ausgesparter Pfeil zeigt den Verlauf **darunter** und sitzt
+         Ein ausgesparter Ring zeigt den Verlauf **darunter** und sitzt
          dadurch sauber auf jedem Untergrund. -->
     <mask id="aus">
       <rect width="1024" height="1024" fill="#ffffff"/>
       <g fill="#000000">
         <!-- Trennlinie unter der Kopfzeile des Kalenders -->
-        <rect x="208" y="390" width="608" height="22" rx="11"/>
-        <!-- Nach rechts. Der Schaft hat eine **Dicke** – ohne sie bleibt nur
-             die Spitze, und ein Pfeil ohne Schaft ist ein Dreieck. -->
-        <path d="M 300 492 L 648 492 L 648 458 L 760 520 L 648 582 L 648 548 L 300 548 Z"/>
-        <!-- Nach links, spiegelbildlich an der Mitte -->
-        <path d="M 724 640 L 376 640 L 376 606 L 264 668 L 376 730 L 376 696 L 724 696 Z"/>
+        <rect x="208" y="380" width="608" height="20" rx="10"/>
+
+        <!-- Der Tauschring: zwei Bögen über je eine Ringhälfte, jeder mit einer
+             Spitze. Radius 126, Dicke 64, Mitte (512, 587) – das ist die Mitte
+             des Kalenderflecks zwischen Trennlinie und Unterkante.
+
+             Die Lücken sind 52 Grad breit und liegen oben und unten. Ohne sie
+             stiessen die beiden Spitzen aneinander; mit 20 Grad kamen sie
+             sich bei 48 Punkten Bildgröße fast berührend. -->
+
+        <!-- Die beiden Bögen als Kontur. `fill="none"` ist Pflicht: Ohne das
+             schliesst der Renderer den offenen Bogen zum Kreis und füllt die
+             Halbscheibe mit – aus dem Ring würde dann eine Scheibe mit einem
+             weissen Strich darin. -->
+        <path d="M 456.8 700.2 A 126 126 0 0 1 456.8 473.8" fill="none"
+              stroke="#000000" stroke-width="64"/>
+        <path d="M 567.2 473.8 A 126 126 0 0 1 567.2 700.2" fill="none"
+              stroke="#000000" stroke-width="64"/>
+
+        <!-- Die beiden Spitzen, 92 breit – also breiter als der Ring (64).
+             Das ist der Unterschied, an dem man einen Pfeil erkennt: Ein
+             Dreieck, das genau so breit ist wie sein Schaft, sieht aus wie
+             eine Nadel. Sie setzen auf dem Abschluss des Bogens auf und
+             decken ihn ab; die Naht zwischen beiden sieht niemand. -->
+        <path d="M 476.9 515.1 L 523.3 441.3 L 436.6 432.4 Z"/>
+        <path d="M 547.1 658.9 L 500.7 732.7 L 587.4 741.6 Z"/>
       </g>
     </mask>
   </defs>
