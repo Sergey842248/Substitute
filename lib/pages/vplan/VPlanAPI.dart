@@ -1064,13 +1064,19 @@ class VPlanAPI {
             prefs.getStringList(_prefKey(prefs, 'offlineVPData'));
         stringData ??= [];
 
-        // check if vplan already exist
+        // check if vplan already exist – anhand des Datums des Plans selbst,
+        // nicht des angefragten Tages (Klassen.xml kann einen anderen Tag
+        // liefern als den angefragten).
         bool add = true;
+        final String newPlanDate = data.last['date']?.toString() ?? '';
         for (int i = 0; i < stringData.length; i++) {
-          ziZeilen.map((e) => e.innerText.toString()).toList();
-          if (compareDate(vpDate, jsonDecode(stringData[i])['date'])) {
-            add = false;
-          }
+          try {
+            if (newPlanDate.isNotEmpty &&
+                compareDate(parseStringDatatoDateTime(newPlanDate),
+                    jsonDecode(stringData[i])['date'])) {
+              add = false;
+            }
+          } catch (_) {}
         }
 
         if (add) {
@@ -1151,7 +1157,13 @@ class VPlanAPI {
   Future<dynamic> getCachedLessonsForToday(String classId) async {
     dynamic offlinePlan = await searchForOfflineData(AppClock.now());
     if (offlinePlan == false) return null;
+    return _planFromOfflineEntry(offlinePlan, classId);
+  }
 
+  /// Baut aus einem lokal gespeicherten (Offline-)Plan die anzeigbaren Stunden
+  /// einer Klasse – im selben Format wie [getLessonsByDate].
+  Future<Map<String, dynamic>> _planFromOfflineEntry(
+      dynamic offlinePlan, String classId) async {
     dynamic jsonVPlan = offlinePlan['data']['Klassen']['Kl'];
 
     Map<String, bool>? classRoomChanges;
@@ -1190,14 +1202,9 @@ class VPlanAPI {
   /// Liefert die URL des Vertretungsplans für [date]: für heute die aktuelle
   /// 'Klassen.xml', für andere Tage (auch vergangene) die tagesbezogene
   /// 'PlanKl<Datum>.xml' – genau wie getRawPlanByDate/getLessonsByDate es tun.
-  Future<String> getURL(DateTime date) async {
+    Future<String> getURL(DateTime date) async {
     await login();
 
-    // Für die URL-Auswahl zählt der ECHTE Kalendertag, nicht die ggf. über die
-    // Entwicklereinstellungen überschriebene App-Uhr. Sonst würde ein
-    // überschriebenes Datum immer als "heute" gelten und es käme stets die
-    // aktuelle 'Klassen.xml' (also der neueste Plan) statt des tagesbezogenen
-    // 'PlanKl<Datum>.xml' zurück.
     final DateTime today = DateTime.now();
     bool isToday = date.year == today.year &&
         date.month == today.month &&
@@ -1205,6 +1212,12 @@ class VPlanAPI {
     if (isToday) {
       return 'https://www.stundenplan24.de/${this.schoolnumber}/mobil/mobdaten/Klassen.xml';
     }
+    return getDatedURL(date);
+  }
+
+  /// Die tagesbezogene 'PlanKl<Datum>.xml' – auch für heute.
+  Future<String> getDatedURL(DateTime date) async {
+    await login();
     return 'https://www.stundenplan24.de/${this.schoolnumber}/mobil/mobdaten/PlanKl${parseDate(date)}.xml';
   }
 
@@ -1224,13 +1237,25 @@ class VPlanAPI {
     if (jsonVPlan == null) {
       return List.empty();
     }
-    for (int i = 0; i < jsonVPlan.length; i++) {
+    // Der XML-Parser liefert bei genau einem Element kein Array, sondern das
+    // Element selbst: Eine einzelne Klasse kommt also als Map statt als Liste
+    // an. Ohne diese Umformung wäre so ein Plan komplett leer – und würde beim
+    // Blättern fälschlich als „kein Plan verfügbar“ gelten.
+    final List<dynamic> classes = jsonVPlan is List
+        ? jsonVPlan
+        : (jsonVPlan is Map ? <dynamic>[jsonVPlan] : <dynamic>[]);
+    for (int i = 0; i < classes.length; i++) {
       // scan all classes
-      if (jsonVPlan[i] is! Map) continue;
-      if (jsonVPlan[i]['Kurz'] == classId) {
+      final dynamic currentClass = classes[i];
+      if (currentClass is! Map) continue;
+      if (currentClass['Kurz'] == classId) {
         // check if it is the right class
-        final dynamic pl = jsonVPlan[i]['Pl'];
-        final dynamic _lessons = pl is Map ? pl['Std'] : null;
+        final dynamic pl = currentClass['Pl'];
+        dynamic _lessons = pl is Map ? pl['Std'] : null;
+        // Der XML-Parser liefert bei genau einem Element kein Array, sondern
+        // das Element selbst. Ohne diese Umformung hätte eine Klasse, die an
+        // dem Tag nur eine Stunde hat, einen kompletten Plan ohne Stunden.
+        if (_lessons is Map) _lessons = [_lessons];
         if (_lessons is! List) continue;
 
         for (int j = 0; j < _lessons.length; j++) {
@@ -1330,24 +1355,82 @@ class VPlanAPI {
     final String minuteText = normalizedMinute.toString().padLeft(2, '0');
     return '$hourText:$minuteText';
   }
+  /// Wahr, wenn [plan] ein gültiger Plan ist, der aber zu einem ANDEREN Tag
+  /// als [date] gehört.
+  bool _isPlanOfAnotherDay(dynamic plan, DateTime date) {
+    if (plan is! Map || plan['error'] != null) return false;
+    final String d = plan['date']?.toString() ?? '';
+    if (d.isEmpty) return false;
+    try {
+      return !compareDate(date, d);
+    } catch (_) {
+      return false;
+    }
+  }
 
-  Future<dynamic> getLessonsByDate({
+  /// Lädt den Plan für [date]. Für heute wird zuerst 'Klassen.xml' benutzt.
+  /// Enthält sie aber den Plan eines anderen Tages (die Schule hat schon
+  /// einen neueren veröffentlicht), wird zusätzlich die tagesbezogene
+  /// 'PlanKl<Datum>.xml' des angefragten Tages vom Server geholt.
+  ///
+  /// Gibt es für den Tag keine eigene Datei, liefert [strictDate] == false
+  /// weiterhin den neuesten Plan (Verhalten beim App-Start), [strictDate] ==
+  /// true dagegen `{}` – für die Navigation, damit nicht ein Plan eines
+  /// anderen Tages als der angesteuerte ausgegeben wird.
+  Future<dynamic> _loadPlanForDate(
+    DateTime date, {
+    bool forceRefresh = false,
+    bool strictDate = false,
+  }) async {
+    final String urlString = await getURL(date);
+    final dynamic plan = await getVPlanJSON(
+      Uri.parse(urlString),
+      date,
+      forceRefresh: forceRefresh,
+    );
+
+    if (urlString.contains('PlanKl') || !_isPlanOfAnotherDay(plan, date)) {
+      return plan;
+    }
+
+    dynamic dated;
+    try {
+      dated = await getVPlanJSON(
+        Uri.parse(await getDatedURL(date)),
+        date,
+        forceRefresh: forceRefresh,
+      );
+    } catch (_) {
+      dated = null;
+    }
+    if (dated is Map &&
+        dated['error'] == null &&
+        dated.isNotEmpty &&
+        !_isPlanOfAnotherDay(dated, date)) {
+      return dated;
+    }
+    if (dated is Map &&
+        dated['error'] != null &&
+        isConnectionError(dated['error'])) {
+      return dated;
+    }
+    return strictDate ? {} : plan;
+  }
+    Future<dynamic> getLessonsByDate({
     required DateTime date,
     required String classId,
     bool forceRefresh = false,
+    bool strictDate = false,
   }) async {
     await login();
 
-    // Für heute die aktuelle 'Klassen.xml' verwenden, für andere Tage die
-    // tagesbezogene 'PlanKl<Datum>.xml' – genau wie getRawPlanByDate. Sonst
-    // würde der Hintergrund-Refresh der Vorschau für heute an der (für den
-    // heutigen Tag oft nicht existierenden) 'PlanKl<heute>.xml' scheitern und
-    // die „Nächste Stunde“ bliebe auf dem alten Stand hängen.
-    Uri url = Uri.parse(await getURL(date));
-
     dynamic pureVPlan;
     try {
-      pureVPlan = await getVPlanJSON(url, date, forceRefresh: forceRefresh);
+      pureVPlan = await _loadPlanForDate(
+        date,
+        forceRefresh: forceRefresh,
+        strictDate: strictDate,
+      );
     } catch (e) {
       return {'error': 'no internet'};
     }
@@ -1377,20 +1460,183 @@ class VPlanAPI {
     };
   }
 
+  /// Wie weit in Pfeilrichtung (in Kalendertagen) nach einem verfügbaren Plan
+  /// gesucht wird, wenn der direkt angesteuerte Tag keinen Plan hat. Ein Monat
+  /// deckt die Fälle ab, in denen zwischen dem angesteuerten Tag und dem letzten
+  /// veröffentlichten Plan eine Pause liegt (Ferien, Brückentage, Krankheits-
+  /// welle) – weiter zurück wird nicht gesucht, damit die Suche nicht bei jedem
+  /// Tippen unnötig viele Tage abfragt.
+  static const int planNavigationSearchDays = 30;
+
+  /// Wahr, wenn [plan] tatsächlich etwas anzuzeigen hat: kein Fehler und
+  /// mindestens eine Stunde für die angefragte Klasse/Person. Ein Tag, für den
+  /// die Schule keinen Plan veröffentlicht hat, ist damit **nicht** verfügbar.
+  bool isPlanAvailable(dynamic plan) {
+    if (plan is! Map || plan['error'] != null) return false;
+    final dynamic lessons = plan['data'];
+    return lessons is List && lessons.isNotEmpty;
+  }
+
+  /// Wahr, wenn [error] jeden weiteren Tag genauso treffen würde (kein Netz,
+  /// falsche Zugangsdaten, Serverfehler) – dann kann die Suche in Pfeilrichtung
+  /// sofort aufhören, statt das ganze Suchfenster abzuarbeiten.
+  ///
+  /// **Wichtig:** `'schoolnumber'` gehört NICHT dazu, obwohl es wie ein Fehler
+  /// der Zugangsdaten klingt. Stundenplan24 beantwortet ein fehlendes
+  /// `PlanKl<Datum>.xml` mit genau dieser Fehlerseite („Die eingegebene
+  /// Schulnummer wurde nicht gefunden.“). Für die Suche heißt das also nur:
+  /// an diesem Tag gibt es keinen Plan – und genau deshalb wird weiter gesucht.
+  bool isConnectionError(dynamic error) {
+    final String e = error?.toString() ?? '';
+    return e == 'no internet' || e == '401' || e.startsWith('http_5');
+  }
+
+    /// Kurzzeitiges Gedächtnis für Tage ohne Plan, damit wiederholtes Blättern
+  /// nicht jedes Mal dieselben leeren Tage beim Server abfragt.
+  static final Map<String, DateTime> _noPlanUntil = {};
+  static const Duration _noPlanTtl = Duration(minutes: 5);
+
+  /// Sucht in Richtung [forward] den nächsten Tag mit einem anzeigbaren Plan
+  /// für [classId] – ausgehend von [from], ausschließlich.
+  ///
+  /// Der nächste lokal gespeicherte Plan dient nur als Grenze und Rückfall:
+  /// Alle Tage DAZWISCHEN werden Tag für Tag geprüft (lokal, sonst beim
+  /// Server), denn dort kann ein Plan liegen, der noch nicht gespeichert ist
+  /// – z.B. der von heute. Erst wenn dort nichts liegt (oder kein Netz da
+  /// ist), gilt der lokale Plan.
+  Future<dynamic> getNearestAvailablePlan({
+    required DateTime from,
+    required String classId,
+    required bool forward,
+    int maxDays = VPlanAPI.planNavigationSearchDays,
+  }) async {
+    await login();
+    final DateTime start = DateTime(from.year, from.month, from.day);
+
+    final dynamic local = await _nearestOfflinePlan(
+      from: start,
+      classId: classId,
+      forward: forward,
+      maxDays: maxDays,
+    );
+    DateTime? localDate;
+    if (local is Map) {
+      try {
+        localDate = parseStringDatatoDateTime(local['date'].toString());
+      } catch (_) {}
+    }
+
+    for (int i = 1; i <= maxDays; i++) {
+      final DateTime candidate =
+          DateTime(start.year, start.month, start.day + (forward ? i : -i));
+
+      // Den Tag des lokalen Plans erreicht: Der Rest wäre weiter weg.
+      if (localDate != null &&
+          (forward
+              ? !candidate.isBefore(localDate)
+              : !candidate.isAfter(localDate))) {
+        break;
+      }
+      if (candidate.weekday == DateTime.saturday ||
+          candidate.weekday == DateTime.sunday) {
+        continue;
+      }
+
+      final String key = '${schoolnumber}_${parseDate(candidate)}';
+      final DateTime? until = _noPlanUntil[key];
+      if (until != null && until.isAfter(DateTime.now())) continue;
+
+      dynamic plan;
+      try {
+        plan = await getLessonsByDate(
+          date: candidate,
+          classId: classId,
+          strictDate: true,
+        );
+      } catch (_) {
+        continue;
+      }
+      if (plan is Map && plan['error'] != null) {
+        // Kein Netz / falsche Zugangsdaten: Es bleibt der lokale Plan.
+        if (isConnectionError(plan['error'])) return local;
+        _noPlanUntil[key] = DateTime.now().add(_noPlanTtl);
+        continue;
+      }
+      if (isPlanAvailable(plan)) {
+        _noPlanUntil.remove(key);
+        return plan;
+      }
+      _noPlanUntil[key] = DateTime.now().add(_noPlanTtl);
+    }
+    return local;
+  }
+
+  /// Durchsucht die lokal gespeicherten (Offline-)Pläne nach dem nächsten
+  /// anzeigbaren Plan in Richtung [forward] – ohne Netzwerkzugriff.
+  Future<dynamic> _nearestOfflinePlan({
+    required DateTime from,
+    required String classId,
+    required bool forward,
+    required int maxDays,
+  }) async {
+    List<dynamic> plans;
+    try {
+      plans = await getAllOfflineData();
+    } catch (_) {
+      return null;
+    }
+
+    Map<String, dynamic>? nearest;
+    DateTime? nearestDate;
+    for (final dynamic plan in plans) {
+      if (plan is! Map) continue;
+      final String dateString = plan['date']?.toString() ?? '';
+      if (dateString.isEmpty) continue;
+      DateTime date;
+      try {
+        date = parseStringDatatoDateTime(dateString);
+      } catch (_) {
+        continue;
+      }
+      // Nur Tage in Suchrichtung und innerhalb des Suchfensters.
+      if (forward ? !date.isAfter(from) : !date.isBefore(from)) continue;
+      if (date.difference(from).inDays.abs() > maxDays) continue;
+      if (date.weekday == DateTime.saturday ||
+          date.weekday == DateTime.sunday) {
+        continue;
+      }
+      // Schon einen näheren Tag gefunden? Dann ist dieser hier uninteressant.
+      if (nearestDate != null &&
+          (forward ? date.isAfter(nearestDate) : date.isBefore(nearestDate))) {
+        continue;
+      }
+
+      Map<String, dynamic> lessons;
+      try {
+        lessons = await _planFromOfflineEntry(plan, classId);
+      } catch (_) {
+        continue;
+      }
+      if (!isPlanAvailable(lessons)) continue;
+      nearestDate = date;
+      nearest = lessons;
+    }
+    return nearest;
+  }
+
   /// Lädt den rohen Vertretungsplan (mit allen Klassen) für ein bestimmtes
   /// Datum, ohne ihn für eine einzelne Klasse aufzubereiten. Wird z.B. vom
   /// Raumplan genutzt, um die Belegung aller Räume zu durchsuchen.
   ///
   /// Für heute wird wie im restlichen App-Code die 'Klassen.xml' verwendet,
   /// für andere Tage die tagesbezogene 'PlanKl<Datum>.xml'.
-  Future<dynamic> getRawPlanByDate(DateTime date, {bool forceRefresh = false}) async {
+    Future<dynamic> getRawPlanByDate(DateTime date,
+      {bool forceRefresh = false}) async {
     await login();
-
-    final Uri url = Uri.parse(await getURL(date));
 
     dynamic pureVPlan;
     try {
-      pureVPlan = await getVPlanJSON(url, date, forceRefresh: forceRefresh);
+      pureVPlan = await _loadPlanForDate(date, forceRefresh: forceRefresh);
     } catch (e) {
       return {'error': 'no internet'};
     }
@@ -1405,7 +1651,7 @@ class VPlanAPI {
 
     if (!forceRefresh && looksLikeFailure) {
       try {
-        pureVPlan = await getVPlanJSON(url, date, forceRefresh: true);
+        pureVPlan = await _loadPlanForDate(date, forceRefresh: true);
       } catch (e) {
         return {'error': 'no internet'};
       }

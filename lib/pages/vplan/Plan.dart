@@ -39,9 +39,9 @@ class Plan extends StatefulWidget {
 class _PlanState extends State<Plan> {
   VPlanAPI vplanAPI = new VPlanAPI();
 
-  Future<void> newVP(bool nextDay) async {
+    Future<void> newVP(bool nextDay) async {
+    final dynamic previousData = data;
     try {
-      // Get current date from data if available, otherwise use today's date
       DateTime currentDate;
       if (data is Map && data['data'] != null && data['data']['date'] != null) {
         currentDate =
@@ -54,33 +54,45 @@ class _PlanState extends State<Plan> {
         data = 'loading';
       });
 
-      // Calculate new date
       DateTime newDate;
       if (nextDay) {
         int days = 1;
-        if (currentDate.weekday == 5) {
-          // Friday
-          days = 3; // Skip weekend
-        }
+        if (currentDate.weekday == 5) days = 3; // Freitag → Montag
         newDate = currentDate.add(Duration(days: days));
       } else {
         int days = 1;
-        if (currentDate.weekday == 1) {
-          // Monday
-          days = 3; // Skip weekend
-        }
+        if (currentDate.weekday == 1) days = 3; // Montag → Freitag
         newDate = currentDate.subtract(Duration(days: days));
       }
 
-      // Get lessons for the new date
+      // strictDate: Für den angesteuerten Tag zählt nur ein Plan, der auch zu
+      // diesem Tag gehört – nicht der "neueste Plan" aus Klassen.xml.
       dynamic newData = await VPlanAPI().getLessonsByDate(
         date: newDate,
         classId: widget.classId,
+        strictDate: true,
       );
 
-      // Wenn für den neuen Tag kein Plan geladen werden konnte
-      // (z.B. keine Internetverbindung), die Fehlermeldung anzeigen statt
-      // mit einem Cast-Fehler abzustürzen.
+      // Kein Plan für den Tag: in Pfeilrichtung den nächsten verfügbaren suchen.
+      if (!vplanAPI.isPlanAvailable(newData)) {
+        final dynamic fallback = await VPlanAPI().getNearestAvailablePlan(
+          from: newDate,
+          classId: widget.classId,
+          forward: nextDay,
+        );
+        if (fallback != null) {
+          newData = fallback;
+        } else if (_hasPlan(previousData) &&
+            !(newData is Map &&
+                newData['error'] != null &&
+                vplanAPI.isConnectionError(newData['error']))) {
+          // In dieser Richtung gibt es nichts: den angezeigten Plan behalten,
+          // statt eine leere bzw. Fehlerseite zu zeigen.
+          if (mounted) setState(() => data = previousData);
+          return;
+        }
+      }
+
       if (newData is! Map || newData['error'] != null) {
         if (mounted) {
           setState(() {
@@ -100,7 +112,6 @@ class _PlanState extends State<Plan> {
       _checkForNewerPlan();
     } catch (e) {
       print('Error loading plan for new date: $e');
-      // If there's an error, try to reload current data
       await getData();
     }
   }
