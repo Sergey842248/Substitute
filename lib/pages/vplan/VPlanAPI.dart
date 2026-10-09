@@ -27,6 +27,36 @@ final ValueNotifier<int> vplanBackgroundRefresh = ValueNotifier<int>(0);
 /// laden kann.
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
+/// Builds the identifier used to associate a room-change marker with exactly
+/// one lesson.  A period alone is not sufficient: in upper grades several
+/// courses can take place in parallel during the same period.
+///
+/// The lesson number (`Nr`) is stable across adjacent periods of the same
+/// lesson, so a single room-change marker correctly applies to both periods.
+/// If a provider omits it, the course/subject combination remains specific
+/// enough to avoid marking all parallel courses as changed.
+String roomChangeKeyFor({
+  required Object? period,
+  Object? lessonId,
+  Object? course,
+  Object? subject,
+}) {
+  String value(Object? input) => input?.toString().trim() ?? '';
+
+  final String normalizedPeriod = value(period);
+  if (normalizedPeriod.isEmpty) return '';
+
+  final String normalizedLessonId = value(lessonId);
+  if (normalizedLessonId.isNotEmpty) {
+    return '$normalizedPeriod|nr:$normalizedLessonId';
+  }
+
+  final String normalizedCourse = value(course);
+  final String normalizedSubject = value(subject);
+  if (normalizedCourse.isEmpty && normalizedSubject.isEmpty) return '';
+  return '$normalizedPeriod|course:$normalizedCourse|subject:$normalizedSubject';
+}
+
 /// Synchroner Persisted-Cache der zuletzt aufbereiteten Plan-Anzeige je
 /// Klasse. Wird beim App-Start aus SharedPreferences gefüllt (`loadDisplayCache`)
 /// und bei jedem geladenen Plan aktualisiert, damit beim Öffnen eines Plans
@@ -196,6 +226,38 @@ class VPlanAPI {
 
   String _prefKey(SharedPreferences prefs, String key) {
     return SchoolStorage.scopedKey(prefs, key);
+  }
+
+  /// Extracts room-change markers from the XML before it is converted to
+  /// Parker JSON, because XML attributes such as `RaAe` are otherwise lost.
+  /// Markers are keyed by lesson, never only by period; course plans often
+  /// contain several simultaneous lessons.
+  static Map<String, Map<String, bool>> roomChangesFromXml(
+      Iterable<XmlElement> classes) {
+    final Map<String, Map<String, bool>> roomChanges = {};
+
+    for (final XmlElement classElement in classes) {
+      final String classId = classElement.getElement('Kurz')?.innerText ?? '';
+      if (classId.isEmpty) continue;
+      final Map<String, bool> classChanges = {};
+      roomChanges[classId] = classChanges;
+
+      final XmlElement? plan = classElement.getElement('Pl');
+      if (plan == null) continue;
+      for (final XmlElement lesson in plan.findAllElements('Std')) {
+        final XmlElement? room = lesson.getElement('Ra');
+        if (room?.getAttribute('RaAe') == null) continue;
+
+        final String key = roomChangeKeyFor(
+          period: lesson.getElement('St')?.innerText,
+          lessonId: lesson.getElement('Nr')?.innerText,
+          course: lesson.getElement('Ku2')?.innerText,
+          subject: lesson.getElement('Fa')?.innerText,
+        );
+        if (key.isNotEmpty) classChanges[key] = true;
+      }
+    }
+    return roomChanges;
   }
 
   Future<void> login() async {
@@ -1023,25 +1085,8 @@ class VPlanAPI {
           }
         }
 
-        // Parse room changes from XML (RaAe attribute indicates room change)
-        Map<String, Map<String, bool>> roomChanges = {};
-        for (int i = 0; i < classes.length; i++) {
-          String classId = classes.elementAt(i).getElement('Kurz')!.innerText;
-          roomChanges[classId] = {};
-
-          XmlElement? pl = classes.elementAt(i).getElement('Pl');
-          if (pl != null) {
-            Iterable<XmlElement> stunden = pl.findAllElements('Std');
-            for (var std in stunden) {
-              XmlElement? raElement = std.getElement('Ra');
-              XmlElement? stElement = std.getElement('St');
-              if (raElement != null && stElement != null) {
-                bool hasRaAe = raElement.getAttribute('RaAe') != null;
-                roomChanges[classId]![stElement.innerText] = hasRaAe;
-              }
-            }
-          }
-        }
+        final Map<String, Map<String, bool>> roomChanges =
+            roomChangesFromXml(classes);
 
         /* NEW XML PARSER */
 
@@ -1265,10 +1310,16 @@ class VPlanAPI {
           try {
             String lessonCount = currentLesson['St']?.toString() ?? '';
             final Map<String, String>? lessonTime = lessonTimes[lessonCount];
-            bool hasRaAe = roomChanges?[lessonCount] ?? false;
-            String room = currentLesson['Ra']?.toString() ?? '';
-            bool hasLetters = RegExp(r'[a-zA-Z]').hasMatch(room);
-            bool placeChanged = hasRaAe && !hasLetters;
+            final String roomChangeKey = roomChangeKeyFor(
+              period: lessonCount,
+              lessonId: currentLesson['Nr'],
+              course: currentLesson['Ku2'],
+              subject: currentLesson['Fa'],
+            );
+            // `RaAe` is the provider's authoritative room-change marker.
+            // Room names are allowed to contain letters (for example "Bibo").
+            final bool placeChanged =
+                roomChangeKey.isNotEmpty && roomChanges?[roomChangeKey] == true;
 
             _outpuLessons.add({
               'count': currentLesson['St'],

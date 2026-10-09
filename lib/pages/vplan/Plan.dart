@@ -826,20 +826,15 @@ class _PlanState extends State<Plan> {
         signatureShown.add(course);
         showSignature = true;
       }
-      // Innerhalb einer Hinweiszeile ist die rote Textfarbe tabu: Sie wäre
-      // rot auf rot und damit unsichtbar. Deshalb gilt dort die Schriftfarbe
-      // der Zeile – und die Farbe der Zeile ist die Aussage.
-      //
-      // **Rot** heißt dabei ausschließlich "fällt aus" – also eine Stunde ohne
-      // Lehrer. Eine Vertretung, ein anderes Fach oder eine Raumänderung ist
-      // **orange**; vorher war sie genauso rot wie ein Ausfall, und damit war
-      // der Plan voller Ausfälle, als es sind. Siehe
-      // `AppColors.hinweisTonVon`.
+      // Hinweiszeilen übernehmen normalerweise ihre Schriftfarbe von der
+      // Zeile. Die Raumzeile ist die gezielte Ausnahme: Eine Raumänderung
+      // soll auch auf gelbem Hintergrund sofort erkennbar bleiben.
       final HinweisTon ton = AppColors.hinweisTonVon(e);
       final bool hinweis = ton != HinweisTon.keiner;
-      final Color akzent = hinweis
-          ? AppColors.hinweisText(context)
-          : AppColors.aktionston(context);
+      // Eine Raumänderung muss sich auch innerhalb einer gelben Hinweiszeile
+      // als solche abheben. Sie verwendet daher bewusst immer den roten
+      // Aktionston statt der sonst für die ganze Zeile geltenden Textfarbe.
+      final Color raumAenderungsFarbe = AppColors.aktionston(context);
 
       return ListItem(
         onClick: () {},
@@ -891,15 +886,17 @@ class _PlanState extends State<Plan> {
                       Icon(
                         Icons.location_on_rounded,
                         size: 16,
-                        color: e['placeChanged'] == true ? akzent : null,
+                        color: e['placeChanged'] == true
+                            ? raumAenderungsFarbe
+                            : null,
                       ),
                       SizedBox(width: 3),
                       Text(
                         printValue(e['place']),
                         style: e['placeChanged'] == true
                             ? TextStyle(
-                                color: akzent,
-                                fontWeight: FontWeight.bold,
+                                color: raumAenderungsFarbe,
+                                fontWeight: FontWeight.w900,
                               )
                             : null,
                       ),
