@@ -6,6 +6,7 @@ import 'package:substitute/l10n/app_localizations.dart';
 import 'package:substitute/pages/dashboard/Settings.dart';
 import 'package:substitute/pages/dashboard/settings/ConfigBackupSettings.dart';
 import 'package:substitute/pages/dashboard/settings/VPlanLogin.dart';
+import 'package:substitute/services/ConfigBackupFlow.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -129,6 +130,64 @@ void main() {
     await scrolleZu(tester, 'Backup & Restore');
 
     expect(find.text('Backup & Restore'), findsWidgets);
+  });
+
+  group('der Hinweis im Import-Dialog', () {
+    /// Baut genau den Text, der im Import-Dialog steht.
+    Future<void> pumpFrage(
+      WidgetTester tester,
+      Map<String, dynamic> settings,
+    ) async {
+      await tester.pumpWidget(MaterialApp(
+        locale: const Locale('en', ''),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(body: ImportReplaceFrage(settings: settings)),
+      ));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('erscheint bei einer Datei ohne Zugangsdaten',
+        (WidgetTester tester) async {
+      await pumpFrage(tester, <String, dynamic>{
+        'classes': <String>['5a'],
+        'hideTeacher': true,
+      });
+
+      expect(find.text('Should the existing settings be replaced?'),
+          findsOneWidget);
+      expect(
+        find.textContaining('no credentials'),
+        findsOneWidget,
+        reason: 'der Nutzer muss vorher wissen, dass seine Zugangsdaten '
+            'beim Ersetzen bleiben',
+      );
+    });
+
+    testWidgets('erscheint nicht bei einer Datei mit Zugangsdaten',
+        (WidgetTester tester) async {
+      await pumpFrage(tester, <String, dynamic>{
+        'vplanPassword': 'neu',
+        'vplanUsername': 'user',
+      });
+
+      expect(find.textContaining('no credentials'), findsNothing,
+          reason: 'hier werden die Zugangsdaten sehr wohl ersetzt – ein '
+              'Hinweis, sie blieben, wäre gelogen');
+    });
+
+    testWidgets('erkennt auch schulbezogene Zugangsdaten',
+        (WidgetTester tester) async {
+      // Die Zugangsdaten einer zweiten Schule liegen unter 'schools.<id>…'.
+      // Wer nur die drei einfachen Schlüssel prüft, erkennt diese Datei als
+      // „ohne Zugangsdaten" – und der Dialog verspricht dann das Gegenteil
+      // dessen, was beim Ersetzen passiert.
+      await pumpFrage(tester, <String, dynamic>{
+        'schools.abc123.vplanPassword': 'schul-passwort',
+      });
+
+      expect(find.textContaining('no credentials'), findsNothing);
+    });
   });
 
   testWidgets('the backup page offers export and import',

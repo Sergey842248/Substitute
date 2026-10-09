@@ -575,6 +575,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Should the existing settings be replaced?';
 
   @override
+  String get backupImportKeepsCredentials =>
+      'This file contains no credentials – your credentials are kept even when replacing.';
+
+  @override
   String get backupImportMerge => 'Merge';
 
   @override

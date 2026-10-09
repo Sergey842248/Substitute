@@ -270,6 +270,7 @@
   "backupExportTextWithoutCredentials": "Konfiguration von Substitute (Einstellungen, Klassen, Personen) – ohne Zugangsdaten.",
   "backupImportTitle": "Konfiguration importieren",
   "backupImportQuestion": "Sollen die vorhandenen Einstellungen ersetzt werden?",
+  "backupImportKeepsCredentials": "Die Datei enthält keine Zugangsdaten – deine Zugangsdaten bleiben auch beim Ersetzen erhalten.",
   "backupImportMerge": "Ergänzen",
   "backupImportReplace": "Ersetzen",
   "backupImportDone": "Import fertig: {applied} Einstellungen übernommen, {removed} entfernt.",

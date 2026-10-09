@@ -15,6 +15,48 @@ import 'package:substitute/services/ConfigBackup.dart';
 /// Antwort des Nutzers im Warn-Dialog vor dem Teilen.
 enum _CredentialChoice { with_, without }
 
+/// Der Text im Import-Dialog: die Frage und – falls nötig – der Hinweis, dass
+/// die Zugangsdaten bleiben.
+///
+/// Als eigenes Widget und nicht als Text im Dialog, weil es sonst nur auf dem
+/// Umweg über den Datei-Wähler zu prüfen wäre, und der Umweg ist im Test nicht
+/// gangbar. So lässt sich die eine Zeile direkt ansehen, auf die es ankommt:
+/// Steht sie **nicht**, hält der Nutzer „Ersetzen" für ein Versprechen, das
+/// es nicht hält – und macht den Import vielleicht gar nicht.
+class ImportReplaceFrage extends StatelessWidget {
+  const ImportReplaceFrage({super.key, required this.settings});
+
+  /// Die Einstellungen aus der gewählten Datei.
+  final Map<String, dynamic> settings;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final bool ohneZugangsdaten = !ConfigBackup.containsCredentials(settings);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(l10n.backupImportQuestion, textAlign: TextAlign.center),
+        if (ohneZugangsdaten) ...[
+          const SizedBox(height: 12),
+          Text(
+            l10n.backupImportKeepsCredentials,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.7),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 /// Export-/Import-Ablauf der Konfiguration.
 ///
 /// Bewusst als freie Funktionen und nicht als Teil von
@@ -47,8 +89,8 @@ class ConfigBackupFlow {
             await _askAboutCredentials(context, l10n);
         if (choice == null) return false;
         if (choice == _CredentialChoice.without) {
-          export = await ConfigBackup.buildExport(prefs,
-              includeCredentials: false);
+          export =
+              await ConfigBackup.buildExport(prefs, includeCredentials: false);
         }
       }
 
@@ -129,7 +171,7 @@ class ConfigBackupFlow {
     bool replace = false;
     if (askReplace) {
       final bool? answer =
-          await _askReplace(l10n, context: context);
+          await _askReplace(l10n, context: context, settings: settings);
       if (answer == null) return null;
       replace = answer;
     }
@@ -188,7 +230,8 @@ class ConfigBackupFlow {
     final DateTime now = at ?? AppClock.now();
     String two(int v) => v.toString().padLeft(2, '0');
     final String date = '${now.year}-${two(now.month)}-${two(now.day)}';
-    final String time = '${two(now.hour)}-${two(now.minute)}-${two(now.second)}';
+    final String time =
+        '${two(now.hour)}-${two(now.minute)}-${two(now.second)}';
     return '${exportFileNamePrefix}${date}___$time.json';
   }
 
@@ -206,15 +249,15 @@ class ConfigBackupFlow {
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 19),
         ),
-        content: Text(l10n.backupCredentialsWarning, textAlign: TextAlign.center),
+        content:
+            Text(l10n.backupCredentialsWarning, textAlign: TextAlign.center),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(l10n.cancel),
           ),
           TextButton(
-            onPressed: () =>
-                Navigator.pop(context, _CredentialChoice.without),
+            onPressed: () => Navigator.pop(context, _CredentialChoice.without),
             child: Text(l10n.backupShareWithoutCredentials),
           ),
           TextButton(
@@ -226,8 +269,19 @@ class ConfigBackupFlow {
     );
   }
 
-  static Future<bool?> _askReplace(AppLocalizations l10n,
-      {required BuildContext context}) {
+  /// Frage, ob ersetzt oder ergänzt werden soll.
+  ///
+  /// [settings] wird nur für den Hinweis gebraucht, ob die Datei Zugangsdaten
+  /// enthält. Er steht im Dialog, weil „Ersetzen" bei einer Datei ohne
+  /// Zugangsdaten **nicht** alles ersetzt: Die Zugangsdaten des Geräts bleiben,
+  /// aus gutem Grund (siehe `ConfigBackup.applyImport`). Wer das nicht vorher
+  /// weiss, tippt auf „Ersetzen" und hält es für einen Fehler – oder umgekehrt,
+  /// er traut sich nicht, obwohl nichts passieren kann.
+  static Future<bool?> _askReplace(
+    AppLocalizations l10n, {
+    required BuildContext context,
+    required Map<String, dynamic> settings,
+  }) {
     return showDialog<bool>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
@@ -238,7 +292,7 @@ class ConfigBackupFlow {
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 19),
         ),
-        content: Text(l10n.backupImportQuestion, textAlign: TextAlign.center),
+        content: ImportReplaceFrage(settings: settings),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -278,7 +332,8 @@ class ConfigBackupFlow {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
     _showMessage(
       context,
-      l10n.backupImportDone(result.appliedKeys.length, result.removedKeys.length),
+      l10n.backupImportDone(
+          result.appliedKeys.length, result.removedKeys.length),
     );
   }
 }

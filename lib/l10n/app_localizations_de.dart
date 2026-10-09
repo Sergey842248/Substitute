@@ -580,6 +580,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Sollen die vorhandenen Einstellungen ersetzt werden?';
 
   @override
+  String get backupImportKeepsCredentials =>
+      'Die Datei enthält keine Zugangsdaten – deine Zugangsdaten bleiben auch beim Ersetzen erhalten.';
+
+  @override
   String get backupImportMerge => 'Ergänzen';
 
   @override

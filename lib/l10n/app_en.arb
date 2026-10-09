@@ -270,6 +270,7 @@
   "backupExportTextWithoutCredentials": "Substitute configuration (settings, classes, persons) – without credentials.",
   "backupImportTitle": "Import configuration",
   "backupImportQuestion": "Should the existing settings be replaced?",
+  "backupImportKeepsCredentials": "This file contains no credentials – your credentials are kept even when replacing.",
   "backupImportMerge": "Merge",
   "backupImportReplace": "Replace",
   "backupImportDone": "Import done: {applied} settings applied, {removed} removed.",

@@ -1130,6 +1130,12 @@ abstract class AppLocalizations {
   /// **'Should the existing settings be replaced?'**
   String get backupImportQuestion;
 
+  /// No description provided for @backupImportKeepsCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'This file contains no credentials – your credentials are kept even when replacing.'**
+  String get backupImportKeepsCredentials;
+
   /// No description provided for @backupImportMerge.
   ///
   /// In en, this message translates to:

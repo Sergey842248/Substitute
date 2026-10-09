@@ -19,8 +19,7 @@ class ConfigImportResult {
   /// Schlüssel, die bewusst nicht übernommen wurden (z.B. Passwörter).
   final List<String> skippedKeys;
 
-  int get total =>
-      appliedKeys.length + removedKeys.length + skippedKeys.length;
+  int get total => appliedKeys.length + removedKeys.length + skippedKeys.length;
 }
 
 /// Sichert die gesamte Konfiguration der App (Einstellungen, Klassen,
@@ -167,12 +166,12 @@ class ConfigBackup {
     final dynamic settings = map['settings'];
     if (settings is! Map) throw const FormatException('invalidSettings');
     return settings.cast<String, dynamic>().map(
-      // Nur einfache, JSON-fähige Werte zulassen.
-      (String key, dynamic value) => MapEntry<String, dynamic>(
-        key,
-        value is Map || value == null ? null : _sanitize(value),
-      ),
-    );
+          // Nur einfache, JSON-fähige Werte zulassen.
+          (String key, dynamic value) => MapEntry<String, dynamic>(
+            key,
+            value is Map || value == null ? null : _sanitize(value),
+          ),
+        );
   }
 
   /// Schreibt eine zuvor mit [parseExport] gelesene Konfiguration zurück.
@@ -180,6 +179,33 @@ class ConfigBackup {
   /// [replace] == true entfernt vorher alle vorhandenen Konfigurationsschlüssel
   /// (die nicht exportiert werden), sonst werden nur die Schlüssel der Datei
   /// überschrieben.
+  ///
+  /// ## Zugangsdaten werden nur ersetzt, wenn die Datei welche enthält
+  ///
+  /// Das ist die eine Ausnahme von „alles wird ersetzt", und sie ist keine
+  /// Rechenfrage, sondern eine Frage danach, was der Nutzer gerade getippt hat.
+  ///
+  /// Eine Konfiguration ohne Zugangsdaten entsteht **absichtlich**: Der Export
+  /// fragt vorher, ob die Zugangsdaten mit in die Datei sollen, und wer sie nicht
+  /// weitergeben will, wählt „ohne". Solche Dateien landen in Chatverläufen und
+  /// auf fremden Geräten – sie zu importieren ist ausdrücklich erlaubt, und die
+  /// Datei holt man sich immer wieder.
+  ///
+  /// Behandelt man sie wie jede andere, passiert Folgendes: „Ersetzen" entfernt
+  /// jeden Schlüssel, der nicht in der Datei steht – und die Zugangsdaten des
+  /// Geräts stehen nicht darin. Sie sind weg. Die App startet danach ohne
+  /// Zugangsdaten, zeigt die Anmeldeseite, und wer sie nicht mehr weiss, ist
+  /// draussen. Aus einem Import, der nur die Konfiguration wiederherstellen
+  /// sollte, ist damit ein Datenverlust geworden.
+  ///
+  /// Die Regel ist deshalb: **Keine Zugangsdaten in der Datei, keine Änderung an
+  /// den lokalen.** Sie betrifft nur das Entfernen – was die Datei selbst
+  /// enthält, wird wie bisher übernommen, und enthält sie Zugangsdaten, werden
+  /// alle ersetzt. Nur die schweigende Löschung von etwas, das in der Datei
+  /// gar nicht vorkommt, unterbleibt.
+  ///
+  /// Merken kann man das so: Wer eine Datei ohne Zugangsdaten importiert, will
+  /// Klassen, Pläne und Einstellungen zurückholen – nicht sein Passwort verlieren.
   static Future<ConfigImportResult> applyImport(
     SharedPreferences prefs,
     Map<String, dynamic> settings, {
@@ -190,9 +216,16 @@ class ConfigBackup {
     final List<String> removed = <String>[];
 
     if (replace) {
+      // Ob die Zugangsdaten diesmal angefasst werden dürfen. Einmal berechnet
+      // statt je Schlüssel neu entschieden – die Antwort ist für alle gleich.
+      final bool zugangsdatenAnfassen = containsCredentials(settings);
+
       for (final String key in prefs.getKeys().toList()) {
         if (_isExcluded(key)) continue;
         if (settings.containsKey(key)) continue;
+        // Zugangsdaten bleiben, ausser die Datei bringt welche mit. Sonst würde
+        // ein Import ohne Zugangsdaten das Gerät abmelden – siehe oben.
+        if (!zugangsdatenAnfassen && _isCredentialKey(key)) continue;
         await prefs.remove(key);
         removed.add(key);
       }
@@ -233,8 +266,8 @@ class ConfigBackup {
   /// chronologisch nach dem Datum des Plans.
   static List<String> _mergePlans(
       SharedPreferences prefs, String key, List<String> imported) {
-    final List<String> existing = _onlyValidPlans(_getValue(prefs, key)) ??
-        <String>[];
+    final List<String> existing =
+        _onlyValidPlans(_getValue(prefs, key)) ?? <String>[];
     if (existing.isEmpty) return imported;
 
     final Map<String, String> byDate = <String, String>{};

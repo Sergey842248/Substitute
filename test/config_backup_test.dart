@@ -48,8 +48,7 @@ void main() {
       seedPrefs();
       final SharedPreferences prefs = await SharedPreferences.getInstance();
 
-      final Map<String, dynamic> export =
-          await ConfigBackup.buildExport(prefs);
+      final Map<String, dynamic> export = await ConfigBackup.buildExport(prefs);
       final Map<String, dynamic> settings =
           export['settings'] as Map<String, dynamic>;
 
@@ -67,8 +66,7 @@ void main() {
       seedPrefs();
       final SharedPreferences prefs = await SharedPreferences.getInstance();
 
-      final Map<String, dynamic> export =
-          await ConfigBackup.buildExport(prefs);
+      final Map<String, dynamic> export = await ConfigBackup.buildExport(prefs);
       final Map<String, dynamic> settings =
           export['settings'] as Map<String, dynamic>;
 
@@ -82,7 +80,8 @@ void main() {
 
     test('reports no credentials when none are stored', () {
       expect(
-        ConfigBackup.containsCredentials(<String, dynamic>{'classes': <String>[]}),
+        ConfigBackup.containsCredentials(
+            <String, dynamic>{'classes': <String>[]}),
         isFalse,
       );
       expect(
@@ -141,9 +140,9 @@ void main() {
       });
       final SharedPreferences prefs = await SharedPreferences.getInstance();
 
-      final Map<String, dynamic> settings =
-          (await ConfigBackup.buildExport(prefs, includeCredentials: false))[
-              'settings'] as Map<String, dynamic>;
+      final Map<String, dynamic> settings = (await ConfigBackup.buildExport(
+          prefs,
+          includeCredentials: false))['settings'] as Map<String, dynamic>;
 
       expect(jsonEncode(settings), isNot(contains('schul-passwort')));
       expect(jsonEncode(settings), isNot(contains('lehrer')));
@@ -153,8 +152,7 @@ void main() {
       seedPrefs();
       final SharedPreferences prefs = await SharedPreferences.getInstance();
 
-      final Map<String, dynamic> export =
-          await ConfigBackup.buildExport(prefs);
+      final Map<String, dynamic> export = await ConfigBackup.buildExport(prefs);
       final Map<String, dynamic> settings =
           export['settings'] as Map<String, dynamic>;
 
@@ -168,8 +166,7 @@ void main() {
       seedPrefs();
       final SharedPreferences prefs = await SharedPreferences.getInstance();
 
-      final Map<String, dynamic> export =
-          await ConfigBackup.buildExport(prefs);
+      final Map<String, dynamic> export = await ConfigBackup.buildExport(prefs);
       final Map<String, dynamic> settings =
           export['settings'] as Map<String, dynamic>;
 
@@ -198,7 +195,8 @@ void main() {
         <String>['{"date":"a"}', '{"date":"b"}'],
       );
       // …deren Kurzzeit-Cache aber nicht.
-      expect(settings, isNot(contains('schools.abc123.vplan_cache_2026-09-23')));
+      expect(
+          settings, isNot(contains('schools.abc123.vplan_cache_2026-09-23')));
     });
 
     test('the encoded file is valid JSON with app metadata', () async {
@@ -227,8 +225,10 @@ void main() {
     });
 
     test('rejects a file from a different app', () {
-      final String text = jsonEncode({'app': 'anderes', 'schema': 1, 'settings': {}});
-      expect(() => ConfigBackup.parseExport(text),
+      final String text =
+          jsonEncode({'app': 'anderes', 'schema': 1, 'settings': {}});
+      expect(
+          () => ConfigBackup.parseExport(text),
           throwsA(predicate((Object e) =>
               e is FormatException && e.message == 'foreignApp')));
     });
@@ -239,7 +239,8 @@ void main() {
         'schema': ConfigBackup.schemaVersion + 1,
         'settings': <String, dynamic>{},
       });
-      expect(() => ConfigBackup.parseExport(text),
+      expect(
+          () => ConfigBackup.parseExport(text),
           throwsA(predicate((Object e) =>
               e is FormatException && e.message == 'futureSchema')));
     });
@@ -257,8 +258,8 @@ void main() {
       });
 
       final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final ConfigImportResult result = await ConfigBackup.applyImport(
-          prefs, ConfigBackup.parseExport(text));
+      final ConfigImportResult result =
+          await ConfigBackup.applyImport(prefs, ConfigBackup.parseExport(text));
 
       expect(prefs.getBool('hideTeacher'), isTrue);
       expect(prefs.getString('persons'), contains('Ben'));
@@ -289,6 +290,95 @@ void main() {
       expect(result.removedKeys, contains('classes'));
     });
 
+    test('replace keeps the credentials when the file has none', () async {
+      // Der gemeldete Fehler: Eine Datei **ohne** Zugangsdaten – etwa weil sie
+      // zum Weitergeben exportiert wurde – und die Wahl „Ersetzen". Die
+      // Zugangsdaten des Geräts wurden dabei gelöscht, weil sie nicht in der
+      // Datei standen. Danach war die App nicht mehr nutzbar und es gab keinen
+      // Weg zurück, ausser sich neu anzumelden.
+      seedPrefs();
+      final String text = ConfigBackup.encodeExport(<String, dynamic>{
+        'app': 'substitute',
+        'schema': ConfigBackup.schemaVersion,
+        'settings': <String, dynamic>{
+          'hideTeacher': true,
+          'classes': <String>['9z'],
+        },
+      });
+
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final ConfigImportResult result = await ConfigBackup.applyImport(
+          prefs, ConfigBackup.parseExport(text),
+          replace: true);
+
+      // Die Konfiguration ist ersetzt…
+      expect(prefs.getStringList('classes'), <String>['9z']);
+      expect(prefs.getBool('hideTeacher'), isTrue);
+      expect(prefs.getString('teacherShorts'), isNull,
+          reason: 'alles andere wird sehr wohl ersetzt');
+
+      // …die Zugangsdaten aber nicht.
+      expect(prefs.getString('vplanPassword'), 'super-secret');
+      expect(prefs.getString('vplanUsername'), 'user');
+      expect(prefs.getString('vplanSchoolnumber'), '123456');
+      expect(result.removedKeys, isNot(contains('vplanPassword')));
+    });
+
+    test('replace keeps school credentials when the file has none', () async {
+      // Dasselbe für die schulbezogenen Zugangsdaten: Sie stehen unter
+      // 'schools.<id>…' und sind für eine zweite Schule im selben Gerät.
+      seedPrefs(extra: {
+        'schools.abc123.vplanPassword': 'schul-passwort',
+        'schools.abc123.vplanUsername': 'lehrer',
+      });
+      final String text = ConfigBackup.encodeExport(<String, dynamic>{
+        'app': 'substitute',
+        'schema': ConfigBackup.schemaVersion,
+        'settings': <String, dynamic>{'hideTeacher': true},
+      });
+
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final ConfigImportResult result = await ConfigBackup.applyImport(
+          prefs, ConfigBackup.parseExport(text),
+          replace: true);
+
+      expect(prefs.getString('schools.abc123.vplanPassword'), 'schul-passwort');
+      expect(prefs.getString('schools.abc123.vplanUsername'), 'lehrer');
+      expect(
+          result.removedKeys, isNot(contains('schools.abc123.vplanPassword')));
+    });
+
+    test('a file with some credentials still replaces the credentials',
+        () async {
+      // Der Schutz gilt nur für Dateien **ohne** Zugangsdaten. Sobald welche
+      // drin sind, wird der Zugangsdatenbestand wie alles andere ersetzt –
+      // sonst könnte man die Zugangsdaten eines anderen Kontos nie
+      // übernehmen, und genau das soll „Ersetzen" ja können.
+      seedPrefs(extra: {
+        'schools.abc123.vplanPassword': 'alte-schul',
+        'schools.abc123.vplanUsername': 'alter-lehrer',
+      });
+      final String text = ConfigBackup.encodeExport(<String, dynamic>{
+        'app': 'substitute',
+        'schema': ConfigBackup.schemaVersion,
+        'settings': <String, dynamic>{
+          'vplanPassword': 'neu',
+          'vplanUsername': 'neuer-user',
+          'vplanSchoolnumber': '999',
+        },
+      });
+
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await ConfigBackup.applyImport(prefs, ConfigBackup.parseExport(text),
+          replace: true);
+
+      expect(prefs.getString('vplanPassword'), 'neu');
+      expect(prefs.getString('vplanUsername'), 'neuer-user');
+      expect(prefs.getString('vplanSchoolnumber'), '999');
+      // Die schulbezogenen standen nicht in der Datei -> mit ersetzt.
+      expect(prefs.getString('schools.abc123.vplanPassword'), isNull);
+    });
+
     test('credentials from the file are written', () async {
       seedPrefs(extra: {'vplanPassword': 'old'});
       final String text = ConfigBackup.encodeExport(<String, dynamic>{
@@ -315,7 +405,9 @@ void main() {
     });
 
     test('the short-lived cache and overrides are never imported', () async {
-      seedPrefs(extra: {'offlineVPData': <String>['alt']});
+      seedPrefs(extra: {
+        'offlineVPData': <String>['alt']
+      });
       final String text = ConfigBackup.encodeExport(<String, dynamic>{
         'app': 'substitute',
         'schema': ConfigBackup.schemaVersion,
@@ -344,7 +436,9 @@ void main() {
     });
 
     test('restores the cached plans of past days', () async {
-      seedPrefs(extra: {'offlineVPData': <String>['alt', 'aelter']});
+      seedPrefs(extra: {
+        'offlineVPData': <String>['alt', 'aelter']
+      });
       final String text = ConfigBackup.encodeExport(<String, dynamic>{
         'app': 'substitute',
         'schema': ConfigBackup.schemaVersion,
@@ -370,7 +464,10 @@ void main() {
     test('merges the cached plans when importing (merge mode)', () async {
       // Lokal sind Montag und Mittwoch geladen, die Datei bringt Dienstag.
       seedPrefs(extra: {
-        'offlineVPData': <String>['{"date":"07.09.2026"}', '{"date":"09.09.2026"}'],
+        'offlineVPData': <String>[
+          '{"date":"07.09.2026"}',
+          '{"date":"09.09.2026"}'
+        ],
       });
       final String text = ConfigBackup.encodeExport(<String, dynamic>{
         'app': 'substitute',
