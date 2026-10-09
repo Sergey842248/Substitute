@@ -22,12 +22,20 @@
       <rect width="1024" height="1024" fill="#ffffff"/>
       <g fill="#000000">
         <rect x="208" y="380" width="608" height="20" rx="10"/>
-        <path d="M 456.8 700.2 A 126 126 0 0 1 456.8 473.8" fill="none"
-              stroke="#000000" stroke-width="64"/>
-        <path d="M 567.2 473.8 A 126 126 0 0 1 567.2 700.2" fill="none"
-              stroke="#000000" stroke-width="64"/>
-        <path d="M 476.9 515.1 L 523.3 441.3 L 436.6 432.4 Z"/>
-        <path d="M 547.1 658.9 L 500.7 732.7 L 587.4 741.6 Z"/>
+        <!-- Die beiden Pfeile: **ein** geschlossener Pfad je Pfeil, nicht
+             Bogen und Spitze als zwei Formen übereinander. Zwei sich
+             überdeckende Formen ergeben keine Kante zwischen sich, aber das
+             Antialiasing schon: Am Rand der einen Form wird die andere leicht
+             eingeblendet, und im Maskenbild blieb ein heller Saum stehen – eine
+             weisse Linie zwischen Schaft und Spitze. Ein einziger Pfad hat
+             keine solche Kante, nur seinen Umriss. Siehe icon.svg für den
+             Aufbau des Umrisses. -->
+        <path d="M 442.74 729.01 A 158 158 0 0 1 442.74 444.99
+                 L 436.60 432.41 L 523.28 441.31 L 476.93 515.10
+                 L 470.79 502.51 A 94 94 0 0 0 470.79 671.49 Z"/>
+        <path d="M 581.26 444.99 A 158 158 0 0 1 581.26 729.01
+                 L 587.40 741.59 L 500.72 732.69 L 547.07 658.90
+                 L 553.21 671.49 A 94 94 0 0 0 553.21 502.51 Z"/>
       </g>
     </mask>
   </defs>

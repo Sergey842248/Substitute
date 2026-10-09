@@ -62,22 +62,31 @@
              stiessen die beiden Spitzen aneinander; mit 20 Grad kamen sie
              sich bei 48 Punkten Bildgröße fast berührend. -->
 
-        <!-- Die beiden Bögen als Kontur. `fill="none"` ist Pflicht: Ohne das
-             schliesst der Renderer den offenen Bogen zum Kreis und füllt die
-             Halbscheibe mit – aus dem Ring würde dann eine Scheibe mit einem
-             weissen Strich darin. -->
-        <path d="M 456.8 700.2 A 126 126 0 0 1 456.8 473.8" fill="none"
-              stroke="#000000" stroke-width="64"/>
-        <path d="M 567.2 473.8 A 126 126 0 0 1 567.2 700.2" fill="none"
-              stroke="#000000" stroke-width="64"/>
+        <!-- Die beiden Pfeile: **ein** geschlossener Pfad je Pfeil, nicht
+             Bogen und Spitze als zwei Formen übereinander.
 
-        <!-- Die beiden Spitzen, 92 breit – also breiter als der Ring (64).
-             Das ist der Unterschied, an dem man einen Pfeil erkennt: Ein
-             Dreieck, das genau so breit ist wie sein Schaft, sieht aus wie
-             eine Nadel. Sie setzen auf dem Abschluss des Bogens auf und
-             decken ihn ab; die Naht zwischen beiden sieht niemand. -->
-        <path d="M 476.9 515.1 L 523.3 441.3 L 436.6 432.4 Z"/>
-        <path d="M 547.1 658.9 L 500.7 732.7 L 587.4 741.6 Z"/>
+             Warum das wichtig ist: Zwei Formen, die sich überdecken, ergeben
+             keine echte Kante zwischen sich – aber das Antialiasing weiss das
+             nicht. Am Rand der einen Form wird die andere schon leicht
+             eingeblendet, und im Maskenbild blieb dort ein heller, hauchdünner
+             Saum stehen: eine weisse Linie zwischen Schaft und Spitze, genau
+             an der Stelle, an der die beiden Formen sich treffen. In einem
+             einzigen Pfad gibt es diese Kante nicht mehr, es gibt nur noch den
+             Umriss.
+
+             Der Umriss, von hinten nach vorn: der Aussenbogen (Radius 158) bis
+             zum Ende, dann zwei kurze Stücke über den Bogenrand hinaus auf die
+             Ecken der Spitze, die Spitze selbst, dieselben zwei Stücke zurück
+             auf den Innenbogen (Radius 94) und der Innenbogen zurück zum
+             Anfang. Die beiden kleinen Hörner an den Bogenrändern sind genau
+             der Grund, warum die Spitze breiter ist als der Schaft: Sie stehen
+             vor und hinter dem Schaft über. -->
+        <path d="M 442.74 729.01 A 158 158 0 0 1 442.74 444.99
+                 L 436.60 432.41 L 523.28 441.31 L 476.93 515.10
+                 L 470.79 502.51 A 94 94 0 0 0 470.79 671.49 Z"/>
+        <path d="M 581.26 444.99 A 158 158 0 0 1 581.26 729.01
+                 L 587.40 741.59 L 500.72 732.69 L 547.07 658.90
+                 L 553.21 671.49 A 94 94 0 0 0 553.21 502.51 Z"/>
       </g>
     </mask>
   </defs>
