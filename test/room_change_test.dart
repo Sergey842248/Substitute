@@ -21,7 +21,7 @@ void main() {
 <VpMobil><Klassen><Kl><Kurz>11</Kurz><Pl>
   <Std><St>1</St><Fa>de1</Fa><Ku2>de1</Ku2><Le>WA</Le><Ra>214</Ra><Nr>521</Nr></Std>
   <Std><St>5</St><Fa>ge1</Fa><Ku2>ge1</Ku2><Le>SI</Le><Ra>214</Ra><Nr>547</Nr></Std>
-  <Std><St>5</St><Fa>ch2</Fa><Ku2>ch2</Ku2><Le>BA</Le><Ra RaAe="RaGeaendert">Bibo</Ra><Nr>546</Nr></Std>
+  <Std><St>5</St><Fa>ch2</Fa><Ku2>ch2</Ku2><Le LeAe="LeGeaendert">BA</Le><Ra RaAe="RaGeaendert">Bibo</Ra><Nr>546</Nr></Std>
   <Std><St>6</St><Fa>ge1</Fa><Ku2>ge1</Ku2><Le>SI</Le><Ra>214</Ra><Nr>547</Nr></Std>
   <Std><St>6</St><Fa>ch2</Fa><Ku2>ch2</Ku2><Le>BA</Le><Ra RaAe="RaGeaendert">Bibo</Ra><Nr>546</Nr></Std>
 </Pl></Kl></Klassen></VpMobil>''';
@@ -32,6 +32,8 @@ void main() {
         .findAllElements('Kl');
     final Map<String, Map<String, bool>> roomChanges =
         VPlanAPI.roomChangesFromXml(classes);
+    final Map<String, Map<String, bool>> teacherChanges =
+        VPlanAPI.teacherChangesFromXml(classes);
 
     final Xml2Json xml2json = Xml2Json()..parse(source);
     final dynamic parker = jsonDecode(xml2json.toParker());
@@ -39,6 +41,7 @@ void main() {
       parker['VpMobil']['Klassen']['Kl'],
       '11',
       roomChanges['11'],
+      teacherChanges['11'],
     );
 
     dynamic lesson(String course, String period) => lessons.singleWhere(
@@ -50,5 +53,7 @@ void main() {
     expect(lesson('ch2', '5')['place'], 'Bibo');
     expect(lesson('ch2', '5')['placeChanged'], isTrue);
     expect(lesson('ch2', '6')['placeChanged'], isTrue);
+    expect(lesson('ch2', '5')['teacherChanged'], isTrue);
+    expect(lesson('ge1', '5')['teacherChanged'], isFalse);
   });
 }

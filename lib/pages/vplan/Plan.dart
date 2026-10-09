@@ -908,9 +908,23 @@ class _PlanState extends State<Plan> {
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.person_rounded, size: 16),
+                        Icon(
+                          Icons.person_rounded,
+                          size: 16,
+                          color: e['teacherChanged'] == true
+                              ? raumAenderungsFarbe
+                              : null,
+                        ),
                         SizedBox(width: 3),
-                        Text(printValue(e['teacher'])),
+                        Text(
+                          printValue(e['teacher']),
+                          style: e['teacherChanged'] == true
+                              ? TextStyle(
+                                  color: raumAenderungsFarbe,
+                                  fontWeight: FontWeight.w900,
+                                )
+                              : null,
+                        ),
                       ],
                     ),
                 ],

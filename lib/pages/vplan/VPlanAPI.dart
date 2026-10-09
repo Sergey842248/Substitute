@@ -233,7 +233,17 @@ class VPlanAPI {
   /// Markers are keyed by lesson, never only by period; course plans often
   /// contain several simultaneous lessons.
   static Map<String, Map<String, bool>> roomChangesFromXml(
-      Iterable<XmlElement> classes) {
+          Iterable<XmlElement> classes) =>
+      _lessonChangesFromXml(classes, 'Ra', 'RaAe');
+
+  /// Extracts teacher-change markers (`LeAe`) with the same lesson-specific
+  /// keys as room changes, so parallel courses cannot affect one another.
+  static Map<String, Map<String, bool>> teacherChangesFromXml(
+          Iterable<XmlElement> classes) =>
+      _lessonChangesFromXml(classes, 'Le', 'LeAe');
+
+  static Map<String, Map<String, bool>> _lessonChangesFromXml(
+      Iterable<XmlElement> classes, String elementName, String attributeName) {
     final Map<String, Map<String, bool>> roomChanges = {};
 
     for (final XmlElement classElement in classes) {
@@ -245,8 +255,8 @@ class VPlanAPI {
       final XmlElement? plan = classElement.getElement('Pl');
       if (plan == null) continue;
       for (final XmlElement lesson in plan.findAllElements('Std')) {
-        final XmlElement? room = lesson.getElement('Ra');
-        if (room?.getAttribute('RaAe') == null) continue;
+        final XmlElement? changedElement = lesson.getElement(elementName);
+        if (changedElement?.getAttribute(attributeName) == null) continue;
 
         final String key = roomChangeKeyFor(
           period: lesson.getElement('St')?.innerText,
@@ -1087,6 +1097,8 @@ class VPlanAPI {
 
         final Map<String, Map<String, bool>> roomChanges =
             roomChangesFromXml(classes);
+        final Map<String, Map<String, bool>> teacherChanges =
+            teacherChangesFromXml(classes);
 
         /* NEW XML PARSER */
 
@@ -1103,6 +1115,7 @@ class VPlanAPI {
           'info': infoList,
           'courses': courses,
           'roomChanges': roomChanges,
+          'teacherChanges': teacherChanges,
         });
         //-------------------------------------
         List<String>? stringData =
@@ -1216,9 +1229,14 @@ class VPlanAPI {
       classRoomChanges =
           Map<String, bool>.from(offlinePlan['roomChanges'][classId]);
     }
+    Map<String, bool>? classTeacherChanges;
+    if (offlinePlan['teacherChanges']?[classId] != null) {
+      classTeacherChanges =
+          Map<String, bool>.from(offlinePlan['teacherChanges'][classId]);
+    }
 
     List<dynamic> lessons =
-        await parseVPlanXML(jsonVPlan, classId, classRoomChanges);
+        await parseVPlanXML(jsonVPlan, classId, classRoomChanges, classTeacherChanges);
     return {
       'date': offlinePlan['date'],
       'week': offlinePlan['week'],
@@ -1267,7 +1285,7 @@ class VPlanAPI {
   }
 
   Future<List<dynamic>> parseVPlanXML(dynamic jsonVPlan, String classId,
-      [Map<String, bool>? roomChanges]) async {
+      [Map<String, bool>? roomChanges, Map<String, bool>? teacherChanges]) async {
     List<dynamic> _outpuLessons = [];
 
     // Die Stundenzeiten dürfen das Öffnen eines Plans niemals blockieren.
@@ -1320,6 +1338,8 @@ class VPlanAPI {
             // Room names are allowed to contain letters (for example "Bibo").
             final bool placeChanged =
                 roomChangeKey.isNotEmpty && roomChanges?[roomChangeKey] == true;
+            final bool teacherChanged = roomChangeKey.isNotEmpty &&
+                teacherChanges?[roomChangeKey] == true;
 
             _outpuLessons.add({
               'count': currentLesson['St'],
@@ -1327,6 +1347,7 @@ class VPlanAPI {
               'teacher': await replaceTeacherShort(currentLesson['Le']),
               'place': currentLesson['Ra'],
               'placeChanged': placeChanged,
+              'teacherChanged': teacherChanged,
               'begin': lessonTime?['start'] ?? currentLesson['Beginn'],
               'end': lessonTime?['end'] ?? currentLesson['Ende'],
               'info': currentLesson['If'],
@@ -1500,9 +1521,14 @@ class VPlanAPI {
       classRoomChanges =
           Map<String, bool>.from(pureVPlan['roomChanges'][classId]);
     }
+    Map<String, bool>? classTeacherChanges;
+    if (pureVPlan['teacherChanges']?[classId] != null) {
+      classTeacherChanges =
+          Map<String, bool>.from(pureVPlan['teacherChanges'][classId]);
+    }
 
     List<dynamic> lessons =
-        await parseVPlanXML(jsonVPlan, classId, classRoomChanges);
+        await parseVPlanXML(jsonVPlan, classId, classRoomChanges, classTeacherChanges);
     return {
       'date': pureVPlan['date'],
       'week': pureVPlan['week'],
