@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!-- Die zweite Fassung desselben Bildschirms für API 21 und höher. Sie ist
+     inhaltlich identisch mit `drawable/launch_background.xml`; eine eigene
+     Datei braucht es, weil `?android:attr` erst ab dieser API-Stufe
+     verlässlich da ist. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="?android:colorBackground" />
-
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+    <item android:drawable="@color/splash" />
 </layer-list>

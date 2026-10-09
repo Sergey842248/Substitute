@@ -1,6 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!--
+    Der Startbildschirm, den das **System** zeigt, bevor Flutter läuft.
+
+    Er zeigt **kein Logo.** Das ist Absicht und der Grund, warum es diese
+    Datei überhaupt gibt:
+
+    * Ein Standbild kann keine Bewegung zeigen. Der Startbildschirm, der nach
+      diesem kommt, ist eine Animation – und zwei Starts mit demselben
+      Standbild hintereinander sähen aus wie ein Ruckler.
+    * Der Bildschirm muss nicht mehr kennen, als einfarbig zu sein. Das ist
+      genau richtig: Die Farbe, die das System hier nicht kennt, ist die Farbe,
+      die die App danach benutzt. Sie steht in `lib/splash.dart` und folgt der
+      Theme-Einstellung des Nutzers. Wüsste das System sie auch, könnte es
+      beim Umschalten von Hell auf Dunkel danebenliegen.
+
+    Android 12 und neuer schneiden hier ohnehin noch das App-Icon ein – dafür
+    gibt es `values-v31/styles.xml`.
+-->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white" />
-    <item android:drawable="?android:colorBackground" />
+    <item android:drawable="@color/splash" />
 </layer-list>

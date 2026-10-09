@@ -2,8 +2,11 @@
 <resources>
     <!-- Theme applied to the Android Window while the process is starting when the OS's Dark Mode setting is off -->
     <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
-        <!-- Show a splash screen on the activity. Automatically removed when
-             Flutter draws its first frame -->
+        <!-- Der Standbildschirm des Systems: eine Farbe, sonst nichts. Er steht
+             vor dem animierten Startbildschirm aus `lib/splash.dart`, und beide
+             müssen denselben Grund haben, sonst blitzt es beim Weiterblenden.
+             Die Farbe selbst steht in `colors.xml`, damit `values-night` sie
+             für den dunklen Systemmodus nur überschreiben muss. -->
         <item name="android:windowBackground">@drawable/launch_background</item>
     </style>
     <!-- Theme applied to the Android Window as soon as the process has started.
@@ -13,6 +16,9 @@
          
          This Theme is only used starting with V2 of Flutter's Android embedding. -->
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
-        <item name="android:windowBackground">?android:colorBackground</item>
+        <!-- Auch hier der Startbildschirmgrund und nichts sonst: Hinter der
+             Flutter-Oberfläche darf keine zweite Farbe liegen, weil die
+             Flutter-Oberfläche ihre eigene mitbringt. -->
+        <item name="android:windowBackground">@color/splash</item>
     </style>
 </resources>

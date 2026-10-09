@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 12 und neuer im **dunklen Systemmodus**.
+
+    Dasselbe wie `values-v31/styles.xml`, aber mit dem dunklen `LaunchTheme`:
+    Die Elternklasse bestimmt, welche Systemfarben (Statusleiste, Navigation)
+    als „dunkel" gelten, und ein `Light.NoTitleBar` unter dunklem Systemmodus
+    lässt die Leisten hell stehen.
+
+    Die eigene Datei ist nötig, weil sich beides nicht in einer Datei ausdrücken
+    lässt: `values-night` gilt für alle API-Stufen, `values-v31` für alle
+    Systemmodi – erst ihr Schnittpunkt (beide) ist dieser Ordner.
+-->
+<resources>
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowSplashScreenBackground">@color/splash</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_ohne_bild</item>
+    </style>
+
+    <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/splash</item>
+    </style>
+</resources>

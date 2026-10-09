@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Der Startbildschirm im **dunklen Systemmodus**.
+
+    Auch hier derselbe Grund wie der der App danach – nur der helle Wert aus
+    `values/colors.xml`. Wer im System auf Dunkel steht, bekommt den dunklen
+    Startbildschirm und danach die dunkle App: ein heller Startbildschirm, aus
+    dem eine dunkle App kommt, ist ein Blitzen.
+-->
+<resources>
+    <color name="splash">#1e1f25</color>
+</resources>

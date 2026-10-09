@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Die Farbe des Startbildschirms: **dieselbe** wie der Grund, auf dem die App
+    danach steht. `values-night/colors.xml` hat für den dunklen Systemmodus den
+    hellen Wert.
+
+    Bewusst nur der Grund, keine Fläche mit Rand: Es gibt keine. Eine Fläche
+    mit einem anderen Farbton als die App wäre ein Streifen, den man beim
+    Weiterblenden vom Startbildschirm auf die App sieht – also genau die
+    Kante, die der Startbildschirm vermeiden soll.
+
+    Die Werte stehen hier und nicht in der Zeichenhandlung der App: Android
+    braucht sie, bevor ein einziger Dart-Code gelaufen ist.
+-->
+<resources>
+    <color name="splash">#f5f5f8</color>
+</resources>

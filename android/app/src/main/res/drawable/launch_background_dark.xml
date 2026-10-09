@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!--
+    Die alte, ungelesene Fassung: `values-night/styles.xml` zeigt auf
+    `launch_background_dark`, im Hellen `values/styles.xml` auf
+    `launch_background`. Beide zeigen jetzt dieselbe Fläche, denn die Farbe
+    kommt aus `@color/splash` – und die hat in `values-night/colors.xml` einen
+    eigenen Wert für den dunklen Systemmodus.
+
+    Die Datei bleibt, weil `styles.xml` im Hellen auf sie zeigt und Android
+    eine Ressource beim Bauen auflösen muss, auch wenn niemand sie anzeigt.
+-->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/black" />
-    <item android:drawable="?android:colorBackground" />
+    <item android:drawable="@color/splash" />
 </layer-list>

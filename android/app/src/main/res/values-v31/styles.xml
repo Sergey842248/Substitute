@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 12 und neuer zeigen den Startbildschirm **selbst** an, und er sieht
+    anders aus als der der älteren Systeme: Er trägt das App-Icon in die Mitte.
+
+    Genau das Icon ist hier ausgeschaltet. Grund: Der Startbildschirm, der
+    danach kommt, zeichnet dasselbe Zeichen – in Bewegung. Läge davor noch
+    einmal das Standbild, wäre das zweimal dasselbe Zeichen hintereinander,
+    einmal still und einmal bewegt, und man sähe den Übergang als Ruckler.
+
+    `windowSplashScreenAnimatedIcon` zeigt auf `@drawable/splash_ohne_bild`,
+    eine leere Zeichnung – und **nicht** auf `@null`, und **nicht** auf gar
+    nichts:
+
+    * Ohne die Zeile nimmt das System von selbst das App-Icon.
+    * Mit `@null` macht es das ebenfalls: `@null` heisst dem System „unbekannt",
+      und auf unbekannt fällt es auf sein eigenes Bild zurück. Wer es nicht
+      glaubt, sieht beim Start eine halbe Sekunde lang das Icon – und wundert
+      sich, warum die eigene Animation erst danach beginnt.
+
+    Eine leere Zeichnung ist da, wo das System etwas zeichnen will, und zeigt
+    nichts. Das ist der einzige Weg, der trägt.
+-->
+<resources>
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowSplashScreenBackground">@color/splash</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_ohne_bild</item>
+    </style>
+
+    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">@color/splash</item>
+    </style>
+</resources>

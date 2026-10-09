@@ -39,6 +39,7 @@ import 'services/SchoolStorage.dart';
 import 'services/sync/SyncCoordinator.dart';
 import 'services/sync/SyncEngine.dart';
 import 'services/AppClock.dart';
+import 'splash.dart';
 
 /// Compares two version strings (e.g. '3.7.10') numerically segment by segment.
 /// Returns < 0 if [a] is older, 0 if equal, > 0 if [a] is newer.
@@ -54,8 +55,27 @@ int compareVersions(String a, String b) {
   return 0;
 }
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Der Startbildschirm steht **sofort**: `runApp` wird aufgerufen, bevor
+  // irgendetwas gelesen wird. Alles, was vorher awaitet würde – und das ist
+  // einiges, siehe `_ladeApp` –, liefe sonst gegen einen leeren Bildschirm,
+  // in dem das System seine eigene Startanimation zeigt.
+  //
+  // Der Startbildschirm kostet dabei **keine Zeit**: `SplashGate` blendet ihn
+  // weg, sobald [_ladeApp] fertig ist, und hält nichts fest. Die App startet
+  // also genauso schnell wie ohne Animation – der Unterschied ist nur, dass
+  // man statt eines leeren Bildschirms etwas sieht. Siehe `lib/splash.dart`.
+  runApp(SplashGate(starten: _ladeApp));
+}
+
+/// Lädt die App und liefert den Bildschirm, der danach dasteht.
+///
+/// Aus [main] herausgezogen, weil dort jetzt der Startbildschirm steht und
+/// nicht die App: Wäre es ein `await` in [main], hinge das Laden wieder vom
+/// ersten Bild ab.
+Future<Widget> _ladeApp() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   await SchoolStorage.ensureInitialized(prefs);
 
@@ -96,22 +116,36 @@ void main() async {
 
   if (prefs.getBool('firstTime') == null ||
       prefs.getBool('firstTime') == true) {
-    runApp(Introduction());
-    return;
+    return Introduction();
   }
 
-  await runSubstituteApp();
+  return wartenderAppStart();
+}
+
+/// Baut den Bildschirm, der nach dem Startbildschirm kommt.
+///
+/// Bei neuen Installationen die Anmeldeseite statt der Startseite – so kommt
+/// man ohne Zugangsdaten nicht in die App. Hier wartet man noch auf die
+/// Anmeldeseite; sie zu bauen ist billig, das Warten darauf gehört in die
+/// App hinein, sonst stünde der Startbildschirm bei einer kaputten Anmeldung
+/// endlos.
+Future<Widget> wartenderAppStart() async {
+  final bool hasCredentials = await SchoolStorage.hasCredentials();
+  return hasCredentials
+      ? const MyApp()
+      : MyApp(initialPage: VPlanLogin(blockBack: true));
 }
 
 /// Startet die App. Sind noch keine Zugangsdaten hinterlegt (z.B. direkt
 /// nach der Installation), wird statt der Startseite direkt die Seite zum
 /// Eintragen der Zugangsdaten angezeigt – so kommt man ohne Zugangsdaten
 /// nicht in die App.
+///
+/// Von aussen aufrufbar, weil die Introduktion am Ende genau hiervon
+/// weiterläuft: Sie ist der einzige Ort, der ohne den Startbildschirm von der
+/// App zur nächsten Seite kommt.
 Future<void> runSubstituteApp() async {
-  final bool hasCredentials = await SchoolStorage.hasCredentials();
-  runApp(hasCredentials
-      ? const MyApp()
-      : MyApp(initialPage: VPlanLogin(blockBack: true)));
+  runApp(await wartenderAppStart());
 }
 
 Color darken(Color c, [int percent = 10]) {

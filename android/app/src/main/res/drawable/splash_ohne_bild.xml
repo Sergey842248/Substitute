@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Das, was Android 12 und neuer in der Mitte des Startbildschirms zeigt –
+    nämlich nichts.
+
+    **Warum eine Datei und nicht `@null`.** `@null` in
+    `windowSplashScreenAnimatedIcon` sieht richtig aus und wirkt nicht: Das
+    System fällt dann auf das **App-Icon** zurück – also genau auf das, was
+    weg soll. Wer es nicht glaubt, startet die App und sieht das Icon eine
+    halbe Sekunde lang, bevor die eigene Animation beginnt.
+
+    Eine eigene, durchsichtige Zeichnung ist der Weg, der wirklich trägt: Sie
+    ist da, sie ist da, wo das System etwas zeichnen will, und sie zeigt nichts.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="1dp"
+    android:height="1dp"
+    android:viewportWidth="1"
+    android:viewportHeight="1">
+    <!-- Kein Pfad: Die Zeichnung ist absichtlich leer. -->
+</vector>

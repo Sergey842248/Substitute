@@ -48,17 +48,36 @@
       text-align: center;
       transition: opacity 0.3s ease;
     }
-    .spinner {
-      width: 48px;
-      height: 48px;
-      border: 4px solid rgba(175, 105, 238, 0.2);
-      border-top-color: #AF69EE;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 16px auto;
+    /* Das Zeichen: derselbe Kalender mit dem Tauschring wie in der App, in
+       Bewegung. Vorher stand hier ein kreisender Balken, der nichts mit dem
+       Logo zu tun hatte – wer die Seite im Tab offen hatte, sah beim Neuladen
+       etwas anderes als beim Start auf dem Telefon. */
+    #logo {
+      width: 96px;
+      height: 96px;
+      margin: 0 auto 20px auto;
+      display: block;
+    }
+    #logo .ring {
+      transform-origin: 50% 57.3%;
+      animation: spin 2.2s linear infinite;
+    }
+    #logo .drawn {
+      stroke-dasharray: 1800;
+      stroke-dashoffset: 1800;
+      animation: zeichnen 0.62s ease-out forwards;
     }
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+    @keyframes zeichnen {
+      to { stroke-dashoffset: 0; }
+    }
+    /* Ohne Bewegung, wenn der Nutzeug das so eingestellt hat: Eine Animation,
+       die niemand sehen will, ist trotzdem eine Animation. */
+    @media (prefers-reduced-motion: reduce) {
+      #logo .ring { animation: none; }
+      #logo .drawn { animation: none; stroke-dashoffset: 0; }
     }
     #file-protocol-warning {
       display: none;
@@ -93,7 +112,32 @@
 </head>
 <body>
   <div id="loading-container">
-    <div class="spinner"></div>
+    <!--
+        Der Startbildschirm: das Logo, in Bewegung.
+
+        Inline, nicht als Datei eingebunden, weil er sichtbar sein muss, **bevor**
+        irgendein JavaScript der Seite gelaufen ist – auch nicht das von
+        Flutter. Eine Datei, die der Browser erst holen muss, käme zu spät; der
+        Bildschirm wäre in dieser Zeit weiss. Inline ist er mit dem ersten
+        Byte da.
+
+        Die Zahlen sind dieselben wie in `assets/icon/icon.svg` und in
+        `lib/splash.dart`: Ringmitte (512, 587) bei 1024 Einheiten, Radius 126,
+        Dicke 64, Spitzen 92 breit. Bei 96 Pixeln Breite ist das ein Ring von
+        rund 12 Pixeln – gross genug, um die Pfeile zu erkennen.
+    -->
+    <svg id="logo" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+      <g class="drawn" fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="352" y="210" width="56" height="130" rx="28"/>
+        <rect x="616" y="210" width="56" height="130" rx="28"/>
+        <rect x="208" y="250" width="608" height="524" rx="96"/>
+        <rect x="208" y="380" width="608" height="20" rx="10"/>
+      </g>
+      <g class="ring" fill="#AF69EE">
+        <path d="M 442.74 729.01 A 158 158 0 0 1 442.74 444.99 L 436.60 432.41 L 523.28 441.31 L 476.93 515.10 L 470.79 502.51 A 94 94 0 0 0 470.79 671.49 Z"/>
+        <path d="M 581.26 444.99 A 158 158 0 0 1 581.26 729.01 L 587.40 741.59 L 500.72 732.69 L 547.07 658.90 L 553.21 671.49 A 94 94 0 0 0 553.21 502.51 Z"/>
+      </g>
+    </svg>
     <p style="color: #a0a0a0; font-size: 14px;">Substitute wird geladen...</p>
   </div>
 
