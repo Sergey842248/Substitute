@@ -17,6 +17,7 @@ class ListPage extends StatefulWidget {
     this.showBackButton = true,
     this.collapseHeaderOnScroll = true,
     this.keepScrollOffset = true,
+    this.fillHeight = false,
   }) : super(key: key);
 
   final String title;
@@ -43,6 +44,17 @@ class ListPage extends StatefulWidget {
 
   /// Wenn false, übernimmt die Liste keinen alten PageStorage-Scrollstand.
   final bool keepScrollOffset;
+
+  /// Wenn true, füllt der Inhalt die verfügbare Höhe **exakt** und wird nicht
+  /// gescrollt: Die Kinder werden in einer [Column] mit [Expanded]-Platz
+  /// untergebracht statt in einer [ListView].
+  ///
+  /// Gedacht für Ansichten, die auf keinen Fall scrollen dürfen – etwa eine
+  /// Wochenübersicht, bei der alle Tage nebeneinander auf einen Blick sichtbar
+  /// sein sollen. Ein [RefreshIndicator] ist hier nicht möglich (eine
+  /// ScrollView wäre Voraussetzung); [onRefresh] wird weiterhin aufgerufen, wenn
+  /// der Aufrufer es selbst auslöst.
+  final bool fillHeight;
 
   /// Pull-to-refresh callback. When set, the content list is wrapped in a
   /// RefreshIndicator so a downward pull reloads the page.
@@ -436,6 +448,7 @@ class _ListPageState extends State<ListPage> {
   }
 
   Widget _buildContent() {
+  if (widget.fillHeight) return _buildFillingContent();
   final Widget list = NotificationListener<ScrollNotification>(
     onNotification: (notification) {
       // Nur eine ScrollUpdateNotification mit gesetzten dragDetails stammt
@@ -471,6 +484,15 @@ class _ListPageState extends State<ListPage> {
     onRefresh: widget.onRefresh!,
     color: Theme.of(context).primaryColor,
     child: list,
+  );
+}
+
+/// Der Inhalt bei [fillHeight]: Eine [Column] über die volle Höhe statt einer
+/// [ListView]. [Expanded]-Kinder bekommen dadurch den Rest der Höhe – das ist
+/// der Punkt: So teilt sich das Grid den Bildschirm, statt zu überlaufen.
+Widget _buildFillingContent() {
+  return Column(
+    children: widget.children,
   );
 }
 }

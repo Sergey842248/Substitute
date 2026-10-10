@@ -21,6 +21,7 @@ class _PlanSettingsState extends State<PlanSettings> {
   bool _hideLessonTimes = true;
   bool _hideTeacher = false;
   bool _hidePersons = false;
+  bool _showWeekView = false;
 
   @override
   void initState() {
@@ -47,6 +48,8 @@ class _PlanSettingsState extends State<PlanSettings> {
           prefs.getBool(SchoolStorage.scopedKey(prefs, 'hideTeacher')) ?? false;
       _hidePersons =
           prefs.getBool(SchoolStorage.scopedKey(prefs, 'hidePersons')) ?? false;
+      _showWeekView =
+          prefs.getBool(SchoolStorage.scopedKey(prefs, 'showWeekView')) ?? false;
     });
   }
 
@@ -72,6 +75,14 @@ class _PlanSettingsState extends State<PlanSettings> {
     await prefs.setBool(SchoolStorage.scopedKey(prefs, 'hidePersons'), value);
     setState(() {
       _hidePersons = value;
+    });
+  }
+
+  Future<void> _toggleShowWeekView(bool value) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(SchoolStorage.scopedKey(prefs, 'showWeekView'), value);
+    setState(() {
+      _showWeekView = value;
     });
   }
 
@@ -147,6 +158,13 @@ class _PlanSettingsState extends State<PlanSettings> {
               subtitle: l10n.hidePersonsSubtitle,
               value: _hidePersons,
               onChanged: _toggleHidePersons,
+            ),
+            SettingsSwitchTile(
+              icon: Icons.date_range_rounded,
+              title: l10n.showWeekView,
+              subtitle: l10n.showWeekViewSubtitle,
+              value: _showWeekView,
+              onChanged: _toggleShowWeekView,
             ),
             _entryTile(
               icon: Icons.visibility_rounded,

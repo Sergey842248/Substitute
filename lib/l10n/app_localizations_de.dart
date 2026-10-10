@@ -156,6 +156,29 @@ class AppLocalizationsDe extends AppLocalizations {
       'Kein Vertretungsplan für diesen Tag verfügbar.';
 
   @override
+  String get showWeekView => 'Ganze Woche anzeigen';
+
+  @override
+  String get showWeekViewSubtitle =>
+      'Beim Antippen einer Klasse oder Person den Plan der gesamten Woche öffnen';
+
+  @override
+  String get weekPlan => 'Wochenplan';
+
+  @override
+  String get weekPlanTo => 'bis';
+
+  @override
+  String get weekTypeA => 'A-Woche';
+
+  @override
+  String get weekTypeB => 'B-Woche';
+
+  @override
+  String get noPlanForThisWeek =>
+      'Kein Vertretungsplan für diese Woche verfügbar.';
+
+  @override
   String get analysis => 'Analyse';
 
   @override

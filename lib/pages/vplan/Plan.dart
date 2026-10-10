@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/services/SchoolStorage.dart';
 import 'package:substitute/services/AppClock.dart';
+import 'package:substitute/services/PlanWeek.dart';
 import 'package:substitute/services/Weekday.dart';
 
 import '../../models/ListItem.dart';
@@ -20,6 +21,7 @@ import '../../models/LoadingProcess.dart';
 import '../../pages/dashboard/settings/VPlanLogin.dart';
 
 import './LessonPreview.dart';
+import './PlanLessons.dart';
 import './VPlanAPI.dart';
 
 class Plan extends StatefulWidget {
@@ -485,13 +487,6 @@ class _PlanState extends State<Plan> {
     ];
   }
 
-  String printValue(String? value) {
-    if (value == null) {
-      return '---';
-    }
-    return value;
-  }
-
   @override
   void initState() {
     super.initState();
@@ -527,18 +522,9 @@ class _PlanState extends State<Plan> {
     _checkForNewerPlan();
   }
 
-  /// Wandelt den von der API gelieferten Wochenwert (Kopf/Woche, z.B. "A",
-  /// "B", "A-Woche", "B-Woche" oder eine Kalenderwochen-Zahl) in eine
-  /// kompakte Anzeige um. Die Woche darf NIEMALS lokal aus dem Datum
-  /// berechnet werden, sondern muss zwingend aus dem Plan des Servers kommen.
-  String _weekLabel(dynamic week) {
-    final String w = (week?.toString() ?? '').trim();
-    if (w.isEmpty) return '---';
-    final String upper = w.toUpperCase();
-    if (upper.startsWith('B') || upper == '2') return 'B';
-    if (upper.startsWith('A') || upper == '1') return 'A';
-    return w;
-  }
+  /// Wandelt den von der API gelieferten Wochenwert in eine kompakte Anzeige
+  /// um – siehe [planWeekLabel].
+  String _weekLabel(dynamic week) => planWeekLabel(week);
 
   @override
   Widget build(BuildContext context) {
@@ -764,9 +750,7 @@ class _PlanState extends State<Plan> {
       ],
       children: [
         ..._refreshSpinnerWidgets(),
-        ...(data == 'loading'
-            ? const <Widget>[SizedBox.shrink()]
-            : _buildLessons(data['data']['data'] as List)),
+        if (data != 'loading') _buildLessons(data['data']['data'] as List),
         data != 'loading' ? const SizedBox() : const SizedBox(),
         data != 'loading'
             ? (data['info'] != null &&
@@ -796,204 +780,39 @@ class _PlanState extends State<Plan> {
     );
   }
 
-  List<Widget> _buildLessons(List<dynamic> lessons) {
-    Set<String> signatureShown = {};
-    return lessons.map((e) {
-      if (widget.person != null) {
-        final List<dynamic>? shown =
-            widget.person!['courses'] as List<dynamic>?;
-        // Solange eine Person keine Kurse ausgewählt hat, gilt dasselbe wie
-        // bei einer Klasse ohne Auswahl: Es werden alle Kurse angezeigt.
-        final List<String> personCourses =
-            shown?.map((c) => c.toString()).toList() ?? <String>[];
-        if (!vplanAPI.isLessonVisibleForPerson(
-          e,
-          personCourses,
-          hiddenSubjects ?? [],
-        )) {
-          return SizedBox();
-        }
-      } else if (vplanAPI.isLessonHidden(e, hiddenSubjects ?? [])) {
-        return SizedBox();
-      }
-      String course = e['course']?.toString() ?? '';
-      if (course.isEmpty || course == '---') {
-        course = e['lesson']?.toString() ?? '';
-      }
-      bool showSignature = false;
-      int signatureCount = missedCourses[course]?['count'] ?? 0;
-      if (signatureCount > 0 && !signatureShown.contains(course)) {
-        signatureShown.add(course);
-        showSignature = true;
-      }
-      // Hinweiszeilen übernehmen normalerweise ihre Schriftfarbe von der
-      // Zeile. Die Raumzeile ist die gezielte Ausnahme: Eine Raumänderung
-      // soll auch auf gelbem Hintergrund sofort erkennbar bleiben.
-      final HinweisTon ton = AppColors.hinweisTonVon(e);
-      final bool hinweis = ton != HinweisTon.keiner;
-      // Eine Raumänderung muss sich auch innerhalb einer gelben Hinweiszeile
-      // als solche abheben. Sie verwendet daher bewusst immer den roten
-      // Aktionston statt der sonst für die ganze Zeile geltenden Textfarbe.
-      final Color raumAenderungsFarbe = AppColors.aktionston(context);
-
-      return ListItem(
-        onClick: () {},
-        // Die Fläche einer Stunde mit Hinweistext („Entfall" …). Sie richtet
-        // sich nach dem Theme, weil der Text darauf die Theme-Farbe erbt: Ein
-        // fest eingetragenes dunkles Rot funktionierte nur im dunklen Modus
-        // und machte den Text im hellen unlesbar.
-        color: AppColors.hinweisFlaecheVon(context, ton),
-        // Die Zeile bekommt ihre eigene Schriftfarbe: Auf der kräftigen
-        // Fläche wäre die schwarze Schrift der App nicht zu erkennen. Die
-        // Texte einzeln umzustellen wäre an drei Stellen in dieser Zeile
-        // geschehen – und beim nächsten Feld wieder vergessen.
-        foreground: hinweis ? AppColors.hinweisText(context) : null,
-        leading: Text(
-          printValue('${e['count']}'),
-          style: TextStyle(fontSize: 18),
-        ),
-        title: Container(
-          alignment: Alignment.centerLeft,
-          width: MediaQuery.of(context).size.width * 0.1,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                printValue(e['lesson']),
-                style: TextStyle(fontSize: 19),
-              ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (!hideLessonTimes)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.access_time_rounded, size: 16),
-                        SizedBox(width: 3),
-                        Text(
-                            '${printValue(e['begin'])} - ${printValue(e['end'])}'),
-                      ],
-                    ),
-                  if (!hideLessonTimes) SizedBox(height: 5),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.location_on_rounded,
-                        size: 16,
-                        color: e['placeChanged'] == true
-                            ? raumAenderungsFarbe
-                            : null,
-                      ),
-                      SizedBox(width: 3),
-                      Text(
-                        printValue(e['place']),
-                        style: e['placeChanged'] == true
-                            ? TextStyle(
-                                color: raumAenderungsFarbe,
-                                fontWeight: FontWeight.w900,
-                              )
-                            : null,
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 5),
-                  if (!hideTeacher)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.person_rounded,
-                          size: 16,
-                          color: e['teacherChanged'] == true
-                              ? raumAenderungsFarbe
-                              : null,
-                        ),
-                        SizedBox(width: 3),
-                        Text(
-                          printValue(e['teacher']),
-                          style: e['teacherChanged'] == true
-                              ? TextStyle(
-                                  color: raumAenderungsFarbe,
-                                  fontWeight: FontWeight.w900,
-                                )
-                              : null,
-                        ),
-                      ],
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        subtitle: (e['info'] == null && !showSignature)
-            ? null
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (e['info'] != null)
-                    Text(
-                      '${e['info']}',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  if (showSignature) ...[
-                    SizedBox(height: 4),
-                    // Tippen auf das Stiftsymbol oder den Text daneben fragt,
-                    // ob die Unterschrift für diesen Kurs als erledigt
-                    // markiert werden soll.
-                    GestureDetector(
-                      onTap: () => _askMarkSignatureDone(course),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.edit_rounded,
-                            size: 16,
-                            color: Theme.of(context).primaryColor,
-                          ),
-                          SizedBox(width: 5),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 7, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).primaryColor,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '$signatureCount',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 5),
-                          Flexible(
-                            child: Text(
-                              AppLocalizations.of(context)!.getSignature,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                                color: Theme.of(context).primaryColor,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-      );
-    }).toList();
+  /// Die Stunden des angezeigten Tages – mit derselben Formatierung wie in der
+  /// Wochenansicht (siehe [PlanLessons]).
+  Widget _buildLessons(List<dynamic> lessons) {
+    return PlanLessons(
+      lessons: lessons,
+      hideLessonTimes: hideLessonTimes,
+      hideTeacher: hideTeacher,
+      isVisible: _isLessonVisible,
+      missedCourses: missedCourses,
+      onSignatureTap: _askMarkSignatureDone,
+    );
   }
+
+  /// Entscheidet, ob eine Stunde im Plan der Klasse bzw. der Person erscheint:
+  /// Bei einer Person zählen nur die von ihr gewählten Kurse, bei einer Klasse
+  /// alle nicht in den Einstellungen ausgeblendeten.
+  bool _isLessonVisible(dynamic lesson) {
+    if (widget.person != null) {
+      final List<dynamic>? shown =
+          widget.person!['courses'] as List<dynamic>?;
+      // Solange eine Person keine Kurse ausgewählt hat, gilt dasselbe wie
+      // bei einer Klasse ohne Auswahl: Es werden alle Kurse angezeigt.
+      final List<String> personCourses =
+          shown?.map((c) => c.toString()).toList() ?? <String>[];
+      return vplanAPI.isLessonVisibleForPerson(
+        lesson,
+        personCourses,
+        hiddenSubjects ?? [],
+      );
+    }
+    return !vplanAPI.isLessonHidden(lesson, hiddenSubjects ?? []);
+  }
+
 }
 
 class Courses extends StatefulWidget {

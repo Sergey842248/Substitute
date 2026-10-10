@@ -26,6 +26,7 @@ import '../../models/LoadingProcess.dart';
 
 import './LessonPreview.dart';
 import './Plan.dart';
+import './PlanNavigation.dart';
 
 class VPlan extends StatefulWidget {
   const VPlan({Key? key}) : super(key: key);
@@ -185,17 +186,11 @@ class _VPlanState extends State<VPlan> with RouteAware {
           return PersonWidget(
             person: person,
             onDelete: () => _deletePerson(person),
-            openContainer: () => Navigator.push(
+            openContainer: () => openPlanPage(
               context,
-              SwipePageTransition(
-                type: PageTransitionType.rightToLeft,
-                child: Scaffold(
-                  body: Plan(
-                    classId: person['classId'],
-                    person: person,
-                  ),
-                ),
-              ),
+              classId: person['classId'].toString(),
+              person: person,
+              wrapInScaffold: true,
             ),
           );
         }),
@@ -522,14 +517,9 @@ class _VPlanState extends State<VPlan> with RouteAware {
                   classId: classes[index],
                   classIndex: index,
                   onDelete: () => _deleteClass(index),
-                  openContainer: () => Navigator.push(
+                  openContainer: () => openPlanPage(
                     context,
-                    SwipePageTransition(
-                      type: PageTransitionType.rightToLeft,
-                      child: Plan(
-                        classId: classes[index],
-                      ),
-                    ),
+                    classId: classes[index],
                   ),
                 ), // closes ClassWidget
               ), // closes SizeTransition

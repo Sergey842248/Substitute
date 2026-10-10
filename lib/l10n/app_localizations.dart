@@ -368,6 +368,48 @@ abstract class AppLocalizations {
   /// **'No substitution plan available for this day.'**
   String get noPlanForThisDay;
 
+  /// No description provided for @showWeekView.
+  ///
+  /// In en, this message translates to:
+  /// **'Show whole week'**
+  String get showWeekView;
+
+  /// No description provided for @showWeekViewSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the plan for the entire week when tapping a class or person'**
+  String get showWeekViewSubtitle;
+
+  /// No description provided for @weekPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Week plan'**
+  String get weekPlan;
+
+  /// No description provided for @weekPlanTo.
+  ///
+  /// In en, this message translates to:
+  /// **'to'**
+  String get weekPlanTo;
+
+  /// No description provided for @weekTypeA.
+  ///
+  /// In en, this message translates to:
+  /// **'A week'**
+  String get weekTypeA;
+
+  /// No description provided for @weekTypeB.
+  ///
+  /// In en, this message translates to:
+  /// **'B week'**
+  String get weekTypeB;
+
+  /// No description provided for @noPlanForThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'No substitution plan available for this week.'**
+  String get noPlanForThisWeek;
+
   /// No description provided for @analysis.
   ///
   /// In en, this message translates to:

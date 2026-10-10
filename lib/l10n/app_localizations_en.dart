@@ -154,6 +154,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noPlanForThisDay => 'No substitution plan available for this day.';
 
   @override
+  String get showWeekView => 'Show whole week';
+
+  @override
+  String get showWeekViewSubtitle =>
+      'Open the plan for the entire week when tapping a class or person';
+
+  @override
+  String get weekPlan => 'Week plan';
+
+  @override
+  String get weekPlanTo => 'to';
+
+  @override
+  String get weekTypeA => 'A week';
+
+  @override
+  String get weekTypeB => 'B week';
+
+  @override
+  String get noPlanForThisWeek =>
+      'No substitution plan available for this week.';
+
+  @override
   String get analysis => 'Analysis';
 
   @override
