@@ -48,8 +48,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appearanceTheme => 'Erscheinungsbild';
 
   @override
-  String get appearanceThemeSubtitle =>
-      'Dunkel ist der Standard. Hell ist angenehmer bei Tageslicht.';
+  String get appearanceThemeSubtitle => 'Schaltet zwischen Hell und Dunkel um';
 
   @override
   String get appearanceThemeDark => 'Dunkel';
@@ -58,11 +57,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appearanceThemeLight => 'Hell';
 
   @override
-  String get appearanceShowSyncTab => 'Sync-Menü in der Leiste zeigen';
+  String get appearanceShowSyncTab => 'Synchronisations-Menü';
 
   @override
   String get appearanceShowSyncTabSubtitle =>
-      'Ausgeschaltet bleibt es erreichbar – unter Einstellungen → Aussehen lässt es sich wieder einschalten.';
+      'Blendet das Synchronisations-Menü in der Navigationsleiste am unteren Rand ein oder aus';
 
   @override
   String get appearanceNavBar => 'Navigationsleiste';

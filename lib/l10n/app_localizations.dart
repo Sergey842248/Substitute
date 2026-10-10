@@ -173,7 +173,7 @@ abstract class AppLocalizations {
   /// No description provided for @appearanceThemeSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Dark is the default. Light is easier on the eyes in daylight.'**
+  /// **'Switches between light and dark'**
   String get appearanceThemeSubtitle;
 
   /// No description provided for @appearanceThemeDark.
@@ -191,13 +191,13 @@ abstract class AppLocalizations {
   /// No description provided for @appearanceShowSyncTab.
   ///
   /// In en, this message translates to:
-  /// **'Show sync menu in the bar'**
+  /// **'Sync menu'**
   String get appearanceShowSyncTab;
 
   /// No description provided for @appearanceShowSyncTabSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'When off it stays reachable – switch it back on under Settings → Appearance.'**
+  /// **'Shows or hides the Sync menu in the navigation bar at the bottom of the screen'**
   String get appearanceShowSyncTabSubtitle;
 
   /// No description provided for @appearanceNavBar.

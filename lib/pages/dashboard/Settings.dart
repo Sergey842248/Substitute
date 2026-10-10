@@ -60,10 +60,10 @@ class _SettingsState extends State<Settings> {
         'link': PlanSettings(),
       },
       {
-        'title': AppLocalizations.of(context)!.credentials,
-        'icon': Icons.lock_outline_rounded,
-        'subtitle': AppLocalizations.of(context)!.credentialsSubtitle,
-        'link': VPlanLogin(),
+        'title': AppLocalizations.of(context)!.language,
+        'icon': Icons.language_rounded,
+        'subtitle': AppLocalizations.of(context)!.languageSubtitle,
+        'link': Language(),
       },
       {
         'title': AppLocalizations.of(context)!.setTeacherAbbreviations,
@@ -73,10 +73,10 @@ class _SettingsState extends State<Settings> {
         'link': TeacherShorts(),
       },
       {
-        'title': AppLocalizations.of(context)!.language,
-        'icon': Icons.language_rounded,
-        'subtitle': AppLocalizations.of(context)!.languageSubtitle,
-        'link': Language(),
+        'title': AppLocalizations.of(context)!.credentials,
+        'icon': Icons.lock_outline_rounded,
+        'subtitle': AppLocalizations.of(context)!.credentialsSubtitle,
+        'link': VPlanLogin(),
       },
       {
         'title': AppLocalizations.of(context)!.backup,

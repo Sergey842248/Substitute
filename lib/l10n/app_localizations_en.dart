@@ -47,8 +47,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appearanceTheme => 'Theme';
 
   @override
-  String get appearanceThemeSubtitle =>
-      'Dark is the default. Light is easier on the eyes in daylight.';
+  String get appearanceThemeSubtitle => 'Switches between light and dark';
 
   @override
   String get appearanceThemeDark => 'Dark';
@@ -57,11 +56,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appearanceThemeLight => 'Light';
 
   @override
-  String get appearanceShowSyncTab => 'Show sync menu in the bar';
+  String get appearanceShowSyncTab => 'Sync menu';
 
   @override
   String get appearanceShowSyncTabSubtitle =>
-      'When off it stays reachable – switch it back on under Settings → Appearance.';
+      'Shows or hides the Sync menu in the navigation bar at the bottom of the screen';
 
   @override
   String get appearanceNavBar => 'Navigation bar';
