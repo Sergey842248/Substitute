@@ -212,48 +212,6 @@ abstract class AppLocalizations {
   /// **'Which entries sit at the bottom'**
   String get appearanceNavBarSubtitle;
 
-  /// No description provided for @appearanceFloatingNavigationBar.
-  ///
-  /// In en, this message translates to:
-  /// **'Floating navigation bar'**
-  String get appearanceFloatingNavigationBar;
-
-  /// No description provided for @appearanceFloatingNavigationBarSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Detaches the navigation bar from the bottom screen edge'**
-  String get appearanceFloatingNavigationBarSubtitle;
-
-  /// No description provided for @appearanceLiquidGlass.
-  ///
-  /// In en, this message translates to:
-  /// **'Liquid Glass'**
-  String get appearanceLiquidGlass;
-
-  /// No description provided for @appearanceLiquidGlassSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Applies the glass effect to the floating navigation bar'**
-  String get appearanceLiquidGlassSubtitle;
-
-  /// No description provided for @appearanceLiquidGlassNeedsFloatingNavigationBar.
-  ///
-  /// In en, this message translates to:
-  /// **'Enable the floating navigation bar first'**
-  String get appearanceLiquidGlassNeedsFloatingNavigationBar;
-
-  /// No description provided for @appearanceLiquidGlassBlur.
-  ///
-  /// In en, this message translates to:
-  /// **'Glass blur'**
-  String get appearanceLiquidGlassBlur;
-
-  /// No description provided for @appearanceLiquidGlassBlurSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Adjusts the strength of the blur effect'**
-  String get appearanceLiquidGlassBlurSubtitle;
-
   /// No description provided for @language.
   ///
   /// In en, this message translates to:

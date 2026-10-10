@@ -70,31 +70,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appearanceNavBarSubtitle => 'Welche Einträge unten stehen';
 
   @override
-  String get appearanceFloatingNavigationBar => 'Schwebende Navigationsleiste';
-
-  @override
-  String get appearanceFloatingNavigationBarSubtitle =>
-      'Löst die Navigationsleiste vom unteren Bildschirmrand';
-
-  @override
-  String get appearanceLiquidGlass => 'Liquid Glass';
-
-  @override
-  String get appearanceLiquidGlassSubtitle =>
-      'Wendet den Glaseffekt auf die schwebende Navigationsleiste an';
-
-  @override
-  String get appearanceLiquidGlassNeedsFloatingNavigationBar =>
-      'Aktiviere zuerst die schwebende Navigationsleiste';
-
-  @override
-  String get appearanceLiquidGlassBlur => 'Glas-Unschärfe';
-
-  @override
-  String get appearanceLiquidGlassBlurSubtitle =>
-      'Stellt die Stärke des Blur-Effekts ein';
-
-  @override
   String get language => 'Sprache';
 
   @override
