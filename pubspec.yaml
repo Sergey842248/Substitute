@@ -42,6 +42,8 @@ dev_dependencies:
     sdk: flutter
 
 flutter:
+  shaders:
+    - shaders/liquid_glass.frag
   generate: true
   uses-material-design: true
   fonts:

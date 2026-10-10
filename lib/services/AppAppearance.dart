@@ -33,6 +33,10 @@ class AppAppearance {
 
   static const String _themeKey = 'appearance.theme';
   static const String _showSyncKey = 'appearance.showSyncShareTab';
+  static const String _floatingNavigationBarKey =
+      'appearance.floatingNavigationBar';
+  static const String _liquidGlassKey = 'appearance.liquidGlass';
+  static const String _liquidGlassBlurKey = 'appearance.liquidGlassBlur';
 
   /// `dark`, `light` oder `system`.
   static const String dark = 'dark';
@@ -61,6 +65,21 @@ class AppAppearance {
   static bool showSyncShareTab(SharedPreferences prefs) =>
       prefs.getBool(_showSyncKey) ?? true;
 
+  /// Ob die untere Leiste frei über dem Inhalt schwebt.
+  static bool floatingNavigationBar(SharedPreferences prefs) =>
+      prefs.getBool(_floatingNavigationBarKey) ?? false;
+
+  /// Der Glaseffekt wird bewusst nur auf die schwebende Leiste angewendet.
+  static bool liquidGlass(SharedPreferences prefs) =>
+      prefs.getBool(_liquidGlassKey) ?? false;
+
+  /// Die Unschärfe in logischen Pixeln. Der Wert bleibt in einem sicheren
+  /// Bereich, auch falls die Preferences manuell verändert wurden.
+  static double liquidGlassBlur(SharedPreferences prefs) {
+    final double value = prefs.getDouble(_liquidGlassBlurKey) ?? 16.0;
+    return value.clamp(0.0, 30.0).toDouble();
+  }
+
   /// Setzt das Theme und benachrichtigt beide Bildschirme.
   static Future<void> setTheme(
     SharedPreferences prefs,
@@ -76,6 +95,33 @@ class AppAppearance {
     bool wert,
   ) async {
     await prefs.setBool(_showSyncKey, wert);
+    aenderung.value++;
+  }
+
+  static Future<void> setFloatingNavigationBar(
+    SharedPreferences prefs,
+    bool value,
+  ) async {
+    await prefs.setBool(_floatingNavigationBarKey, value);
+    aenderung.value++;
+  }
+
+  static Future<void> setLiquidGlass(
+    SharedPreferences prefs,
+    bool value,
+  ) async {
+    await prefs.setBool(_liquidGlassKey, value);
+    aenderung.value++;
+  }
+
+  static Future<void> setLiquidGlassBlur(
+    SharedPreferences prefs,
+    double value,
+  ) async {
+    await prefs.setDouble(
+      _liquidGlassBlurKey,
+      value.clamp(0.0, 30.0).toDouble(),
+    );
     aenderung.value++;
   }
 }

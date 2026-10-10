@@ -16,7 +16,9 @@ class SettingsSwitchTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final bool value;
-  final ValueChanged<bool> onChanged;
+
+  /// `null` zeigt die Einstellung als momentan nicht verfügbare Option an.
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {

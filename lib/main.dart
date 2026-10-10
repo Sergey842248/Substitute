@@ -25,6 +25,7 @@ import 'package:lottie/lottie.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 
 /* pages */
 import 'pages/vplan/VPlan.dart';
@@ -39,6 +40,7 @@ import 'services/SchoolStorage.dart';
 import 'services/sync/SyncCoordinator.dart';
 import 'services/sync/SyncEngine.dart';
 import 'services/AppClock.dart';
+import 'models/LiquidGlass.dart';
 
 /// Compares two version strings (e.g. '3.7.10') numerically segment by segment.
 /// Returns < 0 if [a] is older, 0 if equal, > 0 if [a] is newer.
@@ -203,13 +205,12 @@ Future<Widget> wartenderAppStart([SharedPreferences? prefs]) async {
   // App ist von jeher dunkel) und die Systemsprache statt der gewählten – und
   // beide kämen einen Frame zu spät, als ein heller Blitz und ein Neubau des
   // ganzen Bildschirms.
-  final SharedPreferences instance = prefs ?? await SharedPreferences.getInstance();
+  final SharedPreferences instance =
+      prefs ?? await SharedPreferences.getInstance();
   return MyApp(
     startThemeMode: AppAppearance.modeOf(AppAppearance.themeOf(instance)),
     startLocale: Locale(instance.getString('languageCode') ?? 'de', ''),
-    initialPage: hasCredentials
-        ? null
-        : VPlanLogin(blockBack: true),
+    initialPage: hasCredentials ? null : VPlanLogin(blockBack: true),
   );
 }
 
@@ -627,6 +628,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   /// `true` bis die Einstellung gelesen ist, damit der Eintrag beim allerersten
   /// Aufbau nicht kurzzeitig fehlt und die Leiste springt.
   bool _zeigeSyncEintrag = true;
+  bool _floatingNavigationBar = false;
+  bool _liquidGlass = false;
+  double _liquidGlassBlur = 16;
 
   /// Es meldet jede Änderung an den Darstellungseinstellungen – sonst käme man
   /// nach dem Ausschalten auf eine Leiste zurück, die den Eintrag noch zeigt.
@@ -634,9 +638,24 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Future<void> _ladeEintrag() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final bool wert = AppAppearance.showSyncShareTab(prefs);
-    if (!mounted || wert == _zeigeSyncEintrag) return;
-    setState(() => _zeigeSyncEintrag = wert);
+    final bool showSyncEntry = AppAppearance.showSyncShareTab(prefs);
+    final bool floatingNavigationBar =
+        AppAppearance.floatingNavigationBar(prefs);
+    final bool liquidGlass = AppAppearance.liquidGlass(prefs);
+    final double liquidGlassBlur = AppAppearance.liquidGlassBlur(prefs);
+    if (!mounted ||
+        (showSyncEntry == _zeigeSyncEintrag &&
+            floatingNavigationBar == _floatingNavigationBar &&
+            liquidGlass == _liquidGlass &&
+            liquidGlassBlur == _liquidGlassBlur)) {
+      return;
+    }
+    setState(() {
+      _zeigeSyncEintrag = showSyncEntry;
+      _floatingNavigationBar = floatingNavigationBar;
+      _liquidGlass = liquidGlass;
+      _liquidGlassBlur = liquidGlassBlur;
+    });
   }
 
   void dispose() {
@@ -1115,7 +1134,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   padding: EdgeInsets.only(
                     left: 10,
                     right: 10,
-                    // **Der Platz für die Navigationsleiste wird hier
+                    // **Der Platz für die normale Navigationsleiste wird hier
                     // reserviert, nicht in jedem Bildschirm einzeln.**
                     //
                     // Der Stapel reicht bis zum unteren Rand, und die Leiste
@@ -1128,8 +1147,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     // Vorher hat sich jeder Bildschirm selbst beholfen, mit
                     // festen Prozentwerten (`0.69` Höhe, `0.1` Rand), und der
                     // Startbildschirm eben nicht – daher der Fehler dort.
-                    bottom: MediaQuery.of(context).size.height * 0.1 +
-                        MediaQuery.paddingOf(context).bottom,
+                    //
+                    // Bei der schwebenden Variante darf hier ausdrücklich
+                    // kein leerer Streifen bleiben: Der Inhalt muss hinter
+                    // der Leiste weiterlaufen, damit sie wirklich darüber
+                    // schwebt und der BackdropFilter diesen Inhalt verwischen
+                    // kann statt nur die Hintergrundfarbe.
+                    bottom: _floatingNavigationBar
+                        ? 0
+                        : MediaQuery.of(context).size.height * 0.1 +
+                            MediaQuery.paddingOf(context).bottom,
                   ),
                   decoration: BoxDecoration(
                     borderRadius: const BorderRadius.only(
@@ -1148,71 +1175,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     child: activeWidget,
                   ),
                 ),
-                // FOOTER
-                Positioned(
-                  bottom: 0,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(30),
-                        topRight: Radius.circular(30),
-                      ),
-                      color: Theme.of(context).colorScheme.surface,
-                    ),
-                    width: MediaQuery.of(context).size.width,
-                    height: MediaQuery.of(context).size.height * 0.1 +
-                        MediaQuery.paddingOf(context).bottom,
-                    alignment: Alignment.bottomCenter,
-                    padding: EdgeInsets.only(
-                      bottom: MediaQuery.paddingOf(context).bottom,
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        ...pages.map(
-                          (e) => Container(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                InkWell(
-                                  onTap: () {
-                                    activeText = e['key'];
-                                    setState(() {});
-                                  },
-                                  child: Container(
-                                    padding: EdgeInsets.all(7),
-                                    child: SvgPicture.asset(
-                                      e['icon'],
-                                      colorFilter: ColorFilter.mode(
-                                        activeText == e['key']
-                                            ? Theme.of(context).primaryColor
-                                            : inaktiv,
-                                        BlendMode.srcIn,
-                                      ),
-                                      width: 28,
-                                    ),
-                                  ),
-                                ),
-                                SvgPicture.asset(
-                                  'assets/img/active.svg',
-                                  width: 13,
-                                  colorFilter: ColorFilter.mode(
-                                    e['key'] == activeText
-                                        ? Theme.of(context).primaryColor
-                                        : Colors.transparent,
-                                    BlendMode.srcIn,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                // FOOTER – bei „floating" liegt sie als eigene Karte über
+                // dem Inhalt. Der BackdropFilter wird ausschließlich in
+                // diesem Modus gebaut, damit Glass nie andere Oberflächen
+                // beeinflusst.
+                _buildNavigationBar(context, pages, inaktiv),
               ],
             ),
           ),
@@ -1220,4 +1187,165 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       ),
     );
   }
+
+  Widget _buildNavigationBar(
+    BuildContext context,
+    List<Map<String, dynamic>> pages,
+    Color inactiveColor,
+  ) {
+    final MediaQueryData media = MediaQuery.of(context);
+    final Color surface = Theme.of(context).colorScheme.surface;
+    final double height = _floatingNavigationBar ? 72 : media.size.height * .1;
+    final Widget navigationItems = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: pages
+          .map((Map<String, dynamic> entry) => Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  InkWell(
+                    onTap: () => setState(() => activeText = entry['key']),
+                    borderRadius: BorderRadius.circular(24),
+                    child: Padding(
+                      padding: const EdgeInsets.all(7),
+                      child: SvgPicture.asset(
+                        entry['icon'],
+                        colorFilter: ColorFilter.mode(
+                          activeText == entry['key']
+                              ? Theme.of(context).primaryColor
+                              : inactiveColor,
+                          BlendMode.srcIn,
+                        ),
+                        width: 28,
+                      ),
+                    ),
+                  ),
+                  SvgPicture.asset(
+                    'assets/img/active.svg',
+                    width: 13,
+                    colorFilter: ColorFilter.mode(
+                      entry['key'] == activeText
+                          ? Theme.of(context).primaryColor
+                          : Colors.transparent,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                ],
+              ))
+          .toList(),
+    );
+
+    if (!_floatingNavigationBar) {
+      return Positioned(
+        bottom: 0,
+        child: Container(
+          width: media.size.width,
+          height: height + media.padding.bottom,
+          alignment: Alignment.bottomCenter,
+          padding: EdgeInsets.only(bottom: media.padding.bottom),
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(30),
+              topRight: Radius.circular(30),
+            ),
+            color: surface,
+          ),
+          child: navigationItems,
+        ),
+      );
+    }
+
+    final BorderRadius borderRadius = BorderRadius.circular(32);
+    Widget bar;
+        if (_liquidGlass) {
+      final bool light = Theme.of(context).brightness == Brightness.light;
+      bar = LiquidGlass(
+        height: height,
+        radius: 32,
+        blur: _liquidGlassBlur,
+        tint: light
+            ? Colors.white.withValues(alpha: .30)
+            : surface.withValues(alpha: .18),
+        highlight: light ? .8 : 1.0,
+        child: navigationItems,
+      );
+    } else {
+      bar = Container(
+        height: height,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: borderRadius,
+          color: surface,
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: Colors.black.withValues(alpha: .16),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: navigationItems,
+      );
+    }
+
+    return Positioned(
+      left: 16,
+      right: 16,
+      bottom: media.padding.bottom + 12,
+      child: bar,
+    );
+  }
+}
+
+/// Zeichnet die helle Außenkante und die feine Innenkante einer Glaslinse.
+/// Beide Kanten reagieren auf die Rundung der Navbar und bleiben daher auch
+/// bei verschiedenen Bildschirmbreiten geschlossen und sauber.
+class _LiquidGlassEdgePainter extends CustomPainter {
+  const _LiquidGlassEdgePainter(this.borderRadius);
+
+  final BorderRadius borderRadius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final RRect outer = borderRadius.toRRect(Offset.zero & size);
+    final Paint outerEdge = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.25
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: <Color>[
+          Color(0xccffffff),
+          Color(0x66dff5ff),
+          Color(0x334b6370),
+        ],
+        stops: <double>[0, .38, 1],
+      ).createShader(Offset.zero & size);
+    canvas.drawRRect(outer.deflate(.625), outerEdge);
+
+    final RRect inner = borderRadius
+        .subtract(const BorderRadius.all(Radius.circular(1.7)))
+        .resolve(TextDirection.ltr)
+        .toRRect((Offset.zero & size).deflate(1.8));
+    final Paint innerEdge = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = .8
+      ..color = const Color(0x66ffffff);
+    canvas.drawRRect(inner, innerEdge);
+
+    // Ein sehr schmaler Schatten direkt an der Unterkante gibt der Fläche
+    // Tiefe und verhindert den Eindruck einer bloß transparenten Box.
+    final Paint lowerEdge = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: <Color>[Colors.transparent, Color(0x66000000)],
+      ).createShader(Offset.zero & size);
+    canvas.drawRRect(outer.deflate(2.8), lowerEdge);
+  }
+
+  @override
+  bool shouldRepaint(_LiquidGlassEdgePainter oldDelegate) =>
+      oldDelegate.borderRadius != borderRadius;
 }

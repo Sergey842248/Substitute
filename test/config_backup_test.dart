@@ -15,7 +15,7 @@ String currentAppVersion() {
   if (match == null) {
     throw StateError('pubspec.yaml enthält keine version:-Angabe');
   }
-  // "3.9.1+3901" -> "3.9.1" (PackageInfo.version enthält keinen Build-Nr.).
+  // "3.9.2+3902" -> "3.9.2" (PackageInfo.version enthält keinen Build-Nr.).
   return match.group(1)!.split('+').first;
 }
 

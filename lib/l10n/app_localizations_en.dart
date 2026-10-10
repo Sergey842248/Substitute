@@ -69,6 +69,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appearanceNavBarSubtitle => 'Which entries sit at the bottom';
 
   @override
+  String get appearanceFloatingNavigationBar => 'Floating navigation bar';
+
+  @override
+  String get appearanceFloatingNavigationBarSubtitle =>
+      'Detaches the navigation bar from the bottom screen edge';
+
+  @override
+  String get appearanceLiquidGlass => 'Liquid Glass';
+
+  @override
+  String get appearanceLiquidGlassSubtitle =>
+      'Applies the glass effect to the floating navigation bar';
+
+  @override
+  String get appearanceLiquidGlassNeedsFloatingNavigationBar =>
+      'Enable the floating navigation bar first';
+
+  @override
+  String get appearanceLiquidGlassBlur => 'Glass blur';
+
+  @override
+  String get appearanceLiquidGlassBlurSubtitle =>
+      'Adjusts the strength of the blur effect';
+
+  @override
   String get language => 'Language';
 
   @override

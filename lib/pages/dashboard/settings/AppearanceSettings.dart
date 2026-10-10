@@ -37,6 +37,9 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
   String _theme = AppAppearance.dark;
 
   bool _showSyncTab = true;
+  bool _floatingNavigationBar = false;
+  bool _liquidGlass = false;
+  double _liquidGlassBlur = 16;
 
   @override
   void initState() {
@@ -50,6 +53,9 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
     setState(() {
       _theme = AppAppearance.themeOf(prefs);
       _showSyncTab = AppAppearance.showSyncShareTab(prefs);
+      _floatingNavigationBar = AppAppearance.floatingNavigationBar(prefs);
+      _liquidGlass = AppAppearance.liquidGlass(prefs);
+      _liquidGlassBlur = AppAppearance.liquidGlassBlur(prefs);
     });
   }
 
@@ -63,6 +69,24 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() => _showSyncTab = wert);
     await AppAppearance.setShowSyncShareTab(prefs, wert);
+  }
+
+  Future<void> _setFloatingNavigationBar(bool wert) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() => _floatingNavigationBar = wert);
+    await AppAppearance.setFloatingNavigationBar(prefs, wert);
+  }
+
+  Future<void> _setLiquidGlass(bool wert) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() => _liquidGlass = wert);
+    await AppAppearance.setLiquidGlass(prefs, wert);
+  }
+
+  Future<void> _setLiquidGlassBlur(double wert) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() => _liquidGlassBlur = wert);
+    await AppAppearance.setLiquidGlassBlur(prefs, wert);
   }
 
   @override
@@ -136,6 +160,51 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
             value: _showSyncTab,
             onChanged: _setShowSyncTab,
           ),
+          SettingsSwitchTile(
+            icon: Icons.open_in_full_rounded,
+            title: l10n.appearanceFloatingNavigationBar,
+            subtitle: l10n.appearanceFloatingNavigationBarSubtitle,
+            value: _floatingNavigationBar,
+            onChanged: _setFloatingNavigationBar,
+          ),
+          SettingsSwitchTile(
+            icon: Icons.blur_on_rounded,
+            title: l10n.appearanceLiquidGlass,
+            subtitle: _floatingNavigationBar
+                ? l10n.appearanceLiquidGlassSubtitle
+                : l10n.appearanceLiquidGlassNeedsFloatingNavigationBar,
+            value: _liquidGlass,
+            onChanged: _floatingNavigationBar ? _setLiquidGlass : null,
+          ),
+          if (_floatingNavigationBar && _liquidGlass)
+            Material(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              child: Container(
+                margin: const EdgeInsets.all(10),
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      l10n.appearanceLiquidGlassBlur,
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                    Text(
+                      l10n.appearanceLiquidGlassBlurSubtitle,
+                      style: const TextStyle(fontSize: 15, color: Colors.grey),
+                    ),
+                    Slider(
+                      value: _liquidGlassBlur,
+                      min: 0,
+                      max: 30,
+                      divisions: 30,
+                      label: _liquidGlassBlur.round().toString(),
+                      onChanged: _setLiquidGlassBlur,
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -165,7 +234,9 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
             children: <Widget>[
               Icon(
                 icon,
-                color: gewaehlt ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).focusColor,
+                color: gewaehlt
+                    ? Theme.of(context).colorScheme.onPrimary
+                    : Theme.of(context).focusColor,
               ),
               const SizedBox(width: 8),
               Text(
@@ -173,7 +244,9 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: gewaehlt ? FontWeight.bold : FontWeight.normal,
-                  color: gewaehlt ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).focusColor,
+                  color: gewaehlt
+                      ? Theme.of(context).colorScheme.onPrimary
+                      : Theme.of(context).focusColor,
                 ),
               ),
             ],

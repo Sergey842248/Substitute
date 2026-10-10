@@ -59,6 +59,29 @@ void main() {
       expect(AppAppearance.showSyncShareTab(prefs), isTrue);
       expect(AppAppearance.themeOf(prefs), AppAppearance.dark);
     });
+
+    test('und die Leiste ist zunächst weder schwebend noch aus Glas',
+        () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+      expect(AppAppearance.floatingNavigationBar(prefs), isFalse);
+      expect(AppAppearance.liquidGlass(prefs), isFalse);
+      expect(AppAppearance.liquidGlassBlur(prefs), 16);
+    });
+
+    test('speichert Floating, Glass und dessen Blur-Stärke', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+      await AppAppearance.setFloatingNavigationBar(prefs, true);
+      await AppAppearance.setLiquidGlass(prefs, true);
+      await AppAppearance.setLiquidGlassBlur(prefs, 23);
+
+      expect(AppAppearance.floatingNavigationBar(prefs), isTrue);
+      expect(AppAppearance.liquidGlass(prefs), isTrue);
+      expect(AppAppearance.liquidGlassBlur(prefs), 23);
+    });
   });
 
   group('Der Sync-Eintrag in der Leiste', () {
