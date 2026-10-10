@@ -39,7 +39,6 @@ import 'services/SchoolStorage.dart';
 import 'services/sync/SyncCoordinator.dart';
 import 'services/sync/SyncEngine.dart';
 import 'services/AppClock.dart';
-import 'splash.dart';
 
 /// Compares two version strings (e.g. '3.7.10') numerically segment by segment.
 /// Returns < 0 if [a] is older, 0 if equal, > 0 if [a] is newer.
@@ -55,19 +54,35 @@ int compareVersions(String a, String b) {
   return 0;
 }
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Der Startbildschirm steht **sofort**: `runApp` wird aufgerufen, bevor
-  // irgendetwas gelesen wird. Alles, was vorher awaitet würde – und das ist
-  // einiges, siehe `_ladeApp` –, liefe sonst gegen einen leeren Bildschirm,
-  // in dem das System seine eigene Startanimation zeigt.
-  //
-  // Der Startbildschirm kostet dabei **keine Zeit**: `SplashGate` blendet ihn
-  // weg, sobald [_ladeApp] fertig ist, und hält nichts fest. Die App startet
-  // also genauso schnell wie ohne Animation – der Unterschied ist nur, dass
-  // man statt eines leeren Bildschirms etwas sieht. Siehe `lib/splash.dart`.
-  runApp(SplashGate(starten: _ladeApp));
+  // Der Systemstartbildschirm (einfarbig, ohne Icon) bleibt stehen, bis
+  // `runApp` das erste Bild zeichnet. Deshalb wird hier erst geladen
+  // und danach gestartet.
+  Widget start;
+  try {
+    start = await _ladeApp();
+  } catch (fehler, stack) {
+    // Ohne diesen Fang bliebe der graue Bildschirm bei einem Ladefehler
+    // für immer stehen.
+    debugPrint('Start: die App liess sich nicht laden – $fehler\n$stack');
+    start = const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(32),
+            child: Text(
+              'Die App konnte nicht geladen werden. Bitte neu starten.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+  runApp(start);
 }
 
 /// Lädt die App und liefert den Bildschirm, der danach dasteht.
