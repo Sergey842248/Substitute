@@ -62,7 +62,32 @@ class StorageStartupRepair {
   /// Bringt Form und Ordnung in Ordnung. Beide Durchgänge sind idempotent.
   static Future<StartupRepairReport> run(SharedPreferences prefs) async =>
       StartupRepairReport(
-        formsFixed: await StorageHealer.healAll(prefs),
-        listsReordered: await ListOrderRepair.repairAll(prefs),
+        formsFixed: await healForms(prefs),
+        listsReordered: await repairLists(prefs),
       );
+
+  /// **Nur** die Form – die billige Hälfte.
+  ///
+  /// Gehört vor `runApp`, weil davon die Startbarkeit abhängt: Solange
+  /// `persons` als Liste dasteht, wirft der erste `getString` und die App
+  /// kommt gar nicht erst hoch. Dieser Durchgang liest nur die Speicherform
+  /// und schreibt **nichts**, solange sie richtig ist – er ist deshalb
+  /// unbedenklich im critical path.
+  static Future<int> healForms(SharedPreferences prefs) =>
+      StorageHealer.healAll(prefs);
+
+  /// **Nur** die Ordnung – die teure Hälfte.
+  ///
+  /// Läuft bewusst **nach** dem ersten Bild. Um zu prüfen, ob der Plancache
+  /// nach Datum geordnet ist, muss jeder gespeicherte Plan einmal dekodiert
+  /// werden, und das ist die größte Datenmenge, die die App überhaupt liest
+  /// (siehe `loadDisplayCache`). Niemand sieht an ihr Ergebnis: Eine
+  /// unsortierte Klassenliste fällt niemandem beim Öffnen auf, sie ist nur
+  /// beim Blättern und beim Teilen falsch herum.
+  ///
+  /// Der Durchgang heilt sich selbst (siehe [ListOrderRepair]), es gibt kein
+  /// Versionsmerkmal, das beim nächsten Start fehlen könnte – die Verzögerung
+  /// kostet also nichts.
+  static Future<int> repairLists(SharedPreferences prefs) =>
+      ListOrderRepair.repairAll(prefs);
 }

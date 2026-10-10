@@ -21,6 +21,42 @@ import 'DemoData.dart';
 /// tatsächlich geändert haben.
 final ValueNotifier<int> vplanBackgroundRefresh = ValueNotifier<int>(0);
 
+/// Meldet, dass die Pläne im Hintergrund neu geladen wurden – aber **gebündelt**.
+///
+/// ## Warum nicht einfach `vplanBackgroundRefresh.value++`
+///
+/// Am Start melden sich mehrere Stellen gleichzeitig: die VPlan-Übersicht im
+/// `addPostFrameCallback`, ihr `didPush`, das Ende des Hintergrund-Refreshes,
+/// die Rücksicht aus einer Plan-Seite. Jede Meldung läuft bei **jedem**
+/// eingetragenen Favoriten an – bei zwanzig Klassen und Personen waren das
+/// schnell über hundert Neuladevorgänge, obwohl sich in den fünf Millisekunden
+/// dazwischen gar nichts geändert hat.
+///
+/// Bündeln ist hier gefahrlos, weil die Zuhörer ohnehin **selbst** coalescend
+/// arbeiten: Sie laden nur neu, wenn sich das Ergebnis vom vorigen unterscheidet
+/// (`refreshIfChanged`). Ein Häufchen von Erhöhungen enthält also keine
+/// Information, die nicht auch in einer einzigen steckt.
+Timer? _backgroundRefreshTimer;
+
+/// Das kurze Fenster, über das Meldungen gesammelt werden.
+///
+/// Kurz genug, dass eine Vorschau sich noch im selben Atemzug aktualisiert,
+/// und lang genug, dass das ganze Getümmel beim Start in eine Meldung fällt.
+const Duration _backgroundRefreshFenster = Duration(milliseconds: 400);
+
+/// Meldet den Hintergrund-Refresh – mehrere Meldungen kurz hintereinander
+/// werden zu **einer** zusammengefasst.
+///
+/// Statt `vplanBackgroundRefresh.value++` benutzen. Zuhörer hängen sich an
+/// [vplanBackgroundRefresh] selbst, denn das ist der Wert, den sie lesen.
+void notifyVPlanBackgroundRefresh() {
+  _backgroundRefreshTimer?.cancel();
+  _backgroundRefreshTimer = Timer(_backgroundRefreshFenster, () {
+    _backgroundRefreshTimer = null;
+    vplanBackgroundRefresh.value++;
+  });
+}
+
 /// Beobachtet die Navigation, damit z.B. der Home-Tab (VPlan-Übersicht) merkt,
 /// wenn er wieder sichtbar wird (Tab-Wechsel zurück, Rückkehr aus dem
 /// Klassen-/Kurs-Hinzufügen) und dann die „Nächste Stunde“-Vorschauen frisch
@@ -61,15 +97,50 @@ String roomChangeKeyFor({
 /// Klasse. Wird beim App-Start aus SharedPreferences gefüllt (`loadDisplayCache`)
 /// und bei jedem geladenen Plan aktualisiert, damit beim Öffnen eines Plans
 /// im allerersten Frame ohne jede Ladezeit der letzte Plan angezeigt wird.
+///
+/// **Die dekodierten Pläne entstehen erst, wenn jemand einen Plan öffnet.**
+/// Beim Start wird nur der rohe Text übernommen (siehe [_planDisplayRoh]).
+/// Das ist kein Komfortverlust, sondern die Voraussetzung dafür, dass der Start
+/// überhaupt schnell ist: Ein Plan ist ein vollständiger Schultag, und ein
+/// Stapel solcher Pläne über alle Klassen ist die mit Abstand größte Sache,
+/// die die App aus dem Speicher liest – obwohl sie erst **viel später**
+/// gebraucht wird. Wer die Startseite öffnet, braucht keine Pläne, sondern nur
+/// die Vorschauen (siehe [_nextLessonCache]), und die sind winzig.
 final Map<String, Map<String, dynamic>> _planDisplayCache = {};
 
-/// Synchroner Persisted-Cache der zuletzt berechneten „Nächste Stunde“-
+/// Die rohen, noch nicht dekodierten Plan-Anzeigen aus [SharedPreferences].
+///
+/// Nur ein Zwischenstand zu [_planDisplayCache]: Der Text liegt beim Start
+/// schon im Speicher, das Aufbauen der Objekte aber nicht. [cachedPlanDisplay]
+/// macht aus beidem den Eintrag im Cache – einmalig, beim ersten Zugriff.
+final Map<String, String> _planDisplayRoh = <String, String>{};
+
+/// Synchroner Persisted-Cache der zuletzt berechneten „Nächste Stunde"-
 /// Vorschau je Klasse (für die Home-Tab-Anzeige).
 final Map<String, Map<String, dynamic>> _nextLessonCache = {};
 
 /// Liefert synchron den zuletzt angezeigten Plan für [classId] (oder `null`).
-Map<String, dynamic>? cachedPlanDisplay(String classId) =>
-    _planDisplayCache[classId];
+///
+/// Dekodiert beim ersten Zugriff und merkt sich das Ergebnis – ab da ist der
+/// Aufruf genauso schnell wie vorher, nur der allererste zahlt einmal.
+Map<String, dynamic>? cachedPlanDisplay(String classId) {
+  final Map<String, dynamic>? da = _planDisplayCache[classId];
+  if (da != null) return da;
+
+  final String? roh = _planDisplayRoh[classId];
+  if (roh == null) return null;
+  try {
+    final Map<String, dynamic> dekodiert = _normalizeApiWeek(
+      (jsonDecode(roh) as Map).cast<String, dynamic>(),
+    );
+    _planDisplayCache[classId] = dekodiert;
+    return dekodiert;
+  } catch (_) {
+    // Ein beschädigter Eintrag darf die anderen nicht mitreißen – und er
+    // darf den Start ohnehin nicht aufhalten.
+    return null;
+  }
+}
 
 /// Liefert synchron die zuletzt berechnete „Nächste Stunde“-Vorschau (oder
 /// `null`).
@@ -122,6 +193,9 @@ dynamic _normalizeApiWeek(dynamic plan) {
 Future<void> savePlanDisplay(String classId, dynamic data) async {
   _planDisplayCache[classId] =
       Map<String, dynamic>.from(data as Map);
+  // Der Rohtext wird nicht mehr gebraucht: Der dekodierte Plan steht jetzt im
+  // Cache, und `cachedPlanDisplay` findet ihn dort zuerst.
+  _planDisplayRoh.remove(classId);
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   await prefs.setString(_planDisplayKey(prefs, classId), jsonEncode(data));
 }
@@ -137,8 +211,13 @@ Future<void> saveNextLesson(String classId, Map<String, dynamic> nextLesson) asy
 /// Lädt beim App-Start alle gespeicherten Plan-Displays und Vorschauen der
 /// aktiven Schule in den synchronen Cache, damit beim ersten Frame bereits
 /// der letzte Stand verfügbar ist.
+///
+/// **Die Plan-Displays werden nur als Rohtext übernommen**, nicht dekodiert –
+/// siehe [_planDisplayRoh]. Die Vorschauen dagegen sehr wohl: Sie sind winzig
+/// und stehen im allerersten Frame auf dem Bildschirm.
 Future<void> loadDisplayCache(SharedPreferences prefs) async {
   _planDisplayCache.clear();
+  _planDisplayRoh.clear();
   _nextLessonCache.clear();
 
   // Zuerst die Personen auslesen: Auch wenn (noch) keine Klassen gespeichert
@@ -177,10 +256,9 @@ Future<void> loadDisplayCache(SharedPreferences prefs) async {
     nextLessonKeys.add(classId);
     final String? plan = prefs.getString(_planDisplayKey(prefs, classId));
     if (plan != null && plan.isNotEmpty) {
-      try {
-        _planDisplayCache[classId] =
-            _normalizeApiWeek((jsonDecode(plan) as Map).cast<String, dynamic>());
-      } catch (_) {}
+      // Bewusst **nicht** dekodieren – der Text reicht, bis jemand den Plan
+      // wirklich öffnet (`cachedPlanDisplay`).
+      _planDisplayRoh[classId] = plan;
     }
   }
 
@@ -876,15 +954,22 @@ class VPlanAPI {
     Uri url = Uri.parse(urlString);
     DateTime today = AppClock.now();
 
-    // Refresh each class in the background in parallel (force refresh to get latest data)
-    await Future.wait(classes.map((classId) async {
-      try {
-        // Force refresh by calling getVPlanJSON with forceRefresh: true
-        await getVPlanJSON(url, today, forceRefresh: true);
-      } catch (e) {
-        print('Background refresh error for class $classId: $e');
-      }
-    }));
+    // **Eine** Anfrage für **alle** Klassen.
+    //
+    // Die `Klassen.xml` enthält die ganze Schule in einem Dokument – jede
+    // Klasse steckt darin. Vorher wurde hier für jede Klasse einzeln geladen,
+    // obwohl alle dieselbe URL gefragt haben: das war bei zwanzig Klassen
+    // zwanzigmal dieselbe Datei über das Netz, zwanzigmal XML parsen und
+    // zwanzigmal den kompletten Plan zurückschreiben – und nichts davon brachte
+    // zusätzliche Daten, denn die Antwort war jedes Mal dieselbe.
+    //
+    // Die Klassenliste wird trotzdem gelesen: ohne sie hat diese App nichts zu
+    // aktualisieren, und das entscheidet, ob überhaupt geladen wird.
+    try {
+      await getVPlanJSON(url, today, forceRefresh: true);
+    } catch (e) {
+      print('Background refresh error: $e');
+    }
   }
 
   Future<List<dynamic>> getCourses(String classId) async {
@@ -909,8 +994,64 @@ class VPlanAPI {
     return returnData;
   }
 
+  /// Die Ladungen, die gerade laufen – eine je `URL + Tag + Refresh-Art`.
+  ///
+  /// ## Wofür das da ist
+  ///
+  /// Die `Klassen.xml` ist **ein** Dokument für die **ganze Schule**: jede
+  /// Klasse steckt darin, und dieselbe Antwort wird an alle gefiltert
+  /// (`getLessonsByDate` schneidet sich daraus nur seine Klasse heraus).
+  ///
+  /// Vorher hat aber jeder einzelne Eintrag der Startseite sein eigenes
+  /// [getVPlanJSON] aufgerufen – jede Klassen-Vorschau, jede Personen-Vorschau
+  /// und zusätzlich `refreshAllPlansInBackground`. Bei zwanzig Klassen waren
+  /// das zwanzig **identische** Anfragen: zwanzigmal dieselbe Datei über das
+  /// Netz, zwanzigmal XML parsen und zwanzigmal den ganzen Plan als JSON
+  /// zurück in `SharedPreferences` schreiben. Genau daran hat der Start der
+  /// App Sekunden gehangen – nicht an der Dauer einer Anfrage, sondern an ihrer
+  /// Anzahl.
+  ///
+  /// Jetzt bekommen alle, die dasselbe wollen, dieselbe laufende Ladung
+  /// mitgeteilt: ein Download, ein Parse, ein Schreiben. Die wartenden
+  /// Aufrufer erhalten **dieselbe** Karte, und die wird von niemandem
+  /// verändert – jede Lese-Stelle ([parseVPlanXML], `getClassList`,
+  /// `getLessonsByDate`) schaut nur hinein.
+  ///
+  /// Der Eintrag verschwindet, sobald die Ladung fertig ist. Das ist
+  /// wichtig: Ein Aufenthalt über die Ladung hinaus wäre ein zweiter, stiller
+  /// Plan-Cache – und der hätte die `forceRefresh`-Wirkung kaputt gemacht, denn
+  /// ein erzwungener Neuladevorgang muss wirklich neu laden. Hier wird nur
+  /// **zusammengefasst**, was ohnehin **gleichzeitig** laufen würde.
+  static final Map<String, Future<dynamic>> _laufendeLadungen =
+      <String, Future<dynamic>>{};
+
+  /// Führt [getVPlanJSON] aus, fasst aber gleiche, gleichzeitig laufende
+  /// Anfragen zusammen (siehe [_laufendeLadungen]).
   Future<dynamic> getVPlanJSON(Uri url, DateTime vpDate,
-      {bool forceRefresh = false}) async {
+      {bool forceRefresh = false}) {
+    final String schluessel =
+        '${url}|${vpDate.year}-${vpDate.month}-${vpDate.day}|$forceRefresh';
+    final Future<dynamic>? laufend = _laufendeLadungen[schluessel];
+    if (laufend != null) return laufend;
+
+    final Future<dynamic> neu =
+        _getVPlanJSONAusfuehren(url, vpDate, forceRefresh: forceRefresh);
+    _laufendeLadungen[schluessel] = neu;
+    // **`then`, nicht `whenComplete`.** `whenComplete` wartet auf das, was
+    // sein Rückruf zurückgibt – und `Map.remove` gibt genau den gerade
+    // entfernten Eintrag zurück, also die Zukunft, die hier gerade auf ihre
+    // eigene Erledigung wartet. Das ist eine Sackgasse: Die Ladung käme nie
+    // zu Ende. `then` gibt nichts zurück und wartet deshalb auf nichts.
+    unawaited(neu.then<void>(
+      (_) => _laufendeLadungen.remove(schluessel),
+      onError: (Object _, StackTrace __) =>
+          _laufendeLadungen.remove(schluessel),
+    ));
+    return neu;
+  }
+
+  Future<dynamic> _getVPlanJSONAusfuehren(Uri url, DateTime vpDate,
+      {required bool forceRefresh}) async {
     // Check demo mode FIRST to avoid any caching/network interference
     await login();
 

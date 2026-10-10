@@ -50,7 +50,7 @@ class _VPlanState extends State<VPlan> with RouteAware {
     // werden – auch wenn die Hintergrund-Aktualisierung bereits vor dem
     // Anlegen der Klassen-Widgets durchgelaufen ist.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) vplanBackgroundRefresh.value++;
+      if (mounted) notifyVPlanBackgroundRefresh();
     });
   }
 
@@ -69,7 +69,7 @@ class _VPlanState extends State<VPlan> with RouteAware {
     // Klasse/Kurse oder dem Zurückwechseln eines Tabs): Die „Nächste Stunde“-
     // Vorschauen neu laden, damit die tatsächlich nächste Stunde angezeigt
     // wird und nicht mehr fälschlich „Wochenende“.
-    vplanBackgroundRefresh.value++;
+    notifyVPlanBackgroundRefresh();
     // Auch die Personen erneut laden: Name, Klasse und Kursauswahl (sowie die
     // Vorschau-Einstellung) können sich in den Einstellungen geändert haben.
     _reloadPersons();
@@ -90,7 +90,7 @@ class _VPlanState extends State<VPlan> with RouteAware {
   @override
   void didPush() {
     // Erstes Erscheinen (ggf. App-Start): Vorschauen frisch laden.
-    vplanBackgroundRefresh.value++;
+    notifyVPlanBackgroundRefresh();
     super.didPush();
   }
 

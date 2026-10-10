@@ -1032,7 +1032,7 @@ class _CoursesState extends State<Courses> {
     setState(() => _previewHidden = hidden);
     await vplanAPI.setPreviewHiddenForClass(widget.classId, hidden);
     // Vorschau der VPlan-Übersicht sofort neu berechnen bzw. ausblenden.
-    vplanBackgroundRefresh.value++;
+    notifyVPlanBackgroundRefresh();
   }
 
   void getData() async {
@@ -1296,7 +1296,7 @@ class _PersonCoursesState extends State<PersonCourses> {
     setState(() => _previewHidden = hidden);
     await vplanAPI.setPreviewHiddenForPerson(personId, hidden);
     // Vorschau der VPlan-Übersicht sofort neu berechnen bzw. ausblenden.
-    vplanBackgroundRefresh.value++;
+    notifyVPlanBackgroundRefresh();
   }
 
   void getData() async {

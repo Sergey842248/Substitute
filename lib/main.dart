@@ -90,6 +90,21 @@ Future<void> main() async {
 /// Aus [main] herausgezogen, weil dort jetzt der Startbildschirm steht und
 /// nicht die App: Wäre es ein `await` in [main], hinge das Laden wieder vom
 /// ersten Bild ab.
+///
+/// ## Was vor dem ersten Bild liegen muss – und was nicht
+///
+/// Vor `runApp` liegt alles, was den **ersten Frame** betrifft und nichts,
+/// was man später auch noch tun kann:
+///
+/// * die Schulprofile (alle weiteren Speicherzugriffe sind über sie geschachtelt),
+/// * die **Form** der Speicherwerte – davon hängt die Startbarkeit ab,
+/// * die Vorschauen für die Startseite,
+/// * die Zeitüberschreibung der Entwicklereinstellungen.
+///
+/// Nicht vor `runApp` liegt die **Ordnung** der Listen. Sie ist der teuerste
+/// Durchgang der App überhaupt (er dekodiert jeden gespeicherten Plan, um zu
+/// prüfen, ob er nach Datum sortiert ist) und niemand sieht an seinem Ergebnis:
+/// Er wird deshalb nach dem ersten Bild nachgeholt – siehe [_nachDemErstenBild].
 Future<Widget> _ladeApp() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   await SchoolStorage.ensureInitialized(prefs);
@@ -102,25 +117,24 @@ Future<Widget> _ladeApp() async {
   //   liest dieselben Schlüssel mit typisierten Gettern, und die werfen bei
   //   falschem Typ einen `TypeError`, statt `null` zu liefern. Genau das ist
   //   geschehen: `persons` stand als `StringList` da, `getString` warf, `runApp`
-  //   wurde nie erreicht.
+  //   wurde nie erreicht. Dieser Durchgang liest nur den Typ und schreibt
+  //   nichts, wenn nichts kaputt ist – deshalb darf er hier oben stehen.
   //
   // * **Ordnung** – Klassen sortiert nach der menschlichen Lesart (`06.2` vor
   //   `11`), Pläne nach Datum. Das betrifft jeden, der die App schon benutzt:
   //   Die Listen, die vor dem Update geschrieben wurden, folgen der Reihenfolge
   //   des Anlegens, und daran ändert das Sortieren beim Anlegen nichts mehr.
   //   Ohne diesen Durchgang bliebe es so, bis jemand zufällig eine Klasse
-  //   hinzufügt.
+  //   hinzufügt – deshalb läuft er gleich, nur **hinter** dem ersten Bild.
   //
   // Beide Durchgänge prüfen vor dem Schreiben und tun bei bereits richtigen
   // Werten nichts – deshalb ist es gleichgültig, ob sie bei jedem Start laufen.
-  final StartupRepairReport repariert = await StorageStartupRepair.run(prefs);
-  if (!repariert.isEmpty) {
-    // ignore: avoid_print
-    print('Start: repariert – $repariert');
-  }
+  final int formsFixed = await StorageStartupRepair.healForms(prefs);
 
   // Zuletzt angezeigte Pläne / Vorschauen synchron in den Speicher laden,
   // damit beim Öffnen sofort (ohne Ladezeit) der letzte Stand angezeigt wird.
+  // Die Pläne selbst werden dabei nur als Rohtext übernommen und erst
+  // dekodiert, wenn jemand einen wirklich öffnet.
   await loadDisplayCache(prefs);
 
   // Eine in den Entwicklereinstellungen gesetzte Datums-Überschreibung auch
@@ -129,12 +143,44 @@ Future<Widget> _ladeApp() async {
   // den statischen AppClock geladen).
   await AppClock.getOverriddenNow();
 
+  _nachDemErstenBild(() async {
+    final int listsReordered = await StorageStartupRepair.repairLists(prefs);
+    if (formsFixed > 0 || listsReordered > 0) {
+      // ignore: avoid_print
+      print('Start: repariert – $formsFixed Speicherwerte, '
+          '$listsReordered Listen');
+    }
+  });
+
   if (prefs.getBool('firstTime') == null ||
       prefs.getBool('firstTime') == true) {
     return Introduction();
   }
 
-  return wartenderAppStart();
+  return wartenderAppStart(prefs);
+}
+
+/// Führt [arbeit] aus, **nachdem** der erste Frame gezeichnet wurde.
+///
+/// Der Aufruf kommt aus `_ladeApp`, also noch **vor** `runApp` – deshalb ist es
+/// ein `addPostFrameCallback` und nicht einfach ein `unawaited`: Ein
+/// `unawaited` würde neben dem ersten Frame laufen und genau das verursachen,
+/// wogegen diese Änderung hier angetreten ist – der erste Frame käme nicht
+/// schneller, weil er nebenbei konkurriert.
+///
+/// `addPostFrameCallback` überlebt den Aufruf von `runApp` unbeschadet: Der
+/// Zeitgeber wird beim ersten Frame ausgelöst, den `runApp` gezeichnet hat.
+void _nachDemErstenBild(Future<void> Function() arbeit) {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Der Fehler wird **gefangen**. Ein `unawaited` ohne Fang lässt einen
+    // Fehler aus dem `addPostFrameCallback` in die Zone der App laufen – und
+    // das wäre ein Absturz mitten im Betrieb, ausgelöst von einer Aufräum-
+    // oder Hintergrundaufgabe, an der niemand etwas bemerkt. Genau das darf
+    // beim Start nicht passieren: Die App steht dann da und tut nichts.
+    unawaited(arbeit().catchError((Object fehler, StackTrace stapel) {
+      debugPrint('Nach dem ersten Bild: $fehler\n$stapel');
+    }));
+  });
 }
 
 /// Baut den Bildschirm, der nach dem Startbildschirm kommt.
@@ -144,11 +190,27 @@ Future<Widget> _ladeApp() async {
 /// Anmeldeseite; sie zu bauen ist billig, das Warten darauf gehört in die
 /// App hinein, sonst stünde der Startbildschirm bei einer kaputten Anmeldung
 /// endlos.
-Future<Widget> wartenderAppStart() async {
-  final bool hasCredentials = await SchoolStorage.hasCredentials();
-  return hasCredentials
-      ? const MyApp()
-      : MyApp(initialPage: VPlanLogin(blockBack: true));
+///
+/// [prefs] ist die bereits geladene Instanz: Sie wird beim Start ohnehin
+/// gebraucht, und [SharedPreferences.getInstance] ist zwar danach ein
+/// Cache-Treffer – aber ein `await` pro Start ist immer noch ein Schritt, den
+/// man sich sparen kann.
+Future<Widget> wartenderAppStart([SharedPreferences? prefs]) async {
+  final bool hasCredentials = await SchoolStorage.hasCredentials(prefs);
+  // Die Darstellung wird **hier** aus dem Speicher gelesen und mitgegeben,
+  // statt in `MyApp` ein zweites Mal asynchron nachgeladen zu werden. Sonst
+  // hätte der allererste Frame das *System*-Theme statt des eingestellten (die
+  // App ist von jeher dunkel) und die Systemsprache statt der gewählten – und
+  // beide kämen einen Frame zu spät, als ein heller Blitz und ein Neubau des
+  // ganzen Bildschirms.
+  final SharedPreferences instance = prefs ?? await SharedPreferences.getInstance();
+  return MyApp(
+    startThemeMode: AppAppearance.modeOf(AppAppearance.themeOf(instance)),
+    startLocale: Locale(instance.getString('languageCode') ?? 'de', ''),
+    initialPage: hasCredentials
+        ? null
+        : VPlanLogin(blockBack: true),
+  );
 }
 
 /// Startet die App. Sind noch keine Zugangsdaten hinterlegt (z.B. direkt
@@ -194,12 +256,33 @@ Color darken(Color c, [int percent = 10]) {
 const double kLogoGroesse = 24;
 
 class MyApp extends StatefulWidget {
-  const MyApp({Key? key, this.initialPage}) : super(key: key);
+  const MyApp({
+    Key? key,
+    this.initialPage,
+    this.startThemeMode,
+    this.startLocale,
+  }) : super(key: key);
 
   /// Optionaler Startbildschirm (z.B. die Anmeldeseite, solange noch keine
   /// Zugangsdaten hinterlegt sind). Wenn nicht gesetzt, wird die normale
   /// Startseite angezeigt.
   final Widget? initialPage;
+
+  /// Das Theme, mit dem der **erste** Frame gezeichnet wird.
+  ///
+  /// Wird von `_ladeApp` aus dem bereits geladenen Speicher mitgegeben. Ohne
+  /// diesen Wert beginnt [MaterialApp] im Theme des **Systems**, und die
+  /// eingestellte Einstellung käme erst einen Frame später – auf einem hellen
+  /// Telefon also ein weißer Blitz und danach ein Neuaufbau des ganzen
+  /// Bildschirms, nur um festzustellen, dass die App dunkel ist.
+  ///
+  /// `null` heißt: nicht mitgegeben (etwa in einem Widget-Test) – dann wird
+  /// wie vorher asynchron nachgeladen.
+  final ThemeMode? startThemeMode;
+
+  /// Die Sprache, mit der der **erste** Frame gezeichnet wird – aus demselben
+  /// Grund wie [startThemeMode]. `null` heißt: nicht mitgegeben.
+  final Locale? startLocale;
 
   static void setLocale(BuildContext context, Locale newLocale) {
     _MyAppState? state = context.findAncestorStateOfType<_MyAppState>();
@@ -211,7 +294,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  Locale? _locale;
+  late Locale? _locale;
   bool _orientationLocked = false;
 
   /// Das gewählte Theme. `null` bedeutet: noch nicht gelesen.
@@ -219,7 +302,17 @@ class _MyAppState extends State<MyApp> {
   /// Ohne `themeMode` folgt `MaterialApp` dem **System**, und die App sieht auf
   /// einem hellen Telefon hell aus. Sie war aber immer dunkel – deshalb wird
   /// hier die Einstellung gesetzt, und deren Standard ist dunkel.
-  ThemeMode? _themeMode;
+  late ThemeMode? _themeMode;
+
+  /// Die Material-You-Farben – **einmal** geholt, nicht bei jedem Aufbau.
+  ///
+  /// Vorher stand `getMaterialYouColor()` direkt als `future:` im
+  /// `FutureBuilder`. `build` läuft aber bei jeder Änderung von `_themeMode`,
+  /// `_locale` oder der Palette erneut – und damit wurde die Methode bei
+  /// **jedem** Aufruf neu gestartet: Jeder Wartende ein eigenes
+  /// `FutureBuilder`, jeder wieder mit einem eigenen Lesevorgang und (bei
+  /// aktivierten Material-You-Farben) einer eigenen Anfrage an die Plattform.
+  late final Future<MaterialYouPalette?> _materialYou;
 
   /// Es meldet jede Änderung an den Darstellungseinstellungen. Ohne diesen
   /// Zuhörer käme man nach dem Umschalten auf den alten Bildschirm zurück und
@@ -229,6 +322,9 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    _themeMode = widget.startThemeMode;
+    _locale = widget.startLocale;
+    _materialYou = getMaterialYouColor();
     _appearanceListener = () {
       if (!mounted) return;
       _ladeTheme().then((ThemeMode mode) {
@@ -236,9 +332,14 @@ class _MyAppState extends State<MyApp> {
       });
     };
     AppAppearance.aenderung.addListener(_appearanceListener);
-    _ladeTheme().then((ThemeMode mode) {
-      if (mounted) setState(() => _themeMode = mode);
-    });
+    // Nur noch, wenn die Einstellung **nicht** schon mitgegeben wurde. Sonst
+    // wäre das ein `setState` auf denselben Wert und ein zweiter Aufbau des
+    // ganzen Bildschirms, kurz nach dem ersten.
+    if (_themeMode == null) {
+      _ladeTheme().then((ThemeMode mode) {
+        if (mounted) setState(() => _themeMode = mode);
+      });
+    }
   }
 
   @override
@@ -261,6 +362,8 @@ class _MyAppState extends State<MyApp> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Wie beim Theme: nur nachladen, wenn nichts mitgegeben wurde.
+    if (_locale != null) return;
     _getLocale().then((locale) {
       if (mounted) setLocale(locale);
     });
@@ -275,7 +378,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: getMaterialYouColor(),
+      future: _materialYou,
       builder: (context, AsyncSnapshot<MaterialYouPalette?> snapshot) {
         Color primaryColor = Color(0xffAF69EE); //1fbe88); // ECA44D
         int scaffoldBGDark = snapshot.data?.neutral2.shade900 == null ? 50 : 70;
@@ -467,8 +570,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     // Set initial tab based on constructor parameter, default to vplanStudents
     activeText = widget.initialTab ?? 'vplanStudents';
 
-    // Refresh all VPlans in the background when app opens
-    _refreshAllPlans();
+    // Refresh all VPlans in the background when app opens – aber erst, wenn der
+    // erste Frame steht.
+    //
+    // `initState` läuft **während** des ersten Aufbaus. Ein Netzaufruf von hier
+    // fängt genau dann an, wenn die App den Startbildschirm noch verlassen
+    // muss, und konkurriert mit dem Aufbau, der als nächstes kommt: XML parsen,
+    // JSON aufbauen, den ganzen Plan zurückschreiben – alles Dinge, die den
+    // Haupt-Thread belegen, während Flutter den ersten Frame zeichnen will.
+    // Nach dem Frame kostet es nichts, weil es ohnehin nur im Hintergrund
+    // passiert.
+    _nachDemErstenBild(_refreshAllPlans);
 
     // Der automatische Sync. Ohne ihn passiert ein Sync nur, wenn jemand die
     // Einstellungen öffnet und auf den Knopf tippt – wer die Einstellungen
@@ -503,7 +615,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       await VPlanAPI().refreshAllPlansInBackground();
       // Benachrichtige die VPlan-Übersicht, damit sie ihre Vorschauen
       // abgleicht (aktualisiert wird nur, wenn sich etwas geändert hat).
-      vplanBackgroundRefresh.value++;
+      notifyVPlanBackgroundRefresh();
       print('Background refresh completed');
     } catch (e) {
       print('Error during background refresh: $e');
@@ -536,19 +648,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   String version = 'loading...';
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _loadVersion();
-  }
-
   Future<void> _loadVersion() async {
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     if (!mounted) return;
     setState(() {
       version = packageInfo.version;
     });
-    checkForUpdates(context);
+    // Die Suche nach einer neuen Version ist ein zweiter Netzaufruf **beim
+    // Start** – und sie zeigt nie etwas, was man sofort bräuchte. Sie wartet
+    // deshalb, bis der erste Frame steht (siehe `_nachDemErstenBild`).
+    _nachDemErstenBild(() async => checkForUpdates(context));
   }
 
   void checkForUpdates(BuildContext context) async {
@@ -658,6 +767,29 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late final AnimationController eastereggController;
   Widget eastereggIcon = SizedBox();
 
+  /// Die Farbe der Leiste unten – jetzt **nicht** mehr bei jedem Aufbau.
+  ///
+  /// `SystemChrome.setSystemUIOverlayStyle` geht über die Plattform an das
+  /// System. Aus `build` heraus hieß das: bei **jedem** Neuaufbau dieses
+  /// Bildschirms eine Anfrage an Android. Und der Bildschirm baut sich am
+  /// Start mehrfach neu – beim Wechsel des Themes, beim Wechsel der Sprache,
+  /// bei jedem Sync-Ergebnis, beim Tippen auf einen Eintrag.
+  ///
+  /// `didChangeDependencies` ist der richtige Ort: Es läuft beim ersten Aufbau
+  /// **und** dann, wenn sich eine abhängige Geerbte ändert – das Theme ist
+  /// genau eine davon, die Farbe der Leiste folgt ihr also weiterhin.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadVersion();
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        systemNavigationBarColor: Theme.of(context).colorScheme.surface,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (eastereggIcon.runtimeType == SizedBox)
@@ -730,12 +862,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'widget': Dashboard(),
       },
     ];
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        systemNavigationBarColor: Theme.of(context).colorScheme.surface,
-        systemNavigationBarIconBrightness: Brightness.dark,
-      ),
-    );
 
     Widget activeWidget = Text('loading...');
     for (int i = 0; i < pages.length; i++) {

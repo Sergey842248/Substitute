@@ -186,7 +186,7 @@ class ConfigBackupFlow {
 
       // Die In-Memory-Caches leeren, damit die neuen Werte greifen.
       await loadDisplayCache(prefs);
-      vplanBackgroundRefresh.value++;
+      notifyVPlanBackgroundRefresh();
       return result;
     } catch (_) {
       if (context.mounted) {
