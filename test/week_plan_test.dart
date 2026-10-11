@@ -792,6 +792,91 @@ testWidgets('the arrows keep working after a week without any plan',
     await AppClock.setOverriddenNow(null);
   });
 
+testWidgets('the arrow jumps over empty weeks to the next one with a plan',
+      (WidgetTester tester) async {
+    // Wochenabstand: 05.10. (Plan) – dann drei leere Wochen (Ferien) – dann
+    // 09.11. (Plan). Ein Klick auf "weiter" muss direkt auf den 09.11. führen
+    // und nicht bei 12.10. hängen bleiben.
+    SharedPreferences.setMockInitialValues({
+      'vplanSchoolnumber': '999999',
+      'vplanUsername': 'lehrer',
+      'vplanPassword': 'geheim',
+      'classes': ['5a'],
+      'offlineVPData': <String>[
+        jsonEncode(DemoData.buildDayPlan(DateTime(2026, 10, 5))),
+        jsonEncode(DemoData.buildDayPlan(DateTime(2026, 11, 9))),
+      ],
+    });
+    await AppClock.setOverriddenNow(DateTime(2026, 10, 7, 10));
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(MaterialApp(
+      locale: const Locale('en', ''),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: const Scaffold(body: WeekPlan(classId: '5a')),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('05.10. - 09.10.'), findsOneWidget);
+
+    // Ein Klick – drei leere Wochen werden übersprungen.
+    await tester.tap(find.byIcon(Icons.arrow_forward));
+    await tester.pumpAndSettle();
+
+    expect(find.text('09.11. - 13.11.'), findsOneWidget,
+        reason: 'must skip the empty weeks instead of stepping through them');
+    expect(find.byKey(const ValueKey<String>('lessonCell_2026-11-9_0')),
+        findsOneWidget);
+
+    // Und zurück direkt zurück zum 05.10.
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    expect(find.text('05.10. - 09.10.'), findsOneWidget);
+
+    await AppClock.setOverriddenNow(null);
+  });
+
+testWidgets('the arrow lands in the week of the found plan, not the next one',
+      (WidgetTester tester) async {
+    // Der Plan liegt am **Donnerstag** der übernächsten Woche. Die Woche davor
+    // ist komplett leer. Gesucht wird ab dem Montag dieser Woche – und die
+    // gefundene Woche ist die des Donnerstags.
+    SharedPreferences.setMockInitialValues({
+      'vplanSchoolnumber': '999999',
+      'vplanUsername': 'lehrer',
+      'vplanPassword': 'geheim',
+      'classes': ['5a'],
+      'offlineVPData': <String>[
+        jsonEncode(DemoData.buildDayPlan(DateTime(2026, 10, 5))),
+        jsonEncode(DemoData.buildDayPlan(DateTime(2026, 10, 22))),
+      ],
+    });
+    await AppClock.setOverriddenNow(DateTime(2026, 10, 7, 10));
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(MaterialApp(
+      locale: const Locale('en', ''),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: const Scaffold(body: WeekPlan(classId: '5a')),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.arrow_forward));
+    await tester.pumpAndSettle();
+
+    // Donnerstag 22.10. liegt in der Woche 19.10. - 23.10.
+    expect(find.text('19.10. - 23.10.'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('lessonCell_2026-10-22_0')),
+        findsOneWidget);
+
+    await AppClock.setOverriddenNow(null);
+  });
+
 test('week arithmetic survives the change of clock (DST)', () {
     // In der Nacht zum 25.10.2026 wird die Uhr in Deutschland eine Stunde
     // ZURÜCK gestellt. Mit `add(Duration(days: 7))` sprang der Wochenanfang
@@ -844,8 +929,9 @@ test('week arithmetic survives the change of clock (DST)', () {
 testWidgets('navigating across the clock change reaches the following weeks',
       (WidgetTester tester) async {
     // Genau der gemeldete Ablauf: Woche mit Plänen → zwei leere Wochen
-    // (Ferien) → Woche mit einem Plan. Die dritte Woche liegt über der
-    // Zeitumstellung vom 25.10.2026.
+    // (Ferien) → Woche mit einem Plan. Die Zielwoche liegt über der
+    // Zeitumstellung vom 25.10.2026; ein Klick auf "weiter" muss sie direkt
+    // erreichen.
     SharedPreferences.setMockInitialValues({
       'vplanSchoolnumber': '999999',
       'vplanUsername': 'lehrer',
@@ -868,28 +954,19 @@ testWidgets('navigating across the clock change reaches the following weeks',
       home: const Scaffold(body: WeekPlan(classId: '5a')),
     ));
     await tester.pumpAndSettle();
+    expect(find.text('05.10. - 09.10.'), findsOneWidget);
 
-    const List<String> expectedRanges = <String>[
-      '12.10. - 16.10.',
-      '19.10. - 23.10.',
-      '26.10. - 30.10.',
-      '02.11. - 06.11.',
-    ];
-    for (int i = 0; i < expectedRanges.length; i++) {
-      await tester.tap(find.byIcon(Icons.arrow_forward));
-      await tester.pumpAndSettle();
-      expect(find.text(expectedRanges[i]), findsOneWidget,
-          reason: 'step $i did not reach ${expectedRanges[i]}');
-    }
-
-    // In der Woche mit dem Plan stehen auch tatsächlich Stunden.
-    // (Nach vier Schritten vorwärts steht man in der Woche 02.11. – ein Schritt
-    // zurück führt auf 26.10.)
-    await tester.tap(find.byIcon(Icons.arrow_back));
+    // Die beiden Ferienwochen werden in einem Schritt übersprungen.
+    await tester.tap(find.byIcon(Icons.arrow_forward));
     await tester.pumpAndSettle();
     expect(find.text('26.10. - 30.10.'), findsOneWidget);
     expect(find.byKey(const ValueKey<String>('lessonCell_2026-10-26_0')),
         findsOneWidget);
+
+    // Und wieder zurück, rückwärts über dieselben leeren Wochen.
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    expect(find.text('05.10. - 09.10.'), findsOneWidget);
 
     await AppClock.setOverriddenNow(null);
   });

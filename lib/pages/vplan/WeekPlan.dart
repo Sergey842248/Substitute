@@ -222,20 +222,61 @@ class _WeekPlanState extends State<WeekPlan> {
     return result;
   }
 
-  /// Wechselt in die Woche vor bzw. nach der angezeigten.
-  Future<void> _shiftWeek(int weeks) async {
-    setState(() {
-      // Wieder über [_startOfWeek]: Nach sieben Tagen ist zwar wieder ein
-      // Montag, aber der Montag ist hier die Voraussetzung dafür, dass der
-      // Zeitraum stimmt – das soll nicht von einem Rechenfehler abhängen.
+  /// Springt zur **nächsten Woche mit einem Plan** – vorwärts oder rückwärts.
+  ///
+  /// Statt einfach sieben Tage weiterzugehen, wird wie in der Tagesansicht
+  /// ([Plan.newVP]) nach dem nächsten Tag mit einem Vertretungsplan gesucht und
+  /// dann dessen Woche angezeigt. Ohne das müsste man Ferien- und leere Wochen
+  /// einzeln überspringen, um überhaupt wieder eine Woche mit Unterricht zu
+  /// sehen.
+  ///
+  /// `direction` ist +1 für vorwärts und −1 für rückwärts.
+  Future<void> _shiftWeek(int direction) async {
+    final bool forward = direction > 0;
+    setState(() => _loading = true);
+
+    // **Suchbeginn ist der Sonntag vor dem Montag der Zielwoche.**
+    // [VPlanAPI.getNearestAvailablePlan] beginnt seine Suche bei
+    // `from ± 1 Tag` – ohne diesen Sonntag würde der Montag der Zielwoche
+    // übersprungen und gegebenenfalls eine ganze Woche mit Plan verpasst.
+    final DateTime searchFrom =
+        addSchoolDays(_weekStart, forward ? 6 : -6);
+
+    DateTime? target;
+    try {
+      final dynamic plan = await _vplanAPI.getNearestAvailablePlan(
+        from: searchFrom,
+        classId: widget.classId,
+        forward: forward,
+      );
+      if (plan is Map && plan['date'] != null) {
+        target = _startOfWeek(
+          _vplanAPI.parseStringDatatoDateTime(plan['date'].toString()),
+        );
+      }
+    } catch (_) {
+      // Suche fehlgeschlagen: Es wird schlicht eine Woche weitergesprungen.
+    }
+
+    // Nichts gefunden (kein Netz, oder im Suchfenster ist nichts): eine Woche
+    // weitergehen, damit der Nutzer nicht auf einem Klick hängen bleibt.
+    if (target == null) {
       // **Kalendertage, keine Dauer:** `add(Duration(days: 7))` addiert
       // absolute Stunden und landet über eine Zeitumstellung hinweg eine Stunde
       // zu früh – aus dem Montag wurde der Sonntag derselben Woche, und
       // [_startOfWeek] rechnete daraus wieder den Montag derselben Woche
       // zurück. Die Woche bewegte sich dann nicht mehr.
-      _weekStart = _startOfWeek(addSchoolDays(_weekStart, 7 * weeks));
-      _loading = true;
-    });
+      target = _startOfWeek(addSchoolDays(_weekStart, 7 * direction));
+    }
+
+    // Die gefundene Woche ist dieselbe, in der man schon ist (z.B. weil die
+    // Suche nichts Besseres fand): dann trotzdem weiterspringen.
+    if (target == _weekStart) {
+      target = _startOfWeek(addSchoolDays(_weekStart, 7 * direction));
+    }
+
+    // `target` ist oben in beiden Zweigen gefüllt.
+    setState(() => _weekStart = target!);
     await _loadWeek();
   }
 
