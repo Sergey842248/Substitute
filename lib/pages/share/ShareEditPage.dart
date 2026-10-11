@@ -274,21 +274,19 @@ class _ShareEditPageState extends State<ShareEditPage> {
             if (_persons.isEmpty)
               _empty(l10n.noPersonsYet)
             else
-              Column(
+              // Dieselben Feldmarken wie bei den Klassen darüber. Vorher stand
+              // hier eine Liste mit Kontrollkästchen – zwei Systeme für
+              // dieselbe Frage auf derselben Seite, und die Liste brach mitten
+              // in der Seite ab, während die Chips nebeneinander Platz finden.
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
                 children: _persons
-                    .map((({String id, String name}) person) => Material(
-                          // Die Zeile liegt sonst direkt auf dem gefärbten
-                          // Container der Seite. Ihr Material- ancestor liegt
-                          // weiter oben, wodurch die Taste beim Antippen keine
-                          // sichtbare Rückmeldung gab.
-                          type: MaterialType.transparency,
-                          child: CheckboxListTile(
-                            value: _selection.personIds.contains(person.id),
-                            title: Text(person.name),
-                            dense: true,
-                            onChanged: (bool? value) =>
-                                _togglePerson(person.id, value ?? false),
-                          ),
+                    .map((({String id, String name}) person) => FilterChip(
+                          label: Text(person.name),
+                          selected: _selection.personIds.contains(person.id),
+                          onSelected: (bool value) =>
+                              _togglePerson(person.id, value),
                         ))
                     .toList(),
               ),

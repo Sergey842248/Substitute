@@ -146,6 +146,52 @@ void main() {
   // Die Option "Gespeicherte Pläne teilen" ist entfernt: Die Pläne gehören zu
   // den geteilten Klassen und werden immer mitgenommen. Übrig bleibt nur die
   // Frage nach ihrem Alter.
+  // Klassen und Personen werden gleich ausgewählt: als Feldmarken. Vorher stand
+  // bei den Personen eine Liste mit Kontrollkästchen – zwei Systeme für
+  // dieselbe Frage auf derselben Seite.
+  testWidgets('persons are chips like the classes', (WidgetTester tester) async {
+    seedWithData();
+    await pumpEdit(tester);
+
+    expect(find.widgetWithText(FilterChip, '5a'), findsOneWidget);
+    expect(find.widgetWithText(FilterChip, 'Frau Weber'), findsOneWidget);
+    expect(find.byType(CheckboxListTile), findsNothing,
+        reason: 'Kontrollkästchen sind abgeschafft – es gibt ein System für '
+            'beides.');
+  });
+
+  testWidgets('a person can be selected and deselected',
+      (WidgetTester tester) async {
+    seedWithData();
+    await pumpEdit(tester);
+
+    expect(
+      tester
+          .widget<FilterChip>(find.widgetWithText(FilterChip, 'Frau Weber'))
+          .selected,
+      isFalse,
+      reason: 'Nichts ist vorausgewählt – geteilt wird, was man anfasst.',
+    );
+
+    await tester.tap(find.widgetWithText(FilterChip, 'Frau Weber'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<FilterChip>(find.widgetWithText(FilterChip, 'Frau Weber'))
+          .selected,
+      isTrue,
+    );
+
+    await tester.tap(find.widgetWithText(FilterChip, 'Frau Weber'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<FilterChip>(find.widgetWithText(FilterChip, 'Frau Weber'))
+          .selected,
+      isFalse,
+    );
+  });
+
   testWidgets('the plans switch is gone; only history and settings remain',
       (WidgetTester tester) async {
     seedWithData();

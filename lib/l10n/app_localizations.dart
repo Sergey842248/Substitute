@@ -218,6 +218,30 @@ abstract class AppLocalizations {
   /// **'Language'**
   String get language;
 
+  /// No description provided for @languageSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System language'**
+  String get languageSystem;
+
+  /// No description provided for @languageSystemSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use your phone\'s language. If it is neither German nor English, German is used.'**
+  String get languageSystemSubtitle;
+
+  /// No description provided for @languageGermanSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Always German, whatever the phone is set to.'**
+  String get languageGermanSubtitle;
+
+  /// No description provided for @languageEnglishSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Always English, whatever the phone is set to.'**
+  String get languageEnglishSubtitle;
+
   /// No description provided for @languageSubtitle.
   ///
   /// In en, this message translates to:

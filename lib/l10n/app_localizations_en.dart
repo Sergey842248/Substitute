@@ -72,6 +72,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get language => 'Language';
 
   @override
+  String get languageSystem => 'System language';
+
+  @override
+  String get languageSystemSubtitle =>
+      'Use your phone\'s language. If it is neither German nor English, German is used.';
+
+  @override
+  String get languageGermanSubtitle =>
+      'Always German, whatever the phone is set to.';
+
+  @override
+  String get languageEnglishSubtitle =>
+      'Always English, whatever the phone is set to.';
+
+  @override
   String get languageSubtitle => 'Change the language of the app';
 
   @override

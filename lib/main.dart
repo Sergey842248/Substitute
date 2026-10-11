@@ -34,6 +34,7 @@ import 'pages/share/SyncShareHub.dart';
 import 'pages/search/SearchMenu.dart';
 import 'pages/dashboard/settings/VPlanLogin.dart';
 import 'services/AppAppearance.dart';
+import 'services/AppLanguage.dart';
 import 'services/StorageStartupRepair.dart';
 import 'services/SchoolStorage.dart';
 import 'services/sync/SyncCoordinator.dart';
@@ -53,6 +54,16 @@ int compareVersions(String a, String b) {
   }
   return 0;
 }
+
+/// Die Sprache der Einstellungen in Ordnung bringen, **bevor** der erste
+/// Frame gezeichnet wird.
+///
+/// Läuft hier und nicht später: Die aufgelöste Sprache geht direkt in
+/// [MyApp.startLocale] ein, und ein erst nach dem ersten Bild nachgeladener
+/// Wert baut den ganzen Bildschirm ein zweites Mal um – bei der Sprache noch
+/// auffälliger als beim Theme, weil sich jede Beschriftung verschiebt.
+Future<void> _bereiteSprache(SharedPreferences prefs) =>
+    AppLanguage.migrate(prefs);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -131,6 +142,10 @@ Future<Widget> _ladeApp() async {
   // Werten nichts – deshalb ist es gleichgültig, ob sie bei jedem Start laufen.
   final int formsFixed = await StorageStartupRepair.healForms(prefs);
 
+  // Die Sprache wird **einmalig** festgeschrieben, damit ein Update die
+  // eingestellte Sprache nicht verändert. Sieh [AppLanguage.migrate].
+  await _bereiteSprache(prefs);
+
   // Zuletzt angezeigte Pläne / Vorschauen synchron in den Speicher laden,
   // damit beim Öffnen sofort (ohne Ladezeit) der letzte Stand angezeigt wird.
   // Die Pläne selbst werden dabei nur als Rohtext übernommen und erst
@@ -206,7 +221,8 @@ Future<Widget> wartenderAppStart([SharedPreferences? prefs]) async {
   final SharedPreferences instance = prefs ?? await SharedPreferences.getInstance();
   return MyApp(
     startThemeMode: AppAppearance.modeOf(AppAppearance.themeOf(instance)),
-    startLocale: Locale(instance.getString('languageCode') ?? 'de', ''),
+    // `null`, wenn die App der Systemsprache folgt – siehe [AppLanguage].
+    startLocale: AppLanguage.forMaterialApp(instance),
     initialPage: hasCredentials
         ? null
         : VPlanLogin(blockBack: true),
@@ -281,10 +297,21 @@ class MyApp extends StatefulWidget {
   final ThemeMode? startThemeMode;
 
   /// Die Sprache, mit der der **erste** Frame gezeichnet wird – aus demselben
-  /// Grund wie [startThemeMode]. `null` heißt: nicht mitgegeben.
+  /// Grund wie [startThemeMode].
+  ///
+  /// `null` heißt entweder „nicht mitgegeben" (etwa in einem Widget-Test) oder
+  /// ausdrücklich „**der Systemsprache folgen**". Letzteres ist kein Fehlen
+  /// einer Angabe: `MaterialApp` nimmt dann die Systemsprache – und folgt ihr
+  /// auch, wenn sie zur Laufzeit wechselt.
   final Locale? startLocale;
 
-  static void setLocale(BuildContext context, Locale newLocale) {
+  /// Die Sprache der App umstellen.
+  ///
+  /// `null` heißt: **der Systemsprache folgen**. Das ist keine besondere
+  /// Sprache, sondern die Abwesenheit einer Festlegung – `MaterialApp`
+  /// übersetzt das selbst, und reagiert damit auch auf einen Wechsel der
+  /// Systemsprache zur Laufzeit.
+  static void setLocale(BuildContext context, Locale? newLocale) {
     _MyAppState? state = context.findAncestorStateOfType<_MyAppState>();
     state?.setLocale(newLocale);
   }
@@ -353,7 +380,7 @@ class _MyAppState extends State<MyApp> {
     return AppAppearance.modeOf(AppAppearance.themeOf(prefs));
   }
 
-  setLocale(Locale locale) {
+  setLocale(Locale? locale) {
     setState(() {
       _locale = locale;
     });
@@ -363,16 +390,28 @@ class _MyAppState extends State<MyApp> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Wie beim Theme: nur nachladen, wenn nichts mitgegeben wurde.
-    if (_locale != null) return;
+    //
+    // Geprüft wird dafür ein eigenes Flag und **nicht** `_locale`: `null`
+    // bedeutet inzwischen „der Systemsprache folgen", nicht „noch nicht
+    // bekannt". An `_locale` zu erkennen, dass noch nichts da ist, sähe nach
+    // jedem Sprachwechsel auf „system" aus – und die App würde die
+    // Systemsprache über die selbst gewählte Sprache legen.
+    if (widget.startLocale != null || _localeGeladen) return;
+    _localeGeladen = true;
     _getLocale().then((locale) {
       if (mounted) setLocale(locale);
     });
   }
 
+  /// Ob die Sprache schon einmal bestimmt wurde.
+  bool _localeGeladen = false;
+
   Future<Locale> _getLocale() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String languageCode = prefs.getString('languageCode') ?? 'de';
-    return Locale(languageCode, '');
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    // Nur der Weg, wenn beim Start nichts mitgegeben wurde – etwa in einem
+    // Widget-Test. Die Systemsprache kommt aus dem Kontext, in dem die App
+    // gerade läuft.
+    return AppLanguage.localeFor(prefs, WidgetsBinding.instance.platformDispatcher.locale);
   }
 
   @override

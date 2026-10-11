@@ -73,6 +73,19 @@ class AppLocalizationsDe extends AppLocalizations {
   String get language => 'Sprache';
 
   @override
+  String get languageSystem => 'Systemsprache';
+
+  @override
+  String get languageSystemSubtitle =>
+      'Die Sprache deines Handys verwenden. Ist sie nicht Deutsch oder Englisch, wird Deutsch verwendet.';
+
+  @override
+  String get languageGermanSubtitle => 'Immer Deutsch, unabhängig vom Handy.';
+
+  @override
+  String get languageEnglishSubtitle => 'Immer Englisch, unabhängig vom Handy.';
+
+  @override
   String get languageSubtitle => 'Sprache der App ändern';
 
   @override
