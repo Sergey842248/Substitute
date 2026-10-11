@@ -18,6 +18,8 @@ class ListPage extends StatefulWidget {
     this.collapseHeaderOnScroll = true,
     this.keepScrollOffset = true,
     this.fillHeight = false,
+    this.contentPadding,
+    this.headerHeightFactor = 0.1,
   }) : super(key: key);
 
   final String title;
@@ -55,6 +57,25 @@ class ListPage extends StatefulWidget {
   /// ScrollView wäre Voraussetzung); [onRefresh] wird weiterhin aufgerufen, wenn
   /// der Aufrufer es selbst auslöst.
   final bool fillHeight;
+
+  /// Der Innenabstand des Inhaltsbereichs. `null` lässt die Vorgabe
+  /// (20 seitlich, 15 oben, 10 unten).
+  ///
+  /// Für breite Ansichten – etwa das Wochenraster – kostet der Vorgabe links
+  /// und rechts 40 Pixel, die dann für die Spalten fehlen.
+  final EdgeInsets? contentPadding;
+
+  /// Anteil der Bildschirmhöhe, den die Kopfzeile einnimmt (Vorgabe 0.1).
+  ///
+  /// Die Kopfzeile braucht nur so viel Platz, wie Titel und Knöpfe wirklich
+  /// brauchen. Wer einen knappen Inhalt hat – etwa das Wochenraster, das jede
+  /// Zeile für die Stunden braucht –, kann mit einem kleineren Wert den
+  /// Leerraum unter der Kopfzeile verringern und dem Inhalt geben.
+  ///
+  /// **Nicht zu klein wählen:** Der Inhalt wird zwischen `topHeight / 5.5` und
+  /// 10 Pixel eingerückt; die Knöpfe beanspruchen etwa 48 Pixel. Unter rund
+  /// 0.08 beginnt der Inhalt zu drücken.
+  final double headerHeightFactor;
 
   /// Pull-to-refresh callback. When set, the content list is wrapped in a
   /// RefreshIndicator so a downward pull reloads the page.
@@ -167,7 +188,7 @@ class _ListPageState extends State<ListPage> {
 
   @override
   Widget build(BuildContext context) {
-    _headerHeight = MediaQuery.of(context).size.height * 0.1;
+    _headerHeight = MediaQuery.of(context).size.height * widget.headerHeightFactor;
     widget.actions ??= [];
     widget.smallTitle ??= false;
     widget.onPop ??= () => Navigator.pop(context);
@@ -427,15 +448,16 @@ class _ListPageState extends State<ListPage> {
                   ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.only(
-                    // Konstant, damit die Höhe des Inhalts nicht vom
-                    // Scroll-Zustand abhängt - davon hängt ab, wie weit die
-                    // Liste scrollbar bleibt.
-                    top: 15,
-                    left: 20,
-                    right: 20,
-                    bottom: 10,
-                  ),
+                  padding: widget.contentPadding ??
+                      const EdgeInsets.only(
+                        // Konstant, damit die Höhe des Inhalts nicht vom
+                        // Scroll-Zustand abhängt - davon hängt ab, wie weit die
+                        // Liste scrollbar bleibt.
+                        top: 15,
+                        left: 20,
+                        right: 20,
+                        bottom: 10,
+                      ),
                   child: _buildContent(),
                 ),
               ),

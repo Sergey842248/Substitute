@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,9 +9,20 @@ import 'package:substitute/l10n/app_localizations.dart';
 import 'package:substitute/models/SettingsSwitchTile.dart';
 import 'package:substitute/pages/dashboard/settings/PlanSettings.dart';
 import 'package:substitute/pages/vplan/DemoData.dart';
+import 'package:substitute/pages/vplan/Plan.dart';
 import 'package:substitute/pages/vplan/WeekPlan.dart';
 import 'package:substitute/pages/vplan/WeekPlanGrid.dart';
 import 'package:substitute/services/AppClock.dart';
+
+/// Die vier Textangaben, die eine Rasterzelle zeigt – als Widgets, nicht als
+/// Zeichenketten: Raum und Lehrer wiederholen sich in der Woche, `find.text`
+/// wäre damit mehrdeutig.
+typedef _CellTexts = ({
+  Text subject,
+  Text room,
+  Text teacher,
+  Text time,
+});
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -19,26 +31,119 @@ void main() {
   /// zum 26.09. (Sa).
   final DateTime wednesday = DateTime(2026, 9, 23, 8, 0);
 
+  /// Ein Montagsplan mit genau [lessons] Stunden – für Tests, die es um die
+  /// Zeilenzahl des Rasters gehen.
+  Map<String, dynamic> _planWithLessons(int lessons) {
+    final Map<String, dynamic> plan =
+        DemoData.buildDayPlan(DateTime(2026, 9, 21));
+    final List<dynamic> kl = plan['data']['Klassen']['Kl'] as List<dynamic>;
+    final Map<String, dynamic> kl0 = Map<String, dynamic>.from(kl.first as Map);
+    final Map<String, dynamic> pl = Map<String, dynamic>.from(kl0['Pl'] as Map);
+    final List<dynamic> std = List<dynamic>.from(pl['Std'] as List<dynamic>);
+    final List<dynamic> many = List<dynamic>.from(std);
+    while (many.length < lessons) {
+      // Jede Stunde bekommt eine eigene Nummer, sonst hätte das Raster
+      // weniger Zeilen als gewünschte Einträge.
+      final Map<String, dynamic> copy =
+          Map<String, dynamic>.from(std.first as Map);
+      copy['St'] = '${many.length + 1}';
+      many.add(copy);
+    }
+    pl['Std'] = many;
+    kl0['Pl'] = pl;
+    kl[0] = kl0;
+    plan['data']['Klassen']['Kl'] = kl;
+    return plan;
+  }
+
+  /// Die Offline-Pläne der Schulwoche (Mo–Fr), fertig als JSON-Strings.
+  List<String> _offlineWeek() => <String>[
+        for (int i = 0; i < 5; i++)
+          jsonEncode(
+              DemoData.buildDayPlan(DateTime(2026, 9, 21).add(Duration(days: i)))),
+      ];
+
+  /// Wie [seedOfflineWeek], aber mit sichtbaren Zeiten und Lehrern – dann
+  /// stehen alle vier Angaben in der Zelle.
+  void seedOfflineWeekWithTimesAndTeacher() {
+    SharedPreferences.setMockInitialValues({
+      'vplanSchoolnumber': '999999',
+      'vplanUsername': 'lehrer',
+      'vplanPassword': 'geheim',
+      'classes': ['5a'],
+      'hideLessonTimes': false,
+      'hideTeacher': false,
+      'offlineVPData': _offlineWeek(),
+    });
+  }
+
   /// Legt für jeden Schultag (Mo–Fr) einen Offline-Plan ab, damit die
   /// Wochenansicht ohne Netzwerk auskommt.
   ///
   /// Der Samstag bleibt bewusst leer: Der Demo-Account liefert für Wochenenden
   /// grundsätzlich einen leeren Plan – er ist also kein Schul- bzw.
   /// Unterrichtstag.
+  ///
+  /// **Bewusst keine Demo-Zugangsdaten** (`123456`/`user`/`password`): Im
+  /// Demo-Modus erzeugt die API die Pläne frisch aus [DemoData] und lässt die
+  /// hier abgelegten Daten komplett ignorieren. Tests, die einen Plan
+  /// verändern (z.B. zwei Kurse in derselben Stunde), kämen dort nie an.
   void seedOfflineWeek() {
-    final List<String> entries = [];
-    for (int i = 0; i < 5; i++) {
-      final DateTime day = DateTime(2026, 9, 21).add(Duration(days: i));
-      entries.add(jsonEncode(DemoData.buildDayPlan(day)));
-    }
     SharedPreferences.setMockInitialValues({
-      'vplanSchoolnumber': '123456',
-      'vplanUsername': 'user',
-      'vplanPassword': 'password',
+      'vplanSchoolnumber': '999999',
+      'vplanUsername': 'lehrer',
+      'vplanPassword': 'geheim',
       'classes': ['5a'],
-      'offlineVPData': entries,
+      'offlineVPData': _offlineWeek(),
     });
   }
+
+  /// Die vier Textangaben der ersten Rasterzelle.
+  ///
+  /// Sie werden über die Struktur gesucht, nicht über feste Zeichenketten: Der
+  /// Demo-Plan erzeugt die Inhalte zufällig, und der Test soll an der
+  /// Typografie hängen, nicht an einem konkreten Demo-Fach.
+  _CellTexts _firstCellTexts(
+    WidgetTester tester,
+  ) {
+    // Nur die **erste Zelle mit einer Stunde**. Über den Schlüssel, nicht über
+    // "die erste InkWell": Der Tageskopf ist auch eine InkWell und steht im
+    // Baum weiter vorn.
+    final Finder cell = find
+        .descendant(
+          of: find.byType(WeekPlanGrid),
+          matching: find.byKey(
+            const ValueKey<String>('lessonCell_2026-9-21_1'),
+          ),
+        )
+        .first;
+
+    // Der Zellenaufbau ist fest: Stundennummer, Fach, Raum, Lehrer, Zeit.
+    //
+    // Am Anfang stehen die reinen Ziffern (Stundennummer, ggf. die Anzahl der
+    // Unterschriften) – die werden übersprungen. **Nur am Anfang**: Ein Raum
+    // kann ebenfalls eine reine Zahl sein ("201"), und würde sonst mit
+    // verschwinden.
+    final List<Text> values = tester
+        .widgetList<Text>(
+          find.descendant(of: cell, matching: find.byType(Text)),
+        )
+        .toList();
+    final int firstValue = values.indexWhere(
+      (Text t) => !RegExp(r'^\d+$').hasMatch((t.data ?? '').trim()),
+    );
+    final List<Text> texts =
+        firstValue < 0 ? <Text>[] : values.sublist(firstValue);
+
+    return (
+      subject: texts[0],
+      room: texts[1],
+      teacher: texts[2],
+      time: texts[3],
+    );
+  }
+
+  double _fontSizeOf(Text text) => text.style!.fontSize!;
 
   Future<void> pumpWeekPlan(
     WidgetTester tester, {
@@ -58,13 +163,39 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('week view shows start and end date of the displayed week',
+  testWidgets('week view shows start and end date without the year',
       (WidgetTester tester) async {
     seedOfflineWeek();
     await pumpWeekPlan(tester);
 
-    expect(find.textContaining('21.09.2026'), findsWidgets);
-    expect(find.textContaining('26.09.2026'), findsWidgets);
+    // „21.09. - 26.09." – ohne Jahreszahl, die Woche steht ohnehin im Kopf.
+    expect(find.text('21.09. - 26.09.'), findsOneWidget);
+
+    await AppClock.setOverriddenNow(null);
+  });
+
+  testWidgets('a week across the new year keeps the year in the dates',
+      (WidgetTester tester) async {
+    // 28.12.2026 – 02.01.2027: Hier wäre „28.12. - 02.01." mehrdeutig.
+    SharedPreferences.setMockInitialValues({
+      'vplanSchoolnumber': '999999',
+      'vplanUsername': 'lehrer',
+      'vplanPassword': 'geheim',
+      'classes': ['5a'],
+    });
+    await AppClock.setOverriddenNow(DateTime(2026, 12, 30, 8));
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      locale: const Locale('en', ''),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: const Scaffold(body: WeekPlan(classId: '5a')),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('28.12.2026 - 02.01.2027'), findsOneWidget);
 
     await AppClock.setOverriddenNow(null);
   });
@@ -74,7 +205,8 @@ void main() {
     seedOfflineWeek();
     await pumpWeekPlan(tester);
 
-    expect(find.textContaining('Week:'), findsOneWidget);
+    // Der Typ steht als eigener Text in der Zeile über dem Raster.
+    expect(find.byIcon(Icons.repeat_rounded), findsOneWidget);
 
     await AppClock.setOverriddenNow(null);
   });
@@ -189,9 +321,9 @@ void main() {
     bigPlan['data']['Klassen']['Kl'] = kl;
 
     SharedPreferences.setMockInitialValues({
-      'vplanSchoolnumber': '123456',
-      'vplanUsername': 'user',
-      'vplanPassword': 'password',
+      'vplanSchoolnumber': '999999',
+      'vplanUsername': 'lehrer',
+      'vplanPassword': 'geheim',
       'classes': ['5a'],
       'offlineVPData': <String>[
         for (int i = 0; i < 5; i++)
@@ -213,12 +345,369 @@ void main() {
     await AppClock.setOverriddenNow(null);
   });
 
+  testWidgets('the cell shows subject > room > teacher > time, biggest first',
+      (WidgetTester tester) async {
+    seedOfflineWeekWithTimesAndTeacher();
+    await pumpWeekPlan(tester);
+
+    final _CellTexts texts = _firstCellTexts(tester);
+    final double subject = _fontSizeOf(texts.subject);
+    final double room = _fontSizeOf(texts.room);
+    final double teacher = _fontSizeOf(texts.teacher);
+    final double time = _fontSizeOf(texts.time);
+
+    expect(subject, greaterThan(room), reason: 'subject must beat room');
+    expect(room, greaterThan(teacher), reason: 'room must beat teacher');
+    expect(teacher, greaterThan(time), reason: 'teacher must beat time');
+
+    await AppClock.setOverriddenNow(null);
+  });
+
+  testWidgets('tapping a lesson shows its additional information',
+      (WidgetTester tester) async {
+    seedOfflineWeek();
+    await pumpWeekPlan(tester);
+
+    // Die erste Stundenzelle (nicht die leeren Rasterzellen, nicht der
+    // Tageskopf – beides wäre eine InkWell).
+    final Finder cell = find
+        .descendant(
+          of: find.byType(WeekPlanGrid),
+          matching: find.byKey(
+            const ValueKey<String>('lessonCell_2026-9-21_1'),
+          ),
+        )
+        .first;
+    await tester.tap(cell);
+    await tester.pumpAndSettle();
+
+    // Der Dialog nennt Tag und Fach und listet die Einzelangaben auf.
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.textContaining('21.09.2026'), findsWidgets);
+
+    await AppClock.setOverriddenNow(null);
+  });
+
+  testWidgets('the cell text and the week header are centred',
+      (WidgetTester tester) async {
+    seedOfflineWeekWithTimesAndTeacher();
+    await pumpWeekPlan(tester);
+
+    // Punkt 1: Der Text in der Zelle sitzt mittig.
+    final _CellTexts texts = _firstCellTexts(tester);
+    for (final Text text in <Text>[
+      texts.subject,
+      texts.room,
+      texts.teacher,
+      texts.time,
+    ]) {
+      expect(text.textAlign, TextAlign.center);
+    }
+
+    // Punkt 2: Datumsrange und Wochentyp stehen als **Zeile** mittig.
+    // Geprüft wird die Zeile, nicht der einzeln Text: Der Zeitraum steht links
+    // neben dem Wochentyp, beide zusammen sind zentriert.
+    expect(find.text('21.09. - 26.09.'), findsOneWidget);
+    final Offset centre = tester.getCenter(find.byType(WeekPlanGrid));
+    final Finder headerRow = find
+        .ancestor(
+          of: find.byIcon(Icons.date_range_rounded),
+          matching: find.byType(Row),
+        )
+        .first;
+    expect(tester.getRect(headerRow).center.dx, closeTo(centre.dx, 1));
+
+    await AppClock.setOverriddenNow(null);
+  });
+
+testWidgets('tapping a day shows the additional information of that day',
+      (WidgetTester tester) async {
+    // Der Montag bekommt eine eigene Zusatzinfo, der Dienstag eine andere.
+    final Map<String, dynamic> monday =
+        DemoData.buildDayPlan(DateTime(2026, 9, 21));
+    monday['info'] = <String>['Morgen Sport in der Halle', 'Bitte Turnsachen mitbringen'];
+    final Map<String, dynamic> tuesday =
+        DemoData.buildDayPlan(DateTime(2026, 9, 22));
+    tuesday['info'] = <String>['Nur bis zur vierten Stunde'];
+
+    SharedPreferences.setMockInitialValues({
+      'vplanSchoolnumber': '999999',
+      'vplanUsername': 'lehrer',
+      'vplanPassword': 'geheim',
+      'classes': ['5a'],
+      'offlineVPData': <String>[
+        jsonEncode(monday),
+        jsonEncode(tuesday),
+        for (int i = 2; i < 5; i++)
+          jsonEncode(
+              DemoData.buildDayPlan(DateTime(2026, 9, 21).add(Duration(days: i)))),
+      ],
+    });
+    await pumpWeekPlan(tester);
+
+    // Der Tageskopf öffnet die Informationen – erst mal nichts sichtbar.
+    expect(find.text('Morgen Sport in der Halle'), findsNothing);
+
+    await tester.tap(find.text('Mon'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.text('Morgen Sport in der Halle'), findsOneWidget);
+    expect(find.text('Bitte Turnsachen mitbringen'), findsOneWidget);
+    expect(find.text('Nur bis zur vierten Stunde'), findsNothing,
+        reason: 'only the tapped day is shown');
+
+    await AppClock.setOverriddenNow(null);
+  });
+
+testWidgets('the course selection is available in the week view',
+    (WidgetTester tester) async {
+    seedOfflineWeek();
+    await pumpWeekPlan(tester);
+
+    // Punkt 3: Der Zahnrad-Knopf aus der Tagesansicht ist auch hier da und
+    // öffnet die Kurseinstellungen.
+    expect(find.byIcon(Icons.settings_rounded), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.settings_rounded));
+    await tester.pumpAndSettle();
+    expect(find.byType(Courses), findsOneWidget);
+
+    await AppClock.setOverriddenNow(null);
+  });
+
+testWidgets('every course of a doubled period gets its own row',
+      (WidgetTester tester) async {
+    // In der 1. Stunde liegen zwei Kurse (Parallelkurs). Beide müssen
+    // erscheinen – untereinander, beide in derselben Stundennummer.
+    final Map<String, dynamic> plan = DemoData.buildDayPlan(DateTime(2026, 9, 21));
+    final List<dynamic> kl = plan['data']['Klassen']['Kl'] as List<dynamic>;
+    final Map<String, dynamic> kl0 = Map<String, dynamic>.from(kl.first as Map);
+    final Map<String, dynamic> pl = Map<String, dynamic>.from(kl0['Pl'] as Map);
+    final List<dynamic> std = List<dynamic>.from(pl['Std'] as List<dynamic>);
+    final Map<String, dynamic> second =
+        Map<String, dynamic>.from(std.first as Map);
+    // **Achtung:** In diesem Plan heißen die Felder noch wie im XML ('Fa' ist
+    // das Fach). 'lesson' ist erst die Bezeichnung, die `parseVPlanXML` daraus
+    // macht.
+    second['Fa'] = 'PARALLEL';
+    second['Ra'] = '999';
+    std.insert(1, second);
+    pl['Std'] = std;
+    kl0['Pl'] = pl;
+    kl[0] = kl0;
+    plan['data']['Klassen']['Kl'] = kl;
+
+    SharedPreferences.setMockInitialValues({
+      'vplanSchoolnumber': '999999',
+      'vplanUsername': 'lehrer',
+      'vplanPassword': 'geheim',
+      'classes': ['5a'],
+      'offlineVPData': <String>[
+        jsonEncode(plan),
+        for (int i = 1; i < 5; i++)
+          jsonEncode(
+              DemoData.buildDayPlan(DateTime(2026, 9, 21).add(Duration(days: i)))),
+      ],
+    });
+    await pumpWeekPlan(tester);
+
+    // Beide Kurse stehen sichtbar im Grid.
+    expect(find.text('PARALLEL'), findsOneWidget);
+    expect(find.text('999'), findsOneWidget);
+
+    await AppClock.setOverriddenNow(null);
+  });
+
+testWidgets('up to eight lessons a day fit without scrolling',
+      (WidgetTester tester) async {
+    seedOfflineWeek();
+    await pumpWeekPlan(tester);
+
+    // Der Demo-Plan hat 6 Stunden pro Tag – das passt ohne Scrollen.
+    expect(
+      find.descendant(
+        of: find.byType(WeekPlanGrid),
+        matching: find.byType(Scrollable),
+      ),
+      findsNothing,
+    );
+
+    await AppClock.setOverriddenNow(null);
+  });
+
+testWidgets('more than eight lessons a day make the week scrollable',
+      (WidgetTester tester) async {
+    // Neun Einträge am Montag.
+    final Map<String, dynamic> plan = _planWithLessons(9);
+    SharedPreferences.setMockInitialValues({
+      'vplanSchoolnumber': '999999',
+      'vplanUsername': 'lehrer',
+      'vplanPassword': 'geheim',
+      'classes': ['5a'],
+      'offlineVPData': <String>[
+        jsonEncode(plan),
+        for (int i = 1; i < 5; i++)
+          jsonEncode(
+              DemoData.buildDayPlan(DateTime(2026, 9, 21).add(Duration(days: i)))),
+      ],
+    });
+    await pumpWeekPlan(tester);
+
+    // Ab der neunten Zeile wird gescrollt – die Stunden sind aber alle da.
+    expect(
+      find.descendant(
+        of: find.byType(WeekPlanGrid),
+        matching: find.byType(Scrollable),
+      ),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+
+    await AppClock.setOverriddenNow(null);
+  });
+
+testWidgets('a ninth lesson is partly visible, hinting at more to scroll',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'vplanSchoolnumber': '999999',
+      'vplanUsername': 'lehrer',
+      'vplanPassword': 'geheim',
+      'classes': ['5a'],
+      'offlineVPData': <String>[
+        jsonEncode(_planWithLessons(9)),
+        for (int i = 1; i < 5; i++)
+          jsonEncode(
+              DemoData.buildDayPlan(DateTime(2026, 9, 21).add(Duration(days: i)))),
+      ],
+    });
+    await pumpWeekPlan(tester);
+
+    // Die neunte Zeile liegt im Scrollbereich. Sie muss teilweise im Bild
+    // sein – ohne diesen Rest sähe man nicht, dass es weitergeht.
+    final Size screen =
+        tester.view.physicalSize / tester.view.devicePixelRatio;
+    final Rect ninth = tester.getRect(
+      find.byKey(const ValueKey<String>('lessonCell_2026-9-21_8')),
+    );
+    expect(ninth.top, lessThan(screen.height),
+        reason: 'the ninth lesson must start inside the screen');
+    expect(ninth.bottom, greaterThan(screen.height),
+        reason: 'and must be cut off by it – otherwise there is no hint');
+
+    await AppClock.setOverriddenNow(null);
+  });
+
+testWidgets('the header takes less space so more lessons fit on screen',
+      (WidgetTester tester) async {
+    seedOfflineWeek();
+    await pumpWeekPlan(tester, size: const Size(400, 800));
+
+    // Zwischen der Kopfzeile der Seite und der ersten Rasterzeile soll kein
+    // nennenswerter Leerstand mehr sein – er ginge zulasten der Stunden.
+    final Rect appBar = tester.getRect(find.byIcon(Icons.refresh).hitTestable());
+    final Rect range = tester.getRect(find.text('21.09. - 26.09.'));
+    expect(range.top - appBar.bottom, lessThan(70),
+        reason: 'the date row must sit close below the app bar');
+
+    await AppClock.setOverriddenNow(null);
+  });
+
+testWidgets('the weekday and the date below it are not scaled down',
+      (WidgetTester tester) async {
+    seedOfflineWeek();
+    await pumpWeekPlan(tester, size: const Size(400, 800));
+
+    // Der Tageskopf steckt in einem [FittedBox] (scaleDown), damit er nie
+    // überläuft. Dieser Test wacht darüber, dass er **nichts** skaliert – sonst
+    // sähe die Schrift kleiner aus, als sie eingestellt ist, und genau das war
+    // die Beschwerde.
+    final Finder weekday = find.text('Mon');
+    final Finder date = find.text('21.9.');
+
+    // Das [FittedBox] bekommt den Platz fest vorgegeben; passt sein Inhalt
+    // hinein, wird nichts skaliert. Passt er nicht hinein, schrumpft die
+    // Schrift unter ihre eingestellte Größe.
+    final Size fitted = tester.getSize(
+      find.ancestor(of: weekday, matching: find.byType(FittedBox)).first,
+    );
+    final Size content = tester.getSize(
+      find
+          .descendant(
+            of: find.ancestor(of: weekday, matching: find.byType(FittedBox)).first,
+            matching: find.byType(Column),
+          )
+          .first,
+    );
+    expect(content.height, lessThanOrEqualTo(fitted.height + 0.5),
+        reason: 'the weekday and its date must fit without being scaled down');
+    expect(content.width, lessThanOrEqualTo(fitted.width + 0.5));
+
+    expect(tester.widget<Text>(weekday).style!.fontSize, greaterThanOrEqualTo(17));
+    expect(tester.widget<Text>(date).style!.fontSize, greaterThanOrEqualTo(14));
+
+    await AppClock.setOverriddenNow(null);
+  });
+
+testWidgets('a changed room or teacher is marked by colour only',
+      (WidgetTester tester) async {
+    // Ein Tag, in dem Raum **und** Lehrer dieser einen Stunde geändert wurden.
+    final Map<String, dynamic> plan = DemoData.buildDayPlan(DateTime(2026, 9, 21));
+    final List<dynamic> kl = plan['data']['Klassen']['Kl'] as List<dynamic>;
+    final Map<String, dynamic> kl0 = Map<String, dynamic>.from(kl.first as Map);
+    final Map<String, dynamic> pl = Map<String, dynamic>.from(kl0['Pl'] as Map);
+    final List<dynamic> std = List<dynamic>.from(pl['Std'] as List<dynamic>);
+    final Map<String, dynamic> first =
+        Map<String, dynamic>.from(std.first as Map);
+    first['placeChanged'] = true;
+    first['teacherChanged'] = true;
+    first['info'] = 'Vertretung';
+    std[0] = first;
+    pl['Std'] = std;
+    kl0['Pl'] = pl;
+    kl[0] = kl0;
+    plan['data']['Klassen']['Kl'] = kl;
+
+    SharedPreferences.setMockInitialValues({
+      'vplanSchoolnumber': '999999',
+      'vplanUsername': 'lehrer',
+      'vplanPassword': 'geheim',
+      'classes': ['5a'],
+      'hideLessonTimes': false,
+      'hideTeacher': false,
+      'offlineVPData': <String>[
+        jsonEncode(plan),
+        for (int i = 1; i < 5; i++)
+          jsonEncode(DemoData.buildDayPlan(DateTime(2026, 9, 21).add(Duration(days: i)))),
+      ],
+    });
+    await pumpWeekPlan(tester);
+
+    final _CellTexts texts = _firstCellTexts(tester);
+    final Text room = texts.room;
+    final Text teacher = texts.teacher;
+
+    // Farbe ist gesetzt …
+    expect(room.style!.color, isNotNull);
+    expect(teacher.style!.color, isNotNull);
+    // … aber **kein** Fettdruck: Eine Änderung wird allein an der Farbe
+    // erkennbar, damit Raum und Lehrer nicht aus der typografischen Reihe
+    // fallen.
+    expect(room.style!.fontWeight, isNot(FontWeight.bold));
+    expect(teacher.style!.fontWeight, isNot(FontWeight.bold));
+
+    // Die geänderten Angaben sind in der Zelle farbig, das Fach nicht.
+    final Text subject = texts.subject;
+    expect(room.style!.color, isNot(subject.style!.color));
+
+    await AppClock.setOverriddenNow(null);
+  });
+
   testWidgets('the week view is off by default and can be switched on',
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
-      'vplanSchoolnumber': '123456',
-      'vplanUsername': 'user',
-      'vplanPassword': 'password',
+      'vplanSchoolnumber': '999999',
+      'vplanUsername': 'lehrer',
+      'vplanPassword': 'geheim',
     });
     await tester.pumpWidget(MaterialApp(
       locale: const Locale('en', ''),
@@ -251,14 +740,14 @@ void main() {
     await tester.tap(find.byIcon(Icons.arrow_forward));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('28.09.2026'), findsWidgets);
+    expect(find.text('28.09. - 03.10.'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('14.09.2026'), findsWidgets);
+    expect(find.text('14.09. - 19.09.'), findsOneWidget);
 
     await AppClock.setOverriddenNow(null);
   });

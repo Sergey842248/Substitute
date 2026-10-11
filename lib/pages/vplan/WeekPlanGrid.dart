@@ -15,11 +15,17 @@ class WeekDayColumn {
   const WeekDayColumn({
     required this.date,
     required this.lessons,
+    this.info = const <dynamic>[],
     this.missedCourses = const <String, Map<String, dynamic>>{},
   });
 
   final DateTime date;
   final List<dynamic> lessons;
+
+  /// Die „Zusatzinformationen" des Tages – dieselben Zeilen, die in der
+  /// normalen Tagesansicht unter den Stunden stehen. Sie erscheinen beim
+  /// Tippen auf den Tageskopf.
+  final List<dynamic> info;
 
   /// Kurs → { 'count': …, 'entryIds': […] } für das Stiftsymbol.
   final Map<String, Map<String, dynamic>> missedCourses;
@@ -54,48 +60,47 @@ class WeekPlanGrid extends StatelessWidget {
   /// Wird beim Tippen auf das Stiftsymbol aufgerufen.
   final void Function(String course, DateTime day)? onSignatureTap;
 
-  /// Die Stundennummern ("count") der ganzen Woche, aufsteigend sortiert und
-  /// ohne Doppelungen. Sie ergeben die Zeilen des Rasters: Eine Stunde, die nur
-  /// an einem einzigen Tag stattfindet, bekommt trotzdem ihre eigene Zeile –
-  /// sonst stünde sie quer unter den anderen Tagen.
-  List<int> _periods() {
-    final Set<int> periods = <int>{};
-    for (final WeekDayColumn day in days) {
-      for (final dynamic lesson in day.lessons) {
-        final int? count = int.tryParse('${lesson['count'] ?? ''}'.trim());
-        if (count != null) periods.add(count);
-      }
-    }
-    final List<int> sorted = periods.toList()..sort();
-    return sorted;
-  }
+  /// So viele Zeilen passen ohne Scrollen auf den Bildschirm.
+  ///
+  /// Darüber hinaus wird die Woche scrollbar – mit derselben Zeilenhöhe, damit
+  /// das Raster beim Scrollen nicht springt.
+  static const int rowsWithoutScrolling = 8;
 
-  /// Pro Tag die Stunde zu einer Stundennummer. Kommt eine Nummer an einem Tag
-  /// mehrfach vor (z.B. zwei Parallelstunden im selben Slot), gewinnt die
-  /// erste – so wie in der Tagesansicht, wo die Stunden nach Nummer sortiert
-  /// und einfach untereinander angezeigt werden.
-  static Map<int, dynamic> _byPeriod(List<dynamic> lessons) {
-    final Map<int, dynamic> result = <int, dynamic>{};
-    for (final dynamic lesson in lessons) {
-      final int? count = int.tryParse('${lesson['count'] ?? ''}'.trim());
-      if (count == null || result.containsKey(count)) continue;
-      result[count] = lesson;
+  /// Wie viele Zeilen beim Scrollen **über** den achten hinaus sichtbar sein
+  /// sollen – hier eine halbe.
+  ///
+  /// Ohne diesen Rest wäre die neunte Stunde exakt unterhalb der Kante und man
+  /// sähe nicht, dass es weitergeht. Der halbe Rest ist der Hinweis: Es ist
+  /// etwas da, man muss nur scrollen.
+  static const double scrollPeekRows = 0.5;
+
+  /// Die Zeilen des Rasters: so viele, wie der Tag mit den meisten Stunden hat.
+  ///
+  /// Die Stunden werden **einfach untereinander** gereiht und nicht nach
+  /// Stundennummer ausgerichtet. Grund: Eine Stundennummer kann mehrfach
+  /// vorkommen (z.B. zwei Kurse in der 1. Stunde oder eine geteilte
+  /// Doppelstunde) – im Raster nach Nummer ausgerichtet ginge einer dieser
+  /// Kurse verloren. So bekommt jeder Kurs seine eigene Zeile, in der
+  /// Reihenfolge, in der der Vertretungsplan sie für diesen Tag ausgibt.
+  int get _rowCount {
+    int max = 0;
+    for (final WeekDayColumn day in days) {
+      if (day.lessons.length > max) max = day.lessons.length;
     }
-    return result;
+    return max;
   }
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
-    final List<int> periods = _periods();
-    if (days.isEmpty || periods.isEmpty) return const SizedBox.shrink();
+    final int rows = _rowCount;
+    if (days.isEmpty || rows == 0) return const SizedBox.shrink();
 
-    final DateTime today = AppClock.now();
 
     // Welche Kurse bekommen an welchem Tag das Stiftsymbol? Wird hier – vor
     // dem Aufbau – einmal je Tag berechnet und nicht beim Zellenaufbau
     // mitgezählt: Das Widget ist zustandslos, ein Zähler darin würde über
-    // Rebuilds hinweg falsche Werte zeigen (unten erklärt).
+    // Rebuilds hinweg falsche Werte zeigen.
     final Map<String, Set<String>> signatureCourses = <String, Set<String>>{
       for (final WeekDayColumn day in days)
         _dayId(day.date): _signatureCoursesOf(day),
@@ -104,11 +109,55 @@ class WeekPlanGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final double cellWidth = constraints.maxWidth / days.length;
-        const double headerHeight = 36;
-        // Die Zeilen teilen sich den Rest der Höhe. Sie werden dadurch alle
-        // gleich hoch – das ist der Grund, warum hier kein Scrollen nötig ist.
+        // Genug Platz fuer die beiden Zeilen des Tageskopfs **ohne**
+        // Herunterskalieren: Bei 26 Pixeln fasste das [FittedBox] beide
+        // Zeilen nur, indem es sie auf rund 80 % verkleinerte – die Schrift
+        // sah dadurch deutlich kleiner aus, als sie eingestellt war.
+        const double headerHeight = 42;
+        // Die Zeilen teilen sich den Rest der Höhe – und zwar **alle**:
+        // Hat ein Tag 6 Stunden, wird durch 6 geteilt (nicht durch 8), sonst
+        // bliebe unten ein leeres Band stehen und die Stunden würden kleiner
+        // gesetzt als nötig.
+        //
+        // Ab der neunten Zeile wird durch `8 + scrollPeekRows` geteilt und
+        // gescrollt: Acht volle Zeilen plus ein halber Rest der neunten, der
+        // sichtbar bleibt und damit verrät, dass noch etwas kommt.
         final double rowHeight =
-            (constraints.maxHeight - headerHeight) / periods.length;
+            (constraints.maxHeight - headerHeight) /
+            (rows < rowsWithoutScrolling
+                ? rows
+                : rowsWithoutScrolling + scrollPeekRows);
+
+        final Widget rowsWidget = Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (int row = 0; row < rows; row++)
+              SizedBox(
+                height: rowHeight,
+                child: Row(
+                  children: days.map((WeekDayColumn day) {
+                    final dynamic lesson =
+                        row < day.lessons.length ? day.lessons[row] : null;
+                    final Widget cell = _lessonCell(
+                      context,
+                      lesson: lesson,
+                      day: day,
+                      row: row,
+                      showSignature: lesson != null &&
+                          (signatureCourses[_dayId(day.date)]
+                                  ?.contains(_courseOfSafe(lesson)) ??
+                              false),
+                    );
+                    // Eine dünne Trennlinie zwischen den Tagen: Ohne sie
+                    // verschwimmen die Spalten, weil die Zellen sehr schmal
+                    // sind und direkt aneinandergrenzen.
+                    return _withDivider(context, cell, cellWidth,
+                        isLast: day == days.last);
+                  }).toList(),
+                ),
+              ),
+          ],
+        );
 
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -121,37 +170,19 @@ class WeekPlanGrid extends StatelessWidget {
                       (WeekDayColumn day) => _dayHeader(
                         context,
                         l10n,
-                        day.date,
+                        day,
                         cellWidth,
-                        isToday: _sameDay(day.date, today),
                       ),
                     )
                     .toList(),
               ),
             ),
-            for (final int period in periods)
-              SizedBox(
-                height: rowHeight,
-                child: Row(
-                  children: days.map((WeekDayColumn day) {
-                    final Map<int, dynamic> byPeriod = _byPeriod(day.lessons);
-                    final Widget cell = _lessonCell(
-                      context,
-                      lesson: byPeriod[period],
-                      period: period,
-                      day: day,
-                      showSignature: signatureCourses[_dayId(day.date)]
-                          ?.contains(_courseOfSafe(byPeriod[period])) ??
-                          false,
-                    );
-                    // Eine dünne Trennlinie zwischen den Tagen: Ohne sie
-                    // verschwimmen die Spalten, weil die Zellen sehr schmal
-                    // sind und direkt aneinandergrenzen.
-                    return _withDivider(context, cell, cellWidth,
-                        isLast: day == days.last);
-                  }).toList(),
-                ),
-              ),
+            // Erst ab der neunten Zeile wird gescrollt.
+            Expanded(
+              child: rows > rowsWithoutScrolling
+                  ? SingleChildScrollView(child: rowsWidget)
+                  : rowsWidget,
+            ),
           ],
         );
       },
@@ -169,7 +200,7 @@ class WeekPlanGrid extends StatelessWidget {
   }) {
     return Container(
       width: width,
-      padding: EdgeInsets.only(right: isLast ? 0 : 2),
+      padding: EdgeInsets.only(right: isLast ? 0 : 1.5),
       child: DecoratedBox(
         decoration: BoxDecoration(
           border: isLast
@@ -186,48 +217,111 @@ class WeekPlanGrid extends StatelessWidget {
     );
   }
 
-  /// Spaltenkopf: Wochentagskürzel und Tageszahl. Der heutige Tag wird
-  /// hervorgehoben, damit in einer Woche mit vielen Tagen klar ist, wo „jetzt“
-  /// gerade ist.
+  /// Spaltenkopf: Wochentagskürzel und Tageszahl, mittig und antippenbar.
+  ///
+  /// Der heutige Tag wird hervorgehoben, damit in einer Woche mit vielen Tagen
+  /// klar ist, wo „jetzt“ gerade ist. Tippen auf den Kopf zeigt die
+  /// Zusatzinformationen des Tages – dieselben, die in der Tagesansicht unter
+  /// den Stunden stehen.
   Widget _dayHeader(
     BuildContext context,
     AppLocalizations l10n,
-    DateTime date,
-    double width, {
-    required bool isToday,
-  }) {
+    WeekDayColumn day,
+    double width,
+  ) {
+    final bool isToday = _sameDay(day.date, AppClock.now());
     final Color color = isToday
         ? Theme.of(context).primaryColor
         : Theme.of(context).focusColor.withValues(alpha: 0.8);
     return Container(
       width: width,
       alignment: Alignment.center,
-      // `scaleDown` wie in den Zellen: Die Zeilenhöhe wird aufgeteilt und ist
-      // deshalb nicht garantiert groß genug für zwei Textzeilen – ohne das
-      // lief der Kopf bei gedrängten Ansichten über.
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              weekdayShort(l10n, date),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: color,
+      child: InkWell(
+        onTap: () => _showDayInfo(context, day),
+        child: FittedBox(
+          // `scaleDown` wie in den Zellen: Die Kopfhöhe ist fest, die
+          // Wochentagsangaben aber so breit, wie der Tag es hergibt.
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                weekdayShort(l10n, day.date),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  height: 1.05,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
               ),
-            ),
             Text(
-              DateFormat('dd.MM').format(date),
+              DateFormat('d.M.').format(day.date),
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 14,
+                height: 1.05,
                 color: color.withValues(alpha: 0.9),
               ),
             ),
-          ],
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  /// Die Zusatzinformationen eines Tages – dieselben Zeilen, die in der
+  /// Tagesansicht unter den Stunden stehen („ZusatzInfo" des
+  /// Vertretungsplans, z.B. „Morgen Sport in der Halle").
+  void _showDayInfo(BuildContext context, WeekDayColumn day) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final List<String> lines = day.info
+        .map((dynamic e) => '$e'.trim())
+        .where((String e) => e.isNotEmpty)
+        .toList();
+
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.0),
+        ),
+        title: Center(
+          child: Text(
+            '${weekdayShort(l10n, day.date)}, '
+            '${DateFormat('dd.MM.yyyy').format(day.date)}',
+            style: const TextStyle(fontSize: 18),
+          ),
+        ),
+        titlePadding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+        contentPadding: const EdgeInsets.all(15),
+        actionsPadding: const EdgeInsets.all(0),
+        content: lines.isEmpty
+            ? Text(
+                l10n.noAdditionalInformation,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: lines
+                    .map(
+                      (String line) => Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Text(line, style: const TextStyle(fontSize: 16)),
+                      ),
+                    )
+                    .toList(),
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.close),
+          ),
+        ],
       ),
     );
   }
@@ -239,8 +333,8 @@ class WeekPlanGrid extends StatelessWidget {
   Widget _lessonCell(
     BuildContext context, {
     required dynamic lesson,
-    required int period,
     required WeekDayColumn day,
+    required int row,
     required bool showSignature,
   }) {
     final double cellWidth = MediaQuery.of(context).size.width / days.length;
@@ -248,7 +342,7 @@ class WeekPlanGrid extends StatelessWidget {
     if (lesson is! Map) {
       return Container(
         width: cellWidth,
-        margin: const EdgeInsets.all(1),
+        margin: const EdgeInsets.symmetric(vertical: 1, horizontal: 0.5),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
@@ -273,24 +367,45 @@ class WeekPlanGrid extends StatelessWidget {
         ? AppColors.hinweisText(context)
         : Theme.of(context).colorScheme.onSurface;
 
+    // **Schriftgrößen-Hierarchie der Zelle** (bewusst so gewählt):
+    //   1. Fach     – die wichtigste Angabe, deshalb am größten
+    //   2. Raum     – wo die Stunde stattfindet
+    //   3. Lehrer   – wer sie hält
+    //   4. Uhrzeit  – die nachgeordnete Angabe, deshalb ganz unten und am
+    //                 kleinsten (nur wenn nicht ausgeblendet)
+    //
+    // Eine Änderung an Raum oder Lehrer wird **ausschließlich über die Farbe**
+    // angezeigt (rot, `aktionston`). Bewusst kein Fettdruck und kein
+    // zusätzliches Symbol: In der schmalen Zelle konkurrieren diese Angaben
+    // mit dem Fach um den Platz, und der Text soll dadurch nicht zusätzlich
+    // aus der Reihe fallen. Wer wissen will, ob etwas geändert wurde, tippt auf
+    // die Stunde – dort steht der Hinweis ausgeschrieben.
     final Widget content = SizedBox(
-      width: cellWidth - 10,
+      width: cellWidth - 6,
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        // Mittig: Die Zelle ist schmal, und linksbündiger Text würde bei
+        // unterschiedlich langen Angaben (Fach, Raum, Lehrer) immer an derselben
+        // Kante kleben statt mittig in der Spalte zu sitzen.
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                '$period',
+                '${lesson['count'] ?? ''}',
+                // Punkt 4: die Stundennummer war zu klein.
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: baseColor.withValues(alpha: 0.7),
+                  color: baseColor.withValues(alpha: 0.55),
                 ),
               ),
               if (showSignature) ...[
-                const SizedBox(width: 3),
+                const SizedBox(width: 2),
+                // Das Stiftsymbol ist die einzige Stelle in der Zelle mit
+                // eigener Tap-Fläche: Es öffnet die Unterschriften-Abfrage und
+                // darf das Antippen der Zelle (Zusatzinfos) nicht auslösen.
                 InkWell(
                   onTap: () => onSignatureTap?.call(course, day.date),
                   child: Icon(
@@ -299,11 +414,10 @@ class WeekPlanGrid extends StatelessWidget {
                     color: Theme.of(context).primaryColor,
                   ),
                 ),
-                const SizedBox(width: 2),
                 Text(
                   '${day.missedCourses[course]?['count']}',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).primaryColor,
                   ),
@@ -311,51 +425,59 @@ class WeekPlanGrid extends StatelessWidget {
               ],
             ],
           ),
-          const SizedBox(height: 1),
           Text(
             lesson['lesson']?.toString() ?? '---',
+            textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
+              height: 1.02,
               color: baseColor,
             ),
           ),
-          if (!hideLessonTimes)
+          Text(
+            lesson['place']?.toString() ?? '---',
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 15,
+              height: 1.05,
+              fontWeight: FontWeight.w600,
+              color: placeChanged
+                  ? raumAenderungsFarbe
+                  : baseColor.withValues(alpha: 0.85),
+            ),
+          ),
+          if (!hideTeacher)
             Text(
-              '${lesson['begin'] ?? '---'}–${lesson['end'] ?? '---'}',
+              lesson['teacher']?.toString() ?? '---',
+              textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 10,
-                color: baseColor.withValues(alpha: 0.8),
+                fontSize: 13,
+                height: 1.05,
+                fontWeight: FontWeight.w500,
+                color: teacherChanged
+                    ? raumAenderungsFarbe
+                    : baseColor.withValues(alpha: 0.75),
               ),
             ),
-          _smallLine(
-            Icons.location_on_rounded,
-            lesson['place']?.toString() ?? '---',
-            baseColor,
-            placeChanged ? raumAenderungsFarbe : null,
-          ),
-          if (!hideTeacher)
-            _smallLine(
-              Icons.person_rounded,
-              lesson['teacher']?.toString() ?? '---',
-              baseColor,
-              teacherChanged ? raumAenderungsFarbe : null,
-            ),
-          if (lesson['info'] != null)
+          if (!hideLessonTimes)
             Padding(
               padding: const EdgeInsets.only(top: 1),
               child: Text(
-                '${lesson['info']}',
-                maxLines: 2,
+                '${lesson['begin'] ?? '---'}–${lesson['end'] ?? '---'}',
+                textAlign: TextAlign.center,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  color: baseColor,
+                  fontSize: 10.5,
+                  height: 1.05,
+                  color: baseColor.withValues(alpha: 0.6),
                 ),
               ),
             ),
@@ -365,54 +487,137 @@ class WeekPlanGrid extends StatelessWidget {
 
     return Container(
       width: cellWidth,
-      margin: const EdgeInsets.all(1),
+      margin: const EdgeInsets.symmetric(vertical: 1, horizontal: 0.5),
+      // Eindeutiger Schlüssel: Die Zellen sind von außen nicht unterscheidbar,
+      // und ein Test muss genau eine Stundenzelle treffen können – der
+      // gleichnamige Tageskopf ist ebenfalls eine [InkWell].
+      key: ValueKey<String>('lessonCell_${_dayId(day.date)}_$row'),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         color: AppColors.hinweisFlaecheVon(context, ton) ??
             Theme.of(context).colorScheme.surface,
       ),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 3),
-        // `scaleDown`: Passt der Inhalt nicht in die Zeilenhöhe, wird er
-        // kleiner gesetzt, statt abgeschnitten. So bleibt die Woche immer
-        // vollständig sichtbar – auch bei sehr vielen Stunden.
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.topLeft,
-          child: content,
+      // Tippen auf die Stunde zeigt die Zusatzinformationen (Hinweistext des
+      // Vertretungsplans, Kurs, vollständige Zeiten). Im Raster selbst ist
+      // dafür bewusst kein Platz – der Hinweistext würde das Grid sprengen.
+      child: InkWell(
+        onTap: () => _showLessonDetails(context, lesson, day.date),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 1.5, vertical: 2),
+          // `scaleDown`: Passt der Inhalt nicht in die Zeilenhöhe, wird er
+          // kleiner gesetzt, statt abgeschnitten. So bleibt die Woche immer
+          // vollständig sichtbar – auch bei sehr vielen Stunden.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.topCenter,
+            child: content,
+          ),
         ),
       ),
     );
   }
 
-  /// Eine Zeile „Symbol + Text" in der Zelle (Ort, Lehrer).
-  Widget _smallLine(
-    IconData icon,
-    String text,
-    Color baseColor,
-    Color? highlightColor,
+  /// Zeigt die Zusatzinformationen zu einer Stunde: den Hinweistext des
+  /// Vertretungsplans („Entfall", „Raumänderung", „Vertretung" …), den Kurs
+  /// und – falls nicht ausgeblendet – die vollständigen Zeiten.
+  void _showLessonDetails(
+    BuildContext context,
+    dynamic lesson,
+    DateTime day,
   ) {
-    final Color color = highlightColor ?? baseColor.withValues(alpha: 0.85);
-    return Row(
-      children: [
-        Icon(icon, size: 9, color: color),
-        const SizedBox(width: 2),
-        Expanded(
+    final Map<String, dynamic> data = Map<String, dynamic>.from(lesson as Map);
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final String info = data['info']?.toString().trim() ?? '';
+    final String course = _courseOf(data);
+    final String place = data['place']?.toString() ?? '';
+    final String teacher = data['teacher']?.toString() ?? '';
+    final String time = '${data['begin'] ?? '---'} – ${data['end'] ?? '---'}';
+    final String subject = data['lesson']?.toString() ?? '';
+
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.0),
+        ),
+        title: Center(
           child: Text(
-            text,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 10,
-              color: color,
-              fontWeight: highlightColor == null
-                  ? FontWeight.normal
-                  : FontWeight.w900,
-            ),
+            '${weekdayShort(l10n, day)}, ${DateFormat('dd.MM.yyyy').format(day)}'
+            ' – $subject',
+            style: const TextStyle(fontSize: 18),
           ),
         ),
-      ],
+        titlePadding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+        contentPadding: const EdgeInsets.all(15),
+        actionsPadding: const EdgeInsets.all(0),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (info.isNotEmpty)
+              Text(
+                info,
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+            if (course.isNotEmpty && course != subject)
+              _detailLine(context, Icons.bookmark_rounded, course),
+            if (place.isNotEmpty)
+              _detailLine(
+                context,
+                Icons.location_on_rounded,
+                place,
+                color:
+                    data['placeChanged'] == true ? AppColors.aktionston(context) : null,
+              ),
+            if (teacher.isNotEmpty)
+              _detailLine(
+                context,
+                Icons.person_rounded,
+                teacher,
+                color: data['teacherChanged'] == true
+                    ? AppColors.aktionston(context)
+                    : null,
+              ),
+            _detailLine(context, Icons.access_time_rounded, time),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.close),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Eine Zeile im Detail-Dialog: Symbol + Angabe.
+  Widget _detailLine(
+    BuildContext context,
+    IconData icon,
+    String text, {
+    Color? color,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: color == null ? FontWeight.normal : FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

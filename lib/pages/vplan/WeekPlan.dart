@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:substitute/models/ListPage.dart';
+import 'package:substitute/models/swipe_page_transition.dart';
 import 'package:substitute/services/AppClock.dart';
 import 'package:substitute/services/PlanWeek.dart';
 import 'package:substitute/services/SchoolStorage.dart';
-import 'package:substitute/services/Weekday.dart';
 
-import 'PlanLessons.dart';
+import 'Plan.dart';
 import 'VPlanAPI.dart';
 import 'WeekPlanGrid.dart';
 
@@ -270,11 +271,19 @@ class _WeekPlanState extends State<WeekPlan> {
     setState(() => _missedCourses[_key(day)] = updated);
   }
 
-  /// Der Wochenzeitraum in der Kopfzeile: „Mo, 05.10.2026 – Sa, 10.10.2026“.
-  String _rangeLabel(AppLocalizations l10n) =>
-      '${dateWithWeekday(l10n, _weekStart, DateFormat('dd.MM.yyyy').format(_weekStart))} '
-      '${l10n.weekPlanTo} '
-      '${dateWithWeekday(l10n, _weekEnd, DateFormat('dd.MM.yyyy').format(_weekEnd))}';
+  /// Der Zeitraum der angezeigten Woche: „01.01. - 07.01.“.
+///
+/// **Ohne Jahreszahl** – die Woche steht ohnehin im Kopf der Seite, und die
+/// Jahreszahl wäre bei sechs Spalten der teuerste Text der ganzen Ansicht. Nur
+/// wenn die Woche über den Jahreswechsel liegt (30.12. - 05.01.), steht die
+/// Jahreszahl doch dabei – sonst wäre nicht erkennbar, welches Jahr gemeint
+/// ist.
+String _rangeLabel() {
+  final bool sameYear = _weekStart.year == _weekEnd.year;
+  final String pattern = sameYear ? 'dd.MM.' : 'dd.MM.yyyy';
+  return '${DateFormat(pattern).format(_weekStart)} - '
+      '${DateFormat(pattern).format(_weekEnd)}';
+}
 
   @override
   Widget build(BuildContext context) {
@@ -283,14 +292,49 @@ class _WeekPlanState extends State<WeekPlan> {
         widget.person?['name']?.toString() ?? (className ?? widget.classId);
 
     return ListPage(
-      title: '$headerTitle\n${_rangeLabel(l10n)}',
+      // Nur der Name in der Kopfzeile: Der Zeitraum steht in der schmalen Zeile
+      // darüber beim Raster. So bleibt eine ganze Zeile für die Stunden frei –
+      // bei sechs Spalten ist vertikaler Platz genauso knapp wie horizontaler.
+      title: headerTitle,
       smallTitle: true,
-      // Kein Scrollen: Das Grid soll die ganze Woche auf einmal zeigen. Die
-      // Kopfzeile wird deshalb auch nicht eingeklappt – es gibt nichts, was
-      // eingeklappt werden könnte.
+      // Kein Scrollen (bis zur neunten Zeile): Das Grid soll die ganze Woche auf
+      // einmal zeigen. Die Kopfzeile wird deshalb auch nicht eingeklappt – es
+      // gibt nichts, was eingeklappt werden könnte.
       fillHeight: true,
       collapseHeaderOnScroll: false,
+      // Knappere Kopfzeile: Der Vorgabe sind 10 % der Bildschirmhöhe, die der
+      // Name und die drei Knöpfe gar nicht brauchen. Der Leerraum kommt
+      // stattdessen dem Raster zugute – bzw. der angedeuteten neunten Stunde.
+      headerHeightFactor: 0.085,
+      // Der Vorgabe (20 Pixel links und rechts) nimmt dem Raster eine halbe
+      // Spalte weg. Hier zählt jedes Pixel, also möglichst wenig Rand.
+      contentPadding: const EdgeInsets.fromLTRB(2, 0, 2, 0),
       actions: [
+        // Die Kurse, die angezeigt werden, lassen sich auch in der
+        // Wochenansicht auswählen – derselbe Knopf wie in der Tagesansicht.
+        IconButton(
+          onPressed: () => Navigator.push(
+            context,
+            SwipePageTransition(
+              type: PageTransitionType.rightToLeft,
+              child: _isPerson
+                  ? PersonCourses(
+                      classId: widget.classId,
+                      person: widget.person!,
+                      isNew: false,
+                      onSaved: (List<String> courses) {
+                        setState(() => widget.person!['courses'] = courses);
+                        _loadWeek();
+                      },
+                    )
+                  : Courses(
+                      classId: widget.classId,
+                      updateCourses: () => _loadWeek(),
+                    ),
+            ),
+          ),
+          icon: Icon(Icons.settings_rounded, size: 20),
+        ),
         IconButton(
           onPressed: _refreshing ? null : _refresh,
           icon: Icon(Icons.refresh, size: 20),
@@ -335,6 +379,19 @@ class _WeekPlanState extends State<WeekPlan> {
     );
   }
 
+  /// Die „Zusatzinformationen" eines Tages als Liste von Textzeilen.
+  ///
+  /// Die API liefert sie je nach Anbieter mal als Liste, mal als leeren String
+  /// – beides wird hier zu einer sauberen Liste normalisiert, damit im Dialog
+  /// nichts Unlesbares steht.
+  static List<dynamic> _infoOfDay(dynamic plan) {
+    final dynamic info = plan is Map ? plan['info'] : null;
+    if (info is List) return info;
+    final String text = info?.toString().trim() ?? '';
+    if (text.isEmpty || text == '[]') return const <dynamic>[];
+    return <dynamic>[text];
+  }
+
   /// Das Wochenraster. Die Tage stehen nebeneinander, die Stundenzeilen
   /// darunter – ohne Scrollen, die Höhe wird auf den Bildschirm aufgeteilt.
   Widget _buildGrid() {
@@ -350,6 +407,9 @@ class _WeekPlanState extends State<WeekPlan> {
                 .where(_isLessonVisible)
                 .toList(),
             missedCourses: _missedCourses[_key(day)] ?? const {},
+            // Die „Zusatzinformationen" des Tages: In der Tagesansicht stehen
+            // sie unter den Stunden, hier öffnet der Tageskopf sie.
+            info: _infoOfDay(_days[_key(day)]!),
           ),
     ];
 
@@ -361,29 +421,62 @@ class _WeekPlanState extends State<WeekPlan> {
     );
   }
 
-  /// Zeigt den Wochentyp (A/B) an – für alle Tage der Woche gleich, weil er
-  /// sich im Laufe der Woche nicht ändert.
+  /// Eine schmale Zeile über dem Raster: der Zeitraum der Woche und – wenn
+  /// geladen – der Wochentyp (A/B), der sich im Laufe der Woche nicht ändert.
   ///
-  /// Bewusst eine schmale Zeile und keine Karte: Das Grid soll die volle
+  /// Bewusst eine Zeile und keine Karte: Das Grid soll die volle
   /// Bildschirmhöhe bekommen, und jedes zusätzliche Element nähme davon Platz
   /// weg, den die Stunden brauchen.
   Widget _weekTypeTile(AppLocalizations l10n) {
-    if (_loading || _days.isEmpty) return const SizedBox.shrink();
+    final bool showType = !_loading && _days.isNotEmpty;
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 4),
-      child: Row(
-        children: [
-          Icon(
-            Icons.repeat_rounded,
-            size: 15,
-            color: Theme.of(context).focusColor.withValues(alpha: 0.7),
+      padding: const EdgeInsets.only(bottom: 2),
+      // Mittig: Die Zeile gehört zum Raster darunter, dessen Spalten mittig
+      // ausgerichtet sind – linksbündig würde sie quer dazu wirken.
+      child: Align(
+        alignment: Alignment.center,
+        // `scaleDown`: Auf einem schmalen Telefon ist die Zeile (Zeitraum plus
+        // Wochentyp) breiter als der Bildschirm. Ohne das lief sie über – und
+        // die Kopfzeile ist die einzige Zeile, die nicht skalieren darf, weil
+        // sie sonst nicht mehr lesbar wäre.
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.date_range_rounded,
+                size: 15,
+                color: Theme.of(context).focusColor.withValues(alpha: 0.7),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                _rangeLabel(),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).focusColor.withValues(alpha: 0.85),
+                ),
+              ),
+              if (showType) ...[
+                const SizedBox(width: 10),
+                Icon(
+                  Icons.repeat_rounded,
+                  size: 15,
+                  color: Theme.of(context).focusColor.withValues(alpha: 0.7),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  _weekTypeLabel(l10n),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ],
           ),
-          const SizedBox(width: 5),
-          Text(
-            '${l10n.week}: ${_weekTypeLabel(l10n)}',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-          ),
-        ],
+        ),
       ),
     );
   }
