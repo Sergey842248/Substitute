@@ -319,6 +319,12 @@ create table if not exists shares (
   label           text        not null default '',
 
   searchable      boolean     not null default false,
+  -- `is_global` wird nicht mehr gelesen und nicht mehr geschrieben: Es gibt
+  -- keinen globalen Share mehr. Jeder Share hängt am Nutzernamen und ist von
+  -- jeder Schule aus zu öffnen, sobald man ihn kennt; die Schulnummer hält
+  -- fremde Schulen nur aus dem Suchverzeichnis heraus (siehe `shares_directory`).
+  -- Die Spalte bleibt bestehen, damit bestehende Zeilen gültig bleiben, und
+  -- steht auf `false`.
   is_global       boolean     not null default false,
   updated_at      timestamptz not null default now(),
 
@@ -384,9 +390,8 @@ comment on table shares is
 -- wenigen Zeilen, die im Verzeichnis überhaupt auftauchen dürfen, werden
 -- überhaupt indiziert.
 --
--- Wichtig: **kein** Filter auf is_global hier. Ein globaler Share ist
--- nutzbar von jeder Schule, taucht aber nur im Verzeichnis seiner eigenen
--- Schulnummer auf.
+-- Wichtig: **kein** Filter auf is_global hier – es gibt keinen globalen Share
+-- mehr. Die Schulnummer ist die einzige Grenze, und die steht schon vorn.
 create index if not exists shares_directory
   on shares (school_number, updated_at desc)
   where searchable;

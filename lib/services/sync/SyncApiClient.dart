@@ -78,7 +78,6 @@ class ShareSummary {
     required this.username,
     required this.displayName,
     required this.label,
-    required this.isGlobal,
     required this.hasPassword,
     required this.updatedAt,
   });
@@ -87,7 +86,6 @@ class ShareSummary {
   final String username;
   final String displayName;
   final String label;
-  final bool isGlobal;
   final bool hasPassword;
   final DateTime updatedAt;
 
@@ -99,7 +97,6 @@ class ShareSummary {
         username: json['username']?.toString() ?? '',
         displayName: json['displayName']?.toString() ?? '',
         label: json['label']?.toString() ?? '',
-        isGlobal: json['isGlobal'] == true,
         hasPassword: json['hasPassword'] == true,
         updatedAt:
             DateTime.tryParse(json['updatedAt']?.toString() ?? '')?.toLocal() ??
@@ -135,7 +132,6 @@ class ShareRecord {
     required this.id,
     required this.envelopes,
     required this.hasPassword,
-    required this.isGlobal,
     required this.updatedAt,
   });
 
@@ -146,7 +142,6 @@ class ShareRecord {
   final Map<String, dynamic> envelopes;
 
   final bool hasPassword;
-  final bool isGlobal;
   final DateTime updatedAt;
 
   /// Die Hülle, die mit [derivedKey] verschlüsselt wurde – oder null, wenn
@@ -411,8 +406,12 @@ class SyncApiClient {
 
   /// Holt das Suchverzeichnis einer Schulnummer.
   ///
-  /// Der Server liefert nur Personen derselben Schulnummer, und von diesen nur
-  /// diejenigen, die ihre Shares ausdrücklich als *suchbar* markiert haben.
+  /// Das Suchverzeichnis zeigt **nur die eigene Schule**: Der Server filtert
+  /// nach [schoolNumber] und liefert von diesen nur diejenigen, die ihre
+  /// Shares ausdrücklich als *suchbar* markiert haben.
+  ///
+  /// Wer einen Share einer fremden Schule öffnen will, braucht den Nutzernamen
+  /// – den Weg dafür führt über [fetchShare], nicht über dieses Verzeichnis.
   Future<List<ShareOwner>> fetchDirectory(String schoolNumber) async {
     final Map<String, dynamic> body =
         await _send('GET', _directoryPath(schoolNumber));
@@ -430,7 +429,6 @@ class SyncApiClient {
       envelopes: (body['envelopes'] as Map<String, dynamic>? ??
           <String, dynamic>{}),
       hasPassword: body['hasPassword'] == true,
-      isGlobal: body['isGlobal'] == true,
       updatedAt:
           DateTime.tryParse(body['updatedAt']?.toString() ?? '')?.toLocal() ??
               DateTime.fromMillisecondsSinceEpoch(0),
@@ -446,20 +444,22 @@ class SyncApiClient {
     required String label,
     required Map<String, dynamic> envelopes,
     required bool searchable,
-    required bool isGlobal,
     required DateTime updatedAt,
   }) =>
       _send('PUT', _shareWritePath(shareId), body: <String, dynamic>{
         'id': shareId,
         'owner': <String, dynamic>{
           'username': username,
+          // Die Schulnummer wandert **mit**, damit der Server das Suchverzeichnis
+          // darauf filtern kann. Sie ist kein Teil des Schlüssels und sperrt
+          // niemanden aus – wer den Nutzernamen hat, kommt auch ohne sie an den
+          // Share.
           'school_number': schoolNumber,
           'display_name': displayName,
         },
         'label': label,
         'envelopes': envelopes,
         'searchable': searchable,
-        'is_global': isGlobal,
         'updated_at': updatedAt.toUtc().toIso8601String(),
       });
 

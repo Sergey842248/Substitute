@@ -5,7 +5,7 @@ import 'package:substitute/services/ConfigBackup.dart';
 import 'package:substitute/services/ConfigBackupFlow.dart';
 
 import '../../../models/ListPage.dart';
-import '../../../models/LoadingProcess.dart';
+import '../../../models/LoadingIndicator.dart';
 
 /// Import/Export der gesamten App-Konfiguration: Einstellungen, Klassen,
 /// Personen, Kurse und Zugangsdaten.
@@ -51,7 +51,7 @@ class _ConfigBackupSettingsState extends State<ConfigBackupSettings> {
         child: ListPage(
           title: l10n.backup,
           children: [
-            if (_busy) const Center(child: LoadingProcess()),
+            if (_busy) const Center(child: LoadingIndicator()),
             _tile(
               icon: Icons.file_upload_rounded,
               title: l10n.backupExport,

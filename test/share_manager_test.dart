@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/testing.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:substitute/services/crypto/Passphrase.dart';
 import 'package:substitute/services/crypto/PayloadCrypto.dart';
 import 'package:substitute/services/sync/NameGuard.dart';
 import 'package:substitute/services/sync/ShareManager.dart';
@@ -29,8 +30,7 @@ class ShareServer {
             // Wichtig: Der Anfragerumpf ist snake_case (Spaltennamen), die
             // Antwort ist camelCase (Domänenmodell der App). Wer hier einfach
             // den Rumpf zurueckgibt, spiegelt eine Serverform, die es nicht
-            // gibt – `isGlobal` kaeme dann als `is_global` an, faellt auf
-            // `false` zurueck, und der Share schiene nicht global.
+            // gibt – `displayName` kaeme dann als `display_name` an.
             shares[segments[2]] = <String, dynamic>{
               'id': segments[2],
               'owner': body['owner'],
@@ -40,7 +40,6 @@ class ShareServer {
               'hasPassword': (body['envelopes'] as Map?)?.containsKey('byPassword') ?? false,
               'unlockableWithSchoolCredentials':
                   (body['envelopes'] as Map?)?.containsKey('bySchool') ?? false,
-              'isGlobal': body['is_global'] == true,
               'updatedAt': body['updated_at'],
               'envelopes': body['envelopes'],
             };
@@ -85,6 +84,7 @@ List<String> classesOf(SharedPreferences prefs, [String key = 'classes']) =>
 
 const String userA = 'blue sky river seven apple candle';
 const String userB = 'red moon water nine tiger mango';
+
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -132,12 +132,62 @@ void main() {
   });
 
   group('Nutzername', () {
-    test('besteht aus zehn lesbaren Wörtern', () async {
+  test('publishing with an over-long username gives a clear error', () async {
+    // Der Server weist einen Nutzernamen von mehr als 60 Zeichen mit
+    // `invalidShare` ab – dieselbe Meldung wie bei einem verbotenen Namen.
+    // Deshalb wird die Laenge schon hier geprueft, damit der Nutzer weiss,
+    // woran es liegt.
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      ShareManager.usernameStorageKey:
+          // 63 Zeichen – genau die Länge, die ein erzeugter Nutzername
+          // früher im Mittel hatte und die der Server nicht akzeptiert.
+          'amber river stone seven candle mango tiger cloud field lantern bright maple',
+      ShareManager.displayNameStorageKey: 'Kollegin',
+      'classes': <String>['5a'],
+    });
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    Object? caught;
+    try {
+      await ShareManager(client: ShareServer().client())
+          .publish(
+        prefs: prefs,
+        schoolNumber: '123456',
+        schoolPassword: 'geheim',
+        displayName: 'Kollegin',
+        label: 'Mein Plan',
+        payload: <String, dynamic>{'classes': <String>['5a']},
+        selection: const ShareSelection(classIds: <String>{'5a'}),
+        searchable: true,
+      );
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught, isA<ShareException>());
+    expect((caught! as ShareException).code, 'usernameTooLong');
+    expect(
+      (prefs.getString(ShareManager.usernameStorageKey) ?? '').length,
+      greaterThan(ShareManager.maxUsernameLength),
+    );
+  });
+
+    test('besteht aus mehreren lesbaren Wörtern und passt auf den Server',
+        () async {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       final ({String username, String displayName}) identity =
           await ShareManager.ensureIdentity(prefs);
       final List<String> words = identity.username.split(' ');
-      expect(words, hasLength(10));
+      // Nicht mehr genau zehn: Die Länge ist auf das Limit des Servers
+      // begrenzt, und dafür greift die Erzeugung je nach Wortlänge auf
+      // weniger Wörter zurück. Mindestens fünf bleiben es – die Entropie
+      // liegt damit weiter weit über jeder sinnvollen Grenze.
+      expect(words.length, inInclusiveRange(5, Passphrase.wordCount));
+      expect(
+        identity.username.length,
+        lessThanOrEqualTo(ShareManager.maxUsernameLength),
+        reason: 'der Server lehnt längere Nutzernamen ab',
+      );
       for (final String word in words) {
         expect(RegExp(r'^[a-z]{3,10}$').hasMatch(word), isTrue,
             reason: '"$word" soll ein echtes englisches Wort sein');
@@ -175,26 +225,14 @@ void main() {
       expect(ShareManager.readDisplayName(prefs), 'Frau Müller');
     });
 
-    test('die Share-ID hängt an Nutzername und Schulnummer', () {
-      expect(
-        ShareManager.shareIdFor(userA, '12345'),
-        isNot(ShareManager.shareIdFor(userA, '99999')),
-      );
-      expect(
-        ShareManager.shareIdFor(userA, '12345'),
-        ShareManager.shareIdFor(userA, '12345'),
-      );
-    });
-
-    test('ein globaler Share hat eine eigene, schulunabhängige ID', () {
-      expect(
-        ShareManager.globalShareIdFor(userA),
-        isNot(ShareManager.shareIdFor(userA, '12345')),
-      );
-      expect(
-        ShareManager.globalShareIdFor(userA),
-        ShareManager.globalShareIdFor(userA),
-      );
+    // Die ID hängt **nur** am Nutzernamen. Das ist der Grund, warum ein
+    // Share aus einer fremden Schule überhaupt zu öffnen ist: Wer die zehn
+    // Wörter hat, kann die ID berechnen, ohne die Schulnummer der
+    // Besitzerin zu kennen. Umgekehrt ist die Schulnummer kein Teil der ID
+    // – sie entscheidet nur, ob ein Share im Suchmenü auftaucht.
+    test('die Share-ID hängt am Nutzernamen, nicht an der Schulnummer', () {
+      expect(ShareManager.shareIdFor(userA), ShareManager.shareIdFor(userA));
+      expect(ShareManager.shareIdFor(userA), isNot(ShareManager.shareIdFor(userB)));
     });
   });
 
@@ -267,7 +305,6 @@ void main() {
         ),
         selection: const ShareSelection(classIds: <String>{'7c'}),
         searchable: true,
-        isGlobal: false,
       );
 
       expect(share.hasPassword, isFalse);
@@ -299,7 +336,6 @@ void main() {
         ),
         selection: const ShareSelection(classIds: <String>{'7c'}),
         searchable: true,
-        isGlobal: false,
         sharePassword: 'nine tiger mango apple candle',
       );
 
@@ -321,7 +357,6 @@ void main() {
           payload: <String, dynamic>{},
           selection: const ShareSelection(classIds: <String>{'7c'}),
           searchable: true,
-          isGlobal: false,
         ),
         throwsA(isA<ShareException>()
             .having((ShareException e) => e.code, 'code', 'nameBlocked')),
@@ -340,7 +375,6 @@ void main() {
           payload: <String, dynamic>{},
           selection: const ShareSelection(),
           searchable: true,
-          isGlobal: false,
         ),
         throwsA(isA<ShareException>()
             .having((ShareException e) => e.code, 'code', 'nothingSelected')),
@@ -360,7 +394,6 @@ void main() {
         payload: await ShareManager.buildPayload(prefs, selection),
         selection: selection,
         searchable: true,
-        isGlobal: false,
       );
       final List<LocalShare> stored = ShareManager.readShares(prefs);
       expect(stored, hasLength(1));
@@ -381,7 +414,6 @@ void main() {
             prefs, const ShareSelection(classIds: <String>{'7c'})),
         selection: const ShareSelection(classIds: <String>{'7c'}),
         searchable: true,
-        isGlobal: false,
       );
       await manager.remove(prefs, share.id);
       expect(ShareManager.readShares(prefs), isEmpty);
@@ -396,7 +428,6 @@ void main() {
     Future<void> publishWith({
       String? sharePassword,
       bool searchable = true,
-      bool isGlobal = false,
     }) async {
       publisherPrefs = await SharedPreferences.getInstance();
       await ShareManager.ensureIdentity(publisherPrefs);
@@ -415,7 +446,6 @@ void main() {
         payload: await ShareManager.buildPayload(publisherPrefs, selection),
         selection: selection,
         searchable: searchable,
-        isGlobal: isGlobal,
         sharePassword: sharePassword,
       );
       publishedId = share.id;
@@ -425,11 +455,7 @@ void main() {
       await publishWith();
       final ShareRecord record =
           await manager.client.fetchShare(publishedId);
-      final Map<String, dynamic> payload = ShareManager.unlock(
-        record,
-        userA,
-        schoolNumber: '12345',
-      );
+      final Map<String, dynamic> payload = ShareManager.unlock(record, userA);
       expect(payload.toString(), contains('Hans'));
       expect(ShareManager.canUnlockWithUsername(record), isTrue);
     });
@@ -440,7 +466,6 @@ void main() {
       final Map<String, dynamic> payload = ShareManager.unlock(
         record,
         userA,
-        schoolNumber: '12345',
         schoolPassword: 'schulpasswort',
       );
       expect(payload.toString(), contains('Hans'));
@@ -456,7 +481,6 @@ void main() {
         ShareManager.unlock(
           record,
           userA,
-          schoolNumber: '12345',
           schoolPassword: 'falsch',
         ).toString(),
         contains('Hans'),
@@ -468,7 +492,7 @@ void main() {
       final ShareRecord record = await manager.client.fetchShare(publishedId);
       for (final String wrong in <String>[userB, 'blue sky', 'ganz anderes']) {
         expect(
-          () => ShareManager.unlock(record, wrong, schoolNumber: '12345'),
+          () => ShareManager.unlock(record, wrong),
           throwsA(isA<ShareException>().having(
             (ShareException e) => e.code,
             'code',
@@ -477,15 +501,6 @@ void main() {
           reason: '"$wrong" darf den Share nicht öffnen',
         );
       }
-    });
-
-    test('eine falsche Schulnummer öffnet nichts', () async {
-      await publishWith();
-      final ShareRecord record = await manager.client.fetchShare(publishedId);
-      expect(
-        () => ShareManager.unlock(record, userA, schoolNumber: '99999'),
-        throwsA(isA<ShareException>()),
-      );
     });
 
     test('öffnet mit dem Passwort, nicht mit dem Nutzernamen', () async {
@@ -497,7 +512,6 @@ void main() {
       final Map<String, dynamic> payload = ShareManager.unlock(
         record,
         userA,
-        schoolNumber: '12345',
         sharePassword: sharePassword,
       );
       expect(payload.toString(), contains('Hans'));
@@ -505,16 +519,11 @@ void main() {
 
       // Ohne Passwort nicht – auch nicht mit den Schuldaten.
       expect(
-        () => ShareManager.unlock(record, userA, schoolNumber: '12345'),
+        () => ShareManager.unlock(record, userA),
         throwsA(isA<ShareException>()),
       );
       expect(
-        () => ShareManager.unlock(
-          record,
-          userA,
-          schoolNumber: '12345',
-          schoolPassword: 'schulpasswort',
-        ),
+        () => ShareManager.unlock(record, userA, schoolPassword: 'schulpasswort'),
         throwsA(isA<ShareException>()),
       );
     });
@@ -526,7 +535,6 @@ void main() {
         () => ShareManager.unlock(
           record,
           userB,
-          schoolNumber: '12345',
           sharePassword: 'nine tiger mango apple candle',
         ),
         throwsA(isA<ShareException>()),
@@ -536,11 +544,7 @@ void main() {
     test('zählt den Inhalt für die Vorauswahl', () async {
       await publishWith();
       final ShareRecord record = await manager.client.fetchShare(publishedId);
-      final Map<String, dynamic> payload = ShareManager.unlock(
-        record,
-        userA,
-        schoolNumber: '12345',
-      );
+      final Map<String, dynamic> payload = ShareManager.unlock(record, userA);
       final ({int classes, int persons, int plans}) counts =
           ShareManager.countContents(payload);
       expect(counts.persons, 1);
@@ -549,17 +553,16 @@ void main() {
     });
   });
 
-  group('Globaler Share', () {
+  // Die Schulnummer spielt im Share keine Rolle mehr. Sie entscheidet nur noch,
+  // ob ein Share im Suchmenü der eigenen Schule auftaucht – öffnen kann man
+  // ihn mit dem Nutzernamen von überall.
+  group('Schulen', () {
     late SharedPreferences publisherPrefs;
 
-    /// Legt einen globalen Share an und gibt seinen Payload zurück.
-    Future<Map<String, dynamic>> publishGlobal({String? sharePassword}) async {
+    Future<String> publish({String? sharePassword, bool searchable = true}) async {
       publisherPrefs = await SharedPreferences.getInstance();
       await ShareManager.ensureIdentity(publisherPrefs);
-      await publisherPrefs.setString(
-        ShareManager.usernameStorageKey,
-        userA,
-      );
+      await publisherPrefs.setString(ShareManager.usernameStorageKey, userA);
       final ShareSelection selection =
           const ShareSelection(classIds: <String>{'7c'}, personIds: <String>{'p1'});
       final LocalShare share = await manager.publish(
@@ -570,77 +573,80 @@ void main() {
         label: 'Vertretungspläne',
         payload: await ShareManager.buildPayload(publisherPrefs, selection),
         selection: selection,
-        searchable: false,
-        isGlobal: true,
+        searchable: searchable,
         sharePassword: sharePassword,
       );
-      return ShareManager.unlock(
-        await manager.client.fetchShare(share.id),
-        userA,
-        schoolNumber: '12345',
-        sharePassword: sharePassword,
-      );
+      return share.id;
     }
 
-    test('lässt sich ohne die Schulnummer der Besitzerin öffnen', () async {
-      // Genau der Fall, für den es "global" gibt: die öffnende Person kennt
-      // nur den Nutzernamen und ihre eigene Schulnummer.
-      await publishGlobal();
-      final ShareRecord record = await manager.client.fetchShare(
-        ShareManager.globalShareIdFor(userA),
-      );
-      expect(record.isGlobal, isTrue);
-      final Map<String, dynamic> payload = ShareManager.unlock(
-        record,
-        userA,
-        schoolNumber: '99999',
-      );
-      expect(payload.toString(), contains('Hans'));
-    });
-
-    test('hat eine eigene, schulunabhängige ID', () async {
-      await publishGlobal();
-      final String id = ShareManager.globalShareIdFor(userA);
-      expect(server.shares.containsKey(id), isTrue);
-      // Und sie ist nicht die ID des normalen Shares.
-      expect(id, isNot(ShareManager.shareIdFor(userA, '12345')));
-    });
-
-    test('bleibt mit Passwort auch global geschützt', () async {
-      await publishGlobal(sharePassword: 'nine tiger mango apple candle');
-      final ShareRecord record = await manager.client.fetchShare(
-        ShareManager.globalShareIdFor(userA),
-      );
-      // Aus einer fremden Schule, mit den falschen Schuldaten: geht nicht.
+    test('ein Share öffnet sich von einer anderen Schule aus', () async {
+      final String id = await publish();
+      // Die öffnende Person kennt nur den Nutzernamen – ihre eigene
+      // Schulnummer spielt keine Rolle und wird gar nicht erst gebraucht.
+      final ShareRecord record = await manager.client.fetchShare(id);
       expect(
-        () => ShareManager.unlock(
-          record,
-          userA,
-          schoolNumber: '99999',
-          schoolPassword: 'falsch',
-        ),
-        throwsA(isA<ShareException>()),
+        ShareManager.unlock(record, userA).toString(),
+        contains('Hans'),
+        reason: 'Der Nutzername muss von jeder Schule aus genügen.',
       );
-      // Mit dem Passwort schon.
+    });
+
+    test('die Schulnummer steht in keinem Schlüssel', () async {
+      final String id = await publish();
+      final ShareRecord record = await manager.client.fetchShare(id);
+      // Ein Share, an anderer Stelle mit **anderem** Schulpasswort erzeugt,
+      // wäre unter derselben ID gelandet und hätte einen anderen Schlüssel.
+      // Genau deshalb ist dieser Test eine Zusicherung: Es gibt nur eine
+      // Schlüsselableitung, und die kennt keine Schulnummer.
+      expect(ShareManager.shareScope, 'share');
       expect(
         ShareManager.unlock(
           record,
           userA,
-          schoolNumber: '99999',
-          sharePassword: 'nine tiger mango apple candle',
+          schoolPassword: 'ein voellig anderes schulpasswort',
         ).toString(),
         contains('Hans'),
       );
     });
 
-    test('erscheint nicht im Suchverzeichnis einer fremden Schule', () async {
-      await publishGlobal();
-      // Der Server filtert nach Schulnummer; die App fragt nur ihre eigene.
+    test('ein passwortgeschützter Share braucht das Passwort', () async {
+      const String sharePassword = 'nine tiger mango apple candle';
+      final String id = await publish(sharePassword: sharePassword);
+      final ShareRecord record = await manager.client.fetchShare(id);
+
+      // Weder der Nutzername noch irgendein Schulpasswort kommen hinein.
+      expect(
+        () => ShareManager.unlock(record, userA),
+        throwsA(isA<ShareException>()),
+      );
+      expect(
+        () => ShareManager.unlock(record, userA, schoolPassword: 'schulpasswort'),
+        throwsA(isA<ShareException>()),
+      );
+      // Das Passwort schon – auch von einer anderen Schule aus.
+      expect(
+        ShareManager.unlock(record, userA, sharePassword: sharePassword)
+            .toString(),
+        contains('Hans'),
+      );
+    });
+
+    test('das Suchmenü fragt ausschließlich die eigene Schule ab', () async {
+      await publish(searchable: true);
+      await manager.client.fetchDirectory('12345');
+      expect(
+        server.directoryRequests,
+        <String>['12345'],
+        reason: 'Fremde Schulen dürfen nicht abgefragt werden.',
+      );
+    });
+
+    test('ein nicht als suchbar markierter Share taucht nicht auf', () async {
+      await publish(searchable: false);
       final List<ShareOwner> own = await manager.client.fetchDirectory('12345');
       final List<ShareOwner> other = await manager.client.fetchDirectory('99999');
-      expect(other, isEmpty);
-      // Der eigene Share war nicht als suchbar markiert.
       expect(own, isEmpty);
+      expect(other, isEmpty);
     });
   });
 
@@ -662,12 +668,10 @@ void main() {
         payload: await ShareManager.buildPayload(prefs, selection),
         selection: selection,
         searchable: true,
-        isGlobal: false,
       );
       payload = ShareManager.unlock(
         await manager.client.fetchShare(share.id),
         userA,
-        schoolNumber: '12345',
       );
     });
 
@@ -717,7 +721,9 @@ void main() {
       expect(dates, containsAll(<String>['2026-09-29', '2025-01-15']));
     });
 
-    test('"Pläne" macht aus der Person einen Plan', () async {
+    // Die Option heißt in der Oberfläche „Klassen", weil sie genau das
+    // erzeugt: eine Klasse je übernommener Klasse **und** Person.
+    test('"Klassen" macht aus Klassen und Personen Klassen', () async {
       final SharedPreferences prefs = await emptyApp();
       final ShareImportResult result = await ShareManager.applyImport(
         prefs,
@@ -725,21 +731,30 @@ void main() {
         mode: ShareImportMode.plans,
         displayName: 'Frau Müller',
       );
-      // Die Person wird zu einer Klasse mit ihrem Namen …
-      expect(classesOf(prefs), <String>['Hans']);
-      // … und zu je einem Plan pro Kurs.
-      final List<String> planNames = (prefs.getStringList('offlineVPData') ??
-              <String>[])
-          .map((String raw) => (jsonDecode(raw) as Map)['name'].toString())
-          .toList();
-      expect(planNames, contains('Hans – Deutsch'));
-      expect(planNames, contains('Hans – Mathe'));
-      // Als Person taucht sie nicht mehr auf.
+      // Die fremde Klasse bleibt `7c`, aus der Person wird die Klasse `Hans`.
+      expect(classesOf(prefs), containsAll(<String>['7c', 'Hans']));
+      // Als Person taucht nichts mehr auf – der Modus macht nur Klassen.
       expect(namesOf(prefs), isEmpty);
-      expect(result.importedPlans, 2);
+      expect(result.importedClasses, 2);
     });
 
-    test('"Personen" zieht aus allem Namen', () async {
+    // Vorher entstand je Kurs ein Plan „Hans – Deutsch", „Hans – Mathe" …
+    // Das war doppelt und überflüssig: Die Kurse hängen an der Klasse, die aus
+    // der Person wurde.
+    test('"Klassen" erzeugt keine zusätzlichen Pläne', () async {
+      final SharedPreferences prefs = await emptyApp();
+      final ShareImportResult result = await ShareManager.applyImport(
+        prefs,
+        payload,
+        mode: ShareImportMode.plans,
+        displayName: 'Frau Müller',
+      );
+      expect(prefs.getStringList('offlineVPData'), anyOf(isNull, isEmpty),
+          reason: 'Aus einer Person dürfen keine Pläne entstehen.');
+      expect(result.importedPlans, 0);
+    });
+
+    test('"Personen" macht aus Klassen und Personen eigene Personen', () async {
       final SharedPreferences prefs = await emptyApp();
       final ShareImportResult result = await ShareManager.applyImport(
         prefs,
@@ -747,25 +762,19 @@ void main() {
         mode: ShareImportMode.persons,
         displayName: 'Frau Müller',
       );
-      // Aus jeder Person, jeder Klasse und jedem Plan wird ein Name – und zu
-      // jedem gehört eine eigene Klasse.
+      // Aus jeder übernommenen Person und jeder übernommenen Klasse wird ein
+      // Name – und zu jedem gehört eine eigene Klasse.
       final List<String> names = namesOf(prefs);
-      expect(
-        names,
-        containsAll(<String>[
-          'Hans', // aus der Person
-          '7c', // aus der Klasse
-          'Vertretungsplan fuer Hans Schneider', // aus dem Plan
-          'Plan von 2025',
-        ]),
-      );
+      expect(names, containsAll(<String>['Hans', '7c']));
       // Kein Name doppelt, und zu jedem genau eine Klasse.
       expect(names.toSet(), hasLength(names.length));
       expect(classesOf(prefs), hasLength(names.length));
       expect(result.importedPersons, names.length);
     });
 
-    test('"Personen" macht aus Klassen und Plänen eigene Personen', () async {
+    // Der Name eines Plans ist keine Person. „Vertretungsplan fuer Hans
+    // Schneider" stand vorher in der Personenliste und füllte sie nur.
+    test('"Personen" zieht keine Namen aus den Plänen', () async {
       final SharedPreferences prefs = await emptyApp();
       await ShareManager.applyImport(
         prefs,
@@ -773,13 +782,15 @@ void main() {
         mode: ShareImportMode.persons,
         displayName: 'Frau Müller',
       );
-      // Und nichts bleibt als "Plan" liegen.
-      final List<String> plans = prefs.getStringList('offlineVPData') ??
-          <String>[];
       expect(
-        plans.where((String raw) => (jsonDecode(raw) as Map)['_importedAs'] == 'plan'),
-        isEmpty,
-        reason: 'Im Modus "Personen" wird nichts als Plan gespeichert.',
+        namesOf(prefs),
+        isNot(contains(anyOf('Vertretungsplan fuer Hans Schneider', 'Plan von 2025'))),
+      );
+      // Und nichts bleibt als "Plan" liegen.
+      expect(
+        prefs.getStringList('offlineVPData'),
+        anyOf(isNull, isEmpty),
+        reason: 'Im Modus "Personen" wird kein Plan übernommen.',
       );
     });
 
@@ -845,6 +856,134 @@ void main() {
       expect(classes, hasLength(2));
       expect(classes.toSet(), hasLength(2),
           reason: 'Ein bestehendes Kürzel darf nicht überschrieben werden.');
+    });
+  });
+
+  group('Auswahl beim Import', () {
+    late Map<String, dynamic> payload;
+
+    setUp(() async {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await ShareManager.ensureIdentity(prefs);
+      await prefs.setString(ShareManager.usernameStorageKey, userA);
+      // Die Test-App hat die Klassen `7c` und `5a` und die Person `p1`.
+      const ShareSelection selection =
+          ShareSelection(classIds: <String>{'7c', '5a'}, personIds: <String>{'p1'});
+      final LocalShare share = await manager.publish(
+        prefs: prefs,
+        schoolNumber: '12345',
+        schoolPassword: 'pw',
+        displayName: 'Frau Müller',
+        label: 'Vertretungspläne',
+        payload: await ShareManager.buildPayload(prefs, selection),
+        selection: selection,
+        searchable: true,
+      );
+      payload = ShareManager.unlock(
+        await manager.client.fetchShare(share.id),
+        userA,
+      );
+    });
+
+    Future<SharedPreferences> emptyApp() async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      return SharedPreferences.getInstance();
+    }
+
+    test('alles auswählen nimmt Klassen und Personen mit', () async {
+      final ({
+        List<String> classes,
+        List<({String id, String name})> persons,
+      }) items = ShareManager.selectableItems(payload);
+      expect(items.classes, containsAll(<String>['7c', '5a']));
+      expect(items.persons.map((({String id, String name}) p) => p.name),
+          contains('Hans'));
+
+      final ShareImportSelection selection = ShareManager.selectAll(payload);
+      expect(selection.classIds, containsAll(<String>['7c', '5a']));
+      expect(selection.personIds, isNotEmpty);
+      expect(selection.includePlans, isTrue,
+          reason: 'Zwischengespeicherte Pläne kommen standardmäßig mit.');
+    });
+
+    test('nur ausgewählte Klassen und Personen werden übernommen', () async {
+      final SharedPreferences prefs = await emptyApp();
+      await ShareManager.applyImport(
+        prefs,
+        payload,
+        mode: ShareImportMode.original,
+        displayName: 'Frau Müller',
+        selection: ShareManager.selectAll(payload).copyWith(
+          classIds: <String>{'7c'},
+        ),
+      );
+      expect(classesOf(prefs), <String>['7c']);
+    });
+
+    test('eine abgewählte Person wird nicht importiert', () async {
+      final SharedPreferences prefs = await emptyApp();
+      final ShareImportSelection selection = ShareManager.selectAll(payload)
+          .copyWith(personIds: <String>{});
+      await ShareManager.applyImport(
+        prefs,
+        payload,
+        mode: ShareImportMode.persons,
+        displayName: 'Frau Müller',
+        selection: selection,
+      );
+      expect(namesOf(prefs), containsAll(<String>['7c', '5a']));
+      expect(namesOf(prefs), isNot(contains('Hans')));
+    });
+
+    test('ohne Pläne-Schalter kommen keine gespeicherten Pläne mit', () async {
+      final SharedPreferences prefs = await emptyApp();
+      final ShareImportResult result = await ShareManager.applyImport(
+        prefs,
+        payload,
+        mode: ShareImportMode.original,
+        displayName: 'Frau Müller',
+        selection:
+            ShareManager.selectAll(payload).copyWith(includePlans: false),
+      );
+      expect(result.importedPlans, 0);
+      expect(prefs.getStringList('offlineVPData'), anyOf(isNull, isEmpty));
+    });
+
+    test('eine leere Auswahl wird abgewiesen, statt alles zu importieren',
+        () async {
+      final SharedPreferences prefs = await emptyApp();
+      expect(
+        () => ShareManager.applyImport(
+          prefs,
+          payload,
+          mode: ShareImportMode.original,
+          displayName: 'Frau Müller',
+          selection: const ShareImportSelection(
+            classIds: <String>{},
+            personIds: <String>{},
+            includePlans: false,
+          ),
+        ),
+        throwsA(isA<ShareException>()
+            .having((ShareException e) => e.code, 'code', 'nothingSelected')),
+      );
+      expect(classesOf(prefs), isEmpty);
+    });
+
+    test('der Pläne-Schalter zählt nur im Modus "Original"', () async {
+      final ShareImportSelection selection =
+          ShareManager.selectAll(payload);
+      expect(ShareManager.countPlansOf(payload, selection), greaterThan(0));
+      expect(
+        ShareManager.countPlansOf(payload, selection,
+            mode: ShareImportMode.plans),
+        0,
+      );
+      expect(
+        ShareManager.countPlansOf(
+            payload, selection.copyWith(includePlans: false)),
+        0,
+      );
     });
   });
 

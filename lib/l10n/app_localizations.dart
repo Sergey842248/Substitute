@@ -1268,6 +1268,12 @@ abstract class AppLocalizations {
   /// **'Persons'**
   String get persons;
 
+  /// No description provided for @noClassesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No classes yet. Add a class to share its substitution plan.'**
+  String get noClassesYet;
+
   /// No description provided for @noPersonsYet.
   ///
   /// In en, this message translates to:
@@ -2246,6 +2252,12 @@ abstract class AppLocalizations {
   /// **'Shown in the search menu of your school'**
   String get shareDisplayNameSubtitle;
 
+  /// No description provided for @shareDefaultLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'My plan'**
+  String get shareDefaultLabel;
+
   /// No description provided for @shareLabel.
   ///
   /// In en, this message translates to:
@@ -2255,7 +2267,7 @@ abstract class AppLocalizations {
   /// No description provided for @shareLabelHint.
   ///
   /// In en, this message translates to:
-  /// **'e.g. substitution plans autumn'**
+  /// **'e.g. friends'**
   String get shareLabelHint;
 
   /// No description provided for @shareSearchable.
@@ -2267,20 +2279,8 @@ abstract class AppLocalizations {
   /// No description provided for @shareSearchableSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Colleagues of your school can find you and choose from your shares'**
+  /// **'Colleagues of your school can find you in the search menu and choose from your shares'**
   String get shareSearchableSubtitle;
-
-  /// No description provided for @shareGlobal.
-  ///
-  /// In en, this message translates to:
-  /// **'Global share'**
-  String get shareGlobal;
-
-  /// No description provided for @shareGlobalSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Also usable by teachers of other schools, who know your username'**
-  String get shareGlobalSubtitle;
 
   /// No description provided for @sharePassword.
   ///
@@ -2360,18 +2360,6 @@ abstract class AppLocalizations {
   /// **'Share display settings as well'**
   String get shareIncludeSettingsSubtitle;
 
-  /// No description provided for @shareIncludePlans.
-  ///
-  /// In en, this message translates to:
-  /// **'Include saved plans'**
-  String get shareIncludePlans;
-
-  /// No description provided for @shareIncludePlansSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Share the substitution plans stored on this device'**
-  String get shareIncludePlansSubtitle;
-
   /// No description provided for @shareIncludeHistory.
   ///
   /// In en, this message translates to:
@@ -2381,7 +2369,7 @@ abstract class AppLocalizations {
   /// No description provided for @shareIncludeHistorySubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Otherwise only the last {days} days are shared'**
+  /// **'Off: only the plans of the last {days} days. On: all saved plans, including older ones.'**
   String shareIncludeHistorySubtitle(Object days);
 
   /// No description provided for @shareSelectNothingSelected.
@@ -2426,12 +2414,6 @@ abstract class AppLocalizations {
   /// **'Nobody can open it any more. Data already imported by others stay on their devices.'**
   String get shareDeleteConfirm;
 
-  /// No description provided for @shareGlobalNote.
-  ///
-  /// In en, this message translates to:
-  /// **'A global share can be opened by teachers of any school who know your username. It does not appear in their search menu.'**
-  String get shareGlobalNote;
-
   /// No description provided for @shareBrowse.
   ///
   /// In en, this message translates to:
@@ -2468,23 +2450,29 @@ abstract class AppLocalizations {
   /// **'Shares can only be found within your own school. That is why signing in is required.'**
   String get shareBrowseLoginRequiredSubtitle;
 
-  /// No description provided for @shareBrowseEnterUsername.
+  /// No description provided for @shareBrowseSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Enter a username'**
-  String get shareBrowseEnterUsername;
+  /// **'Enter a name or a person\'s ten words'**
+  String get shareBrowseSearchHint;
+
+  /// No description provided for @shareBrowseNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody found'**
+  String get shareBrowseNoMatch;
+
+  /// No description provided for @shareBrowseOpenByUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'Open this person\'s shares'**
+  String get shareBrowseOpenByUsername;
 
   /// No description provided for @shareBrowseEnterUsernameSubtitle.
   ///
   /// In en, this message translates to:
   /// **'Know the ten words of a colleague? Enter them here to open their share directly.'**
   String get shareBrowseEnterUsernameSubtitle;
-
-  /// No description provided for @shareBrowseGlobalOnly.
-  ///
-  /// In en, this message translates to:
-  /// **'This share is global – it can also be opened by teachers of other schools.'**
-  String get shareBrowseGlobalOnly;
 
   /// No description provided for @shareOf.
   ///
@@ -2513,7 +2501,7 @@ abstract class AppLocalizations {
   /// No description provided for @shareContentsPlans.
   ///
   /// In en, this message translates to:
-  /// **'{count} plans'**
+  /// **'{count} cached plans'**
   String shareContentsPlans(Object count);
 
   /// No description provided for @shareSelectItems.
@@ -2543,19 +2531,19 @@ abstract class AppLocalizations {
   /// No description provided for @shareImportModeOriginalSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Exactly as shared: classes, persons and courses stay as they are'**
+  /// **'Takes everything exactly as it was shared: classes, persons and courses stay unchanged. Nothing is rebuilt.'**
   String get shareImportModeOriginalSubtitle;
 
   /// No description provided for @shareImportModePlans.
   ///
   /// In en, this message translates to:
-  /// **'Plans'**
+  /// **'Classes'**
   String get shareImportModePlans;
 
   /// No description provided for @shareImportModePlansSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Every person becomes a plan with their courses'**
+  /// **'Turns every imported class and every imported person into a class. The person \"Hans\" with the courses German and maths therefore becomes the class \"Hans\", with those courses attached to it.'**
   String get shareImportModePlansSubtitle;
 
   /// No description provided for @shareImportModePersons.
@@ -2567,8 +2555,38 @@ abstract class AppLocalizations {
   /// No description provided for @shareImportModePersonsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Only the names are taken over as persons'**
+  /// **'Turns every imported class and every imported person into a person – each with a class of their own.'**
   String get shareImportModePersonsSubtitle;
+
+  /// No description provided for @shareAdvancedOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced options'**
+  String get shareAdvancedOptions;
+
+  /// No description provided for @shareImportCachedPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'Import cached plans'**
+  String get shareImportCachedPlans;
+
+  /// No description provided for @shareImportCachedPlansSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Also import the substitution plans stored in the share. Off: only classes and persons are imported.'**
+  String get shareImportCachedPlansSubtitle;
+
+  /// No description provided for @shareImportPlansOnlyOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'Plans are only imported in the \"Original\" mode.'**
+  String get shareImportPlansOnlyOriginal;
+
+  /// No description provided for @shareImportNothingChosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select at least one class, one person or the plans.'**
+  String get shareImportNothingChosen;
 
   /// No description provided for @shareImport.
   ///
@@ -2595,12 +2613,6 @@ abstract class AppLocalizations {
   /// **'This name is not allowed. Please choose another one.'**
   String get shareNameBlocked;
 
-  /// No description provided for @shareNameTooShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Please enter at least two characters'**
-  String get shareNameTooShort;
-
   /// No description provided for @shareNameTooLong.
   ///
   /// In en, this message translates to:
@@ -2612,6 +2624,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please enter a name'**
   String get shareNameEmpty;
+
+  /// No description provided for @shareErrorUsernameTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'The username is too long. Please generate a new one in the share menu.'**
+  String get shareErrorUsernameTooLong;
 
   /// No description provided for @shareErrorNoUsername.
   ///

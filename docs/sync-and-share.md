@@ -10,7 +10,7 @@ verschlüsselt. Der Server sieht nur unlesbares Zeug.**
 | Wer | nur du, mit deinem Code | jede Person, die deinen Nutzernamen kennt |
 | Ablauf | automatisch bei jedem Lauf | einmalig, von dir ausgelöst |
 | Auswahl | alles außer Einstellungen optional | du wählst Klassen und Personen |
-| Empfänger wählt | – | wie importiert wird (Original / Pläne / Personen) |
+| Empfänger wählt | – | was und wie importiert wird (Original / Klassen / Personen) |
 
 ---
 
@@ -601,22 +601,45 @@ Importart.
 | | Was passiert |
 |---|---|
 | **Original** | Genau so übernehmen, wie die Person es angelegt hat. `Hans` bleibt eine Person, `7c` bleibt eine Klasse, die Kurse bleiben die Kurse. |
-| **Pläne** | Jede Person wird zu einem Plan: eine Klasse mit ihrem Namen und je ein Plan-Eintrag pro Kurs. |
-| **Personen** | Aus allem werden Namen: aus jeder Person, jeder Klasse und jedem Plan. |
+| **Klassen** | Jede übernommene Klasse **und** jede übernommene Person wird eine Klasse. Aus `Hans` mit Deutsch und Mathe wird die Klasse `Hans`, und die Kurse hängen daran. |
+| **Personen** | Jede übernommene Klasse und jede übernommene Person wird eine Person mit einer eigenen Klasse. |
 
 Der Unterschied lohnt sich, wenn die fremde Klassenstruktur nichts taugt:
 `7c` existiert bei dir nicht, und die Kurse `7c` gehören niemandem – die
 Person schon.
 
+In den beiden Umbaumodi entstehen **keine Pläne**. Vorher legte „Klassen" je
+Kurs einen Plan „Hans – Deutsch", „Hans – Mathe" … an – dieselben Kurse also
+noch einmal als Plan. Das füllte nur die Planliste.
+
+Die Importart steht als **Radiobuttons** unter „Erweiterte Optionen",
+ganz unten und eingeklappt. Voreingestellt ist **Original**: Nichts umbauen,
+was man nicht kennt, ist der Normalfall. Ebenso dort, und ebenfalls
+eingeschaltet, der Schalter für die zwischengespeicherten Pläne – die
+eigentlichen Vertretungspläne des Shares.
+
+### Was davon übernommen wird
+
+Oberhalb der erweiterten Optionen steht die **Auswahl**: jede Klasse und
+jede Person einzeln abwählbar, beide als Feldmarken. Vorausgewählt ist
+**alles** – wer einen Share öffnet, will ihn erst sehen.
+
 Ein Import **überschreibt nichts**. Vorhandene Klassen und Personen bleiben;
 nur die Kürzel werden entkollidiert, damit eine importierte Klasse `7c` nicht
 deine eigene `7c` ersetzt.
 
-### Global und passwortgeschützt
+### Schulen
 
-Ein Share kann **global** sein: Dann kann ihn jede Lehrkraft öffnen, die den
-Nutzernamen kennt – auch aus einer anderen Schule. Im Suchmenü fremder
-Schulen erscheint er trotzdem nicht; global heißt nicht überall sichtbar.
+Ein Share hängt am **Nutzernamen**, nicht an der Schule. Wer die zehn Wörter
+kennt, öffnet ihn – auch aus einer anderen Schule. Es gibt keinen Schalter
+dafür, weil es nichts zu wählen gibt.
+
+Die Schulnummer hat genau **eine** Aufgabe: Das **Suchmenü zeigt nur die
+eigene Schule**. Fremde Kolleginnen und Kollegen stehen dort nicht, auch wenn
+sie ihren Nutzernamen hierher gegeben hätten – wer von außen öffnen will,
+tippt die zehn Wörter ein.
+
+### Passwortgeschützt
 
 Ein Share kann ein **Passwort** haben, ebenfalls zehn Wörter. Dann gilt:
 
@@ -682,7 +705,7 @@ wäre das Passwort umsonst.
 | | in Klartext | verschlüsselt |
 |---|---|---|
 | Sync-Kette | Gerätename, Zeitstempel | alles andere |
-| Share | Nutzername, Schulnummer, Anzeigename, „suchbar", „global" | Pläne, Personen, Kurse, Einstellungen |
+| Share | Nutzername, Schulnummer, Anzeigename, „suchbar" | Pläne, Personen, Kurse, Einstellungen |
 | Verzeichnis | Anzeigename, Anzahl der Shares | alles Inhaltliche |
 
 Für das Suchmenü muss der Server die Anzeigenamen lesen können – sonst könnte

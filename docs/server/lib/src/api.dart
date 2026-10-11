@@ -322,7 +322,6 @@ class SyncApi {
           ? label.substring(0, Limits.maxLabelLength)
           : label,
       'searchable': body['searchable'] == true,
-      'isGlobal': body['isGlobal'] == true,
       'hasPassword': stored.containsKey('byPassword'),
       'unlockableWithSchoolCredentials': stored.containsKey('bySchool'),
       'updatedAt': _timestamp(body['updatedAt']),
@@ -376,7 +375,6 @@ class SyncApi {
       (person['shares'] as List<Map<String, dynamic>>).add(<String, dynamic>{
         'id': share['id'],
         'label': share['label'],
-        'isGlobal': share['isGlobal'] == true,
         'hasPassword': share['hasPassword'] == true,
         'updatedAt': share['updatedAt'],
       });

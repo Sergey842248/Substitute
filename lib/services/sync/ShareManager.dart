@@ -23,14 +23,65 @@ enum ShareImportMode {
   /// einer ganz anderen Schule ist, sieht sie trotzdem als eigene Klassen.
   original,
 
-  /// Jede übernommene Person wird zu einem **Plan**: die Kurse der Person
-  /// werden zu einer Klasse zusammengefasst, sodass man sieht, wer wann
-  /// welche Kurse unterrichtet.
+  /// Alles wird zu **Klassen**: jede übernommene Klasse und jede übernommene
+  /// Person wird eine Klasse. Aus einer Person `Hans` mit den Kursen Deutsch
+  /// und Mathe wird also die Klasse `Hans`, und die Kurse bleiben an ihr
+  /// hängen – es werden **keine** weiteren Klassen und **keine** Pläne
+  /// erzeugt. Vorher stand hier je ein zusätzlicher Plan „Hans – Deutsch“,
+  /// „Hans – Mathe“ …, der nichts brachte außer einer Unmenge Zeilen in der
+  /// Planliste.
   plans,
 
-  /// Alles wird zu **Personen**: aus jeder Person, jeder Klasse und jedem Plan
-  /// werden Namen gezogen.
+  /// Alles wird zu **Personen**: jede übernommene Klasse und jede übernommene
+  /// Person wird eine Person mit einer eigenen Klasse dazu.
   persons,
+}
+
+/// Was aus einem geöffneten Share **ausgewählt** übernommen wird.
+///
+/// Der Import ist nicht destruktiv, aber er ist auch nicht blind: Wer einen
+/// fremden Share öffnet, will in aller Regel *einige* Klassen und Personen
+/// sehen, nicht den kompletten Bestand einer Kollegin. Deshalb werden hier
+/// die gewählten Kürzel und IDs festgehalten – leer heißt „nichts davon
+/// übernehmen“, das ist ein gültiger Zustand und kein Fehler.
+///
+/// Gespeichert wird das nicht: Die Auswahl gehört zum einmaligen Import und
+/// wäre beim nächsten Share ohnehin wieder anders.
+class ShareImportSelection {
+  const ShareImportSelection({
+    this.classIds = const <String>{},
+    this.personIds = const <String>{},
+    this.includePlans = true,
+  });
+
+  /// Die ausgewählten Klassen, identified by their Kürzel.
+  final Set<String> classIds;
+
+  /// Die ausgewählten Personen, identified by their ID.
+  final Set<String> personIds;
+
+  /// Ob die zwischengespeicherten Pläne des Shares mit übernommen werden.
+  ///
+  /// Voreingestellt an: Die Pläne sind der eigentliche Inhalt eines
+  /// Vertretungsplans, und wer sie nicht braucht, schaltet sie ab.
+  final bool includePlans;
+
+  bool get isEmpty => classIds.isEmpty && personIds.isEmpty && !includePlans;
+
+  /// Nichts ausgewählt – weder Klassen noch Personen noch Pläne.
+  bool get hasNothing =>
+      classIds.isEmpty && personIds.isEmpty && !includePlans;
+
+  ShareImportSelection copyWith({
+    Set<String>? classIds,
+    Set<String>? personIds,
+    bool? includePlans,
+  }) =>
+      ShareImportSelection(
+        classIds: classIds ?? this.classIds,
+        personIds: personIds ?? this.personIds,
+        includePlans: includePlans ?? this.includePlans,
+      );
 }
 
 /// Was in einen Share aufgenommen wird.
@@ -43,7 +94,6 @@ class ShareSelection {
     this.classIds = const <String>{},
     this.personIds = const <String>{},
     this.includeSettings = false,
-    this.includePlans = true,
     this.includeHistory = true,
   });
 
@@ -57,27 +107,24 @@ class ShareSelection {
   /// Ob die Einstellungen mitgeteilt werden.
   final bool includeSettings;
 
-  /// Ob die gespeicherten Vertretungspläne mitgeteilt werden.
-  final bool includePlans;
-
-  /// Ob Pläne aus der Vergangenheit mitgeteilt werden. Getrennt von
-  /// [includePlans], weil ein langer vergangener Verlauf einen Share
-  /// unverhältnismäßig groß machen kann.
+  /// Ob auch Pläne aus der **Vergangenheit** mitgeteilt werden.
+  ///
+  /// Die Pläne selbst werden immer mitgenommen – sie gehören zu den geteilten
+  /// Klassen, und ohne sie wäre der geteilte Plan leer. Dieser Schalter
+  /// beschränkt sie nur auf die letzten [historyDays] Tage. Ausgeschaltet
+  /// heißt: nur die Pläne der letzten 30 Tage. Eingeschaltet: alle gespeicherten
+  /// Pläne, auch ältere.
   final bool includeHistory;
 
   bool get isEmpty => classIds.isEmpty && personIds.isEmpty;
 
   /// true, wenn mindestens etwas zum Teilen ausgewählt ist.
-  bool get hasContent =>
-      classIds.isNotEmpty ||
-      personIds.isNotEmpty ||
-      (includePlans && includeHistory);
+  bool get hasContent => classIds.isNotEmpty || personIds.isNotEmpty;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'classIds': classIds.toList(),
         'personIds': personIds.toList(),
         'includeSettings': includeSettings,
-        'includePlans': includePlans,
         'includeHistory': includeHistory,
       };
 
@@ -89,7 +136,6 @@ class ShareSelection {
           ...?(json['personIds'] as List<dynamic>?)?.map((Object? e) => e.toString()),
         },
         includeSettings: json['includeSettings'] == true,
-        includePlans: json['includePlans'] != false,
         includeHistory: json['includeHistory'] != false,
       );
 
@@ -97,14 +143,12 @@ class ShareSelection {
     Set<String>? classIds,
     Set<String>? personIds,
     bool? includeSettings,
-    bool? includePlans,
     bool? includeHistory,
   }) =>
       ShareSelection(
         classIds: classIds ?? this.classIds,
         personIds: personIds ?? this.personIds,
         includeSettings: includeSettings ?? this.includeSettings,
-        includePlans: includePlans ?? this.includePlans,
         includeHistory: includeHistory ?? this.includeHistory,
       );
 }
@@ -117,7 +161,6 @@ class LocalShare {
     required this.displayName,
     required this.label,
     required this.searchable,
-    required this.isGlobal,
     required this.createdAt,
     required this.updatedAt,
     this.hasPassword = false,
@@ -129,11 +172,13 @@ class LocalShare {
   final String displayName;
   final String label;
 
-  /// Ob der Share im Suchmenü der eigenen Schule auftaucht.
+  /// Ob der Share im Suchmenü auftaucht.
+  ///
+  /// Das Suchmenü zeigt **nur die eigene Schule**: Der Server filtert das
+  /// Verzeichnis nach der Schulnummer der suchenden Person. Wer aus einer
+  /// anderen Schule öffnen will, braucht den Nutzernamen – dann geht es, denn
+  /// der Nutzername hängt nicht an der Schule.
   final bool searchable;
-
-  /// Ob der Share auch von Nutzern **anderer** Schulen benutzt werden darf.
-  final bool isGlobal;
 
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -151,7 +196,6 @@ class LocalShare {
   LocalShare copyWith({
     String? label,
     bool? searchable,
-    bool? isGlobal,
     DateTime? updatedAt,
     String? displayName,
     bool? hasPassword,
@@ -163,7 +207,6 @@ class LocalShare {
         displayName: displayName ?? this.displayName,
         label: label ?? this.label,
         searchable: searchable ?? this.searchable,
-        isGlobal: isGlobal ?? this.isGlobal,
         createdAt: createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
         hasPassword: hasPassword ?? this.hasPassword,
@@ -176,7 +219,6 @@ class LocalShare {
         'displayName': displayName,
         'label': label,
         'searchable': searchable,
-        'isGlobal': isGlobal,
         'createdAt': createdAt.toUtc().toIso8601String(),
         'updatedAt': updatedAt.toUtc().toIso8601String(),
         'hasPassword': hasPassword,
@@ -189,7 +231,6 @@ class LocalShare {
         displayName: json['displayName']?.toString() ?? '',
         label: json['label']?.toString() ?? '',
         searchable: json['searchable'] == true,
-        isGlobal: json['isGlobal'] == true,
         createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
             DateTime.fromMillisecondsSinceEpoch(0),
         updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ??
@@ -248,6 +289,16 @@ class ShareImportResult {
 /// Schulzugangsdaten den Share – genau der Zweck des Passworts. Sonst
 /// könnte jeder, dem die Schulzugangsdaten bekannt sind, die Person doch
 /// finden.
+///
+/// ### Schulen
+///
+/// Ein Share hängt am **Nutzernamen**, nicht an der Schule: Wer die zehn Wörter
+/// kennt, öffnet ihn – auch von einer anderen Schule aus.
+///
+/// Im **Suchverzeichnis** stehen dagegen nur die Menschen der eigenen Schule.
+/// Das ist eine Grenze des Verzeichnisses, keine des Inhalts: Mit dem
+/// Nutzernamen kommt man auch an einen Share einer fremden Schule. Die
+/// Schulnummer hält das Suchmenü also überschaubar und schützt nichts.
 class ShareManager {
   const ShareManager({required this.client});
 
@@ -276,54 +327,64 @@ class ShareManager {
   /// merkbar, statt einer Zeichenfolge wie bei einer UUID. Der Nutzername ist
   /// das, was man in einem Raum weitersagt; deshalb ist er bewusst getrennt
   /// von einem möglichen Passwort.
-  static String generateUsername() => Passphrase.generate();
+  /// Höchstens so viele Zeichen darf der Nutzername haben.
+  ///
+  /// Der Wert kommt vom Sync-Server (`MAX_USERNAME_LENGTH` in
+  /// `supabase/functions/_shared/http.ts`). Eine Phrase aus zehn Wörtern wird
+  /// im Mittel etwa 63 Zeichen lang und wurde deshalb **immer** wieder
+  /// abgelehnt – mit der nichts aussagenden Meldung „Dieser Share ist nicht
+  /// erlaubt". Die Grenze wird deshalb schon beim Erzeugen eingehalten.
+  static const int maxUsernameLength = 60;
+
+  static String generateUsername() =>
+      Passphrase.generate(maxLength: maxUsernameLength);
 
   /// Erzeugt ein Share-Passwort – ebenfalls zehn Wörter, aber nie identisch
   /// mit der Sync-Passphrase, weil der Schlüssel aus beiden gemeinsam
   /// abgeleitet wird.
   static String generateSharePassword() => Passphrase.generate();
 
-  /// Die Kette, unter der die Shares dieses Nutzers liegen.
+  /// Die ID eines Shares.
   ///
-  /// Sie hängt an Nutzername **und** Schulnummer: Ein Nutzername aus einer
-  /// anderen Schule findet so nicht dieselben Shares, und ein globaler Share
-  /// muss trotzdem unter derselben ID liegen – deshalb wird für globale
-  /// Shares dieselbe ID verwendet, der Nutzer gibt dann zusätzlich seine
-  /// Schulnummer an.
-  static String shareIdFor(String username, String schoolNumber) =>
-      PayloadCrypto.publicId(
-        '${Passphrase.normalize(username)}|${schoolNumber.trim()}',
+  /// Sie hängt **nur** am Nutzernamen, nicht an der Schulnummer. Wer die zehn
+  /// Wörter kennt, kann den Share deshalb von jeder Schule aus öffnen – und
+  /// nur so ist das überhaupt möglich: Eine ID mit der Schulnummer der
+  /// Besitzerin darin kann niemand außerhalb dieser Schule berechnen, weil er
+  /// sie nicht kennt.
+  ///
+  /// Ob ein Share **gefunden** wird, ist eine andere Frage als ob er **zu öffnen**
+  /// ist: Das Suchverzeichnis filtert nach der Schulnummer der suchenden Person
+  /// und listet darum nur die eigene Schule auf. Gefunden werden und geöffnet
+  /// werden können sind bewusst getrennt – der Nutzername ist der Schlüssel zum
+  /// Öffnen, die Schulnummer ist die Grenze des Verzeichnisses.
+  static String shareIdFor(String username) => PayloadCrypto.publicId(
+        Passphrase.normalize(username),
         usernameDomain,
       );
 
-  /// Die ID eines globalen Shares – unabhängig von der Schulnummer, weil er
-  /// gerade von Nutzern anderer Schulen geöffnet werden soll.
-  static String globalShareIdFor(String username) =>
-      PayloadCrypto.publicId(Passphrase.normalize(username), '$usernameDomain:global');
-
   /// Der Schlüssel einer Hülle.
   ///
-  /// [scope] ist die Schulnummer der **besitzenden** Person – bei einem
-  /// globalen Share steht hier stattdessen [globalScope], weil die öffnende
-  /// Person die Schulnummer gar nicht kennt. Ohne das könnte ein globaler
-  /// Share von niemandem außerhalb der Besitzerschule geöffnet werden, und
-  /// "global" wäre wirkungslos.
+  /// Der Schlüssel hängt an Nutzername, [shareScope] und dem Geheimnis der
+  /// jeweiligen Hülle. Er enthält **keine Schulnummer**: Sie geht nicht in den
+  /// Schlüssel ein, sonst wäre ein Share aus einer fremden Schule gar nicht
+  /// zu öffnen – und gerade das soll der Nutzername ermöglichen.
   static DerivedKey _keyFor(
     String username,
-    String scope,
     String secret,
   ) =>
       PayloadCrypto.deriveKey(
-        '${Passphrase.normalize(username)}|$scope|$secret',
+        '${Passphrase.normalize(username)}|$shareScope|$secret',
         salt: keyDomain,
       );
 
-  /// Der Ersatz für die Schulnummer bei globalen Shares.
-  static const String globalScope = '@global';
-
   /// Der Schlüsselbereich, in dem ein Share liegt.
-  static String scopeFor(String schoolNumber, {required bool isGlobal}) =>
-      isGlobal ? globalScope : schoolNumber.trim();
+  ///
+  /// Nur noch **ein** Bereich für alle Shares: Es gibt keinen "globalen" Share
+  /// mehr, der außerhalb der Besitzerschule zu öffnen wäre, und keinen
+  /// schulgebundenen, der nur drinnen aufginge. Der Nutzername entscheidet, ob
+  /// ein Share zu öffnen ist; die Schulnummer entscheidet nur, ob er im
+  /// Suchverzeichnis auftaucht.
+  static const String shareScope = 'share';
 
   static String? readUsername(SharedPreferences prefs) =>
       prefs.getString(usernameStorageKey);
@@ -464,18 +525,17 @@ class ShareManager {
       classes.add(short);
     }
 
-    // Pläne: die gespeicherten Vertretungspläne, ggf. auf die letzten
-    // [historyDays] Tage beschränkt.
+    // Pläne: die gespeicherten Vertretungspläne gehören zu den geteilten Klassen
+    // und kommen **immer** mit. Nur ihr Alter ist eine Frage – und die
+    // entscheidet [selection.includeHistory].
     final List<Map<String, dynamic>> plans = <Map<String, dynamic>>[];
-    if (selection.includePlans) {
-      for (final Object item
-          in source['${scope}offlineVPData'] ?? const <Object>[]) {
-        if (item is! Map) continue;
-        final Map<String, dynamic> record = item.cast<String, dynamic>();
-        final String date = planDateOf(record) ?? '';
-        if (!selection.includeHistory && !isRecent(date)) continue;
-        plans.add(record);
-      }
+    for (final Object item
+        in source['${scope}offlineVPData'] ?? const <Object>[]) {
+      if (item is! Map) continue;
+      final Map<String, dynamic> record = item.cast<String, dynamic>();
+      final String date = planDateOf(record) ?? '';
+      if (!selection.includeHistory && !isRecent(date)) continue;
+      plans.add(record);
     }
 
     final Map<String, dynamic> settings = <String, dynamic>{};
@@ -525,11 +585,17 @@ class ShareManager {
     required Map<String, dynamic> payload,
     required ShareSelection selection,
     required bool searchable,
-    required bool isGlobal,
     String? sharePassword,
   }) async {
     final String username = readUsername(prefs) ?? '';
     if (username.isEmpty) throw const ShareException('noUsername');
+    // Zu langer Nutzername: Der Server würde das mit derselben Meldung
+    // ablehnen wie einen verbotenen Namen ("invalidShare"), und niemand
+    // käme darauf, dass es an der Länge liegt. Deshalb wird es hier erkannt
+    // und mit einer eigenen Meldung gemeldet.
+    if (username.length > maxUsernameLength) {
+      throw const ShareException('usernameTooLong');
+    }
 
     final NameVerdict verdict = NameGuard.check(displayName);
     if (verdict.isBlocked) {
@@ -539,28 +605,24 @@ class ShareManager {
       throw const ShareException('nothingSelected');
     }
 
-    final String shareId =
-        isGlobal ? globalShareIdFor(username) : shareIdFor(username, schoolNumber);
+    final String shareId = shareIdFor(username);
     final bool protected = sharePassword != null && sharePassword.trim().isNotEmpty;
-    // Bei einem globalen Share darf die Schulnummer der Besitzerin nicht in
-    // den Schlüssel eingehen – sie kennt die öffnende Person nicht.
-    final String scope = scopeFor(schoolNumber, isGlobal: isGlobal);
 
     final Map<String, dynamic> envelopes = <String, dynamic>{};
     if (protected) {
       envelopes[ShareSlot.byPassword.id] = PayloadCrypto.encryptJson(
-        _keyFor(username, scope, Passphrase.normalize(sharePassword)),
+        _keyFor(username, Passphrase.normalize(sharePassword)),
         payload,
         salt: keyDomain,
       );
     } else {
       envelopes[ShareSlot.byUsername.id] = PayloadCrypto.encryptJson(
-        _keyFor(username, scope, ''),
+        _keyFor(username, ''),
         payload,
         salt: keyDomain,
       );
       envelopes[ShareSlot.bySchool.id] = PayloadCrypto.encryptJson(
-        _keyFor(username, scope, schoolPassword),
+        _keyFor(username, schoolPassword),
         payload,
         salt: keyDomain,
       );
@@ -575,7 +637,6 @@ class ShareManager {
       label: label,
       envelopes: envelopes,
       searchable: searchable,
-      isGlobal: isGlobal,
       updatedAt: now,
     );
 
@@ -585,7 +646,6 @@ class ShareManager {
       displayName: displayName,
       label: label,
       searchable: searchable,
-      isGlobal: isGlobal,
       createdAt: now,
       updatedAt: now,
       hasPassword: protected,
@@ -614,7 +674,6 @@ class ShareManager {
     required LocalShare share,
     String? label,
     bool? searchable,
-    bool? isGlobal,
     String? displayName,
     ShareSelection? selection,
   }) async {
@@ -625,7 +684,6 @@ class ShareManager {
     final LocalShare updated = share.copyWith(
       label: label,
       searchable: searchable,
-      isGlobal: isGlobal,
       displayName: displayName,
       selection: effective,
       updatedAt: DateTime.now().toUtc(),
@@ -640,7 +698,6 @@ class ShareManager {
       payload: payload,
       selection: effective,
       searchable: updated.searchable,
-      isGlobal: updated.isGlobal,
       sharePassword: share.hasPassword ? readSharePassword(prefs) : null,
     );
   }
@@ -674,20 +731,21 @@ class ShareManager {
 
   /// Öffnet einen Share.
   ///
-  /// [schoolNumber] ist die Schulnummer der eingebenden Person. Sie wird nur
-  /// dann gebraucht, wenn der Share **nicht** global ist: Bei einem
-  /// normalen Share geht die Schulnummer der Besitzerin in den Schlüssel ein,
-  /// und die muss man kennen. Bei einem globalen Share wird stattdessen
-  /// [globalScope] verwendet – deshalb funktioniert er auch von einer anderen
-  /// Schule aus.
+  /// Es wird nacheinander jede Hülle durchprobiert, die der Share anbietet: das
+  /// Share-Passwort, falls eines angegeben wurde, den Nutzernamen und das
+  /// Schulpasswort. Der erste passende Schlüssel gewinnt.
+  ///
+  /// Eine Schulnummer wird **nicht** gebraucht: Der Schlüssel hängt am
+  /// Nutzernamen, und der ist der Grund, warum ein Share aus einer anderen
+  /// Schule überhaupt geöffnet werden kann. Wer die Schulnummer kennt, aber den
+  /// Nutzamen nicht, kommt nicht an den Share – die zehn Wörter sind der
+  /// einzige Weg hinein.
   static Map<String, dynamic> unlock(
     ShareRecord record,
     String username, {
-    required String schoolNumber,
     String? sharePassword,
     String? schoolPassword,
   }) {
-    final String scope = scopeFor(schoolNumber, isGlobal: record.isGlobal);
     final List<({String slot, String secret})> candidates =
         <({String slot, String secret})>[];
 
@@ -712,7 +770,7 @@ class ShareManager {
       if (envelope is! Map<String, dynamic>) continue;
       try {
         return PayloadCrypto.decryptJson(
-          _keyFor(username, scope, candidate.secret),
+          _keyFor(username, candidate.secret),
           envelope,
         );
       } on PayloadCryptoException {
@@ -740,20 +798,100 @@ class ShareManager {
     return (classes: classes, persons: persons, plans: plans);
   }
 
+  /// Die Klassen und Personen eines geöffneten Shares als Auswahlliste.
+  ///
+  /// Im Share ist eine Klasse schlicht ihr Kürzel und eine Person ein Objekt mit
+  /// `id` und `name` – beides wird hier so zurückgegeben, wie es in der
+  /// Oberfläche angezeigt und angeklickt wird. Die IDs sind die des Shares, nicht
+  /// die später vergebenen `import-…`-IDs: Die Auswahl bezieht sich auf das, was
+  /// man sieht.
+  static ({
+    List<String> classes,
+    List<({String id, String name})> persons,
+  }) selectableItems(Map<String, dynamic> payload) {
+    final SyncPayload data = _readPayload(payload);
+    final List<String> classes = <String>[];
+    final List<({String id, String name})> persons =
+        <({String id, String name})>[];
+
+    for (final SyncPart part in data.parts) {
+      if (part.key.endsWith('classes')) {
+        for (final Object item in part.items) {
+          final String? short = classNameOf(item);
+          if (short == null || classes.contains(short)) continue;
+          classes.add(short);
+        }
+      } else if (part.key.endsWith('persons')) {
+        for (final Object item in part.items) {
+          if (item is! Map) continue;
+          final String name = item['name']?.toString().trim() ?? '';
+          if (name.isEmpty) continue;
+          // Ohne `id` gibt es nichts anzuklicken – dann wäre der Eintrag eine
+          // Zeile, deren Auswahl man nicht wieder loswird.
+          final String id = item['id']?.toString() ?? '';
+          if (id.isEmpty) continue;
+          if (persons.any((({String id, String name}) p) => p.id == id)) continue;
+          persons.add((id: id, name: name));
+        }
+      }
+    }
+    return (classes: classes, persons: persons);
+  }
+
+  /// Die Vorauswahl: **alles** auswählen.
+  ///
+  /// Wer einen Share öffnet, will ihn erst einmal sehen. Alles ausgewählt zu
+  /// lassen ist deshalb der ehrliche Start – wer weniger braucht, klickt es ab.
+  static ShareImportSelection selectAll(Map<String, dynamic> payload) {
+    final ({
+      List<String> classes,
+      List<({String id, String name})> persons,
+    }) items = selectableItems(payload);
+    return ShareImportSelection(
+      classIds: items.classes.toSet(),
+      personIds: items.persons.map((({String id, String name}) p) => p.id).toSet(),
+    );
+  }
+
+  /// Die Pläne, die ein Import für [selection] übernehmen würde.
+  ///
+  /// Für die Anzeige im Share: im Modus [ShareImportMode.original] sind das
+  /// die Pläne des Shares, in den beiden Umbaumodierten wird kein Plan erzeugt.
+  static int countPlansOf(
+    Map<String, dynamic> payload,
+    ShareImportSelection selection, {
+    ShareImportMode mode = ShareImportMode.original,
+  }) {
+    if (!selection.includePlans || mode != ShareImportMode.original) return 0;
+    return countContents(payload).plans;
+  }
+
   /// Schreibt einen geöffneten Share in die lokalen Daten.
   ///
   /// Der Import ist **nicht destruktiv**: Vorhandene Klassen und Personen
   /// bleiben, die importierten kommen hinzu. Nur die Kürzel werden
   /// entkollidiert, damit eine importierte Klasse `7c` nicht die lokale
   /// Klasse `7c` überschreibt.
+  ///
+  /// [selection] bestimmt, **was** übernommen wird: einzelne Klassen, einzelne
+  /// Personen und – über [ShareImportSelection.includePlans] – die
+  /// zwischengespeicherten Pläne. Ohne [selection] wird alles übernommen.
   static Future<ShareImportResult> applyImport(
     SharedPreferences prefs,
     Map<String, dynamic> payload, {
     required ShareImportMode mode,
     required String displayName,
+    ShareImportSelection? selection,
   }) async {
     final SyncPayload data = _readPayload(payload);
     final String scope = scopeSuffix(prefs);
+
+    // Eine leere Auswahl ist kein Fehlklick, sondern eine Absicht – aber sie
+    // darf auch nicht stillschweigend "alles" bedeuten. Sonst würde ein
+    // abgeschalteter Plan-Schalter mit leeren Haken importieren.
+    if (selection?.hasNothing ?? false) {
+      throw const ShareException('nothingSelected');
+    }
 
     // Die Kürzel, die es lokal schon gibt.
     final Set<String> usedShorts = (prefs.getStringList('${scope}classes') ??
@@ -795,6 +933,23 @@ class ShareManager {
       return r?[name]?.toString() ?? '';
     }
 
+    // Nur die **ausgewählten** Klassen, Personen und Pläne werden übernommen.
+    // Ohne [selection] gilt „alles" – das hält die Aufrufer, die es vorher gab
+    // und keine Auswahl kannten, auf demselben Stand.
+    final Set<String> chosenClasses = selection?.classIds ?? const <String>{};
+    final Set<String> chosenPersons = selection?.personIds ?? const <String>{};
+    final bool takePlans = selection?.includePlans ?? true;
+    final bool filterActive = selection != null;
+
+    bool classWanted(String short) =>
+        !filterActive || chosenClasses.contains(short);
+
+    bool personWanted(Object item) {
+      if (!filterActive) return true;
+      final String id = field(item, 'id');
+      return id.isNotEmpty && chosenPersons.contains(id);
+    }
+
     switch (mode) {
       case ShareImportMode.original:
         // 1:1 übernehmen. Die fremden Klassennummern bleiben erhalten – das ist
@@ -804,7 +959,7 @@ class ShareManager {
           if (!part.key.endsWith('classes')) continue;
           for (final Object item in part.items) {
             final String short = classNameOf(item) ?? '';
-            if (short.isEmpty) continue;
+            if (short.isEmpty || !classWanted(short)) continue;
             final String unique = nextShort(short);
             classMapping[short] = unique;
             // Die App legt Klassen als einfache Zeichenkette ab – ein Objekt
@@ -812,10 +967,14 @@ class ShareManager {
             newClasses.add(unique);
           }
         }
-        for (final SyncPart part in data.parts) {
-          if (part.key.endsWith('offlineVPData')) {
-            for (final Object item in part.items) {
-              newPlans.add(SyncPayload.encodeItem(item));
+        // Die Pläne kommen nur mit, wenn sie angefordert sind. Unverändert
+        // übernehmen: In „Original" bleibt alles, wie es geteilt wurde.
+        if (takePlans) {
+          for (final SyncPart part in data.parts) {
+            if (part.key.endsWith('offlineVPData')) {
+              for (final Object item in part.items) {
+                newPlans.add(SyncPayload.encodeItem(item));
+              }
             }
           }
         }
@@ -823,7 +982,7 @@ class ShareManager {
           if (!part.key.endsWith('persons')) continue;
           for (final Object item in part.items) {
             final String name = field(item, 'name').trim();
-            if (name.isEmpty) continue;
+            if (name.isEmpty || !personWanted(item)) continue;
             final String originalClass = field(item, 'classId');
             newPersons.add(<String, dynamic>{
               'id': _importedId(displayName, name, newPersons.length),
@@ -836,33 +995,53 @@ class ShareManager {
         }
 
       case ShareImportMode.plans:
-        // Jede Person wird zu einem Plan: eine Klasse mit ihrem Namen und je
-        // ein Plan-Eintrag pro Kurs. So sieht man, wer wann welchen Kurs
-        // hatte, ohne die fremde Klassenstruktur zu übernehmen.
+        // **Alle** übernommenen Klassen und Personen werden zu Klassen: die
+        // fremde Klasse `7c` bleibt `7c`, aus der Person `Hans` mit den Kursen
+        // Deutsch und Mathe wird die Klasse `Hans`.
+        //
+        // Dabei werden **keine Pläne und keine zusätzlichen Klassen erzeugt**.
+        // Vorher entstand je Kurs ein Plan „Hans – Deutsch", „Hans – Mathe" …
+        // – eine Unmenge Zeilen in der Planliste, die nichts zeigten, was die
+        // Kurse der Klasse nicht schon zeigen. Die Kurse hängen an der Klasse,
+        // die aus der Person wurde; das genügt.
+        final Set<String> seenClasses = <String>{};
+
+        void addAsClass(String base) {
+          final String name = base.trim();
+          if (name.isEmpty || !seenClasses.add(name)) return;
+          final String short = nextShort(name);
+          newClasses.add(short);
+          // Ein gekürztes Kürzel, das aus einem längeren Namen entstand, bekommt
+          // den vollen Namen als Anzeigename – sonst steht in der Klassenliste
+          // nur „Hans Sch…" und niemand weiß mehr, wer das war.
+          if (name != short) classLabels[short] = name;
+        }
+
         for (final SyncPart part in data.parts) {
-          if (!part.key.endsWith('persons')) continue;
-          for (final Object item in part.items) {
-            final String name = field(item, 'name').trim();
-            if (name.isEmpty) continue;
-            final String short = nextShort(name);
-            newClasses.add(short);
-            classLabels[short] = name;
-            for (final String course in coursesOf(item)) {
-              newPlans.add(jsonEncode(<String, dynamic>{
-                'date': 'import-${DateTime.now().toUtc().millisecondsSinceEpoch}',
-                'name': '$name – $course',
-                'classes': <String>[short],
-                'courses': <String>[course],
-                'importedFrom': displayName,
-                '_importedAs': 'plan',
-              }));
+          if (part.key.endsWith('classes')) {
+            // Eine Klasse ist bei der App schlicht ein Name – es gibt kein
+            // `displayName` an diesem Eintrag, das Kürzel **ist** der Name.
+            for (final Object item in part.items) {
+              final String short = classNameOf(item) ?? '';
+              if (!classWanted(short)) continue;
+              addAsClass(short);
+            }
+          } else if (part.key.endsWith('persons')) {
+            for (final Object item in part.items) {
+              if (!personWanted(item)) continue;
+              addAsClass(field(item, 'name'));
             }
           }
         }
 
       case ShareImportMode.persons:
-        // Aus allem wird ein Name: aus jeder Person, jeder Klasse und jedem
-        // Plan. Die Namen werden zu je einer Person mit eigener Klasse.
+        // Aus jeder übernommenen Klasse und jeder übernommenen Person wird ein
+        // Name – und zu jedem gehört eine eigene Klasse.
+        //
+        // Aus den gespeicherten Plänen werden **keine** Namen gezogen. Der Name
+        // eines Plans („Vertretungsplan für Hans Schneider", „Plan von 2025")
+        // ist keine Person; als Person in der App zu stehen half niemandem und
+        // füllte nur die Liste.
         final Set<String> seen = <String>{};
         void addAsPerson(String rawName, List<String> courses) {
           final String name = rawName.trim();
@@ -882,17 +1061,16 @@ class ShareManager {
         for (final SyncPart part in data.parts) {
           if (part.key.endsWith('persons')) {
             for (final Object item in part.items) {
+              if (!personWanted(item)) continue;
               addAsPerson(field(item, 'name'), coursesOf(item));
             }
           } else if (part.key.endsWith('classes')) {
             // Eine Klasse ist bei der App schlicht ein Name – es gibt kein
             // `displayName` an diesem Eintrag.
             for (final Object item in part.items) {
-              addAsPerson(classNameOf(item) ?? '', const <String>[]);
-            }
-          } else if (part.key.endsWith('offlineVPData')) {
-            for (final Object item in part.items) {
-              addAsPerson(field(item, 'name'), const <String>[]);
+              final String short = classNameOf(item) ?? '';
+              if (!classWanted(short)) continue;
+              addAsPerson(short, const <String>[]);
             }
           }
         }

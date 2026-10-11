@@ -22,7 +22,7 @@ import 'package:substitute/services/PlanModePreferences.dart';
 import '../dashboard/settings/VPlanLogin.dart';
 
 import '../../models/ListItem.dart';
-import '../../models/LoadingProcess.dart';
+import '../../models/LoadingIndicator.dart';
 
 import './LessonPreview.dart';
 import './Plan.dart';
@@ -1286,7 +1286,7 @@ class _SelectClassState extends State<SelectClass> {
       children: [
         classes.length == 0
             ? Center(
-                child: LoadingProcess(),
+                child: LoadingIndicator(),
               )
             : SizedBox(),
         ...classes.map((className) {

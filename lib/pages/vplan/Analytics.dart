@@ -5,7 +5,7 @@ import 'package:lottie/lottie.dart';
 import 'package:substitute/services/SchoolStorage.dart';
 
 import './VPlanAPI.dart';
-import '../../models/LoadingProcess.dart';
+import '../../models/LoadingIndicator.dart';
 import '../../models/ListItem.dart';
 
 class Analytics extends StatefulWidget {
@@ -16,7 +16,7 @@ class Analytics extends StatefulWidget {
 }
 
 class _AnalyticsState extends State<Analytics> {
-  Widget content = LoadingProcess();
+  Widget content = LoadingIndicator();
   final Analysis analysis = new Analysis();
 
   void getData(context) async {

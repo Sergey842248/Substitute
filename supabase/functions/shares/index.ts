@@ -64,7 +64,7 @@ async function getShare(req: Request, client: ReturnType<typeof db>): Promise<Re
   const { data, error } = await client
     .from('shares')
     .select(
-      'id, owner_username, school_number, display_name, label, searchable, is_global, updated_at, envelopes, has_password, unlockable_with_school',
+      'id, owner_username, school_number, display_name, label, searchable, updated_at, envelopes, has_password, unlockable_with_school',
     )
     .eq('id', id)
     .maybeSingle();
@@ -90,7 +90,6 @@ async function getShare(req: Request, client: ReturnType<typeof db>): Promise<Re
     // ihnen abweichen.
     hasPassword: row.has_password,
     unlockableWithSchoolCredentials: row.unlockable_with_school,
-    isGlobal: row.is_global,
     updatedAt: new Date(row.updated_at).toISOString(),
     // Unveraendert durchgereicht. `has_password` und
     // `unlockable_with_school_credentials` sind nur Kurzformen; die App
@@ -138,7 +137,11 @@ async function putShare(req: Request, client: ReturnType<typeof db>): Promise<Re
   const displayName = typeof ownerRecord.display_name === 'string'
     ? ownerRecord.display_name.trim()
     : '';
-  if (displayName.length < 2 || displayName.length > MAX_DISPLAY_NAME_LENGTH) {
+  // Keine Mindestlänge: Ein einbuchstabiger Anzeigename ist gültig. Vorher
+  // stand hier `< 2`, während die App (`NameGuard`) keine Mindestlänge mehr
+  // kennt – ein kurzer Name wäre dann zwar in der App annehmbar gewesen und
+  // erst beim Speichern mit `invalidShare` abgelehnt worden.
+  if (displayName.length < 1 || displayName.length > MAX_DISPLAY_NAME_LENGTH) {
     throw new ApiError('invalidShare', 400, 'displayName');
   }
 
@@ -159,7 +162,6 @@ async function putShare(req: Request, client: ReturnType<typeof db>): Promise<Re
       display_name: displayName,
       label,
       searchable: body.searchable === true,
-      is_global: body.is_global === true,
       // Der Zeitstempel kommt vom Geraet, nicht vom Server: Bei einem
       // passwortgeschuetzten Share entscheidet die Aenderungszeit in der
       // Geraeteliste darueber, wer zuletzt daran war. Eine Serverzeit waere

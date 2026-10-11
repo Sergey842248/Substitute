@@ -1,6 +1,6 @@
 import 'package:substitute/models/ListItem.dart';
 import 'package:substitute/models/ListPage.dart';
-import 'package:substitute/models/LoadingProcess.dart';
+import 'package:substitute/models/LoadingIndicator.dart';
 import 'package:flutter/material.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
@@ -268,7 +268,7 @@ class _RoomPlanState extends State<RoomPlan> {
                 style: const TextStyle(fontSize: 11),
               ),
               const SizedBox(height: 15),
-              const LoadingProcess(),
+              const LoadingIndicator(),
             ],
           )
         else if (errorText.isNotEmpty)

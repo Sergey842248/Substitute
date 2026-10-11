@@ -155,7 +155,6 @@ void main() {
         label: 'Pläne',
         envelopes: <String, dynamic>{'byUsername': <String, dynamic>{}},
         searchable: true,
-        isGlobal: false,
         updatedAt: DateTime.utc(2026, 10, 1),
       );
       final http.Request request = sent.single as http.Request;
@@ -166,8 +165,11 @@ void main() {
       // Auch hier snake_case, sonst findet die Function die Schule nicht.
       expect((body['owner'] as Map)['school_number'], '12345');
       expect((body['owner'] as Map)['display_name'], 'Frau Müller');
-      expect(body['is_global'], isFalse);
       expect(body['updated_at'], isA<String>());
+      // Es gibt kein `is_global` mehr. Die Function liest es nicht, die Spalte
+      // steht auf false – und schon gar nicht in der Antwort, denn die App
+      // kennt das Feld nicht mehr.
+      expect(body.containsKey('is_global'), isFalse);
     });
 
     test('holt das Verzeichnis ueber school_number', () async {

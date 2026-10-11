@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:substitute/services/SchoolStorage.dart';
+import 'package:substitute/services/sync/NameGuard.dart';
 import 'package:substitute/services/sync/ShareManager.dart';
 import 'package:substitute/services/sync/SyncApiClient.dart';
 
 import '../../../models/Button.dart';
 import '../../../models/InputField.dart';
 import '../../../models/ListPage.dart';
-import '../../../models/LoadingProcess.dart';
+import '../../../models/LoadingIndicator.dart';
 import 'ShareListPage.dart';
 
 /// Anlegen oder Bearbeiten eines Shares.
@@ -44,9 +45,13 @@ class _ShareEditPageState extends State<ShareEditPage> {
   late List<({String id, String name})> _persons;
 
   bool _searchable = true;
-  bool _isGlobal = false;
   bool _busy = false;
   String? _error;
+
+  /// Ob die erweiterten Optionen aufgeklappt sind. Sie sind die Ausnahme –
+  /// der Normalfall ist ein Share für die eigene Schule, sichtbar in der
+  /// eigenen Schule, mit den Plänen der letzten Wochen.
+  bool _advancedOpen = false;
 
   /// Ob der Vorschlagstext schon gesetzt wurde. Der braucht die Übersetzungen
   /// und steht deshalb nicht in [initState] – siehe [didChangeDependencies].
@@ -74,7 +79,6 @@ class _ShareEditPageState extends State<ShareEditPage> {
           : (ShareManager.readSharePassword(widget.prefs) ?? ''),
     );
     _searchable = share?.searchable ?? true;
-    _isGlobal = share?.isGlobal ?? false;
   }
 
   @override
@@ -95,15 +99,19 @@ class _ShareEditPageState extends State<ShareEditPage> {
     super.dispose();
   }
 
-  /// Ein Vorschlag, der die Auswahl benennt – ein Share ohne Namen ist in der
-  /// Liste später nicht wiederzufinden.
+  /// Der Vorschlag für den Namen des neuen Shares.
+  ///
+  /// Ohne ausgewählte Klassen steht der Standard drin („Mein Plan") – vorher
+  /// stand dort „Neuer Share", was als Name nichts taugte. Sobald genau eine
+  /// Klasse gewählt ist, übernimmt deren Kürzel; bei mehreren wird der Standard
+  /// mit der Anzahl ergänzt.
   String _defaultLabel() {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
     if (_selection.classIds.isEmpty && _selection.personIds.isEmpty) {
-      return l10n.shareCreate;
+      return l10n.shareDefaultLabel;
     }
     if (_selection.classIds.length == 1) return _selection.classIds.first;
-    return '${l10n.shareCreate} ${_selection.classIds.length}';
+    return '${l10n.shareDefaultLabel} ${_selection.classIds.length}';
   }
 
   String _schoolNumber() =>
@@ -122,6 +130,15 @@ class _ShareEditPageState extends State<ShareEditPage> {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
     if (_selection.isEmpty) {
       setState(() => _error = l10n.shareSelectNothingSelected);
+      return;
+    }
+    // Der Name des Shares steht offen in einer Liste, die alle Kolleginnen
+    // sehen – derselbe Name wird also geprüft wie ein Anzeigename. Ein
+    // anstößiger Name wird **nicht** übernommen, es gibt eine Warnung und das
+    // Speichern bricht ab.
+    final NameVerdict labelVerdict = NameGuard.check(_labelController.text);
+    if (labelVerdict.isBlocked) {
+      setState(() => _error = shareNameError(l10n, labelVerdict));
       return;
     }
     final String schoolNumber = _schoolNumber();
@@ -152,7 +169,6 @@ class _ShareEditPageState extends State<ShareEditPage> {
           payload: payload,
           selection: _selection,
           searchable: _searchable,
-          isGlobal: _isGlobal,
           sharePassword: password.isEmpty ? null : password,
         );
       } else {
@@ -163,7 +179,6 @@ class _ShareEditPageState extends State<ShareEditPage> {
           share: widget.share!,
           label: _labelController.text.trim(),
           searchable: _searchable,
-          isGlobal: _isGlobal,
           selection: _selection,
         );
       }
@@ -179,7 +194,12 @@ class _ShareEditPageState extends State<ShareEditPage> {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = '${l10n.syncFailed}: ${failure.message}';
+        // Der **Code** wird übersetzt, nicht der englische Servertext. Vorher
+        // stand hier `l10n.syncFailed` als Text in der Fehlermeldung – das ist
+        // aber eine Funktion mit einem Parameter, und interpoliert wurde sie
+        // deshalb als „Closure: (Object) => String …" samt englischem Originaltext
+        // angezeigt.
+        _error = shareErrorMessage(l10n, failure.code);
       });
     }
   }
@@ -217,7 +237,10 @@ class _ShareEditPageState extends State<ShareEditPage> {
         child: ListPage(
           title: widget.share == null ? l10n.shareCreate : l10n.shareEdit,
           children: <Widget>[
-            if (_busy) const Center(child: LoadingProcess()),
+            // Beim Speichern: Die neue Ladeanzeige. Die frühere (`LoadingProcess`, ein
+            // Lottie-Bild) hatte keine feste Höhe – in einer Liste bekommt sie
+            // unbeschränkte Höhe und wurde gar nicht sichtbar.
+            if (_busy) const LoadingIndicatorBlock(),
             if (_error != null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
@@ -228,8 +251,11 @@ class _ShareEditPageState extends State<ShareEditPage> {
               ),
 
             _sectionTitle(l10n.shareSelectClasses),
+            // Eigene Meldung: Die Klassen-Sektion zeigte den Personentext
+            // („Noch keine Personen. Füge eine Person hinzu ...") – auch dann,
+            // wenn Klassen vorhanden waren.
             if (_classes.isEmpty)
-              _empty(l10n.noPersonsYet)
+              _empty(l10n.noClassesYet)
             else
               Wrap(
                 spacing: 8,
@@ -250,12 +276,19 @@ class _ShareEditPageState extends State<ShareEditPage> {
             else
               Column(
                 children: _persons
-                    .map((({String id, String name}) person) => CheckboxListTile(
-                          value: _selection.personIds.contains(person.id),
-                          title: Text(person.name),
-                          dense: true,
-                          onChanged: (bool? value) =>
-                              _togglePerson(person.id, value ?? false),
+                    .map((({String id, String name}) person) => Material(
+                          // Die Zeile liegt sonst direkt auf dem gefärbten
+                          // Container der Seite. Ihr Material- ancestor liegt
+                          // weiter oben, wodurch die Taste beim Antippen keine
+                          // sichtbare Rückmeldung gab.
+                          type: MaterialType.transparency,
+                          child: CheckboxListTile(
+                            value: _selection.personIds.contains(person.id),
+                            title: Text(person.name),
+                            dense: true,
+                            onChanged: (bool? value) =>
+                                _togglePerson(person.id, value ?? false),
+                          ),
                         ))
                     .toList(),
               ),
@@ -267,20 +300,6 @@ class _ShareEditPageState extends State<ShareEditPage> {
               _searchable,
               (bool value) => setState(() => _searchable = value),
             ),
-            _switchTile(
-              l10n.shareGlobal,
-              l10n.shareGlobalSubtitle,
-              _isGlobal,
-              (bool value) => setState(() => _isGlobal = value),
-            ),
-            if (_isGlobal)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                child: Text(
-                  l10n.shareGlobalNote,
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
-                ),
-              ),
 
             _sectionTitle(l10n.sharePassword),
             _switchTile(
@@ -320,29 +339,11 @@ class _ShareEditPageState extends State<ShareEditPage> {
                 ),
               ),
 
-            _sectionTitle(l10n.shareIncludePlans),
-            _switchTile(
-              l10n.shareIncludePlans,
-              l10n.shareIncludePlansSubtitle,
-              _selection.includePlans,
-              (bool value) =>
-                  setState(() => _selection = _selection.copyWith(includePlans: value)),
-            ),
-            if (_selection.includePlans)
-              _switchTile(
-                l10n.shareIncludeHistory,
-                l10n.shareIncludeHistorySubtitle(ShareManager.historyDays),
-                _selection.includeHistory,
-                (bool value) => setState(
-                    () => _selection = _selection.copyWith(includeHistory: value)),
-              ),
-            _switchTile(
-              l10n.shareIncludeSettings,
-              l10n.shareIncludeSettingsSubtitle,
-              _selection.includeSettings,
-              (bool value) => setState(
-                  () => _selection = _selection.copyWith(includeSettings: value)),
-            ),
+            // Die erweiterten Optionen stehen ganz unten und sind eingeklappt: Ein
+            // Share ist im Normalfall sichtbar für die eigene Schule, und
+            // niemand braucht dafür einen Schalter für "Pläne teilen" – die
+            // Pläne gehören zu den geteilten Klassen und sind dabei.
+            _advancedTile(l10n),
 
             _sectionTitle(l10n.shareLabel),
             InputField(
@@ -360,6 +361,53 @@ class _ShareEditPageState extends State<ShareEditPage> {
       ),
     );
   }
+
+  /// Der aufklappbare Kasten mit den erweiterten Optionen.
+  Widget _advancedTile(AppLocalizations l10n) => Material(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(10, 20, 10, 0),
+          child: Column(
+            children: <Widget>[
+              ListTile(
+                onTap: _busy
+                    ? null
+                    : () => setState(() => _advancedOpen = !_advancedOpen),
+                leading: Container(
+                  margin: const EdgeInsets.all(4),
+                  padding: const EdgeInsets.all(8),
+                  decoration:
+                      BoxDecoration(borderRadius: BorderRadius.circular(100)),
+                  child: const Icon(Icons.tune_rounded),
+                ),
+                title: Text(l10n.shareAdvancedOptions,
+                    style: const TextStyle(fontSize: 18)),
+                trailing: Icon(
+                  _advancedOpen
+                      ? Icons.expand_less_rounded
+                      : Icons.expand_more_rounded,
+                ),
+              ),
+              if (_advancedOpen) ...<Widget>[
+                _switchTile(
+                  l10n.shareIncludeHistory,
+                  l10n.shareIncludeHistorySubtitle(ShareManager.historyDays),
+                  _selection.includeHistory,
+                  (bool value) => setState(() =>
+                      _selection = _selection.copyWith(includeHistory: value)),
+                ),
+                _switchTile(
+                  l10n.shareIncludeSettings,
+                  l10n.shareIncludeSettingsSubtitle,
+                  _selection.includeSettings,
+                  (bool value) => setState(() =>
+                      _selection = _selection.copyWith(includeSettings: value)),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
 
   Widget _sectionTitle(String text) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),

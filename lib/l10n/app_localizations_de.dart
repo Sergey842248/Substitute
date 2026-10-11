@@ -656,6 +656,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get persons => 'Personen';
 
   @override
+  String get noClassesYet =>
+      'Noch keine Klassen. Füge eine Klasse hinzu, um ihren Vertretungsplan zu teilen.';
+
+  @override
   String get noPersonsYet =>
       'Noch keine Personen. Füge eine Person hinzu, um nur die gewünschten Kurse anzuzeigen.';
 
@@ -1224,24 +1228,20 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wird im Suchmenü deiner Schule angezeigt';
 
   @override
+  String get shareDefaultLabel => 'Mein Plan';
+
+  @override
   String get shareLabel => 'Name des Shares';
 
   @override
-  String get shareLabelHint => 'z.B. Vertretungspläne Herbst';
+  String get shareLabelHint => 'z.B. Freunde';
 
   @override
   String get shareSearchable => 'Im Suchmenü anzeigen';
 
   @override
   String get shareSearchableSubtitle =>
-      'Kolleginnen und Kollegen deiner Schule können dich finden und aus deinen Shares auswählen';
-
-  @override
-  String get shareGlobal => 'Globaler Share';
-
-  @override
-  String get shareGlobalSubtitle =>
-      'Auch von Lehrkräften anderer Schulen nutzbar, die deinen Nutzernamen kennen';
+      'Kolleginnen und Kollegen deiner Schule können dich im Suchmenü finden und aus deinen Shares auswählen';
 
   @override
   String get sharePassword => 'Passwort';
@@ -1279,25 +1279,18 @@ class AppLocalizationsDe extends AppLocalizations {
   String get shareSelectNothing => 'Keine auswählen';
 
   @override
-  String get shareIncludeSettings => 'Einstellungen mitteilen';
+  String get shareIncludeSettings => 'Einstellungen teilen';
 
   @override
   String get shareIncludeSettingsSubtitle =>
       'Auch die Anzeigeeinstellungen teilen';
 
   @override
-  String get shareIncludePlans => 'Gespeicherte Pläne mitteilen';
-
-  @override
-  String get shareIncludePlansSubtitle =>
-      'Die auf diesem Gerät gespeicherten Vertretungspläne teilen';
-
-  @override
-  String get shareIncludeHistory => 'Pläne aus der Vergangenheit mitteilen';
+  String get shareIncludeHistory => 'Pläne aus der Vergangenheit teilen';
 
   @override
   String shareIncludeHistorySubtitle(Object days) {
-    return 'Sonst werden nur die letzten $days Tage geteilt';
+    return 'Aus: nur die Pläne der letzten $days Tage. An: alle gespeicherten Pläne, auch ältere.';
   }
 
   @override
@@ -1324,10 +1317,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Niemand kann ihn mehr öffnen. Bereits importierte Daten bleiben bei anderen auf ihren Geräten.';
 
   @override
-  String get shareGlobalNote =>
-      'Ein globaler Share kann von Lehrkräften jeder Schule geöffnet werden, die den Nutzernamen kennen. In deren Suchmenü erscheint er nicht.';
-
-  @override
   String get shareBrowse => 'Shares finden';
 
   @override
@@ -1351,15 +1340,18 @@ class AppLocalizationsDe extends AppLocalizations {
       'Shares werden nur innerhalb der eigenen Schule gefunden. Deshalb ist die Anmeldung nötig.';
 
   @override
-  String get shareBrowseEnterUsername => 'Nutzernamen eingeben';
+  String get shareBrowseSearchHint =>
+      'Name oder die zehn Wörter einer Person eingeben';
+
+  @override
+  String get shareBrowseNoMatch => 'Niemand gefunden';
+
+  @override
+  String get shareBrowseOpenByUsername => 'Shares dieser Person öffnen';
 
   @override
   String get shareBrowseEnterUsernameSubtitle =>
       'Du kennst die zehn Wörter einer Kollegin oder eines Kollegen? Gib sie hier ein, um den Share direkt zu öffnen.';
-
-  @override
-  String get shareBrowseGlobalOnly =>
-      'Dieser Share ist global – er kann auch von Lehrkräften anderer Schulen geöffnet werden.';
 
   @override
   String shareOf(Object name) {
@@ -1381,7 +1373,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String shareContentsPlans(Object count) {
-    return '$count Pläne';
+    return '$count zwischengespeicherte Pläne';
   }
 
   @override
@@ -1398,21 +1390,39 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get shareImportModeOriginalSubtitle =>
-      'Genau wie geteilt: Klassen, Personen und Kurse bleiben, wie sie sind';
+      'Übernimmt alles genau so, wie es geteilt wurde: Klassen, Personen und Kurse bleiben unverändert. Nichts wird umgebaut.';
 
   @override
-  String get shareImportModePlans => 'Pläne';
+  String get shareImportModePlans => 'Klassen';
 
   @override
   String get shareImportModePlansSubtitle =>
-      'Jede Person wird zu einem Plan mit ihren Kursen';
+      'Macht aus jeder übernommenen Klasse und jeder übernommenen Person eine Klasse. Aus der Person „Hans“ mit den Kursen Deutsch und Mathe wird also die Klasse „Hans“, und die Kurse hängen daran.';
 
   @override
   String get shareImportModePersons => 'Personen';
 
   @override
   String get shareImportModePersonsSubtitle =>
-      'Es werden nur die Namen als Personen übernommen';
+      'Macht aus jeder übernommenen Klasse und jeder übernommenen Person eine Person – jeweils mit einer eigenen Klasse dazu.';
+
+  @override
+  String get shareAdvancedOptions => 'Erweiterte Optionen';
+
+  @override
+  String get shareImportCachedPlans => 'Zwischengespeicherte Pläne übernehmen';
+
+  @override
+  String get shareImportCachedPlansSubtitle =>
+      'Die im Share gespeicherten Vertretungspläne mit übernehmen. Aus: es werden nur Klassen und Personen übernommen.';
+
+  @override
+  String get shareImportPlansOnlyOriginal =>
+      'Nur im Modus „Original“ werden Pläne übernommen.';
+
+  @override
+  String get shareImportNothingChosen =>
+      'Bitte mindestens eine Klasse, eine Person oder die Pläne auswählen.';
 
   @override
   String get shareImport => 'Übernehmen';
@@ -1431,13 +1441,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Name ist nicht erlaubt. Bitte wähle einen anderen.';
 
   @override
-  String get shareNameTooShort => 'Bitte mindestens zwei Zeichen eingeben';
-
-  @override
   String get shareNameTooLong => 'Dieser Name ist zu lang';
 
   @override
   String get shareNameEmpty => 'Bitte einen Namen eingeben';
+
+  @override
+  String get shareErrorUsernameTooLong =>
+      'Der Nutzername ist zu lang. Bitte im Share-Menü einen neuen Nutzernamen erzeugen.';
 
   @override
   String get shareErrorNoUsername => 'Es wurde noch kein Nutzername erzeugt';

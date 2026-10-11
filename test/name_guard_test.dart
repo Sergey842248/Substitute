@@ -133,9 +133,11 @@ void main() {
       expect(NameGuard.check('   ').reason, 'empty');
     });
 
-    test('rejects a name that is too short', () {
-      expect(NameGuard.check('A').reason, 'tooShort');
-      expect(NameGuard.check('  A  ').reason, 'tooShort');
+    test('accepts a single character – there is no minimum length', () {
+      // Es gibt bewusst keine Mindestlänge: „A" ist ein gültiger Name. Vorher
+      // wurde er mit `tooShort` abgelehnt.
+      expect(NameGuard.check('A').isAllowed, isTrue);
+      expect(NameGuard.check('  A  ').isAllowed, isTrue);
     });
 
     test('rejects a name that is too long', () {

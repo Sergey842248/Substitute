@@ -123,14 +123,15 @@ select count(*) as sichtbar
 \echo '(muss 0 sein)'
 
 \echo ''
-\echo '== 6. Ein globaler Share erscheint NICHT im Verzeichnis =='
--- Global heisst: von jeder Schule per Nutzername nutzbar. Nicht: ueberall
--- gelistet. Deshalb steht hier kein Filter auf is_global im Verzeichnis.
+\echo '== 6. Das Verzeichnis zeigt ausschliesslich die eigene Schule =='
+-- Es gibt keinen globalen Share mehr: Jeder haengt am Nutzernamen und ist von
+-- jeder Schule aus zu oeffnen, sobald man ihn kennt. Das Verzeichnis filtert
+-- trotzdem – und zwar ausschliesslich nach der Schulnummer.
 insert into public.shares
-  (id, owner_username, school_number, display_name, label, searchable, is_global, envelopes)
+  (id, owner_username, school_number, display_name, label, searchable, envelopes)
 values
-  ('share-global', 'amber field wood two blue crane', '12345', 'Frau Ueberall',
-   'Offen fuer alle', true, true, '{"byUsername":{"v":1}}'::jsonb);
+  ('share-fremd', 'amber field wood two blue crane', '12345', 'Frau Ueberall',
+   'Offen fuer alle', true, '{"byUsername":{"v":1}}'::jsonb);
 
 select '12345 sieht' as perspektive, count(*) as anzahl
   from public.shares where school_number = '12345' and searchable
@@ -138,4 +139,6 @@ union all
 select '77777 sieht', count(*)
   from public.shares where school_number = '77777' and searchable;
 
-\echo '(77777 sieht 0 – global aendert nichts an der Sichtbarkeit)'
+\echo '(77777 sieht 0 – die Schulnummer ist die einzige Grenze des Verzeichnisses)'
+\echo 'Ueber die ID ist der Share natuerlich erreichbar:'
+select id from public.shares where id = 'share-fremd';

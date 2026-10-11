@@ -19,6 +19,9 @@ enum NameProblem {
   empty,
 
   /// Kürzer als zwei Zeichen.
+  ///
+  /// Nicht mehr in Gebrauch: Es gibt bewusst keine Mindestlänge. Der Fall ist
+  /// nur noch aufgeführt, damit alte gespeicherte Ergebnisse lesbar bleiben.
   tooShort,
 
   /// Länger als 40 Zeichen.
@@ -47,16 +50,14 @@ class NameCheck {
 class Moderation {
   const Moderation._();
 
-  static const int minimumLength = 2;
+  /// Höchstlänge eines Anzeigenamens. Eine **Mindestlänge gibt es bewusst
+  /// nicht** – ein kurzer Name ist ein gültiger Name.
   static const int maximumLength = 40;
 
   /// Prüft einen Anzeigenamen, wie er im Suchverzeichnis steht.
   static NameCheck checkDisplayName(String name) {
     final String trimmed = name.trim();
     if (trimmed.isEmpty) return const NameCheck._(NameProblem.empty, null);
-    if (trimmed.length < minimumLength) {
-      return const NameCheck._(NameProblem.tooShort, null);
-    }
     if (trimmed.length > maximumLength) {
       return const NameCheck._(NameProblem.tooLong, null);
     }

@@ -21,11 +21,27 @@ class InputField extends StatelessWidget {
     required this.controller,
     required this.labelText,
     this.keaboardType,
+    this.onChanged,
+    this.textInputAction,
+    this.onSubmitted,
+    this.autofocus = false,
   }) : super(key: key);
 
   final TextEditingController controller;
   final TextInputType? keaboardType;
   final String labelText;
+
+  /// Wird bei jeder Eingabe aufgerufen – für Felder, deren Wert eine Anzeige
+  /// direkt darunter steuert (etwa eine Suchzeile).
+  final ValueChanged<String>? onChanged;
+
+  /// Die Aktion der Tastatur, etwa `TextInputAction.search`.
+  final TextInputAction? textInputAction;
+
+  /// Wird beim Absenden ausgelöst (Tastatur oder Taste „Fertig"/„Suchen").
+  final ValueChanged<String>? onSubmitted;
+
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
@@ -40,8 +56,12 @@ class InputField extends StatelessWidget {
       ),
       child: TextFormField(
         autocorrect: false,
+        autofocus: autofocus,
         controller: controller,
         keyboardType: keaboardType,
+        onChanged: onChanged,
+        onFieldSubmitted: onSubmitted,
+        textInputAction: textInputAction,
         decoration: InputDecoration(
           labelText: labelText,
           labelStyle: TextStyle(

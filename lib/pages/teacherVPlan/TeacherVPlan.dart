@@ -10,7 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import './TeacherPlan.dart';
 
-import 'package:substitute/models/LoadingProcess.dart';
+import 'package:substitute/models/LoadingIndicator.dart';
 import 'package:substitute/models/ListPage.dart';
 import 'package:substitute/models/Button.dart';
 import 'package:substitute/services/SchoolStorage.dart';
@@ -176,7 +176,7 @@ class _TeacherVPlanState extends State<TeacherVPlan> {
           future: Future.delayed(const Duration(microseconds: 1)),
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
-              return const LoadingProcess();
+              return const LoadingIndicator();
             }
             return TeacherList(
               setTeacherShort: setTeacherShort,

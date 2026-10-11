@@ -12,7 +12,7 @@ import 'package:substitute/services/sync/SyncKeys.dart';
 import '../../../models/Button.dart';
 import '../../../models/InputField.dart';
 import '../../../models/ListPage.dart';
-import '../../../models/LoadingProcess.dart';
+import '../../../models/LoadingIndicator.dart';
 import '../../../models/SettingsSwitchTile.dart';
 import '../../../models/swipe_page_transition.dart';
 
@@ -192,7 +192,7 @@ class _SyncSettingsState extends State<SyncSettings> {
       if (mounted) {
         setState(() => _busy = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${l10n.syncFailed}: ${error.message}')),
+          SnackBar(content: Text(l10n.syncFailed(error.message))),
         );
       }
       return;
@@ -269,7 +269,7 @@ class _SyncSettingsState extends State<SyncSettings> {
                   : (outcome.devices.length <= 1
                       ? l10n.syncDoneAlone
                       : l10n.syncDoneNoChanges))
-              : '${l10n.syncFailed}: ${syncErrorMessage(l10n, outcome.error)}',
+              : l10n.syncFailed(syncErrorMessage(l10n, outcome.error)),
         ),
       ),
     );
@@ -570,7 +570,7 @@ class _SyncSettingsState extends State<SyncSettings> {
           title: l10n.syncTitle,
           onRefresh: state == null ? null : _runSync,
           children: <Widget>[
-            if (_busy) const Center(child: LoadingProcess()),
+            if (_busy) const Center(child: LoadingIndicator()),
             // Die Server-Kachel ist Werbung für den Server und für niemanden
             // sonst: Im Alltag ist sie eine Zeile, die man nicht liest. Sie
             // erscheint deshalb nur, wenn die Entwickleroption
@@ -810,6 +810,10 @@ String syncErrorMessage(AppLocalizations l10n, String? code) =>
       'notFound' => l10n.syncErrorNotFound,
       'wrongPassphrase' => l10n.syncErrorWrongPassphrase,
       'forbidden' => l10n.syncErrorForbidden,
+      // Der Server lehnt einen bestimmten Share ab. Vorher fiel der Code
+      // durch bis zur generischen Servermeldung, obwohl es eine eigene,
+      // übersetzbare Meldung dafür gab.
+      'invalidShare' => l10n.syncErrorInvalidShare,
       'tooManyRequests' => l10n.syncErrorTooManyRequests,
       'conflict' => l10n.syncErrorConflict,
       'tooLarge' => l10n.syncErrorTooLarge,

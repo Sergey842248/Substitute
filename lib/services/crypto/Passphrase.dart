@@ -34,10 +34,27 @@ class Passphrase {
   /// Erzeugt eine neue zufällige Phrase aus [wordCount] Wörtern.
   ///
   /// Ohne [random] wird kryptografisch sicherer Zufall der Plattform genutzt.
-  static String generate({int words = wordCount, Random? random}) {
+  ///
+  /// [maxLength] begrenzt die Länge der fertigen Phrase: Es werden nur Wörter
+  /// genommen, die noch hineinpassen, und die Schleife endet vorzeitig, wenn
+  /// kein Wort mehr hineinpasst. Das ist nötig, weil der Sync-Server den
+  /// Nutzernamen als Bezeichner führt und ihn auf 60 Zeichen prüft: Aus zehn
+  /// Wörtern dieser Liste werden im Mittel gut 63 Zeichen, und jedes
+  /// Anlegen eines Shares wäre mit einem zu langen Namen abgelehnt worden.
+  static String generate({
+    int words = wordCount,
+    Random? random,
+    int? maxLength,
+  }) {
     if (words < 1) throw ArgumentError.value(words, 'words');
+    if (maxLength != null && maxLength < 1) {
+      throw ArgumentError.value(maxLength, 'maxLength');
+    }
     final List<String> picked = <String>[];
-    while (picked.length < words) {
+    // Zähler gegen Endlosschleifen: Passen nur noch Wörter, die zu lang sind,
+    // wäre jede weitere Runde vergeblich.
+    int tooLong = 0;
+    while (picked.length < words && tooLong < 200) {
       final int index = random == null
           ? Hashing.randomBelow(wordList.length)
           : random.nextInt(wordList.length);
@@ -45,7 +62,16 @@ class Passphrase {
       // Kein Wort doppelt: sonst verringert sich die Entropie, und
       // "blue blue …" liest sich schlechter.
       if (picked.contains(word)) continue;
+      if (maxLength != null) {
+        final int length =
+            picked.isEmpty ? word.length : picked.join(' ').length + 1 + word.length;
+        if (length > maxLength) {
+          tooLong++;
+          continue;
+        }
+      }
       picked.add(word);
+      tooLong = 0;
     }
     // Sortiert zurückgeben, damit die angezeigte Phrase bereits die
     // verbindliche Form aus [normalize] ist. Wer sie aufschreibt und auf

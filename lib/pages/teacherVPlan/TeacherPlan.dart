@@ -4,7 +4,7 @@ import 'package:substitute/l10n/app_localizations.dart';
 import '../vplan/VPlanAPI.dart';
 import '../../models/ListItem.dart';
 import '../../models/ListPage.dart';
-import '../../models/LoadingProcess.dart';
+import '../../models/LoadingIndicator.dart';
 
 class TeacherPlan extends StatefulWidget {
   const TeacherPlan({

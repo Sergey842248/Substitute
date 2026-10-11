@@ -47,11 +47,11 @@ Das ist die eine Stelle, an der App und Function leicht auseinanderlaufen.
 
 | | Feldnamen | Grund |
 |---|---|---|
-| **Anfrage-Rumpf** | `chain_id`, `school_number`, `is_global`, `display_name` | gehen 1:1 in die Spalten der Datenbank |
-| **Antwort** | `deviceId`, `isGlobal`, `username`, `displayName` | ist das Domänenmodell der App, nicht die Datenbank |
+| **Anfrage-Rumpf** | `chain_id`, `school_number`, `display_name` | gehen 1:1 in die Spalten der Datenbank |
+| **Antwort** | `deviceId`, `username`, `displayName` | ist das Domänenmodell der App, nicht die Datenbank |
 
 Diese Asymmetrie hat schon einmal stillschweigend geschnitten: Der Client
-schickte `isGlobal`, die Function las `is_global`, bekam `undefined` und
+schickte `displayName`, die Function las `display_name`, bekam `undefined` und
 antwortete `400 invalidShare` – ohne jeden Hinweis, dass ein einziger
 Namenszusatz schuld war. Beide Seiten sind jetzt auf `snake_case`
 umgestellt (`supabase/functions/shares/index.ts`), der Client ebenso
@@ -197,6 +197,6 @@ deno task test:e2e
 ```
 
 Ein Test darin – `ein Share lässt sich anlegen und öffnen` – prüft die
-Antwortseite der Asymmetrie (`get.body.isGlobal`, `get.body.owner.schoolNumber`)
-und wäre der Ort, an dem ein Renew auf einer Teil-Deployment-Stand
-scheitern würde.
+Antwortseite der Asymmetrie (`get.body.owner.schoolNumber`,
+`get.body.owner.displayName`) und wäre der Ort, an dem ein Renew auf einem
+Teil-Deployment-Stand scheitern würde.

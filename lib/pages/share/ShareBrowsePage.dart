@@ -3,25 +3,30 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:substitute/pages/vplan/VPlanAPI.dart';
 import 'package:substitute/services/SchoolStorage.dart';
+import 'package:substitute/services/crypto/Passphrase.dart';
+import 'package:substitute/services/sync/NameGuard.dart';
 import 'package:substitute/services/sync/ShareManager.dart';
 import 'package:substitute/services/sync/SyncApiClient.dart';
 import 'package:substitute/services/sync/SyncEngine.dart';
 
 import '../../models/InputField.dart';
 import '../../models/ListPage.dart';
-import '../../models/LoadingProcess.dart';
+import '../../models/LoadingIndicator.dart';
 import 'ShareImportPage.dart';
 
 /// Das Suchmenü: Wer in der eigenen Schule etwas geteilt hat.
 ///
-/// Zwei Wege hinein:
+/// **Eine** Zeile erledigt beides:
 ///
-/// * **Suchen** – alle Kolleginnen und Kollegen der eigenen Schulnummer, die
-///   ihre Shares ausdrücklich als suchbar markiert haben. Von einer fremden
-///   Schule kommt hier nichts: Der Server filtert nach Schulnummer, und ohne
-///   Anmeldung gibt es keine Schulnummer.
-/// * **Nutzername eingeben** – wenn man die zehn Wörter einer Person kennt,
-///   kommt man auch ohne Suchmenü direkt zu deren Shares.
+/// * **Name eingeben** – filtert die Liste der Kolleginnen und Kollegen, die
+///   ihre Shares als suchbar markiert haben. Von einer fremden Schule kommt
+///   hier nichts: Der Server filtert nach Schulnummer, und ohne Anmeldung gibt
+///   es keine Schulnummer. Leer zeigt die Zeile alle suchbaren Shares,
+///   alphabetisch sortiert.
+/// * **Die zehn Wörter einer Person** – sind eingegeben, gilt der Text als
+///   Nutzername und deren Shares werden direkt geöffnet. Dafür gab es vorher
+///   einen eigenen Menüpunkt („Nutzername eingeben"); der ist entfallen, weil
+///   es derselbe Text in derselben Zeile ist.
 class ShareBrowsePage extends StatefulWidget {
   const ShareBrowsePage({Key? key}) : super(key: key);
 
@@ -34,10 +39,16 @@ class _ShareBrowsePageState extends State<ShareBrowsePage> {
   SyncApiClient? _client;
   List<ShareOwner> _people = const <ShareOwner>[];
 
+  /// Der Text in der Suchzeile.
+  final TextEditingController _search = TextEditingController();
+
   bool _loading = true;
   bool _signedIn = false;
   bool _isDemo = false;
   String? _error;
+
+  /// Läuft gerade die Suche nach einem eingegebenen Nutzernamen.
+  bool _resolving = false;
 
   @override
   void initState() {
@@ -47,9 +58,23 @@ class _ShareBrowsePageState extends State<ShareBrowsePage> {
 
   @override
   void dispose() {
+    _search.dispose();
     _client?.dispose();
     super.dispose();
   }
+
+  /// Der eingegebene Text, für die Anzeige geglättet.
+  String get _query => _search.text.trim();
+
+  /// Passt der Text zur Wortliste und damit zu einem Nutzernamen? Genau dann
+  /// ist er kein Suchbegriff, sondern die zehn Wörter einer Person.
+  bool get _isPassphrase =>
+      _query.isNotEmpty && Passphrase.looksLikePassphrase(_query);
+
+  /// Die gefilterte, alphabetisch sortierte Liste – siehe [filterAndSortOwners].
+  List<ShareOwner> get _visiblePeople => filterAndSortOwners(_people, _query);
+
+  void _onSearchChanged(String _) => setState(() {});
 
   Future<void> _load() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -119,58 +144,46 @@ class _ShareBrowsePageState extends State<ShareBrowsePage> {
     }
   }
 
-  Future<void> _enterUsername() async {
+  /// Öffnet die Shares der Person, deren zehn Wörter in der Suchzeile stehen.
+///
+/// Der frühere eigene Menüpunkt „Nutzername eingeben" ist entfallen: Es ist
+/// derselbe Text in derselben Zeile – die Suche erkennt eine Wortphrase und
+/// behandelt sie als Nutzernamen.
+Future<void> _openByUsername(String username) async {
     final SharedPreferences? prefs = _prefs;
-    if (prefs == null) return;
+    final SyncApiClient? client = _client;
+    if (prefs == null || client == null || username.isEmpty) return;
     final AppLocalizations l10n = AppLocalizations.of(context)!;
 
-    final String? username = await Navigator.push<String>(
-      context,
-      MaterialPageRoute<String>(
-        builder: (BuildContext context) => const ShareUsernamePage(),
-      ),
-    );
-    if (username == null || !mounted) return;
+    if (_resolving) return;
+    setState(() => _resolving = true);
 
     // Die eingegebenen Wörter sind der Nutzername der anderen Person. Daraus
     // lässt sich deren Share-ID berechnen – der Server muss den Namen also
     // nie im Klartext speichern, um ihn auffindbar zu machen.
     //
-    // Zwei IDs werden geprüft: die normale (Schulnummer der Besitzerin geht in
-    // den Schlüssel ein) und die globale. Für die globale braucht man die
-    // Schulnummer der anderen Person nicht – deshalb funktioniert sie von
-    // jeder Schule aus.
-    final String ownSchool =
-        prefs.getString(SchoolStorage.scopedKey(prefs, 'vplanSchoolnumber')) ??
-            '';
-
+    // Die ID hängt **nur** am Nutzernamen, nicht an der Schulnummer: Deshalb
+    // funktioniert dieser Weg auch für jemanden aus einer anderen Schule. Das
+    // Suchverzeichnis zeigt dagegen nur die eigene Schule – wer dort nicht
+    // steht, ist nur über die zehn Wörter zu erreichen.
     final List<ShareSummary> shares = <ShareSummary>[];
-    final List<String> tried = <String>[];
-    for (final ({String id, bool isGlobal}) candidate in <({String id, bool isGlobal})>[
-      if (ownSchool.isNotEmpty)
-        (id: ShareManager.shareIdFor(username, ownSchool), isGlobal: false),
-      (id: ShareManager.globalShareIdFor(username), isGlobal: true),
-    ]) {
-      if (tried.contains(candidate.id)) continue;
-      tried.add(candidate.id);
-      try {
-        final ShareRecord record = await _client!.fetchShare(candidate.id);
-        shares.add(ShareSummary(
-          id: record.id,
-          username: username,
-          displayName: username,
-          label: '',
-          isGlobal: record.isGlobal,
-          hasPassword: record.hasPassword,
-          updatedAt: record.updatedAt,
-        ));
-      } on SyncException {
-        // Dieser Share existiert nicht – den nächsten Versuch.
-        continue;
-      }
+    try {
+      final ShareRecord record =
+          await client.fetchShare(ShareManager.shareIdFor(username));
+      shares.add(ShareSummary(
+        id: record.id,
+        username: username,
+        displayName: username,
+        label: '',
+        hasPassword: record.hasPassword,
+        updatedAt: record.updatedAt,
+      ));
+    } on SyncException {
+      // Es gibt keinen Share zu diesem Nutzernamen.
     }
 
     if (!mounted) return;
+    setState(() => _resolving = false);
     if (shares.isEmpty) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(l10n.shareErrorWrongCredentials)));
@@ -221,12 +234,24 @@ class _ShareBrowsePageState extends State<ShareBrowsePage> {
           title: l10n.shareBrowse,
           onRefresh: _signedIn && !_isDemo ? _refresh : null,
           children: <Widget>[
-            if (_loading) const Center(child: LoadingProcess()),
+            if (_loading) const Center(child: LoadingIndicator()),
             if (_isDemo) _emptyState(l10n.shareDemoNoShares, l10n.shareBrowseEmptySubtitle),
             if (!_isDemo && !_signedIn)
               _emptyState(
                   l10n.shareBrowseLoginRequired, l10n.shareBrowseLoginRequiredSubtitle),
             if (_signedIn && !_isDemo) ...<Widget>[
+              // Die Suchzeile steht über allem: Sie ist der einzige Weg in
+              // diese Liste – sowohl für einen Namen als auch für die zehn
+              // Wörter einer Person.
+              InputField(
+                controller: _search,
+                labelText: l10n.shareBrowseSearchHint,
+                onChanged: _onSearchChanged,
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) {
+                  if (_isPassphrase) _openByUsername(_query);
+                },
+              ),
               if (_error != null)
                 Padding(
                   padding: const EdgeInsets.all(20),
@@ -236,11 +261,25 @@ class _ShareBrowsePageState extends State<ShareBrowsePage> {
                     style: const TextStyle(color: Colors.grey),
                   ),
                 ),
-              if (_people.isEmpty && _error == null)
-                _emptyState(l10n.shareBrowseEmpty, l10n.shareBrowseEmptySubtitle),
-              for (final ShareOwner person in _people) _personTile(l10n, person),
+              // Erkannte Wortphrase: Dann ist der Text ein Nutzername, kein
+              // Suchbegriff – und die Trefferliste darunter wäre irreführend
+              // leer. Stattdessen wird der direkte Weg angeboten.
+              if (_isPassphrase)
+                _passphraseTile(l10n)
+              else ...<Widget>[
+                for (final ShareOwner person in _visiblePeople)
+                  _personTile(l10n, person),
+                if (_visiblePeople.isEmpty && _error == null)
+                  _emptyState(
+                    _query.isEmpty
+                        ? l10n.shareBrowseEmpty
+                        : l10n.shareBrowseNoMatch,
+                    _query.isEmpty
+                        ? l10n.shareBrowseEmptySubtitle
+                        : l10n.shareBrowseSearchHint,
+                  ),
+              ],
             ],
-            if (_signedIn && !_isDemo) _usernameButton(l10n),
             const SizedBox(height: 30),
           ],
         ),
@@ -300,21 +339,29 @@ class _ShareBrowsePageState extends State<ShareBrowsePage> {
         ),
       );
 
-  Widget _usernameButton(AppLocalizations l10n) => Material(
+  /// Der Eintrag, der erscheint, sobald in der Suchzeile eine Wortphrase
+/// steht: Er öffnet die Shares genau dieser Person.
+Widget _passphraseTile(AppLocalizations l10n) => Material(
         color: Theme.of(context).scaffoldBackgroundColor,
         child: Container(
           margin: const EdgeInsets.all(10),
           child: Center(
             child: ListTile(
-              onTap: _enterUsername,
+              onTap: _resolving ? null : () => _openByUsername(_query),
               leading: Container(
                 margin: const EdgeInsets.all(4),
                 padding: const EdgeInsets.all(8),
                 decoration:
                     BoxDecoration(borderRadius: BorderRadius.circular(100)),
-                child: const Icon(Icons.key_rounded),
+                child: _resolving
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: LoadingIndicator(size: 24),
+                      )
+                    : const Icon(Icons.key_rounded),
               ),
-              title: Text(l10n.shareBrowseEnterUsername,
+              title: Text(l10n.shareBrowseOpenByUsername,
                   style: const TextStyle(fontSize: 18)),
               subtitle: Text(
                 l10n.shareBrowseEnterUsernameSubtitle,
@@ -329,62 +376,34 @@ class _ShareBrowsePageState extends State<ShareBrowsePage> {
       );
 }
 
-/// Fragt die zehn Wörter einer anderen Person ab.
-class ShareUsernamePage extends StatefulWidget {
-  const ShareUsernamePage({Key? key}) : super(key: key);
+/// Filtert das Verzeichnis nach [query] und sortiert es alphabetisch.
+///
+/// **Leerer Suchbegriff** heißt: alles anzeigen. So steht beim Öffnen
+/// sofort die vollständige Liste der suchbaren Shares da, statt eines leeren
+/// Bildschirms.
+///
+/// Gesucht wird in Anzeigename **und** Nutzername – wer nur einen der beiden
+/// kennt, findet die Person trotzdem. Verglichen wird über
+/// [NameGuard.normalize], also ohne Groß-/Kleinschreibung und ohne Diakritika.
+///
+/// Als eigene Funktion (statt inline im Widget), weil sich das Sortieren und
+/// Filtern so unmittelbar prüfen lässt: Es braucht keinen Server.
+List<ShareOwner> filterAndSortOwners(List<ShareOwner> people, String query) {
+  final String needle = NameGuard.normalize(query.trim());
+  final List<ShareOwner> matches = people.where((ShareOwner person) {
+    if (needle.isEmpty) return true;
+    return NameGuard.normalize(person.displayName).contains(needle) ||
+        NameGuard.normalize(person.username).contains(needle);
+  }).toList();
 
-  @override
-  State<ShareUsernamePage> createState() => _ShareUsernamePageState();
-}
-
-class _ShareUsernamePageState extends State<ShareUsernamePage> {
-  final TextEditingController _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
-    return Scaffold(
-      body: SafeArea(
-        child: ListPage(
-          title: l10n.shareBrowseEnterUsername,
-          children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              child: Text(
-                l10n.shareBrowseEnterUsernameSubtitle,
-                style: const TextStyle(color: Colors.grey, fontSize: 14),
-              ),
-            ),
-            InputField(
-              controller: _controller,
-              labelText: l10n.shareUsername,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: TextButton.icon(
-                onPressed: () => Navigator.pop(
-                    context, ShareManager.generateUsername()),
-                icon: const Icon(Icons.help_outline_rounded, size: 16),
-                label: Text(l10n.sharePasswordGenerate,
-                    style: const TextStyle(fontSize: 13)),
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: () => Navigator.pop(context, _controller.text.trim()),
-              child: Text(l10n.shareImport,
-                  style: const TextStyle(fontSize: 16)),
-            ),
-            const SizedBox(height: 30),
-          ],
-        ),
-      ),
-    );
-  }
+  // Alphabetisch nach dem Anzeigenamen; bei gleichem Namen entscheidet der
+  // Nutzername, damit die Reihenfolge nicht von der Serverantwort abhängt.
+  matches.sort((ShareOwner a, ShareOwner b) {
+    final int byName =
+        a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
+    return byName != 0
+        ? byName
+        : a.username.toLowerCase().compareTo(b.username.toLowerCase());
+  });
+  return matches;
 }

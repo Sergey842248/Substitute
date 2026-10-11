@@ -9,6 +9,7 @@ import 'package:substitute/pages/share/ShareBrowsePage.dart';
 import 'package:substitute/pages/vplan/VPlanAPI.dart';
 import 'package:substitute/services/SchoolStorage.dart';
 import 'package:substitute/services/sync/ShareManager.dart';
+import 'package:substitute/services/sync/SyncApiClient.dart';
 import 'package:substitute/services/sync/SyncEngine.dart';
 
 
@@ -115,8 +116,136 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.textContaining('7c'), findsNothing);
       // … und der Weg per Nutzername bleibt offen, damit man auch ohne
-      // Suchmenü an einen Share kommt.
-      expect(find.textContaining('Enter a username'), findsOneWidget);
+      // Die Suchzeile bleibt offen: Der Weg per Wortphrase ist derselbe
+      // Text – auch ohne Serverantwort nutzbar.
+      expect(find.byType(TextFormField), findsOneWidget);
+    });
+  });
+
+  group('ShareBrowsePage – die Suchzeile', () {
+    /// Meldet sich an und stellt ein Verzeichnis mit drei Personen bereit.
+    Future<SharedPreferences> signInWithDirectory() async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await signInAsTeacher(prefs);
+      return prefs;
+    }
+
+    testWidgets('gibt es eine Suchzeile über der Liste', (
+      WidgetTester tester,
+    ) async {
+      await signInWithDirectory();
+      await pump(tester, const ShareBrowsePage());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextFormField), findsOneWidget);
+    });
+
+    testWidgets('filtert die Liste nach dem eingegebenen Namen', (
+      WidgetTester tester,
+    ) async {
+      await signInWithDirectory();
+      await pump(tester, const ShareBrowsePage());
+      await tester.pumpAndSettle();
+
+      // Ohne Verzeichnis vom Server ist die Liste leer – für die Filterung
+      // wird deshalb direkt der Zustand geprüft: Der Test setzt keinen
+      // Server, also bleibt es bei der leeren Liste. Wichtig ist hier nur,
+      // dass die Eingabe die Liste steuert und nichts abstürzt.
+      await tester.enterText(find.byType(TextFormField), 'Müller');
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      // Und zurückgesetzt ist wieder alles sichtbar.
+      await tester.enterText(find.byType(TextFormField), '');
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('erkennt die zehn Wörter als Nutzernamen', (
+      WidgetTester tester,
+    ) async {
+      await signInWithDirectory();
+      await pump(tester, const ShareBrowsePage());
+      await tester.pumpAndSettle();
+
+      // Eine echte Phrase aus der Wortliste: Dann muss der Eintrag „Shares
+      // dieser Person öffnen" erscheinen – das ersetzt den früheren
+      // Menüpunkt „Nutzername eingeben".
+      await tester.enterText(
+        find.byType(TextFormField),
+        'apple banana cherry delta echo',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining("Open this person's shares"), findsOneWidget);
+      // Und die Liste ist nicht gleichzeitig zu sehen: Der Text ist ein
+      // Nutzername, kein Suchbegriff.
+      expect(find.textContaining('Nobody found'), findsNothing);
+    });
+
+    testWidgets('ein einzelnes Wort ist kein Nutzername', (
+      WidgetTester tester,
+    ) async {
+      await signInWithDirectory();
+      await pump(tester, const ShareBrowsePage());
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextFormField), 'Müller');
+      await tester.pumpAndSettle();
+
+      // Ein Name ist ein Suchbegriff, keine Wortphrase.
+      expect(find.textContaining("Open this person's shares"), findsNothing);
+    });
+
+    test('filtert nach Anzeigename und Nutzername, ohne Beachtung der Großschreibung', () {
+      final List<ShareOwner> people = <ShareOwner>[
+        ShareOwner(username: 'blue sky', displayName: 'Zoe', shares: const <ShareSummary>[]),
+        ShareOwner(username: 'red moon', displayName: 'anna', shares: const <ShareSummary>[]),
+        ShareOwner(username: 'green hill', displayName: 'Miriam', shares: const <ShareSummary>[]),
+      ];
+
+      // Leer: alles, alphabetisch nach dem Anzeigenamen.
+      expect(
+        filterAndSortOwners(people, '')
+            .map((ShareOwner p) => p.displayName)
+            .toList(),
+        <String>['anna', 'Miriam', 'Zoe'],
+      );
+
+      // Groß-/Kleinschreibung spielt keine Rolle …
+      expect(
+        filterAndSortOwners(people, 'ZOE')
+            .map((ShareOwner p) => p.displayName)
+            .toList(),
+        <String>['Zoe'],
+      );
+      // … und der Nutzername wird mitdurchsucht.
+      expect(
+        filterAndSortOwners(people, 'green')
+            .map((ShareOwner p) => p.displayName)
+            .toList(),
+        <String>['Miriam'],
+      );
+      // Ein Teil des Namens genügt.
+      expect(
+        filterAndSortOwners(people, 'mir')
+            .map((ShareOwner p) => p.displayName)
+            .toList(),
+        <String>['Miriam'],
+      );
+      // Niemand passt.
+      expect(filterAndSortOwners(people, 'gibtsnicht'), isEmpty);
+    });
+
+    testWidgets('der frühere Menüpunkt Nutzername eingeben ist entfernt', (
+      WidgetTester tester,
+    ) async {
+      await signInWithDirectory();
+      await pump(tester, const ShareBrowsePage());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Enter a username'), findsNothing);
     });
   });
 

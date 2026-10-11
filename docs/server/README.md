@@ -121,10 +121,11 @@ Er speichert die Hüllen als Zeichenkette, ohne sie zu öffnen.
 * Personen **derselben Schulnummer**, und
 * nur Shares, die der Ersteller ausdrücklich als `searchable` markiert hat.
 
-Ein als `isGlobal` markierter Share bleibt auffindbar und ist über seine ID
-von jeder Schule aus nutzbar – er taucht aber **nicht** im Verzeichnis fremder
-Schulen auf. "Global" heißt: jeder kann ihn mit dem Nutzernamen öffnen, nicht:
-er wird überall hineinprominent.
+Die Schulnummer ist damit die **einzige** Grenze des Verzeichnisses. Es gibt
+keinen "globalen" Share mehr: Jeder Share hängt am Nutzernamen und ist über
+seine ID von jeder Schule aus nutzbar – im Verzeichnis fremder Schulen
+taucht er trotzdem nicht auf, denn das filtert ausschließlich nach der
+Schulnummer.
 
 Die verschlüsselten Hüllen sind im Verzeichnis **nicht** enthalten. Wer das
 Verzeichnis sieht, sieht Nutzernamen, Anzeigenamen und die Anzahl der Shares –

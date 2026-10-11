@@ -243,14 +243,12 @@ void main() {
           },
         },
         searchable: true,
-        isGlobal: false,
         updatedAt: DateTime.utc(2026, 10, 1),
       );
 
       final ShareRecord record = await client.fetchShare(shareId);
       expect(record.id, shareId);
       expect(record.hasPassword, isFalse);
-      expect(record.isGlobal, isFalse);
       expect(record.envelopes.keys, contains('byUsername'));
 
       // Auch das Verzeichnis muss die Person nun finden.
@@ -294,7 +292,6 @@ void main() {
             },
           },
           searchable: true,
-          isGlobal: false,
           updatedAt: DateTime.utc(2026, 10, 1),
         ),
         throwsA(isA<SyncException>()

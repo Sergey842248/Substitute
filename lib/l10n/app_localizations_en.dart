@@ -650,6 +650,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get persons => 'Persons';
 
   @override
+  String get noClassesYet =>
+      'No classes yet. Add a class to share its substitution plan.';
+
+  @override
   String get noPersonsYet =>
       'No persons yet. Add a person to show only the courses you want.';
 
@@ -1212,24 +1216,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Shown in the search menu of your school';
 
   @override
+  String get shareDefaultLabel => 'My plan';
+
+  @override
   String get shareLabel => 'Name of the share';
 
   @override
-  String get shareLabelHint => 'e.g. substitution plans autumn';
+  String get shareLabelHint => 'e.g. friends';
 
   @override
   String get shareSearchable => 'Show in the search menu';
 
   @override
   String get shareSearchableSubtitle =>
-      'Colleagues of your school can find you and choose from your shares';
-
-  @override
-  String get shareGlobal => 'Global share';
-
-  @override
-  String get shareGlobalSubtitle =>
-      'Also usable by teachers of other schools, who know your username';
+      'Colleagues of your school can find you in the search menu and choose from your shares';
 
   @override
   String get sharePassword => 'Password';
@@ -1273,18 +1273,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareIncludeSettingsSubtitle => 'Share display settings as well';
 
   @override
-  String get shareIncludePlans => 'Include saved plans';
-
-  @override
-  String get shareIncludePlansSubtitle =>
-      'Share the substitution plans stored on this device';
-
-  @override
   String get shareIncludeHistory => 'Include plans from the past';
 
   @override
   String shareIncludeHistorySubtitle(Object days) {
-    return 'Otherwise only the last $days days are shared';
+    return 'Off: only the plans of the last $days days. On: all saved plans, including older ones.';
   }
 
   @override
@@ -1311,10 +1304,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Nobody can open it any more. Data already imported by others stay on their devices.';
 
   @override
-  String get shareGlobalNote =>
-      'A global share can be opened by teachers of any school who know your username. It does not appear in their search menu.';
-
-  @override
   String get shareBrowse => 'Find shares';
 
   @override
@@ -1338,15 +1327,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Shares can only be found within your own school. That is why signing in is required.';
 
   @override
-  String get shareBrowseEnterUsername => 'Enter a username';
+  String get shareBrowseSearchHint => 'Enter a name or a person\'s ten words';
+
+  @override
+  String get shareBrowseNoMatch => 'Nobody found';
+
+  @override
+  String get shareBrowseOpenByUsername => 'Open this person\'s shares';
 
   @override
   String get shareBrowseEnterUsernameSubtitle =>
       'Know the ten words of a colleague? Enter them here to open their share directly.';
-
-  @override
-  String get shareBrowseGlobalOnly =>
-      'This share is global – it can also be opened by teachers of other schools.';
 
   @override
   String shareOf(Object name) {
@@ -1368,7 +1359,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String shareContentsPlans(Object count) {
-    return '$count plans';
+    return '$count cached plans';
   }
 
   @override
@@ -1385,21 +1376,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareImportModeOriginalSubtitle =>
-      'Exactly as shared: classes, persons and courses stay as they are';
+      'Takes everything exactly as it was shared: classes, persons and courses stay unchanged. Nothing is rebuilt.';
 
   @override
-  String get shareImportModePlans => 'Plans';
+  String get shareImportModePlans => 'Classes';
 
   @override
   String get shareImportModePlansSubtitle =>
-      'Every person becomes a plan with their courses';
+      'Turns every imported class and every imported person into a class. The person \"Hans\" with the courses German and maths therefore becomes the class \"Hans\", with those courses attached to it.';
 
   @override
   String get shareImportModePersons => 'Persons';
 
   @override
   String get shareImportModePersonsSubtitle =>
-      'Only the names are taken over as persons';
+      'Turns every imported class and every imported person into a person – each with a class of their own.';
+
+  @override
+  String get shareAdvancedOptions => 'Advanced options';
+
+  @override
+  String get shareImportCachedPlans => 'Import cached plans';
+
+  @override
+  String get shareImportCachedPlansSubtitle =>
+      'Also import the substitution plans stored in the share. Off: only classes and persons are imported.';
+
+  @override
+  String get shareImportPlansOnlyOriginal =>
+      'Plans are only imported in the \"Original\" mode.';
+
+  @override
+  String get shareImportNothingChosen =>
+      'Please select at least one class, one person or the plans.';
 
   @override
   String get shareImport => 'Import';
@@ -1418,13 +1427,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'This name is not allowed. Please choose another one.';
 
   @override
-  String get shareNameTooShort => 'Please enter at least two characters';
-
-  @override
   String get shareNameTooLong => 'This name is too long';
 
   @override
   String get shareNameEmpty => 'Please enter a name';
+
+  @override
+  String get shareErrorUsernameTooLong =>
+      'The username is too long. Please generate a new one in the share menu.';
 
   @override
   String get shareErrorNoUsername => 'No username has been created yet';

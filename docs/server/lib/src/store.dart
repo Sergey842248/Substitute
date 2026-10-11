@@ -95,10 +95,12 @@ class Store {
   /// Alle Shares, die in das Suchverzeichnis einer Schulnummer gehören.
   ///
   /// Das Verzeichnis enthält **ausschließlich** Shares derselben
-  /// Schulnummer. Ein "globaler" Share bleibt auffindbar, wird aber nicht in
-  /// das Verzeichnis fremder Schulen aufgenommen – global heißt, dass ihn
-  /// jeder per Nutzername verwenden kann, nicht dass er überall
-  /// hineinprominent wird.
+  /// Schulnummer – das ist die einzige Grenze, die es hier gibt.
+  ///
+  /// Es gibt keinen "globalen" Share mehr: Jeder Share hängt am Nutzernamen
+  /// und ist damit von überall her öffnenbar, sobald man ihn kennt. Die
+  /// Schulnummer hier hält fremde Schulen aus dem Suchmenü heraus; sie ist
+  /// keine Zugriffsschranke.
   List<Map<String, dynamic>> directory(String schoolNumber) {
     final List<Map<String, dynamic>> result = <Map<String, dynamic>>[];
     for (final File file in _shares.files) {

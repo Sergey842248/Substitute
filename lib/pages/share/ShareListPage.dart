@@ -14,7 +14,7 @@ import 'package:substitute/services/sync/SyncEngine.dart';
 import '../../../models/Button.dart';
 import '../../../models/InputField.dart';
 import '../../../models/ListPage.dart';
-import '../../../models/LoadingProcess.dart';
+import '../../../models/LoadingIndicator.dart';
 import '../../../models/SettingsSwitchTile.dart';
 
 import '../dashboard/settings/SyncSettings.dart';
@@ -158,14 +158,7 @@ class _ShareListPageState extends State<ShareListPage> {
     if (verdict.isBlocked) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(switch (verdict.reason) {
-            'tooShort' => l10n.shareNameTooShort,
-            'tooLong' => l10n.shareNameTooLong,
-            'empty' => l10n.shareNameEmpty,
-            _ => l10n.shareNameBlocked,
-          }),
-        ),
+        SnackBar(content: Text(shareNameError(l10n, verdict))),
       );
       return;
     }
@@ -220,7 +213,7 @@ class _ShareListPageState extends State<ShareListPage> {
         child: ListPage(
           title: l10n.shareTitle,
           children: <Widget>[
-            if (_busy || _prefs == null) const Center(child: LoadingProcess()),
+            if (_busy || _prefs == null) const Center(child: LoadingIndicator()),
             if (_prefs != null) ...<Widget>[
               _usernameTile(l10n),
               _displayNameTile(l10n),
@@ -333,9 +326,7 @@ class _ShareListPageState extends State<ShareListPage> {
                 padding: const EdgeInsets.all(8),
                 decoration:
                     BoxDecoration(borderRadius: BorderRadius.circular(100)),
-                child: Icon(
-                  share.isGlobal ? Icons.public_rounded : Icons.people_rounded,
-                ),
+                child: const Icon(Icons.people_rounded),
               ),
               title: Text(share.displayLabel,
                   style: const TextStyle(fontSize: 18)),
@@ -347,11 +338,6 @@ class _ShareListPageState extends State<ShareListPage> {
                   if (share.searchable)
                     const Chip(
                       label: Text('searchable', style: TextStyle(fontSize: 11)),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  if (share.isGlobal)
-                    const Chip(
-                      label: Text('global', style: TextStyle(fontSize: 11)),
                       visualDensity: VisualDensity.compact,
                     ),
                   if (share.hasPassword)
@@ -378,22 +364,40 @@ class _ShareListPageState extends State<ShareListPage> {
 
 /// Hilfsfunktion, die die lokalen Klassen als Auswahl liefert – von der
 /// Share-Seite und der Bearbeitungsseite gemeinsam benutzt.
+///
+/// Klassen werden als **reine Kürzel** gespeichert (`"5a"`). Hier stand
+/// früher ein `jsonDecode`, das einen JSON-Eintrag mit `name` erwartete – an
+/// jedem Kürzel scheiterte die Dekodierung, der Eintrag wurde übersprungen und
+/// die Liste blieb leer. Im Share-Menü stand deshalb nie eine Klasse zur
+/// Auswahl, egal welche Klassen existierten.
+///
+/// Beide Formen werden gelesen: Das Kürzel ist der Normalfall, ein Objekt wird
+/// nur noch toleriert, falls ein Sync-Stand die Klasse so gespeichert hat.
 List<String> readClassShorts(SharedPreferences prefs) {
   final List<String> raw =
       prefs.getStringList(SchoolStorage.scopedKey(prefs, 'classes')) ??
           const <String>[];
   final List<String> result = <String>[];
   for (final String entry in raw) {
+    final String trimmed = entry.trim();
+    if (trimmed.isEmpty) continue;
     try {
-      final Object? decoded = jsonDecode(entry);
+      final Object? decoded = jsonDecode(trimmed);
+      if (decoded is String) {
+        if (decoded.trim().isNotEmpty) result.add(decoded.trim());
+        continue;
+      }
       if (decoded is Map) {
         final String name = decoded['name']?.toString() ?? '';
         if (name.isNotEmpty) result.add(name);
+        continue;
       }
     } catch (_) {
-      // Beschädigter Eintrag wird übersprungen.
-      continue;
+      // Kein JSON – dann ist der Eintrag selbst das Kürzel.
     }
+    // Auch wenn `jsonDecode` eine Zahl lieferte ("123"): Das Kürzel ist der
+    // eigentliche Eintrag.
+    result.add(trimmed);
   }
   return result;
 }
@@ -422,11 +426,25 @@ List<({String id, String name})> readPersons(SharedPreferences prefs) {
   return result;
 }
 
+/// Die Meldung zu einem abgelehnten Namen – für den **Anzeigenamen** wie auch
+/// für den **Namen des Shares**.
+///
+/// Beide stehen offen in einer Liste, die alle Nutzer einer Schulnummer sehen,
+/// und beide laufen durch denselben [NameGuard]. Die Meldung steht deshalb an
+/// einer Stelle, damit die beiden Seiten nicht auseinanderlaufen können.
+String shareNameError(AppLocalizations l10n, NameVerdict verdict) =>
+    switch (verdict.reason) {
+      'tooLong' => l10n.shareNameTooLong,
+      'empty' => l10n.shareNameEmpty,
+      _ => l10n.shareNameBlocked,
+    };
+
 /// Nur für die Fehleranzeige der Share-Seiten.
 String shareErrorMessage(AppLocalizations l10n, String code) =>
     switch (code) {
       'nameBlocked' => l10n.shareNameBlocked,
       'noUsername' => l10n.shareErrorNoUsername,
+      'usernameTooLong' => l10n.shareErrorUsernameTooLong,
       'nothingSelected' => l10n.shareErrorNothingSelected,
       'wrongCredentials' => l10n.shareErrorWrongCredentials,
       'unreadable' => l10n.shareErrorUnreadable,

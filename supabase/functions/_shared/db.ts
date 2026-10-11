@@ -110,7 +110,10 @@ export interface ShareRow {
   display_name: string;
   label: string;
   searchable: boolean;
-  is_global: boolean;
+  // `is_global` gibt es in der Tabelle noch, wird aber nicht mehr gelesen und
+  // nicht mehr geschrieben: Es gibt keinen globalen Share mehr, siehe
+  // `directory/index.ts`. Die Spalte bleibt bestehen, damit bestehende Zeilen
+  // gueltig bleiben – sie steht auf `false` und aendert nichts.
   updated_at: string;
   envelopes: Record<string, Envelope>;
   has_password: boolean;

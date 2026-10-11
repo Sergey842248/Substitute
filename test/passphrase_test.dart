@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:substitute/services/crypto/Hashing.dart';
 import 'package:substitute/services/crypto/Passphrase.dart';
 import 'package:substitute/services/sync/NameGuard.dart';
+import 'package:substitute/services/sync/ShareManager.dart';
 import 'package:substitute/services/sync/SyncEngine.dart';
 
 void main() {
@@ -137,6 +139,43 @@ void main() {
         expect(RegExp(r'^[a-z]{3,10}$').hasMatch(word), isTrue,
             reason: '"$word" does not match the word format');
       }
+    });
+
+    test('stays within the length the sync server accepts for a username', () {
+      // Der Server fuehrt den Nutzernamen als Bezeichner und prueft ihn auf
+      // hoechstens `MAX_USERNAME_LENGTH` Zeichen. Aus zehn Woertern dieser
+      // Liste wurden im Mittel gut 63 Zeichen – jeder Share wurde deshalb mit
+      // „Dieser Share ist nicht erlaubt" abgelehnt.
+      for (int i = 0; i < 500; i++) {
+        final String username =
+            ShareManager.generateUsername();
+        expect(
+          username.length,
+          lessThanOrEqualTo(ShareManager.maxUsernameLength),
+          reason: '"$username" is too long for the server',
+        );
+      }
+    });
+
+    test('still produces several words when it is length limited', () {
+      // Die Laengenbegrenzung darf die Phrase nicht auf ein Kuerzel
+      // zusammenstauen: Sie soll weiterhin mehrere Woerter haben.
+      for (int i = 0; i < 200; i++) {
+        expect(Passphrase.split(ShareManager.generateUsername()).length,
+            greaterThanOrEqualTo(5));
+      }
+    });
+
+    test('the client limit matches the server constant', () {
+      // Beide Werte muessen zusammenpassen: Aendert sich der Server, ist der
+      // Test hier der Ort, an dem das auffaellt.
+      final File server = File('supabase/functions/_shared/http.ts');
+      if (!server.existsSync()) return;
+      final Match? match = RegExp(r'MAX_USERNAME_LENGTH\s*=\s*(\d+)')
+          .firstMatch(server.readAsStringSync());
+      expect(match, isNotNull,
+          reason: 'MAX_USERNAME_LENGTH not found on the server');
+      expect(int.parse(match!.group(1)!), ShareManager.maxUsernameLength);
     });
 
     test('contains no offensive or otherwise unusable words', () {

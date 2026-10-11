@@ -37,24 +37,22 @@ class NameVerdict {
 class NameGuard {
   const NameGuard._();
 
-  /// Mindestlänge eines Anzeigenamens.
-  static const int minimumLength = 2;
-
   /// Höchstlänge eines Anzeigenamens.
   static const int maximumLength = 40;
 
   /// Prüft einen Anzeigenamen.
   ///
-  /// Leer und zu kurz ist genauso abgelehnt wie ein blockierter Name – beide
-  /// Fälle liefern einen [NameVerdict], damit die UI nur eine Stelle abfragen
-  /// muss.
+  /// Abgelehnt wird nur, was wirklich unbrauchbar ist: ein leerer Name, einer
+  /// über der Höchstlänge und einer mit einem blockierten Wort.
+  ///
+  /// **Eine Mindestlänge gibt es bewusst nicht.** „A" ist ein gültiger Name –
+  /// die Länge zu beschränken, hält niemanden davon ab, sich so zu nennen, und
+  /// kostet nur die Möglichkeit, einen kurzen Namen zu wählen. (Der Server
+  /// prüft das ebenso: `displayName.length < 2` dort ist auf `< 1` geändert.)
   static NameVerdict check(String name) {
     final String trimmed = name.trim();
     if (trimmed.isEmpty) {
       return const NameVerdict._(true, 'empty', null);
-    }
-    if (trimmed.length < minimumLength) {
-      return const NameVerdict._(true, 'tooShort', null);
     }
     if (trimmed.length > maximumLength) {
       return const NameVerdict._(true, 'tooLong', null);

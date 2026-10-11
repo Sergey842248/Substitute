@@ -4,7 +4,7 @@ import 'package:substitute/services/sync/SyncApiClient.dart';
 import 'package:substitute/services/sync/SyncEngine.dart';
 
 import '../../../models/ListPage.dart';
-import '../../../models/LoadingProcess.dart';
+import '../../../models/LoadingIndicator.dart';
 
 /// Die Geräte, die in derselben Sync-Kette sind.
 ///
@@ -99,7 +99,7 @@ class _SyncDevicesState extends State<SyncDevices> {
           title: l10n.syncDevices,
           onRefresh: _load,
           children: <Widget>[
-            if (devices == null) const Center(child: LoadingProcess()),
+            if (devices == null) const Center(child: LoadingIndicator()),
             if (devices != null && devices.isEmpty)
               Padding(
                 padding: const EdgeInsets.all(30),

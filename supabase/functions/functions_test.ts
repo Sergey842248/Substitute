@@ -300,7 +300,6 @@ test('ein Share lässt sich anlegen und öffnen', async () => {
     owner: OWNER,
     label: 'Vertretungspläne',
     searchable: true,
-    is_global: false,
     updated_at: '2026-09-30T12:00:00.000Z',
     envelopes: { byUsername: ENVELOPE, bySchool: ENVELOPE },
   });
@@ -313,10 +312,9 @@ test('ein Share lässt sich anlegen und öffnen', async () => {
   assertEquals(get.body.unlockableWithSchoolCredentials, true);
   assertEquals(get.body.envelopes.byUsername.ct, 'Y2lwaGVy');
   // Anfrage snake_case, Antwort camelCase. Genau diese Umbenennung ist
-  // einmal stillschweigend schiefgegangen: Der Client schickte `isGlobal`,
-  // die Function las `is_global` und meldete `invalidShare` – mit 400 und
+  // einmal stillschweigend schiefgegangen: Der Client schickte `displayName`,
+  // die Function las `display_name` und meldete `invalidShare` – mit 400 und
   // ohne Hinweis darauf, dass es an einem einzigen Namenszusatz lag.
-  assertEquals(get.body.isGlobal, false);
   assertEquals(get.body.updatedAt.endsWith('Z'), true);
   assertEquals(get.body.owner.schoolNumber, '12345');
   assertEquals(get.body.owner.displayName, 'Frau Müller');
@@ -332,7 +330,6 @@ test('ein passwortgeschützter Share hat nur die Passwort-Hülle', async () => {
     owner: { ...OWNER, username: 'red moon water nine tiger mango' },
     label: 'Krankentracking',
     searchable: true,
-    is_global: false,
     updated_at: new Date().toISOString(),
     envelopes: { byPassword: ENVELOPE },
   });
@@ -350,7 +347,6 @@ test('ein anstößiger Anzeigename wird abgelehnt', async () => {
     id: 'share-beleidigend',
     owner: { ...OWNER, display_name: 'Arschloch' },
     searchable: true,
-    is_global: false,
     updated_at: new Date().toISOString(),
     envelopes: { byUsername: ENVELOPE },
   });
@@ -367,7 +363,6 @@ test('ein Share ohne Hülle wird abgelehnt', async () => {
     id: 'share-ohne',
     owner: OWNER,
     searchable: true,
-    is_global: false,
     updated_at: new Date().toISOString(),
     envelopes: {},
   });
@@ -379,7 +374,6 @@ test('eine unbekannte Hülle wird abgelehnt', async () => {
     id: 'share-fremde-huelle',
     owner: OWNER,
     searchable: true,
-    is_global: false,
     updated_at: new Date().toISOString(),
     envelopes: { byAdmin: ENVELOPE },
   });
@@ -408,7 +402,6 @@ test('das Verzeichnis zeigt nur die eigene Schulnummer', async () => {
     owner: { ...OWNER, school_number: '99999' },
     label: 'Fremde Schule',
     searchable: true,
-    is_global: true,
     updated_at: new Date().toISOString(),
     envelopes: { byUsername: ENVELOPE },
   });
@@ -422,21 +415,27 @@ test('das Verzeichnis zeigt nur die eigene Schulnummer', async () => {
   assertEquals(fremd.body.people[0].displayName, 'Frau Müller');
 });
 
-test('ein globaler Share erscheint nicht im Verzeichnis', async () => {
-  // Global heißt: von jeder Schule per Nutzername nutzbar. Nicht: überall
-  // gelistet. Deshalb kein Filter auf is_global, sondern nur auf school_number.
+test('das Verzeichnis einer fremden Schule zeigt deren Shares nicht', async () => {
+  // Einen "globalen" Share gibt es nicht mehr: Jeder Share haengt am
+  // Nutzernamen und ist von jeder Schule aus zu oeffnen, sobald man ihn kennt.
+  // Das Verzeichnis filtert trotzdem – und zwar **ausschliesslich** nach der
+  // Schulnummer. Es zeigt also nur die eigene Schule, niemals eine fremde.
   await call('PUT', url('shares'), {
-    id: 'share-global',
+    id: 'share-fremd-offen',
     owner: { ...OWNER, username: 'amber field wood two blue crane' },
     label: 'Offen für alle',
     searchable: true,
-    is_global: true,
     updated_at: new Date().toISOString(),
     envelopes: { byUsername: ENVELOPE },
   });
 
   const fremd = await call('GET', url('directory', { school_number: '88888' }));
   assertEquals(fremd.body.people.length, 0);
+
+  // Und ueber die ID ist er selbstverstaendlich erreichbar – der Nutzername
+  // ist der Weg hinein, die Schulnummer nur die Grenze des Verzeichnisses.
+  const direkt = await call('GET', url('shares', { id: 'share-fremd-offen' }));
+  assertEquals(direkt.status, 200);
 });
 
 test('ein nicht suchbarer Share erscheint nirgends', async () => {
@@ -445,7 +444,6 @@ test('ein nicht suchbarer Share erscheint nirgends', async () => {
     owner: { ...OWNER, username: 'green hill snow ten lion mango' },
     label: 'Nur direkt',
     searchable: false,
-    is_global: false,
     updated_at: new Date().toISOString(),
     envelopes: { byUsername: ENVELOPE },
   });
@@ -468,7 +466,6 @@ test('das Verzeichnis gruppiert nach Person, nicht nach Share', async () => {
     owner: OWNER,
     label: 'Zweites Share',
     searchable: true,
-    is_global: false,
     updated_at: new Date().toISOString(),
     envelopes: { byUsername: ENVELOPE },
   });

@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/Button.dart';
 import '../../models/ListItem.dart';
 import '../../models/ListPage.dart';
-import '../../models/LoadingProcess.dart';
+import '../../models/LoadingIndicator.dart';
 import '../../services/SchoolStorage.dart';
 import '../../services/AppClock.dart';
 import '../vplan/VPlanAPI.dart';
@@ -170,7 +170,7 @@ class _SickTrackState extends State<SickTrack> {
                 child: SizedBox(
                   height: 30,
                   width: 30,
-                  child: LoadingProcess(),
+                  child: LoadingIndicator(),
                 ),
               ),
             )
@@ -268,7 +268,7 @@ class _SickTrackState extends State<SickTrack> {
       ],
       children: [
         if (loading)
-          const Center(child: LoadingProcess())
+          const Center(child: LoadingIndicator())
         else if (entries.isEmpty)
           Column(
             children: [
@@ -558,7 +558,7 @@ class _SickTrackEditorState extends State<SickTrackEditor> {
             ),
           )
         else if (loadingCourses)
-          const Center(child: LoadingProcess())
+          const Center(child: LoadingIndicator())
         else if (availableCourses.isEmpty)
           Padding(
             padding: const EdgeInsets.only(left: 15, bottom: 10),

@@ -15,10 +15,11 @@
  *    Ersteller das nicht getan hat, erscheint hier nie. Das ist der Partial
  *    Index `shares_directory` in schema.sql, nicht ein WHERE hier.
  *
- * `is_global` wird bewusst *nicht* gefiltert. Global heisst: jeder kann ihn
- * per Nutzername oeffnen, auch von einer anderen Schule aus. Es heisst nicht:
- * er wird in fremden Verzeichnissen gelistet. Wer das verwechselt, publishert
- * versehentlich die Pläne der ganzen Schule an jeden.
+ * Es gibt bewusst **keinen** "globalen" Share mehr. Jeder Share haengt am
+ * Nutzernamen und ist damit von jeder Schule aus oeffnenbar, sobald man ihn
+ * kennt. Die Schulnummer hat damit genau **eine** Aufgabe: Sie haelt fremde
+ * Schulen aus diesem Verzeichnis heraus. Alles andere waere doppelt – und ein
+ * zweiter Schalter, den man falsch verstehen koennte.
  *
  * Die verschluesselten Huellen sind in der Antwort nicht enthalten. Wer das
  * Verzeichnis sieht, sieht Namen und Anzahl – sonst nichts.
@@ -52,8 +53,14 @@ serve(async (req): Promise<Response> => {
     const { data, error } = await client
       .from('shares')
       .select(
-        'id, owner_username, school_number, display_name, label, searchable, is_global, updated_at, has_password',
+        'id, owner_username, school_number, display_name, label, searchable, updated_at, has_password',
       )
+      // **Die Schulnummer ist die einzige Grenze des Verzeichnisses.** Es gibt
+      // keinen globalen Share mehr: Wer einen Share einer fremden Schule
+      // oeffnen will, braucht den Nutzernamen – dann geht es, denn die
+      // Verschluesselung haengt nicht an der Schule. Das Verzeichnis hier
+      // filtert deshalb ausschliesslich nach der Schulnummer der suchenden
+      // Person und listet danach nur deren eigene Schule auf.
       .eq('school_number', schoolNumber)
       .eq('searchable', true)
       // Ohne diese Grenze koennte ein einzelner Aufruf das ganze Verzeichnis
@@ -75,7 +82,6 @@ serve(async (req): Promise<Response> => {
       shares: Array<{
         id: string;
         label: string;
-        isGlobal: boolean;
         hasPassword: boolean;
         updatedAt: string;
       }>;
@@ -94,7 +100,6 @@ serve(async (req): Promise<Response> => {
       person.shares.push({
         id: row.id,
         label: row.label,
-        isGlobal: row.is_global,
         hasPassword: row.has_password,
         updatedAt: new Date(row.updated_at).toISOString(),
       });

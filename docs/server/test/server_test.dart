@@ -89,7 +89,6 @@ void main() {
     String school = '12345',
     String displayName = 'Frau Muster',
     bool searchable = true,
-    bool global = false,
     Map<String, dynamic>? envelopes,
   }) =>
       <String, dynamic>{
@@ -101,7 +100,6 @@ void main() {
         },
         'label': 'Vertretungspläne',
         'searchable': searchable,
-        'isGlobal': global,
         'updatedAt': '2026-09-30T10:00:00.000Z',
         'envelopes': envelopes ??
             <String, dynamic>{'byUsername': envelope(), 'bySchool': envelope()},
@@ -371,20 +369,21 @@ void main() {
       expect(other.body['people'], hasLength(1));
     });
 
-    test('a global share is still not listed in a foreign school', () async {
-      // "Global" heißt: jeder kann ihn per Nutzername verwenden. Es heißt
-      // nicht, dass er in fremden Schulen auftaucht.
-      await call('PUT', '/v1/share/s1',
-          body: share(id: 's1', school: '12345', global: true));
+    test('the directory never lists a foreign school', () async {
+      // Es gibt keinen "globalen" Share mehr: Jeder hängt am Nutzernamen und
+      // ist von jeder Schule aus zu öffnen, sobald man ihn kennt. Das
+      // Verzeichnis filtert trotzdem – und zwar ausschließlich nach der
+      // Schulnummer. Es zeigt also nie eine fremde Schule.
+      await call('PUT', '/v1/share/s1', body: share(id: 's1', school: '12345'));
       expect((await call('GET', '/v1/directory/99999')).body['people'], isEmpty);
     });
 
-    test('a global share can be read by its id from anywhere', () async {
-      await call('PUT', '/v1/share/s1',
-          body: share(id: 's1', school: '12345', global: true));
+    test('a share can be read by its id from anywhere', () async {
+      // Die Schulnummer ist die Grenze des Verzeichnisses, keine des Inhalts.
+      await call('PUT', '/v1/share/s1', body: share(id: 's1', school: '12345'));
       final Response get = await call('GET', '/v1/share/s1');
       expect(get.status, 200);
-      expect(get.body['isGlobal'], isTrue);
+      expect(get.body['hasPassword'], isFalse);
     });
 
     test('groups all shares of one person under that person', () async {

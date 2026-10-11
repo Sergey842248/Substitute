@@ -18,7 +18,7 @@ import 'package:substitute/services/Weekday.dart';
 import '../../models/ListItem.dart';
 import '../../models/ListPage.dart';
 import '../../models/LoadingIndicator.dart';
-import '../../models/LoadingProcess.dart';
+import '../../models/LoadingIndicator.dart';
 import '../../pages/dashboard/settings/VPlanLogin.dart';
 
 import './LessonPreview.dart';
@@ -1194,7 +1194,7 @@ class _PersonCoursesState extends State<PersonCourses> {
       ],
       children: [
         if (loading)
-          Center(child: LoadingProcess())
+          Center(child: LoadingIndicator())
         else
           GridView.extent(
             maxCrossAxisExtent: 195,
