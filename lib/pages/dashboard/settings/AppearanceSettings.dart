@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:substitute/services/AppAppearance.dart';
+import 'package:substitute/services/SchoolStorage.dart';
 
 import '../../../models/ListPage.dart';
 import '../../../models/SettingsSwitchTile.dart';
 
 /// Wie die App aussieht – und was in der Navigationsleiste steht.
 ///
-/// Zwei Dinge, die beide das **Aussehen** betreffen und deshalb hierher
-/// gehören statt in zwei getrennte Seiten:
+/// Drei Dinge, die alle das **Aussehen** betreffen und deshalb hierher
+/// gehören statt in getrennte Seiten:
 ///
 /// * **Dunkel oder hell.** Dunkel ist der Standard, weil die App vorher
 ///   ausschließlich so aussah. Wer zum ersten Mal hier öffnet, bekommt das
@@ -17,6 +18,9 @@ import '../../../models/SettingsSwitchTile.dart';
 /// * **Der Sync-Eintrag in der Leiste.** Die Leiste ist knapp, und nicht jeder
 ///   braucht die drei Funktionen. Ausgeschaltet verschwindet der Eintrag; die
 ///   Funktionen selbst bleiben erreichbar, sonst wären sie weg.
+/// * **Die Wochenansicht.** Ob ein Klick auf eine Klasse den Plan für einen
+///   Tag oder für die ganze Woche zeigt, ist eine Frage der Darstellung –
+///   welche Informationen man sieht, nicht was der Plan enthält.
 ///
 /// ## Warum die Änderungen sofort sichtbar sind
 ///
@@ -37,6 +41,7 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
   String _theme = AppAppearance.dark;
 
   bool _showSyncTab = true;
+  bool _showWeekView = false;
 
   @override
   void initState() {
@@ -50,6 +55,8 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
     setState(() {
       _theme = AppAppearance.themeOf(prefs);
       _showSyncTab = AppAppearance.showSyncShareTab(prefs);
+      _showWeekView =
+          prefs.getBool(SchoolStorage.scopedKey(prefs, 'showWeekView')) ?? false;
     });
   }
 
@@ -63,6 +70,16 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() => _showSyncTab = wert);
     await AppAppearance.setShowSyncShareTab(prefs, wert);
+  }
+
+  /// Die Wochenansicht liegt absichtlich hier und nicht in den
+  /// Plan-Einstellungen: Sie entscheidet, **wie** der Plan dargestellt wird,
+  /// nicht was darin steht.
+  Future<void> _setShowWeekView(bool wert) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(SchoolStorage.scopedKey(prefs, 'showWeekView'), wert);
+    if (!mounted) return;
+    setState(() => _showWeekView = wert);
   }
 
   @override
@@ -135,6 +152,13 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
             subtitle: l10n.appearanceShowSyncTabSubtitle,
             value: _showSyncTab,
             onChanged: _setShowSyncTab,
+          ),
+          SettingsSwitchTile(
+            icon: Icons.date_range_rounded,
+            title: l10n.showWeekView,
+            subtitle: l10n.showWeekViewSubtitle,
+            value: _showWeekView,
+            onChanged: _setShowWeekView,
           ),
         ],
       ),

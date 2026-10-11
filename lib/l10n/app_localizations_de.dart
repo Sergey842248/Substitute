@@ -110,18 +110,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appInfo => 'App Info';
 
   @override
-  String get mainDeveloper => 'Hauptentwickler: ';
-
-  @override
-  String get developerName => 'Sergey842248';
-
-  @override
-  String get formerDeveloper => 'Ehemaliger Entwickler: ';
-
-  @override
-  String get formerDeveloperName => 'Oskar';
-
-  @override
   String get openIssue => 'Issue öffnen';
 
   @override
@@ -156,11 +144,18 @@ class AppLocalizationsDe extends AppLocalizations {
       'Kein Vertretungsplan für diesen Tag verfügbar.';
 
   @override
-  String get showWeekView => 'Ganze Woche anzeigen';
+  String get showWeekView => 'Wochenansicht';
 
   @override
   String get showWeekViewSubtitle =>
-      'Beim Antippen einer Klasse oder Person den Plan der gesamten Woche öffnen';
+      'Beim Antippen einer Klasse oder Person den Plan der gesamten Woche anzeigen';
+
+  @override
+  String get lessonInfoSettings => 'Stunden-Informationen';
+
+  @override
+  String get lessonInfoSettingsSubtitle =>
+      'Was im Vertretungsplan angezeigt wird';
 
   @override
   String get weekPlan => 'Wochenplan';

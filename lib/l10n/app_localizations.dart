@@ -284,30 +284,6 @@ abstract class AppLocalizations {
   /// **'App Info'**
   String get appInfo;
 
-  /// No description provided for @mainDeveloper.
-  ///
-  /// In en, this message translates to:
-  /// **'Main-Developer: '**
-  String get mainDeveloper;
-
-  /// No description provided for @developerName.
-  ///
-  /// In en, this message translates to:
-  /// **'Sergey842248'**
-  String get developerName;
-
-  /// No description provided for @formerDeveloper.
-  ///
-  /// In en, this message translates to:
-  /// **'Former Developer: '**
-  String get formerDeveloper;
-
-  /// No description provided for @formerDeveloperName.
-  ///
-  /// In en, this message translates to:
-  /// **'Oskar'**
-  String get formerDeveloperName;
-
   /// No description provided for @openIssue.
   ///
   /// In en, this message translates to:
@@ -371,14 +347,26 @@ abstract class AppLocalizations {
   /// No description provided for @showWeekView.
   ///
   /// In en, this message translates to:
-  /// **'Show whole week'**
+  /// **'Weekly view'**
   String get showWeekView;
 
   /// No description provided for @showWeekViewSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Open the plan for the entire week when tapping a class or person'**
+  /// **'Show the plan for the entire week when tapping a class or person'**
   String get showWeekViewSubtitle;
+
+  /// No description provided for @lessonInfoSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Lesson information'**
+  String get lessonInfoSettings;
+
+  /// No description provided for @lessonInfoSettingsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What is shown in the substitution plan'**
+  String get lessonInfoSettingsSubtitle;
 
   /// No description provided for @weekPlan.
   ///

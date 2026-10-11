@@ -1,91 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:substitute/l10n/app_localizations.dart';
-import 'package:substitute/services/SchoolStorage.dart';
 import 'package:page_transition/page_transition.dart';
 
 import '../../../models/swipe_page_transition.dart';
 
 import '../../../models/ListPage.dart';
-import '../../../models/SettingsSwitchTile.dart';
+import './LessonInfoSettings.dart';
 import './PreviewSettings.dart';
 import './Lessons.dart';
 import './PlanModeSettings.dart';
 
+/// Die Plan-Einstellungen.
+///
+/// Diese Seite ist bewusst nur eine **Übersicht**: Sie verweist auf
+/// Untermenüs und zeigt keine Schalter mehr selbst. Vorher standen hier
+/// Schalter für einzelne Anzeigedetails direkt neben den Einträgen zu den
+/// Untermenüs – wer gezielt etwas ändern wollte, musste an der Liste vorbei an
+/// genau einer Zeile drehen, die einen anderen Aufbau hatte als die übrigen.
 class PlanSettings extends StatefulWidget {
+  PlanSettings({Key? key}) : super(key: key);
+
   @override
   State<PlanSettings> createState() => _PlanSettingsState();
 }
 
 class _PlanSettingsState extends State<PlanSettings> {
-  bool _hideLessonTimes = true;
-  bool _hideTeacher = false;
-  bool _hidePersons = false;
-  bool _showWeekView = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSettings();
-  }
-
-  Future<void> _loadSettings() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    // One-time migration: older versions stored 'hidePersons' with a default
-    // of OFF. Reset any stored value once so the new default applies.
-    if (!(prefs
-            .getBool(SchoolStorage.scopedKey(prefs, 'hidePersonsMigrated')) ??
-        false)) {
-      await prefs.remove(SchoolStorage.scopedKey(prefs, 'hidePersons'));
-      await prefs.setBool(
-          SchoolStorage.scopedKey(prefs, 'hidePersonsMigrated'), true);
-    }
-    setState(() {
-      _hideLessonTimes =
-          prefs.getBool(SchoolStorage.scopedKey(prefs, 'hideLessonTimes')) ??
-              true;
-      _hideTeacher =
-          prefs.getBool(SchoolStorage.scopedKey(prefs, 'hideTeacher')) ?? false;
-      _hidePersons =
-          prefs.getBool(SchoolStorage.scopedKey(prefs, 'hidePersons')) ?? false;
-      _showWeekView =
-          prefs.getBool(SchoolStorage.scopedKey(prefs, 'showWeekView')) ?? false;
-    });
-  }
-
-  Future<void> _toggleLessonTimes(bool hideLessonTimes) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(
-        SchoolStorage.scopedKey(prefs, 'hideLessonTimes'), hideLessonTimes);
-    setState(() {
-      _hideLessonTimes = hideLessonTimes;
-    });
-  }
-
-  Future<void> _toggleHideTeacher(bool value) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(SchoolStorage.scopedKey(prefs, 'hideTeacher'), value);
-    setState(() {
-      _hideTeacher = value;
-    });
-  }
-
-  Future<void> _toggleHidePersons(bool value) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(SchoolStorage.scopedKey(prefs, 'hidePersons'), value);
-    setState(() {
-      _hidePersons = value;
-    });
-  }
-
-  Future<void> _toggleShowWeekView(bool value) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(SchoolStorage.scopedKey(prefs, 'showWeekView'), value);
-    setState(() {
-      _showWeekView = value;
-    });
-  }
-
   /// Eintrag, der eine weitere Einstellungsseite öffnet.
   Widget _entryTile({
     required IconData icon,
@@ -138,33 +78,11 @@ class _PlanSettingsState extends State<PlanSettings> {
         child: ListPage(
           title: l10n.planSettings,
           children: [
-            SettingsSwitchTile(
-              icon: Icons.access_time_rounded,
-              title: l10n.hideLessonTimes,
-              subtitle: l10n.hideLessonTimesSubtitle,
-              value: _hideLessonTimes,
-              onChanged: _toggleLessonTimes,
-            ),
-            SettingsSwitchTile(
-              icon: Icons.person_outline_rounded,
-              title: l10n.hideTeacher,
-              subtitle: l10n.hideTeacherSubtitle,
-              value: _hideTeacher,
-              onChanged: _toggleHideTeacher,
-            ),
-            SettingsSwitchTile(
-              icon: Icons.groups_outlined,
-              title: l10n.hidePersons,
-              subtitle: l10n.hidePersonsSubtitle,
-              value: _hidePersons,
-              onChanged: _toggleHidePersons,
-            ),
-            SettingsSwitchTile(
-              icon: Icons.date_range_rounded,
-              title: l10n.showWeekView,
-              subtitle: l10n.showWeekViewSubtitle,
-              value: _showWeekView,
-              onChanged: _toggleShowWeekView,
+            _entryTile(
+              icon: Icons.info_outline_rounded,
+              title: l10n.lessonInfoSettings,
+              subtitle: l10n.lessonInfoSettingsSubtitle,
+              page: const LessonInfoSettings(),
             ),
             _entryTile(
               icon: Icons.visibility_rounded,

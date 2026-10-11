@@ -109,18 +109,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appInfo => 'App Info';
 
   @override
-  String get mainDeveloper => 'Main-Developer: ';
-
-  @override
-  String get developerName => 'Sergey842248';
-
-  @override
-  String get formerDeveloper => 'Former Developer: ';
-
-  @override
-  String get formerDeveloperName => 'Oskar';
-
-  @override
   String get openIssue => 'Open Issue';
 
   @override
@@ -154,11 +142,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noPlanForThisDay => 'No substitution plan available for this day.';
 
   @override
-  String get showWeekView => 'Show whole week';
+  String get showWeekView => 'Weekly view';
 
   @override
   String get showWeekViewSubtitle =>
-      'Open the plan for the entire week when tapping a class or person';
+      'Show the plan for the entire week when tapping a class or person';
+
+  @override
+  String get lessonInfoSettings => 'Lesson information';
+
+  @override
+  String get lessonInfoSettingsSubtitle =>
+      'What is shown in the substitution plan';
 
   @override
   String get weekPlan => 'Week plan';

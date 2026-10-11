@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:substitute/models/LoadingIndicator.dart';
 import 'package:substitute/models/SettingsSwitchTile.dart';
+import 'package:substitute/pages/dashboard/settings/AppearanceSettings.dart';
+import 'package:substitute/pages/dashboard/settings/LessonInfoSettings.dart';
 import 'package:substitute/pages/dashboard/settings/PlanSettings.dart';
 import 'package:substitute/pages/vplan/DemoData.dart';
 import 'package:substitute/pages/vplan/Plan.dart';
@@ -1052,17 +1054,20 @@ testWidgets('a changed room or teacher is marked by colour only',
       'vplanSchoolnumber': '999999',
       'vplanUsername': 'lehrer',
       'vplanPassword': 'geheim',
+      'classes': ['5a'],
     });
+    // Die Option liegt inzwischen in den Darstellungseinstellungen, nicht mehr
+    // in den Plan-Einstellungen.
     await tester.pumpWidget(MaterialApp(
       locale: const Locale('en', ''),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(body: PlanSettings()),
+      home: const Scaffold(body: AppearanceSettings()),
     ));
     await tester.pumpAndSettle();
 
     final Finder tile = find.ancestor(
-      of: find.text('Show whole week'),
+      of: find.text('Weekly view'),
       matching: find.byType(SettingsSwitchTile),
     );
     expect(tile, findsOneWidget);
@@ -1076,7 +1081,46 @@ testWidgets('a changed room or teacher is marked by colour only',
     expect(prefs.getBool('showWeekView'), isTrue);
   });
 
-  testWidgets('week view can navigate to the previous and next week',
+  testWidgets('the lesson information options moved into their own submenu',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'vplanSchoolnumber': '999999',
+      'vplanUsername': 'lehrer',
+      'vplanPassword': 'geheim',
+      'classes': ['5a'],
+    });
+    await tester.pumpWidget(MaterialApp(
+      locale: const Locale('en', ''),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(body: PlanSettings()),
+    ));
+    await tester.pumpAndSettle();
+
+    // Die Plan-Einstellungen zeigen selbst keine Schalter mehr, sondern
+    // verweisen auf Untermenüs.
+    expect(find.byType(SettingsSwitchTile), findsNothing);
+    expect(find.text('Lesson information'), findsOneWidget);
+
+    await tester.tap(find.text('Lesson information'));
+    await tester.pumpAndSettle();
+
+    // Dort liegen die drei Schalter.
+    expect(find.byType(LessonInfoSettings), findsOneWidget);
+    expect(find.byType(SettingsSwitchTile), findsNWidgets(3));
+    expect(find.text('Hide lesson times'), findsOneWidget);
+    expect(find.text('Hide Teacher'), findsOneWidget);
+    expect(find.text('Hide Persons'), findsOneWidget);
+
+    // Und sie schalten weiterhin wie bisher: „Lehrer ausblenden" ist
+    // standardmäßig aus, nach dem Tippen ein.
+    await tester.tap(find.byType(SwitchListTile).at(1));
+    await tester.pumpAndSettle();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('hideTeacher'), isTrue);
+  });
+
+testWidgets('week view can navigate to the previous and next week',
       (WidgetTester tester) async {
     seedOfflineWeek();
     await pumpWeekPlan(tester);

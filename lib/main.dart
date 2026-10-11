@@ -969,62 +969,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                       ),
                                     },
                                     content: Column(
+                                      // Der Dialog zentriert Titel und
+                                      // Knöpfe bereits; der Inhalt war
+                                      // linksbündig und sah dadurch
+                                      // uneinheitlich aus.
                                       crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                          CrossAxisAlignment.center,
                                       children: [
-                                        Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: RichText(
-                                            text: TextSpan(
-                                              style: const TextStyle(
-                                                fontSize: 17,
-                                                color: Colors
-                                                    .white, // Assuming default text color, adjust if needed
-                                              ),
-                                              children: [
-                                                TextSpan(
-                                                    text: AppLocalizations.of(
-                                                            context)!
-                                                        .mainDeveloper),
-                                                TextSpan(
-                                                  text: AppLocalizations.of(
-                                                          context)!
-                                                      .developerName,
-                                                  style: TextStyle(
-                                                    decoration: TextDecoration
-                                                        .underline,
-                                                    decorationColor:
-                                                        Theme.of(context)
-                                                            .focusColor,
-                                                  ),
-                                                  recognizer: TapGestureRecognizer()
-                                                    ..onTap = () => launchUrl(
-                                                        Uri.parse(
-                                                            'https://github.com/Sergey842248')),
-                                                ),
-                                                TextSpan(
-                                                    text:
-                                                        '\n\n${AppLocalizations.of(context)!.formerDeveloper}'),
-                                                TextSpan(
-                                                  text: AppLocalizations.of(
-                                                          context)!
-                                                      .formerDeveloperName,
-                                                  style: TextStyle(
-                                                    decoration: TextDecoration
-                                                        .underline,
-                                                    decorationColor:
-                                                        Theme.of(context)
-                                                            .focusColor,
-                                                  ),
-                                                  recognizer: TapGestureRecognizer()
-                                                    ..onTap = () => launchUrl(
-                                                        Uri.parse(
-                                                            'https://github.com/badbryany')),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
+                                        // Die Angaben zu Haupt- und
+                                        // ehemaligem Entwickler wurden entfernt.
                                         ...[
                                           {
                                             'name':
@@ -1048,6 +1001,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                   Uri.parse(e['link']!)),
                                               child: Text(
                                                 '${e['name']}',
+                                                textAlign: TextAlign.center,
                                                 style: TextStyle(
                                                   decoration:
                                                       TextDecoration.underline,
@@ -1065,6 +1019,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                           child: Text(
                                             AppLocalizations.of(context)!
                                                 .version(version),
+                                            textAlign: TextAlign.center,
                                             style: const TextStyle(
                                               fontSize: 17,
                                               fontWeight: FontWeight.bold,
