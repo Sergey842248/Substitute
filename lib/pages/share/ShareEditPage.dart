@@ -48,6 +48,10 @@ class _ShareEditPageState extends State<ShareEditPage> {
   bool _busy = false;
   String? _error;
 
+  /// Ob der Vorschlagstext schon gesetzt wurde. Der braucht die Übersetzungen
+  /// und steht deshalb nicht in [initState] – siehe [didChangeDependencies].
+  bool _labelInitialised = false;
+
   @override
   void initState() {
     super.initState();
@@ -55,8 +59,15 @@ class _ShareEditPageState extends State<ShareEditPage> {
     _persons = readPersons(widget.prefs);
     final LocalShare? share = widget.share;
     _selection = share?.selection ?? const ShareSelection();
-    _labelController =
-        TextEditingController(text: share?.label ?? _defaultLabel());
+    // **Kein** `_defaultLabel()` hier: Es greift über
+    // `AppLocalizations.of(context)` auf ein InheritedWidget zu, und darauf
+    // darf vor Abschluss von `initState` nicht zugegriffen werden – das warf
+    // „dependOnInheritedWidgetOfExactType … was called before
+    // _ShareEditPageState.initState() completed" und ließ die Seite beim
+    // Anlegen eines Shares abstürzen. Der Text wird stattdessen gleich in
+    // `didChangeDependencies` nachgetragen.
+    _labelController = TextEditingController(text: share?.label ?? '');
+    _labelInitialised = share?.label != null;
     _passwordController = TextEditingController(
       text: share == null || !share.hasPassword
           ? ''
@@ -64,6 +75,17 @@ class _ShareEditPageState extends State<ShareEditPage> {
     );
     _searchable = share?.searchable ?? true;
     _isGlobal = share?.isGlobal ?? false;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Läuft direkt nach `initState` – hier sind die Übersetzungen verfügbar.
+    // Nur einmal: bei einem späteren Sprachwechsel soll der Name eines
+    // vorhandenen Shares nicht überschrieben werden.
+    if (_labelInitialised) return;
+    _labelInitialised = true;
+    _labelController.text = _defaultLabel();
   }
 
   @override
