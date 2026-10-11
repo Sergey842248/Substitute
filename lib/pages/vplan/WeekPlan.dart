@@ -4,6 +4,7 @@ import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:substitute/models/ListPage.dart';
+import 'package:substitute/models/LoadingIndicator.dart';
 import 'package:substitute/models/swipe_page_transition.dart';
 import 'package:substitute/services/AppClock.dart';
 import 'package:substitute/services/PlanWeek.dart';
@@ -444,13 +445,14 @@ String _rangeLabel() {
         ),
       ],
       children: [
-        ..._refreshSpinnerWidgets(),
+        // **Ein** Ladesymbol für alles: Vorher standen hier zwei (eines über
+        // dem Inhalt für [_refreshing], eines mittig für [_loading]), und beim
+        // Laden standen beide gleichzeitig nebeneinander.
+        ..._loadingWidget(),
         _weekTypeTile(l10n),
+        // Beim Laden wird nichts weiter angezeigt – das Symbol ist die Meldung.
         if (_loading)
-          const Padding(
-            padding: EdgeInsets.only(top: 40),
-            child: Center(child: CircularProgressIndicator()),
-          )
+          const SizedBox.shrink()
         else if (_days.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 30),
@@ -579,21 +581,15 @@ String _rangeLabel() {
     );
   }
 
-  /// Das Lade-Symbol über dem Inhalt – wie beim Aktualisieren-Symbol in der
-  /// Kopfzeile der Tagesansicht.
-  List<Widget> _refreshSpinnerWidgets() {
-    if (!_refreshing) return const <Widget>[];
-    return <Widget>[
-      const SizedBox(height: 6),
-      Center(
-        child: CircularProgressIndicator(
-          color: Theme.of(context).primaryColor,
-          strokeWidth: 3,
-          constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-        ),
-      ),
-      const SizedBox(height: 6),
-    ];
+  /// Das Lade-Symbol der Woche – **ein einziges**, und es erscheint bei jedem
+  /// Laden: beim Öffnen, beim Wechsel der Woche und beim Aktualisieren.
+  ///
+  /// [_loading] und [_refreshing] werden hier bewusst zusammengefasst. Vorher
+  /// standen zwei Symbole nebeneinander, weil je ein Zustand sein eigenes
+  /// zeigte und beide während des Ladens aktiv waren.
+  List<Widget> _loadingWidget() {
+    if (!_loading && !_refreshing) return const <Widget>[];
+    return const <Widget>[LoadingIndicatorBlock()];
   }
 
   /// True, wenn mindestens ein Tag der Woche an einem Verbindungsfehler

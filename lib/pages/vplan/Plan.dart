@@ -17,6 +17,7 @@ import 'package:substitute/services/Weekday.dart';
 
 import '../../models/ListItem.dart';
 import '../../models/ListPage.dart';
+import '../../models/LoadingIndicator.dart';
 import '../../models/LoadingProcess.dart';
 import '../../pages/dashboard/settings/VPlanLogin.dart';
 
@@ -364,9 +365,20 @@ class _PlanState extends State<Plan> {
 
   /// Wird true, solange der Plan gerade neu geladen wird – egal ob über das
   /// Aktualisieren-Symbol in der Kopfzeile oder über Pull-to-Refresh.
-  /// Dann wird ein Lade-Symbol direkt über dem Plan angezeigt (kein
-  /// Overlay wie beim alten Pull-to-Refresh).
   bool refreshing = false;
+
+  /// Wird true, solange **überhaupt** geladen wird: beim Öffnen, beim Wechsel
+  /// des Tages mit den Pfeilen und beim Aktualisieren.
+  ///
+  /// Bisher gab es nur [refreshing], das ausschließlich das Aktualisieren
+  /// abdeckte. Beim Tagessprung läuft [newVP] dagegen über
+  /// `data = 'loading'` – und das erzeugte eine komplett leere Seite: Der
+  /// Nutzer bekam für die Dauer der Anfrage keinerlei Rückmeldung.
+  ///
+  /// Der Ladezustand wird aus [data] abgeleitet statt separat geführt, damit es
+  /// nur **eine** Quelle dafür gibt. `'loading'` steht dort vom ersten Frame an
+  /// (kein Cache), beim Tagessprung und während [getData].
+  bool get _loadingPlan => refreshing || data == 'loading';
   String _defaultPlanModePerson = 'auto';
   String _defaultPlanModeClass = 'auto';
   // Anzahl der neueren, bereits verfügbaren Pläne (wird als Badge angezeigt).
@@ -470,21 +482,12 @@ class _PlanState extends State<Plan> {
     setState(() => _newerPlanCount = count);
   }
 
-  /// Baut das Lade-Symbol, das – wie beim Aktualisieren-Symbol – direkt
-  /// über dem Plan angezeigt wird, solange [refreshing] aktiv ist.
-  List<Widget> _refreshSpinnerWidgets() {
-    if (!refreshing) return const <Widget>[];
-    return <Widget>[
-      const SizedBox(height: 6),
-      Center(
-        child: CircularProgressIndicator(
-          color: Theme.of(context).primaryColor,
-          strokeWidth: 3,
-          constraints: BoxConstraints.tightFor(width: 36, height: 36),
-        ),
-      ),
-      const SizedBox(height: 6),
-    ];
+  /// Das Lade-Symbol des Tagesplans – **ein einziges**, bei jedem Laden:
+  /// beim Öffnen, beim Wechsel des Tages und beim Aktualisieren
+  /// (Aktualisieren-Knopf oder Pull-to-Refresh).
+  List<Widget> _loadingWidget() {
+    if (!_loadingPlan) return const <Widget>[];
+    return const <Widget>[LoadingIndicatorBlock()];
   }
 
   @override
@@ -603,7 +606,7 @@ class _PlanState extends State<Plan> {
           ),
         ],
         children: [
-          ..._refreshSpinnerWidgets(),
+          ..._loadingWidget(),
           extraWidget,
           Container(
             alignment: Alignment.center,
@@ -749,7 +752,7 @@ class _PlanState extends State<Plan> {
         ),
       ],
       children: [
-        ..._refreshSpinnerWidgets(),
+        ..._loadingWidget(),
         if (data != 'loading') _buildLessons(data['data']['data'] as List),
         data != 'loading' ? const SizedBox() : const SizedBox(),
         data != 'loading'

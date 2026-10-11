@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:substitute/l10n/app_localizations.dart';
+import 'package:substitute/models/LoadingIndicator.dart';
 import 'package:substitute/models/SettingsSwitchTile.dart';
 import 'package:substitute/pages/dashboard/settings/PlanSettings.dart';
 import 'package:substitute/pages/vplan/DemoData.dart';
@@ -875,6 +876,26 @@ testWidgets('the arrow lands in the week of the found plan, not the next one',
         findsOneWidget);
 
     await AppClock.setOverriddenNow(null);
+  });
+
+testWidgets('the loading indicator shows three points that move',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(body: Center(child: LoadingIndicator())),
+    ));
+    await tester.pump();
+
+    // Drei Punkte – nicht ein kreisender Balken.
+    expect(find.byType(Container), findsNWidgets(3));
+
+    // Sie bewegen sich: Ohne Animation wäre die Deckkraft konstant.
+    final double before =
+        tester.widget<Opacity>(find.byType(Opacity).at(0)).opacity;
+    await tester.pump(const Duration(milliseconds: 220));
+    final double after =
+        tester.widget<Opacity>(find.byType(Opacity).at(0)).opacity;
+    expect(after, isNot(equals(before)),
+        reason: 'the points must animate, not stand still');
   });
 
 test('week arithmetic survives the change of clock (DST)', () {
