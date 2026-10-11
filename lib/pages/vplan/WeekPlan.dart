@@ -45,7 +45,16 @@ class _WeekPlanState extends State<WeekPlan> {
   final VPlanAPI _vplanAPI = VPlanAPI();
 
   /// Montag der aktuell angezeigten Woche.
-  late DateTime _weekStart = startOfSchoolWeek(AppClock.now());
+  /// Der Montag der angezeigten Woche.
+  ///
+  /// [_startOfWeek] wird **bei jedem Setzen** angewandt – auch beim Blättern zur
+  /// Vor- und Nachbarwoche. So kann der Bereich der angezeigten Woche nicht
+  /// daran scheitern, dass hier einmal ein Nicht-Montag landet: Ein Start am
+  /// Sonntag ergäbe ein Ende in der Woche davor, also eine Datumsrange wie
+  /// „25.10. - 24.10.“.
+  late DateTime _weekStart = _startOfWeek(AppClock.now());
+
+  static DateTime _startOfWeek(DateTime date) => startOfSchoolWeek(date);
 
   /// Je Kalendertag (als `yyyy-mm-dd`) der geladene Tagesplan bzw. `null`,
   /// wenn für diesen Tag kein Plan vorliegt.
@@ -59,6 +68,10 @@ class _WeekPlanState extends State<WeekPlan> {
   bool _loading = true;
   bool _refreshing = false;
 
+  /// Zählt die Ladevorgänge. Nur der jeweils letzte darf das Ergebnis
+  /// übernehmen – siehe [_loadWeek].
+  int _loadGeneration = 0;
+
   bool hideLessonTimes = true;
   bool hideTeacher = false;
   List<String> hiddenSubjects = <String>[];
@@ -71,13 +84,25 @@ class _WeekPlanState extends State<WeekPlan> {
   static String _key(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
-  /// Die sechs Schultage der angezeigten Woche (Mo–Sa, siehe
+  /// Die fünf Schultage der angezeigten Woche (Mo–Fr, siehe
   /// [startOfSchoolWeek]).
+  ///
+  /// Der Samstag gehört nicht dazu: An den allermeisten Schulen findet samstags
+  /// kein Unterricht statt. Eine leere sechste Spalte wäre nur stehengebliebene
+  /// Breite – auf dem Telefon kostet die eine ganze Spalte Schriftgröße, also
+  /// genau die, die die fünf Unterrichtstage brauchen.
   List<DateTime> get _weekDays => <DateTime>[
-        for (int i = 0; i < 6; i++) _weekStart.add(Duration(days: i)),
+        // Ebenfalls Kalendertage – siehe [_shiftWeek].
+        for (int i = 0; i < 5; i++) addSchoolDays(_weekStart, i),
       ];
 
-  DateTime get _weekEnd => endOfSchoolWeek(_weekStart);
+  /// Das Ende der Schulwoche: der Freitag.
+  ///
+  /// **Nur** [_weekStart] + 4 Tage, kein zweites Nachrechnen aus dem Datum.
+  /// [_weekStart] ist bereits der Montag (siehe [_startOfWeek]); ein erneutes
+  /// Nachrechnen war überflüssig und war die Fehlerquelle hinter einer
+  /// Datumsrange wie „25.10. - 24.10.“, bei der das Ende vor dem Anfang lag.
+  DateTime get _weekEnd => addSchoolDays(_weekStart, 4);
 
   bool get _isPerson => widget.person != null;
 
@@ -107,51 +132,72 @@ class _WeekPlanState extends State<WeekPlan> {
   }
 
   /// Lädt alle Tage der angezeigten Woche. Die Tage werden nebeneinander
-  /// geholt – sechs einzelne Abfragen hintereinander würden spürbar dauern.
+  /// geholt – fünf einzelne Abfragen hintereinander würden spürbar dauern.
+  ///
+  /// **Der Ladezustand wird in jedem Fall wieder freigegeben** (`finally`),
+  /// und zwar auch dann, wenn etwas schiefgeht. Vorher stand am Anfang
+  /// `if (_refreshing) return;`, und ein Fehler irgendwo in der Ladeliste ließ
+  /// `_refreshing` für immer auf `true` stehen: Jedes weitere [_shiftWeek] – und
+  /// damit jeder Klick auf die Pfeile – wurde dann stillschweigend verworfen,
+  /// die Seite blieb in der alten Woche stehen und wirkte wie eine klemmende
+  /// Taste.
+  ///
+  /// [_loadGeneration] entscheidet bei überlappenden Ladevorgängen, wer gewinnt:
+  /// Wer zuletzt navigiert hat. Ohne das könnte eine langsame Antwort der
+  /// vorherigen Woche das Ergebnis der neuen überschreiben.
   Future<void> _loadWeek({bool forceRefresh = false}) async {
-    if (_refreshing) return;
-    setState(() {
-      _refreshing = true;
-      if (_loading) _loading = true;
-    });
+    final int generation = ++_loadGeneration;
+    setState(() => _refreshing = true);
 
-    final List<DateTime> days = _weekDays;
-    final List<dynamic> plans = await Future.wait(
-      days.map(
-        (DateTime d) => _vplanAPI.getLessonsByDate(
-          date: d,
-          classId: widget.classId,
-          forceRefresh: forceRefresh,
-          // `strictDate`: Für einen Tag, für den die Schule nichts
-          // veröffentlicht hat, darf nicht der neueste Plan eines anderen
-          // Tages eingesetzt werden – sonst stünde derselbe Tag fünfmal in
-          // der Woche.
-          strictDate: true,
+    try {
+      final List<DateTime> days = _weekDays;
+      final List<dynamic> plans = await Future.wait(
+        days.map(
+          (DateTime d) => _vplanAPI.getLessonsByDate(
+            date: d,
+            classId: widget.classId,
+            forceRefresh: forceRefresh,
+            // `strictDate`: Für einen Tag, für den die Schule nichts
+            // veröffentlicht hat, darf nicht der neueste Plan eines anderen
+            // Tages eingesetzt werden – sonst stünde derselbe Tag fünfmal in
+            // der Woche.
+            strictDate: true,
+          ),
         ),
-      ),
-    );
+      );
 
-    final Map<String, dynamic> byDay = <String, dynamic>{};
-    final Map<String, dynamic> errors = <String, dynamic>{};
-    for (int i = 0; i < days.length; i++) {
-      final dynamic plan = plans[i];
-      if (plan is Map && plan['error'] != null) {
-        errors[_key(days[i])] = plan['error'];
-      } else if (plan is Map && plan['data'] is List) {
-        if ((plan['data'] as List).isNotEmpty) byDay[_key(days[i])] = plan;
+      final Map<String, dynamic> byDay = <String, dynamic>{};
+      final Map<String, dynamic> errors = <String, dynamic>{};
+      for (int i = 0; i < days.length; i++) {
+        final dynamic plan = plans[i];
+        if (plan is Map && plan['error'] != null) {
+          errors[_key(days[i])] = plan['error'];
+        } else if (plan is Map && plan['data'] is List) {
+          if ((plan['data'] as List).isNotEmpty) byDay[_key(days[i])] = plan;
+        }
+      }
+
+      final Map<String, _DayMissedCourses> missed =
+          await _loadMissedCourses(days);
+
+      // Zwischenzeitlich wurde weiternavigiert: dieses Ergebnis ist veraltet.
+      if (!mounted || generation != _loadGeneration) return;
+      setState(() {
+        _days = byDay;
+        _errors = errors;
+        _missedCourses = missed;
+        _loading = false;
+      });
+    } catch (_) {
+      // Ladefehler: Die Seite darf nicht hängen bleiben. Die Woche wechselt
+      // trotzdem, sie zeigt dann eben keine Pläne.
+      if (!mounted || generation != _loadGeneration) return;
+      setState(() => _loading = false);
+    } finally {
+      if (mounted && generation == _loadGeneration) {
+        setState(() => _refreshing = false);
       }
     }
-
-    final Map<String, _DayMissedCourses> missed = await _loadMissedCourses(days);
-
-    if (!mounted) return;
-    setState(() {
-      _days = byDay;
-      _errors = errors;
-      _missedCourses = missed;
-      _loading = false;
-      _refreshing = false;
-    });
   }
 
   /// Lädt die noch einzuholenden Unterschriften für jeden Tag der Woche. Ein
@@ -179,7 +225,15 @@ class _WeekPlanState extends State<WeekPlan> {
   /// Wechselt in die Woche vor bzw. nach der angezeigten.
   Future<void> _shiftWeek(int weeks) async {
     setState(() {
-      _weekStart = _weekStart.add(Duration(days: 7 * weeks));
+      // Wieder über [_startOfWeek]: Nach sieben Tagen ist zwar wieder ein
+      // Montag, aber der Montag ist hier die Voraussetzung dafür, dass der
+      // Zeitraum stimmt – das soll nicht von einem Rechenfehler abhängen.
+      // **Kalendertage, keine Dauer:** `add(Duration(days: 7))` addiert
+      // absolute Stunden und landet über eine Zeitumstellung hinweg eine Stunde
+      // zu früh – aus dem Montag wurde der Sonntag derselben Woche, und
+      // [_startOfWeek] rechnete daraus wieder den Montag derselben Woche
+      // zurück. Die Woche bewegte sich dann nicht mehr.
+      _weekStart = _startOfWeek(addSchoolDays(_weekStart, 7 * weeks));
       _loading = true;
     });
     await _loadWeek();
@@ -395,22 +449,25 @@ String _rangeLabel() {
   /// Das Wochenraster. Die Tage stehen nebeneinander, die Stundenzeilen
   /// darunter – ohne Scrollen, die Höhe wird auf den Bildschirm aufgeteilt.
   Widget _buildGrid() {
+    // **Jeder Tag der Woche bekommt eine Spalte** – auch Tage, für die die
+    // Schule noch keinen Plan veröffentlicht hat. Früher wurden solche Tage
+    // weggelassen, und wenn an einem einzigen Tag ein Plan vorlag, stand
+    // da plötzlich eine einzige Spalte statt der Woche: Man konnte nicht mehr
+    // erkennen, wo in der Woche man sich befindet. Der leere Tag ist die
+    // Information „hier ist noch nichts".
     final List<WeekDayColumn> columns = <WeekDayColumn>[
       for (final DateTime day in _weekDays)
-        if (_days[_key(day)] != null)
-          WeekDayColumn(
-            date: day,
-            // Gefiltert VOR dem Aufbau des Rasters: Sonst entstünden Zeilen
-            // für Stunden, die gar nicht angezeigt werden (bei einer Person
-            // z.B. die Kurse, die sie nicht ausgewählt hat).
-            lessons: (_days[_key(day)]!['data'] as List<dynamic>)
-                .where(_isLessonVisible)
-                .toList(),
-            missedCourses: _missedCourses[_key(day)] ?? const {},
-            // Die „Zusatzinformationen" des Tages: In der Tagesansicht stehen
-            // sie unter den Stunden, hier öffnet der Tageskopf sie.
-            info: _infoOfDay(_days[_key(day)]!),
-          ),
+        WeekDayColumn(
+          date: day,
+          // Kein Plan für diesen Tag: Die Spalte bleibt leer.
+          lessons: (_days[_key(day)]?['data'] as List<dynamic>? ?? const [])
+              .where(_isLessonVisible)
+              .toList(),
+          missedCourses: _missedCourses[_key(day)] ?? const {},
+          // Die „Zusatzinformationen" des Tages: In der Tagesansicht stehen
+          // sie unter den Stunden, hier öffnet der Tageskopf sie.
+          info: _infoOfDay(_days[_key(day)]),
+        ),
     ];
 
     return WeekPlanGrid(

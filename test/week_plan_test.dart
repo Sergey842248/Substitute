@@ -12,6 +12,7 @@ import 'package:substitute/pages/vplan/DemoData.dart';
 import 'package:substitute/pages/vplan/Plan.dart';
 import 'package:substitute/pages/vplan/WeekPlan.dart';
 import 'package:substitute/pages/vplan/WeekPlanGrid.dart';
+import 'package:substitute/services/PlanWeek.dart';
 import 'package:substitute/services/AppClock.dart';
 
 /// Die vier Textangaben, die eine Rasterzelle zeigt – als Widgets, nicht als
@@ -169,7 +170,7 @@ void main() {
     await pumpWeekPlan(tester);
 
     // „21.09. - 26.09." – ohne Jahreszahl, die Woche steht ohnehin im Kopf.
-    expect(find.text('21.09. - 26.09.'), findsOneWidget);
+    expect(find.text('21.09. - 25.09.'), findsOneWidget);
 
     await AppClock.setOverriddenNow(null);
   });
@@ -195,7 +196,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    expect(find.text('28.12.2026 - 02.01.2027'), findsOneWidget);
+    expect(find.text('28.12.2026 - 01.01.2027'), findsOneWidget);
 
     await AppClock.setOverriddenNow(null);
   });
@@ -407,7 +408,7 @@ void main() {
     // Punkt 2: Datumsrange und Wochentyp stehen als **Zeile** mittig.
     // Geprüft wird die Zeile, nicht der einzeln Text: Der Zeitraum steht links
     // neben dem Wochentyp, beide zusammen sind zentriert.
-    expect(find.text('21.09. - 26.09.'), findsOneWidget);
+    expect(find.text('21.09. - 25.09.'), findsOneWidget);
     final Offset centre = tester.getCenter(find.byType(WeekPlanGrid));
     final Finder headerRow = find
         .ancestor(
@@ -605,7 +606,7 @@ testWidgets('the header takes less space so more lessons fit on screen',
     // Zwischen der Kopfzeile der Seite und der ersten Rasterzeile soll kein
     // nennenswerter Leerstand mehr sein – er ginge zulasten der Stunden.
     final Rect appBar = tester.getRect(find.byIcon(Icons.refresh).hitTestable());
-    final Rect range = tester.getRect(find.text('21.09. - 26.09.'));
+    final Rect range = tester.getRect(find.text('21.09. - 25.09.'));
     expect(range.top - appBar.bottom, lessThan(70),
         reason: 'the date row must sit close below the app bar');
 
@@ -622,7 +623,7 @@ testWidgets('the weekday and the date below it are not scaled down',
     // sähe die Schrift kleiner aus, als sie eingestellt ist, und genau das war
     // die Beschwerde.
     final Finder weekday = find.text('Mon');
-    final Finder date = find.text('21.9.');
+    final Finder date = find.text('21');
 
     // Das [FittedBox] bekommt den Platz fest vorgegeben; passt sein Inhalt
     // hinein, wird nichts skaliert. Passt er nicht hinein, schrumpft die
@@ -643,7 +644,252 @@ testWidgets('the weekday and the date below it are not scaled down',
     expect(content.width, lessThanOrEqualTo(fitted.width + 0.5));
 
     expect(tester.widget<Text>(weekday).style!.fontSize, greaterThanOrEqualTo(17));
-    expect(tester.widget<Text>(date).style!.fontSize, greaterThanOrEqualTo(14));
+    expect(tester.widget<Text>(date).style!.fontSize, greaterThanOrEqualTo(15));
+
+    await AppClock.setOverriddenNow(null);
+  });
+
+testWidgets('a week with only one available day still shows all days',
+      (WidgetTester tester) async {
+    // Nur der **Mittwoch** hat einen Plan. Trotzdem muss die ganze Woche
+    // dastehen – die anderen Tage leer.
+    SharedPreferences.setMockInitialValues({
+      'vplanSchoolnumber': '999999',
+      'vplanUsername': 'lehrer',
+      'vplanPassword': 'geheim',
+      'classes': ['5a'],
+      'offlineVPData': <String>[
+        jsonEncode(DemoData.buildDayPlan(DateTime(2026, 9, 23))),
+      ],
+    });
+    await pumpWeekPlan(tester);
+
+    // Alle sechs Tage der Schulwoche als Spalte – nicht nur der Mittwoch.
+    const List<String> weekdayNames = <String>[
+      'Mon',
+      'Tue',
+      'Wed',
+      'Thu',
+      'Fri',
+    ];
+    for (final String name in weekdayNames) {
+      expect(find.text(name), findsOneWidget, reason: 'missing column "$name"');
+    }
+
+    // Der Samstag gehört nicht zur Schulwoche und wird nicht gezeigt.
+    expect(find.text('Sat'), findsNothing);
+
+    // Und sie stehen nebeneinander, nicht untereinander.
+    final Set<double> rows = weekdayNames
+        .map((String n) => tester.getCenter(find.text(n)).dy)
+        .toSet();
+    expect(rows, hasLength(1));
+
+    // Der Mittwoch hat Stunden, die anderen Tage nicht.
+    expect(find.byKey(const ValueKey<String>('lessonCell_2026-9-23_0')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('lessonCell_2026-9-21_0')),
+        findsNothing);
+
+    await AppClock.setOverriddenNow(null);
+  });
+
+testWidgets('the date range stays correct for every day of the week',
+      (WidgetTester tester) async {
+    // Der Fehler trat am Sonntag auf: Start und Ende lagen in verschiedenen
+    // Wochen (z.B. „25.10. - 24.10.“). Deshalb wird jeder Wochentag geprüft.
+    for (int offset = 0; offset < 7; offset++) {
+      SharedPreferences.setMockInitialValues({
+        'vplanSchoolnumber': '999999',
+        'vplanUsername': 'lehrer',
+        'vplanPassword': 'geheim',
+        'classes': ['5a'],
+        'offlineVPData': <String>[
+          jsonEncode(DemoData.buildDayPlan(DateTime(2026, 9, 21))),
+        ],
+      });
+      // Montag 21.09.2026 plus `offset` Tage.
+      await AppClock.setOverriddenNow(
+          DateTime(2026, 9, 21, 8).add(Duration(days: offset)));
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(MaterialApp(
+        locale: const Locale('en', ''),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const Scaffold(body: WeekPlan(classId: '5a')),
+      ));
+      await tester.pumpAndSettle();
+
+      // Immer dieselbe Woche: Montag bis Samstag, aufsteigend.
+      expect(find.text('21.09. - 25.09.'), findsOneWidget,
+          reason: 'wrong range on weekday ${DateTime(2026, 9, 21).add(Duration(days: offset)).weekday}');
+    }
+
+    await AppClock.setOverriddenNow(null);
+  });
+
+testWidgets('the arrows keep working after a week without any plan',
+      (WidgetTester tester) async {
+    // Ausgangswoche (14.09.) ohne jeden Plan, Zielwoche (21.09.) mit genau
+    // einem. Genau dieser Übergang ist previously hängen geblieben: Der
+    // Ladezustand wurde nach einem Fehler nie wieder freigegeben, wodurch
+    // jeder weitere Klick auf den Pfeil verworfen wurde und die Seite in der
+    // leeren Woche stehen blieb.
+    SharedPreferences.setMockInitialValues({
+      'vplanSchoolnumber': '999999',
+      'vplanUsername': 'lehrer',
+      'vplanPassword': 'geheim',
+      'classes': ['5a'],
+      'offlineVPData': <String>[
+        jsonEncode(DemoData.buildDayPlan(DateTime(2026, 9, 21))),
+      ],
+    });
+    await AppClock.setOverriddenNow(DateTime(2026, 9, 16, 8));
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(MaterialApp(
+      locale: const Locale('en', ''),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: const Scaffold(body: WeekPlan(classId: '5a')),
+    ));
+    await tester.pumpAndSettle();
+
+    // Woche ohne Pläne: Die Meldung steht da.
+    expect(find.text('14.09. - 18.09.'), findsOneWidget);
+    expect(
+      find.text('No substitution plan available for this week.'),
+      findsOneWidget,
+    );
+
+    // In die Woche mit dem einen Plan springen.
+    await tester.tap(find.byIcon(Icons.arrow_forward));
+    await tester.pumpAndSettle();
+
+    expect(find.text('21.09. - 25.09.'), findsOneWidget,
+        reason: 'the week must actually change');
+    expect(
+      find.text('No substitution plan available for this week.'),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey<String>('lessonCell_2026-9-21_0')),
+        findsOneWidget);
+
+    // Und weiter – die Pfeile dürfen nicht wieder klemmen.
+    await tester.tap(find.byIcon(Icons.arrow_forward));
+    await tester.pumpAndSettle();
+    expect(find.text('28.09. - 02.10.'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    expect(find.text('21.09. - 25.09.'), findsOneWidget);
+
+    await AppClock.setOverriddenNow(null);
+  });
+
+test('week arithmetic survives the change of clock (DST)', () {
+    // In der Nacht zum 25.10.2026 wird die Uhr in Deutschland eine Stunde
+    // ZURÜCK gestellt. Mit `add(Duration(days: 7))` sprang der Wochenanfang
+    // deshalb auf Sonntag, 25.10., 23:00 – und aus dem Sonntag wurde wieder
+    // der Montag derselben Woche berechnet, also der 19.10. Die Navigation
+    // blieb ab da stecken.
+    //
+    // Der Test gilt in jeder Zeitzone: Er prüft die Kalenderrechnung selbst,
+    // nicht das Ausmaß der Zeitverschiebung.
+    final List<DateTime> mondays = <DateTime>[
+      DateTime(2026, 10, 5), // vor der Umstellung
+      DateTime(2026, 10, 12),
+      DateTime(2026, 10, 19), // die Woche, über die die Umstellung liegt
+      DateTime(2026, 10, 26), // direkt danach
+      DateTime(2026, 3, 30), // die Umstellung im Frühjahr
+    ];
+
+    for (final DateTime monday in mondays) {
+      expect(startOfSchoolWeek(monday), monday,
+          reason: 'a Monday must stay a Monday');
+
+      for (int weeks = 1; weeks <= 3; weeks++) {
+        final DateTime shifted = startOfSchoolWeek(addSchoolDays(monday, 7 * weeks));
+        expect(shifted.weekday, DateTime.monday,
+            reason: 'the week start must remain a Monday');
+        expect(shifted.difference(monday).inDays, 7 * weeks,
+            reason: 'jumping $weeks week(s) from $monday landed on $shifted');
+        expect(shifted.hour, 0, reason: 'and must stay at midnight');
+      }
+
+      // Die fünf Schultage sind echte aufeinanderfolgende Kalendertage.
+      // (Über Monatsgrenzen hinweg darf man nicht die Tageszahl vergleichen –
+      // der 31. wird zum 1. des nächsten Monats.)
+      final List<DateTime> week = <DateTime>[
+        for (int i = 0; i < 5; i++) addSchoolDays(monday, i),
+      ];
+      for (int i = 0; i < week.length; i++) {
+        expect(
+          week[i],
+          DateTime(monday.year, monday.month, monday.day + i),
+          reason: 'day $i of the week is wrong',
+        );
+        expect(week[i].hour, 0);
+      }
+      expect(week.first.weekday, DateTime.monday);
+      expect(week.last.weekday, DateTime.friday);
+    }
+  });
+
+testWidgets('navigating across the clock change reaches the following weeks',
+      (WidgetTester tester) async {
+    // Genau der gemeldete Ablauf: Woche mit Plänen → zwei leere Wochen
+    // (Ferien) → Woche mit einem Plan. Die dritte Woche liegt über der
+    // Zeitumstellung vom 25.10.2026.
+    SharedPreferences.setMockInitialValues({
+      'vplanSchoolnumber': '999999',
+      'vplanUsername': 'lehrer',
+      'vplanPassword': 'geheim',
+      'classes': ['5a'],
+      'offlineVPData': <String>[
+        jsonEncode(DemoData.buildDayPlan(DateTime(2026, 10, 5))),
+        jsonEncode(DemoData.buildDayPlan(DateTime(2026, 10, 26))),
+      ],
+    });
+    await AppClock.setOverriddenNow(DateTime(2026, 10, 11, 10));
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(MaterialApp(
+      locale: const Locale('en', ''),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: const Scaffold(body: WeekPlan(classId: '5a')),
+    ));
+    await tester.pumpAndSettle();
+
+    const List<String> expectedRanges = <String>[
+      '12.10. - 16.10.',
+      '19.10. - 23.10.',
+      '26.10. - 30.10.',
+      '02.11. - 06.11.',
+    ];
+    for (int i = 0; i < expectedRanges.length; i++) {
+      await tester.tap(find.byIcon(Icons.arrow_forward));
+      await tester.pumpAndSettle();
+      expect(find.text(expectedRanges[i]), findsOneWidget,
+          reason: 'step $i did not reach ${expectedRanges[i]}');
+    }
+
+    // In der Woche mit dem Plan stehen auch tatsächlich Stunden.
+    // (Nach vier Schritten vorwärts steht man in der Woche 02.11. – ein Schritt
+    // zurück führt auf 26.10.)
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    expect(find.text('26.10. - 30.10.'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('lessonCell_2026-10-26_0')),
+        findsOneWidget);
 
     await AppClock.setOverriddenNow(null);
   });
@@ -740,14 +986,14 @@ testWidgets('a changed room or teacher is marked by colour only',
     await tester.tap(find.byIcon(Icons.arrow_forward));
     await tester.pumpAndSettle();
 
-    expect(find.text('28.09. - 03.10.'), findsOneWidget);
+    expect(find.text('28.09. - 02.10.'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pumpAndSettle();
 
-    expect(find.text('14.09. - 19.09.'), findsOneWidget);
+    expect(find.text('14.09. - 18.09.'), findsOneWidget);
 
     await AppClock.setOverriddenNow(null);
   });

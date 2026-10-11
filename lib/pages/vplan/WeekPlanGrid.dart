@@ -257,10 +257,15 @@ class WeekPlanGrid extends StatelessWidget {
                 ),
               ),
             Text(
-              DateFormat('d.M.').format(day.date),
+              // Nur die Tageszahl, nicht das ganze Datum: Bei sechs Spalten
+              // ist eine Spalte gut 60 Pixel breit – „21.9." passt dort bei
+              // 14 Pixeln Schrift nicht hinein und würde ständig
+              // herunterskaliert. Der Monat steht ohnehin in der Zeile
+              // darüber („21.09. - 26.09.").
+              DateFormat('d').format(day.date),
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 15,
                 height: 1.05,
                 color: color.withValues(alpha: 0.9),
               ),
