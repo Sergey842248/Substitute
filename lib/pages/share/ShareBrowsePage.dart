@@ -166,20 +166,34 @@ Future<void> _openByUsername(String username) async {
     // funktioniert dieser Weg auch für jemanden aus einer anderen Schule. Das
     // Suchverzeichnis zeigt dagegen nur die eigene Schule – wer dort nicht
     // steht, ist nur über die zehn Wörter zu erreichen.
+    //
+    // Eine Person kann mehrere Shares haben. Deren IDs hängen an der ersten
+    // plus einem Zähler (`<id>-2`, `<id>-3` …), deshalb werden die Varianten
+    // nacheinander abgeklopft – sonst wäre über den Nutzernamen nur der erste
+    // Share zu erreichen, während das Suchverzeichnis alle zeigt.
+    //
+    // Sobald eine ID nichts liefert, ist Schluss: `nextShareId` vergibt die
+    // Zähler lückenlos, es sei denn, jemand hat mittendrin einen Share
+    // gelöscht. Genau dafür wäre das ganze Fenster hier durchzugehen – und
+    // bei einem Tippfehler im Nutzernamen wären das bis zu 50 Anfragen, die
+    // nur Fehlschläge sind. Wer den ersten Share gelöscht hat, ist über die
+    // Schulnummern-Suche ohnehin erreichbar.
     final List<ShareSummary> shares = <ShareSummary>[];
-    try {
-      final ShareRecord record =
-          await client.fetchShare(ShareManager.shareIdFor(username));
-      shares.add(ShareSummary(
-        id: record.id,
-        username: username,
-        displayName: username,
-        label: '',
-        hasPassword: record.hasPassword,
-        updatedAt: record.updatedAt,
-      ));
-    } on SyncException {
-      // Es gibt keinen Share zu diesem Nutzernamen.
+    for (int index = 1; index <= ShareManager.maxShares; index++) {
+      try {
+        final ShareRecord record =
+            await client.fetchShare(ShareManager.shareIdFor(username, index));
+        shares.add(ShareSummary(
+          id: record.id,
+          username: username,
+          displayName: username,
+          label: '',
+          hasPassword: record.hasPassword,
+          updatedAt: record.updatedAt,
+        ));
+      } on SyncException {
+        break;
+      }
     }
 
     if (!mounted) return;

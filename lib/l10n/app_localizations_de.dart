@@ -1477,6 +1477,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Bitte auswählen, was geteilt werden soll';
 
   @override
+  String shareErrorTooManyShares(Object count) {
+    return 'Du hast bereits $count Shares. Lösche eines, um ein neues anzulegen.';
+  }
+
+  @override
   String get shareErrorWrongCredentials =>
       'Dieser Share ließ sich nicht öffnen – falscher Code oder falsche Schulnummer?';
 

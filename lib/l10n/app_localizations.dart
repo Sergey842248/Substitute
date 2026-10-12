@@ -2679,6 +2679,12 @@ abstract class AppLocalizations {
   /// **'Please select what should be shared'**
   String get shareErrorNothingSelected;
 
+  /// No description provided for @shareErrorTooManyShares.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have {count} shares. Delete one to create a new one.'**
+  String shareErrorTooManyShares(Object count);
+
   /// No description provided for @shareErrorWrongCredentials.
   ///
   /// In en, this message translates to:

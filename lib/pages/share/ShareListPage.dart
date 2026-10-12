@@ -455,6 +455,10 @@ String shareErrorMessage(AppLocalizations l10n, String code) =>
       'noUsername' => l10n.shareErrorNoUsername,
       'usernameTooLong' => l10n.shareErrorUsernameTooLong,
       'nothingSelected' => l10n.shareErrorNothingSelected,
+      // Auch der Server kennt den Code (`MAX_SHARES_PER_USER`). Er ist hier
+      // erreichbar, weil ein Share eine eigene ID je Person braucht und die
+      // Zahl der möglichen IDs endlich ist.
+      'tooManyShares' => l10n.shareErrorTooManyShares(ShareManager.maxShares),
       'wrongCredentials' => l10n.shareErrorWrongCredentials,
       'unreadable' => l10n.shareErrorUnreadable,
       _ => syncErrorMessage(l10n, code),

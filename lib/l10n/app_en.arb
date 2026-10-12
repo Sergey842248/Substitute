@@ -565,6 +565,7 @@
   "shareErrorUsernameTooLong": "The username is too long. Please generate a new one in the share menu.",
   "shareErrorNoUsername": "No username has been created yet",
   "shareErrorNothingSelected": "Please select what should be shared",
+  "shareErrorTooManyShares": "You already have {count} shares. Delete one to create a new one.",
   "shareErrorWrongCredentials": "This share could not be opened – wrong code or wrong school number?",
   "shareErrorUnreadable": "These data could not be read",
   "shareDemoNoShares": "Nobody has shared anything yet",

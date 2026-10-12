@@ -565,6 +565,7 @@
   "shareErrorUsernameTooLong": "Der Nutzername ist zu lang. Bitte im Share-Menü einen neuen Nutzernamen erzeugen.",
   "shareErrorNoUsername": "Es wurde noch kein Nutzername erzeugt",
   "shareErrorNothingSelected": "Bitte auswählen, was geteilt werden soll",
+  "shareErrorTooManyShares": "Du hast bereits {count} Shares. Lösche eines, um ein neues anzulegen.",
   "shareErrorWrongCredentials": "Dieser Share ließ sich nicht öffnen – falscher Code oder falsche Schulnummer?",
   "shareErrorUnreadable": "Diese Daten konnten nicht gelesen werden",
   "shareDemoNoShares": "Es hat noch niemand etwas geteilt",

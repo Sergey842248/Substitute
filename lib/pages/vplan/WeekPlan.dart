@@ -7,6 +7,7 @@ import 'package:substitute/models/ListPage.dart';
 import 'package:substitute/models/LoadingIndicator.dart';
 import 'package:substitute/models/swipe_page_transition.dart';
 import 'package:substitute/services/AppClock.dart';
+import 'package:substitute/services/PlanModePreferences.dart';
 import 'package:substitute/services/PlanWeek.dart';
 import 'package:substitute/services/SchoolStorage.dart';
 
@@ -82,6 +83,15 @@ class _WeekPlanState extends State<WeekPlan> {
 
   String? className;
 
+  /// Der Standard-Planmodus der Personen bzw. der Klassen (siehe
+  /// [PlanModePreferences]) – **nicht** der der Vorschauen.
+  ///
+  /// Nur „Automatisch" ist hier von Bedeutung: Er heißt, dass beim Öffnen
+  /// automatisch die Woche mit Unterricht gezeigt wird, statt der Woche, in der
+  /// man gerade ist. „Heute" und „Neueste" bleiben ohne Wirkung auf die
+  /// Wochenansicht – dort entscheidet die Woche, die gerade steht.
+  String _planMode = PlanModePreferences.auto;
+
   static String _key(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
@@ -110,12 +120,18 @@ class _WeekPlanState extends State<WeekPlan> {
   @override
   void initState() {
     super.initState();
-    _loadSettings().then((_) => _loadWeek());
+    // `autoJump` nur hier: Beim Öffnen darf „Automatisch" die Woche wählen,
+    // beim Blättern nicht – dort hat der Nutzer sie selbst gewählt.
+    _loadSettings().then((_) => _loadWeek(autoJump: true));
   }
 
   Future<void> _loadSettings() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? customName = await _vplanAPI.getClassName(widget.classId);
+    // Für eine Person gilt der Personen-, für eine Klasse der Klassen-Modus.
+    final String planMode = _isPerson
+        ? await PlanModePreferences.readPerson(prefs)
+        : await PlanModePreferences.readClass(prefs);
     if (!mounted) return;
     setState(() {
       hideLessonTimes =
@@ -124,6 +140,7 @@ class _WeekPlanState extends State<WeekPlan> {
       hideTeacher =
           prefs.getBool(SchoolStorage.scopedKey(prefs, 'hideTeacher')) ?? false;
       className = customName;
+      _planMode = planMode;
     });
     try {
       hiddenSubjects = await _vplanAPI.getHiddenCourses(widget.classId);
@@ -134,6 +151,13 @@ class _WeekPlanState extends State<WeekPlan> {
 
   /// Lädt alle Tage der angezeigten Woche. Die Tage werden nebeneinander
   /// geholt – fünf einzelne Abfragen hintereinander würden spürbar dauern.
+  ///
+  /// [autoJump] ist nur beim **Öffnen** der Seite gesetzt: Steht der
+  /// Standard-Planmodus auf „Automatisch" und hat die aktuelle Woche keinen
+  /// Unterricht, wird direkt die nächste Woche mit Unterricht gezeigt (siehe
+  /// [_jumpToNextWeekWithData]). Beim Blättern mit den Pfeilen und beim
+  /// Aktualisieren bleibt es aus – dort hat der Nutzer die Woche selbst gewählt,
+  /// und ein Springen würde ihm widersprechen.
   ///
   /// **Der Ladezustand wird in jedem Fall wieder freigegeben** (`finally`),
   /// und zwar auch dann, wenn etwas schiefgeht. Vorher stand am Anfang
@@ -146,7 +170,7 @@ class _WeekPlanState extends State<WeekPlan> {
   /// [_loadGeneration] entscheidet bei überlappenden Ladevorgängen, wer gewinnt:
   /// Wer zuletzt navigiert hat. Ohne das könnte eine langsame Antwort der
   /// vorherigen Woche das Ergebnis der neuen überschreiben.
-  Future<void> _loadWeek({bool forceRefresh = false}) async {
+  Future<void> _loadWeek({bool forceRefresh = false, bool autoJump = false}) async {
     final int generation = ++_loadGeneration;
     setState(() => _refreshing = true);
 
@@ -189,6 +213,12 @@ class _WeekPlanState extends State<WeekPlan> {
         _missedCourses = missed;
         _loading = false;
       });
+
+      // Eine Woche ohne jeden Plan ist im Modus „Automatisch" nicht die
+      // gemeinte – siehe [_jumpToNextWeekWithData].
+      if (autoJump && _planMode == PlanModePreferences.auto && byDay.isEmpty) {
+        await _jumpToNextWeekWithData(generation);
+      }
     } catch (_) {
       // Ladefehler: Die Seite darf nicht hängen bleiben. Die Woche wechselt
       // trotzdem, sie zeigt dann eben keine Pläne.
@@ -282,6 +312,69 @@ class _WeekPlanState extends State<WeekPlan> {
   }
 
   Future<void> _refresh() => _loadWeek(forceRefresh: true);
+
+  /// Springt zur nächsten Woche, in der überhaupt Unterricht steht.
+  ///
+  /// Wird nur beim **Öffnen** aufgerufen, und nur wenn der Standard-Planmodus
+  /// auf „Automatisch" steht und die gerade gezeigte Woche keinen einzigen Plan
+  /// enthält: In den Ferien, an einem Brückentag oder solange die Schule den
+  /// Plan noch nicht veröffentlicht hat, war die Seite sonst bis zum nächsten
+  /// Klick auf einen Pfeil leer.
+  ///
+  /// Gesucht wird derselbe Weg wie beim Blättern
+  /// ([VPlanAPI.getNearestAvailablePlan]) – nur ohne die Schrittweite „höchstens
+  /// eine Woche weiter": Die gesuchte Woche kann beliebig weit vorausliegen,
+  /// solange sie im Suchfenster liegt.
+  ///
+  /// [generation] ist die laufende Nummer des Ladevorgangs, der gerade
+  /// fertig geworden ist. Springt der Nutzer während der Suche weiter, wird
+  /// abgebrochen – sonst zöge die Suche die frisch gewählte Woche wieder
+  /// zurück auf die gefundene.
+  Future<void> _jumpToNextWeekWithData(int generation) async {
+    // Erst prüfen, ob die Woche wirklich leer ist oder ob die Verbindung
+    // fehlt. Bei einem Verbindungsfehler ist über die Woche nichts bekannt –
+    // dann zu springen hieße, dem Nutzern eine Woche zu zeigen, von der man
+    // nicht weiß, ob sie stimmt.
+    if (_errors.values.any((dynamic e) => _vplanAPI.isConnectionError(e))) {
+      return;
+    }
+
+    DateTime? target;
+    try {
+      // Suchbeginn ist der Sonntag vor dem Montag der Folgewoche – dieselbe
+      // Rechnung wie in [_shiftWeek], damit der Montag nicht übersprungen wird.
+      final dynamic plan = await _vplanAPI.getNearestAvailablePlan(
+        from: addSchoolDays(_weekStart, 6),
+        classId: widget.classId,
+        forward: true,
+      );
+      if (plan is Map && plan['date'] != null) {
+        target = _startOfWeek(
+          _vplanAPI.parseStringDatatoDateTime(plan['date'].toString()),
+        );
+      }
+    } catch (_) {
+      // Suche fehlgeschlagen – die Woche bleibt stehen.
+    }
+
+    // Nichts gefunden, weiter navigiert oder dieselbe Woche: stehen bleiben.
+    // Ein blindes Weiterspringen im Sekundentakt wäre schlimmer als eine leere
+    // Woche, und ohne Treffer gäbe es ohnehin nichts zu zeigen.
+    if (target == null ||
+        target == _weekStart ||
+        !mounted ||
+        generation != _loadGeneration) {
+      return;
+    }
+
+    setState(() {
+      _weekStart = target!;
+      // Weiter im Ladezustand bleiben: Sonst steht für einen Moment eine leere
+      // Woche da, bevor die gefunden geladen ist.
+      _loading = true;
+    });
+    await _loadWeek();
+  }
 
   /// Der Wochentyp (A/B) – **immer** aus einem der Tagespläne des Servers.
   /// Er wird nie aus dem Datum berechnet.

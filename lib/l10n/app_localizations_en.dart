@@ -1464,6 +1464,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareErrorNothingSelected => 'Please select what should be shared';
 
   @override
+  String shareErrorTooManyShares(Object count) {
+    return 'You already have $count shares. Delete one to create a new one.';
+  }
+
+  @override
   String get shareErrorWrongCredentials =>
       'This share could not be opened – wrong code or wrong school number?';
 

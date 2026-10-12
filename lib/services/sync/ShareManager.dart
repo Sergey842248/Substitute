@@ -358,10 +358,47 @@ class ShareManager {
   /// und listet darum nur die eigene Schule auf. Gefunden werden und geöffnet
   /// werden können sind bewusst getrennt – der Nutzername ist der Schlüssel zum
   /// Öffnen, die Schulnummer ist die Grenze des Verzeichnisses.
-  static String shareIdFor(String username) => PayloadCrypto.publicId(
-        Passphrase.normalize(username),
-        usernameDomain,
-      );
+  ///
+  /// ### Mehrere Shares je Person
+  ///
+  /// [index] löst einen Share vom nächsten, ohne dass die ID allein aus dem
+  /// Nutzernamen berechenbar wäre: Der **erste** Share (index 1) trägt die
+  /// reine ID – nur die kann jemand mit den zehn Wörtern ohne den Server
+  /// bestimmen. Jeder weitere hängt einen Zähler an: `<id>-2`, `<id>-3` …
+  ///
+  /// Vorher hatte es nur die erste Form: Jeder neu angelegte Share bekam
+  /// dieselbe ID und überschrieb den vorherigen. Wer einen zweiten Share
+  /// brauchte – etwa einen für die Kolleginnen und einen für die Klassenleitung
+  /// –, bekam unbemerkt nur noch den ersten.
+  static String shareIdFor(String username, [int index = 1]) {
+    final String base = PayloadCrypto.publicId(
+      Passphrase.normalize(username),
+      usernameDomain,
+    );
+    return index <= 1 ? base : '$base-$index';
+  }
+
+  /// Höchstzahl an Shares je Person – dieselbe Grenze wie im Server
+  /// (`MAX_SHARES_PER_USER` in `supabase/functions/_shared/http.ts`).
+  static const int maxShares = 50;
+
+  /// Die erste ID, die noch frei ist.
+  ///
+  /// Nur für einen **neuen** Share: Ein bearbeiteter Share behält seine ID
+  /// ([publish] bekommt ihn als `existing`). Deshalb sucht diese Methode in
+  /// den [maxShares] möglichen Varianten die erste, die in der eigenen Liste
+  /// noch nicht vorkommt – so wird der bestehende Share weder überschrieben
+  /// noch dupliziert.
+  static String nextShareId(SharedPreferences prefs) {
+    final Set<String> taken =
+        readShares(prefs).map((LocalShare s) => s.id).toSet();
+    final String username = readUsername(prefs) ?? '';
+    for (int index = 1; index <= maxShares; index++) {
+      final String candidate = shareIdFor(username, index);
+      if (!taken.contains(candidate)) return candidate;
+    }
+    throw const ShareException('tooManyShares');
+  }
 
   /// Der Schlüssel einer Hülle.
   ///
@@ -636,7 +673,9 @@ class ShareManager {
       throw const ShareException('nothingSelected');
     }
 
-    final String shareId = existing?.id ?? shareIdFor(username);
+    // Ohne `existing` ist es ein **neuer** Share: Er bekommt die erste freie ID,
+    // damit ein bereits vorhandener nicht überschrieben wird.
+    final String shareId = existing?.id ?? nextShareId(prefs);
     final bool protected = sharePassword != null && sharePassword.trim().isNotEmpty;
 
     final Map<String, dynamic> envelopes = await compute(
