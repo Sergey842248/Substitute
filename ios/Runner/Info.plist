@@ -24,8 +24,19 @@
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
-	<key>UIMainStoryboardFile</key>
-	<string>Main</string>
+	<!-- `UIMainStoryboardFile` ist absicht **weg**. -->
+	<!-- -->
+	<!-- Das Fenster wird in `AppDelegate` erzeugt, und seine Wurzel ist der -->
+	<!-- native `RootTabBarController`. Stünde hier noch eine Geschichte, gäbe -->
+	<!-- es zwei Stellen, die das Fenster liefern wollen – und welche gewinnt, -->
+	<!-- hängt davon ab, wer zuletzt geladen wurde. Das ist genau die Art von -->
+	<!-- Zufall, die man erst auf dem Gerät bemerkt. -->
+	<!-- -->
+	<!-- `Main.storyboard` bleibt im Projekt, damit der Weg zurück offen ist: -->
+	<!-- Nimmt man die native Schale später zurück, setzt man diese Zeile wieder -->
+	<!-- ein, und sonst ist nichts zu tun. -->
+	<key>UIUserInterfaceStyle</key>
+	<string>Automatic</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

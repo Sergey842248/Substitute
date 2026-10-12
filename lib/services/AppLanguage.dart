@@ -2,6 +2,8 @@ import 'dart:ui' show Locale;
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'NativeShell.dart';
+
 /// Die Sprache, in der die App spricht.
 ///
 /// Drei Möglichkeiten: **die Systemsprache** (der Normalfall), **Deutsch**
@@ -89,7 +91,8 @@ class AppLanguage {
     // Eintrag aus einem Grund kürzlich von Hand entfernt wurde.
     final String stored = prefs.getString(storageKey) ?? '';
     if (stored.isEmpty || !supported.contains(stored)) {
-      final bool bereitsEingefuehrt = prefs.getBool(firstTimeStorageKey) == false;
+      final bool bereitsEingefuehrt =
+          prefs.getBool(firstTimeStorageKey) == false;
       prefs.setString(
         storageKey,
         bereitsEingefuehrt ? previousDefault : system,
@@ -146,5 +149,33 @@ class AppLanguage {
   static Locale? forMaterialApp(SharedPreferences prefs) {
     final String choice = read(prefs);
     return choice == system ? null : Locale(choice, '');
+  }
+
+  // ------------------------------------------------- mit der nativen Seite
+
+  /// Meldet der nativen Seite, dass sich die Sprache geändert hat.
+  ///
+  /// Auf iOS wird die Sprache an zwei Orten eingestellt. Damit beide Seiten
+  /// dieselbe zeigen, muss die andere jeweils erfahren, dass geschrieben wurde –
+  /// die Werte stehen zwar in denselben Speichern, aber **wann** sie gelesen
+  /// werden, entscheidet jede Seite selbst.
+  static Future<void> setLanguage(String choice) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString(storageKey, choice);
+    NativeShell.notifySettingsChanged();
+  }
+
+  /// Liest die Sprache neu ein, weil die native Seite sie geändert hat.
+  ///
+  /// Siehe [AppAppearance.reloadTheme] – derselbe Grund in der anderen
+  /// Richtung: [SharedPreferences] kennt nur, was es selbst geschrieben hat, und
+  /// die native Seite schreibt ohne Umweg daran vorbei.
+  ///
+  /// Liefert `null`, wenn die App der Systemsprache folgen soll – das ist kein
+  /// fehlender Wert, sondern die Anweisung an `MaterialApp`, selbst zu nehmen
+  /// (siehe [forMaterialApp]).
+  static Future<Locale?> reloadLanguage() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return forMaterialApp(prefs);
   }
 }

@@ -10,6 +10,16 @@
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
+		AB01000000000000000000C1 /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000B1 /* AppStore.swift */; };
+		AB01000000000000000000C2 /* Appearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000B2 /* Appearance.swift */; };
+		AB01000000000000000000C3 /* ListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000B3 /* ListScreen.swift */; };
+		AB01000000000000000000C4 /* AppearanceScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000B4 /* AppearanceScreen.swift */; };
+		AB01000000000000000000C5 /* LanguageScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000B5 /* LanguageScreen.swift */; };
+		AB01000000000000000000C6 /* SchoolsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000B6 /* SchoolsScreen.swift */; };
+		AB01000000000000000000C7 /* MoreScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000B7 /* MoreScreen.swift */; };
+		AB01000000000000000000C8 /* NativeShellBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000B8 /* NativeShellBridge.swift */; };
+		AB01000000000000000000C9 /* RootTabBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000B9 /* RootTabBarController.swift */; };
+		AB01000000000000000000CA /* L.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000BA /* L.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
@@ -34,6 +44,16 @@
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		AB01000000000000000000B1 /* AppStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
+		AB01000000000000000000B2 /* Appearance.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Appearance.swift; sourceTree = "<group>"; };
+		AB01000000000000000000B3 /* ListScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ListScreen.swift; sourceTree = "<group>"; };
+		AB01000000000000000000B4 /* AppearanceScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppearanceScreen.swift; sourceTree = "<group>"; };
+		AB01000000000000000000B5 /* LanguageScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LanguageScreen.swift; sourceTree = "<group>"; };
+		AB01000000000000000000B6 /* SchoolsScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SchoolsScreen.swift; sourceTree = "<group>"; };
+		AB01000000000000000000B7 /* MoreScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MoreScreen.swift; sourceTree = "<group>"; };
+		AB01000000000000000000B8 /* NativeShellBridge.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NativeShellBridge.swift; sourceTree = "<group>"; };
+		AB01000000000000000000B9 /* RootTabBarController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RootTabBarController.swift; sourceTree = "<group>"; };
+		AB01000000000000000000BA /* L.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = L.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
@@ -94,8 +114,26 @@
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
+				AB01000000000000000000A1 /* NativeShell */,
 			);
 			path = Runner;
+			sourceTree = "<group>";
+		};
+		AB01000000000000000000A1 /* NativeShell */ = {
+			isa = PBXGroup;
+			children = (
+				AB01000000000000000000B1 /* AppStore.swift */,
+				AB01000000000000000000B2 /* Appearance.swift */,
+				AB01000000000000000000B3 /* ListScreen.swift */,
+				AB01000000000000000000B4 /* AppearanceScreen.swift */,
+				AB01000000000000000000B5 /* LanguageScreen.swift */,
+				AB01000000000000000000B6 /* SchoolsScreen.swift */,
+				AB01000000000000000000B7 /* MoreScreen.swift */,
+				AB01000000000000000000B8 /* NativeShellBridge.swift */,
+				AB01000000000000000000B9 /* RootTabBarController.swift */,
+				AB01000000000000000000BA /* L.swift */,
+			);
+			path = NativeShell;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -206,6 +244,16 @@
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
+				AB01000000000000000000C1 /* AppStore.swift in Sources */,
+				AB01000000000000000000C2 /* Appearance.swift in Sources */,
+				AB01000000000000000000C3 /* ListScreen.swift in Sources */,
+				AB01000000000000000000C4 /* AppearanceScreen.swift in Sources */,
+				AB01000000000000000000C5 /* LanguageScreen.swift in Sources */,
+				AB01000000000000000000C6 /* SchoolsScreen.swift in Sources */,
+				AB01000000000000000000C7 /* MoreScreen.swift in Sources */,
+				AB01000000000000000000C8 /* NativeShellBridge.swift in Sources */,
+				AB01000000000000000000C9 /* RootTabBarController.swift in Sources */,
+				AB01000000000000000000CA /* L.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -272,7 +320,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
@@ -346,7 +394,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -395,7 +443,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;

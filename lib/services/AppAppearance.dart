@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'NativeShell.dart';
+
 /// Wie die App aussieht – und was in der Navigationsleiste steht.
 ///
 /// ## Warum ein Dienst und nicht zwei Aufrufe von `SharedPreferences`
@@ -62,12 +64,18 @@ class AppAppearance {
       prefs.getBool(_showSyncKey) ?? true;
 
   /// Setzt das Theme und benachrichtigt beide Bildschirme.
+  ///
+  /// Meldet die Änderung auch an die **native** Seite, falls es eine gibt: Auf
+  /// iOS wird das Aussehen an zwei Orten eingestellt – in den nativen
+  /// Einstellungen und in den Flutter-Bildschirmen. Damit beide dasselbe zeigen,
+  /// muss der andere jeweils erfahren, dass etwas geschrieben wurde.
   static Future<void> setTheme(
     SharedPreferences prefs,
     String wert,
   ) async {
     await prefs.setString(_themeKey, wert);
     aenderung.value++;
+    NativeShell.notifySettingsChanged();
   }
 
   /// Schaltet den Sync-Eintrag ein oder aus.
@@ -77,5 +85,24 @@ class AppAppearance {
   ) async {
     await prefs.setBool(_showSyncKey, wert);
     aenderung.value++;
+    NativeShell.notifySettingsChanged();
+  }
+
+  /// Liest das Theme **neu** ein, weil die native Seite es geändert hat.
+  ///
+  /// Nötig aus demselben Grund, warum es [notifySettingsChanged] gibt, nur in
+  /// der Gegenrichtung: [SharedPreferences] hält fest, was **es** zuletzt
+  /// gelesen oder geschrieben hat. Ein Wert, den die native Seite inzwischen
+  /// geschrieben hat, steht hier noch nicht – ohne dieses erneute Lesen würde
+  /// die App ihren eigenen Sprung nicht mitmachen.
+  ///
+  /// Deshalb wird hier ausdrücklich nicht der neue Wert übergeben: Dart holt
+  /// ihn sich selbst, und damit kann es nicht zwei Stellen geben, die
+  /// unterschiedliche Werte für dieselbe Sache behaupten.
+  static Future<ThemeMode> reloadTheme() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final ThemeMode mode = modeOf(themeOf(prefs));
+    aenderung.value++;
+    return mode;
   }
 }

@@ -7,6 +7,7 @@
   * [Android](en/installation/android.md)
   * [iOS](en/installation/ios.md)
 * [Sync and Share](docs/sync-and-share.md)
+* [Native iOS Shell](docs/ios-native-shell.md)
 
 ## German <a href="#de" id="de"></a>
 
@@ -15,6 +16,7 @@
   * [Android](de/installation/android.md)
   * [iOS](de/installation/ios.md)
 * [Sync und Share](docs/sync-and-share.md)
+* [Native iOS-Shell](docs/ios-native-shell.md)
 
 ## Hidden
 

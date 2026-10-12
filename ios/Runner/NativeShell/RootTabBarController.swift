@@ -1,0 +1,363 @@
+import Flutter
+import UIKit
+
+/// Die Tab-Leiste der App – der Teil, der auf iOS jetzt **nativ** ist.
+///
+/// ## Was hier passiert und warum es nicht andersherum
+///
+/// iOS erwartet, dass die Leiste ein `UITabBarController` ist: Das ist die
+/// einzige Leiste, die sich richtig verhält – sie wird durchsichtig, sie
+/// schrumpft beim Scrollen, sie hat Haptik, sie merkt sich den gewählten
+/// Eintrag, sie wird vom System mit grossen Titeln versorgt.
+///
+/// Flutter baut aus einem Grund keine solche Leiste: Sie kennt keine
+/// Bildschirmgrenzen, kein „unten ist gerade der Daumen", keine
+/// Ebenenübergänge. Sie zeichnet eine Liste von Symbolen und nennt das Leiste.
+///
+/// Deshalb steht hier ein echter `UITabBarController`, und die Abschnitte der
+/// App liegen als **echte** Ansichtssteuerer darin. Nur der Inhalt ist noch
+/// Flutter – und genau dort, wo die App ihre complicierte Arbeit macht.
+///
+/// ## Wie die Abschnitte aufgebaut sind
+///
+/// Jeder Abschnitt bekommt **eine eigene** Flutter-Ansicht mit eigener
+/// Maschine. Nicht eine für alle mit umgeschaltetem Inhalt, und das aus einem
+/// Grund, der leicht zu übersehen ist:
+///
+/// Eine Flutter-Ansicht hat einen Bildschirm. Wenn drei Abschnitte sich dieselbe
+/// teilen, sieht die Leiste immer die, die gerade obenauf liegt – und die
+/// Abschnitte, die man verlassen hat, verlieren ihren Zustand: Der gewählte
+/// Eintrag springt beim Zurückkommen auf das letzte Bild, der gewischte Plan
+/// ist wieder oben, die halb getippte Suche ist weg.
+///
+/// Mit einer Ansicht je Abschnitt ist das nicht möglich. Jede behält ihren
+/// Bildschirm, solange sie im Tab-Balken steht.
+///
+/// ## Der Preis, und warum er sich lohnt
+///
+/// Jede Ansicht ist eine eigene Dart-Isolate: Es gibt also drei Kopien davon,
+/// was im Arbeitsspeicher steht. Deshalb macht **nur die Plan-Ansicht** den
+/// Hintergrund-Sync und den Hintergrund-Abruf – sonst liefe beides dreimal.
+/// Siehe `NativeShell.runsBackgroundWork` auf der Dart-Seite.
+final class RootTabBarController: UITabBarController {
+    // `FlutterEngineGroup` braucht einen Namen und das Projekt – die blosse
+    // Initialisierung ist nicht zugelassen (`init NS_UNAVAILABLE`). Der Name
+    // ist nur die Bezeichnung der gemeinsamen Gruppe; er erscheint nirgends.
+    private let engines = FlutterEngineGroup(name: "substitute-shell", project: nil)
+    private var controllers: [Tab] = []
+    private var chromeHidden = false
+
+    /// Die Abschnitte der Leiste, in der Reihenfolge, in der sie stehen.
+    ///
+    /// Gelesen von der Reihenfolge hier und **nicht** umgekehrt: Die Reihenfolge
+    /// ist eine Entscheidung der Oberfläche, und die Abschnitte wählen sich nicht
+    /// gegenseitig aus.
+    private enum Tab {
+                case plan
+        case search
+        case sync
+        case more
+
+        /// Der Name, den die Dart-Seite als Startargument bekommt.
+        ///
+        /// Bewusst ein **einfacher englischer Name** und nicht der Anzeigename:
+        /// Der ist übersetzt und sprachabhängig, und ein Argument, das sich mit
+        /// der eingestellten Sprache ändert, wäre eine Fehlerquelle, die man
+        /// erst beim Umstellen der Sprache suchen müsste.
+        var dartRole: String {
+            switch self {
+            case .plan: return "plan"
+            case .search: return "search"
+            case .sync: return "sync"
+            case .more: return ""
+            }
+        }
+    }
+
+    // --------------------------------------------------------------- Aufbau
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        view.backgroundColor = Appearance.background
+        delegate = self
+
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(settingsDidChange),
+            name: AppStore.settingsDidChange, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(settingsDidChange),
+            name: AppStore.syncTabDidChange, object: nil)
+
+        bauen()
+        farbenSetzen()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    /// Setzt die Leiste aus den Abschnitten zusammen.
+    ///
+    /// Sie wird **neu gebaut**, nicht nur eingefärbt, wenn sich die Einstellung
+    /// ändert: Der Sync-Eintrag kommt hinzu oder geht weg, und dafür gibt es in
+    /// `UITabBarController` keinen Schalter – man setzt die Abschnitte neu.
+    private func bauen() {
+        let aktuelleAuswahl = selectedIndex
+
+        var neuer: [UIViewController] = []
+        controllers = []
+
+        for section in abschnitte() {
+            let controller: UIViewController
+            switch section {
+            case .plan, .search, .sync:
+                let flutterSection = PlanSectionController(engines: engines)
+                // Die Rolle **muss** hier gesetzt sein: Sie entscheidet, welcher
+                // Abschnitt in dieser Ansicht steht, und sie entscheidet es
+                // vor dem ersten Frame. Würde sie erst beim Aufbau gesetzt,
+                // stünde für einen Moment die falsche Seite.
+                flutterSection.einrichten(role: section.dartRole)
+                controller = flutterSection
+            case .more:
+                controller = MoreSectionController()
+            }
+            controller.tabBarItem = tabBarItem(for: section)
+            neuer.append(controller)
+            controllers.append(section)
+        }
+
+        setViewControllers(neuer, animated: false)
+        // Nach dem Neuaufbau ist die Nummer ungültig. Die alte Auswahl wird
+        // nur übernommen, wenn sie noch etwas bedeutet – sonst läge die Leiste
+        // auf einem Abschnitt, den es gar nicht mehr gibt.
+        if aktuelleAuswahl >= 0 && aktuelleAuswahl < neuer.count {
+            selectedIndex = aktuelleAuswahl
+        } else {
+            selectedIndex = 0
+        }
+    }
+
+    /// Welche Abschnitte gerade stehen.
+    ///
+    /// Der Sync-Abschnitt ist der einzige, der von einer Einstellung abhängt –
+    /// und er fehlt dann **ganz**. Nicht ausgegraut: Ein ausgegrautes Symbol
+    /// verspricht eine Funktion und gibt sie nicht, und wer sie ausschaltet,
+    /// will sie nicht im Weg haben.
+    private func abschnitte() -> [Tab] {
+        var liste: [Tab] = [.plan, .search]
+        if AppStore.showsSyncShareTab { liste.append(.sync) }
+        liste.append(.more)
+        return liste
+    }
+
+    private func tabBarItem(for section: Tab) -> UITabBarItem {
+        switch section {
+        case .plan:
+            return UITabBarItem(
+                title: L.vplanStudents,
+                image: UIImage(systemName: "calendar"),
+                selectedImage: UIImage(systemName: "calendar.circle.fill"))
+        case .search:
+            return UITabBarItem(
+                title: L.search,
+                image: UIImage(systemName: "magnifyingglass"),
+                selectedImage: UIImage(systemName: "magnifyingglass.circle.fill"))
+        case .sync:
+            return UITabBarItem(
+                title: L.syncShare,
+                image: UIImage(systemName: "arrow.triangle.2.circlepath"),
+                selectedImage: UIImage(systemName: "arrow.triangle.2.circlepath.circle.fill"))
+        case .more:
+            return UITabBarItem(
+                title: L.dashboard,
+                image: UIImage(systemName: "ellipsis.circle"),
+                selectedImage: UIImage(systemName: "ellipsis.circle.fill"))
+        }
+    }
+
+    /// Trägt die gewählte Helligkeit auf die Leiste.
+    ///
+    /// Nur die Leiste, nicht den ganzen Bildschirm: Die Abschnitte tragen ihr
+    /// Bild selbst, und würde man ihnen das hier aufzwingen, sähe man beim
+    /// Umschalten kurz das falsche.
+    private func farbenSetzen() {
+        tabBar.tintColor = Appearance.accent
+        view.backgroundColor = Appearance.background
+        if chromeHidden {
+            tabBar.isHidden = true
+        }
+    }
+
+    @objc private func settingsDidChange() {
+        bauen()
+        farbenSetzen()
+    }
+
+    // ------------------------------------------------------------ von Flutter
+
+    /// Wird von `NativeShellBridge` gerufen, wenn Flutter etwas geändert hat.
+    func settingsGeaendertInFlutter() {
+        bauen()
+        farbenSetzen()
+    }
+
+    /// Blendet die Leiste aus – für die Einführung und die Anmeldung.
+    ///
+    /// Die beiden Bildschirme stehen **über** allem. Eine halb sichtbare Leiste
+    /// unter ihnen sähe aus wie ein Fehler, und sie würde den Daumen auf
+    /// Einträge führen, hinter denen gerade nichts liegt.
+    func setzeChromeSichtbar(_ sichtbar: Bool) {
+        chromeHidden = !sichtbar
+        tabBar.isHidden = !sichtbar
+    }
+
+    override func traitCollectionDidChange(
+        _ previousTraitCollection: UITraitCollection?
+    ) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        farbenSetzen()
+    }
+}
+
+extension RootTabBarController: UITabBarControllerDelegate {
+    func tabBarController(
+        _ tabBarController: UITabBarController, shouldSelect viewController: UIViewController
+    ) -> Bool {
+        // Die Leiste ist ein Ziel für den Daumen, kein Umschalter. Wer einen
+        // Eintrag antippt, der schon offen ist, erwartet, dass er wieder
+        // obenauf kommt – das ist die einzige Bewegung, die die Leiste sonst
+        // noch machen soll.
+        if viewController === tabBarController.selectedViewController,
+           let nav = viewController as? UINavigationController,
+           nav.viewControllers.count > 1
+        {
+            nav.popToRootViewController(animated: true)
+            return false
+        }
+        return true
+    }
+}
+
+/// Ein Flutter-Abschnitt: ein `FlutterViewController` als Wurzel.
+///
+/// Die Ansicht wird **nicht** sofort gebaut. Sie entsteht erst, wenn der
+/// Abschnitt zum ersten Mal aufgerufen wird – vorher wäre eine Dart-Isolate da,
+/// die niemand sieht, und die Zeit, bis der erste Plan erscheint, wäre um die
+/// Zeit für **alle drei** Abschnitte länger.
+class PlanSectionController: UIViewController {
+    private let engines: FlutterEngineGroup
+    private var flutterViewController: FlutterViewController?
+    private var role = "plan"
+
+    init(engines: FlutterEngineGroup) {
+        self.engines = engines
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) fehlt") }
+
+    /// Wird von [RootTabBarController] aufgerufen, wenn der Abschnitt gebaut
+    /// wird.
+    func einrichten(role: String) {
+        self.role = role
+        title = titleForSection()
+    }
+
+    override func loadView() {
+        // Wird erst hier aufgerufen – beim ersten Erscheinen.
+        let options = FlutterEngineGroupOptions()
+        options.entrypoint = "main"
+        // Der Abschnitt kommt als Argument hinein, damit die Dart-Seite vor dem
+        // ersten Frame weiß, was sie zeigen soll. Siehe `NativeShell.readRole`.
+        options.entrypointArgs = ["--substitute-role=\(role)"]
+        options.initialRoute = "/abschnitt/\(role)"
+
+        let engine = engines.makeEngine(with: options)
+        FlutterEngines.registerPlugins(on: engine)
+
+        let controller = FlutterViewController(
+            engine: engine, nibName: nil, bundle: nil)
+        // `opaque` an `true`: Flutter zeichnet in der Regel sein eigenes
+        // Rechteck voll, und ohne das bliebe beim Wischen zwischen den
+        // Abschnitten kurz der Bildschirm dahinter durchscheinen.
+        controller.view.backgroundColor = Appearance.background
+
+        NativeShellBridge.register(channelWith: engine.binaryMessenger)
+
+        flutterViewController = controller
+        view = controller.view
+    }
+
+    private func titleForSection() -> String? {
+        switch role {
+        case "plan": return L.vplanStudents
+        case "search": return L.search
+        case "sync": return L.syncShare
+        default: return nil
+        }
+    }
+}
+
+/// Das Anmelden der Zusatzprogramme an eine **eigene** Maschine.
+///
+/// ## Warum das überhaupt nötig ist
+///
+/// `GeneratedPluginRegistrant.register(with:)` im `AppDelegate` meldet die
+/// Programme nur der Maschine an, die iOS **von selbst** angelegt hat – der
+/// einen, die aus `Main.storyboard` herausläuft.
+///
+/// Jede Maschine, die hier von Hand entsteht, ist eine andere. Ohne dieses
+/// Anmelden hätte sie **kein** Programm:
+///
+/// * `shared_preferences` – und damit **keinen** Speicher: Es gäbe weder die
+///   Pläne noch die Zugangsdaten noch das Theme, und die App käme frisch
+///   installiert daher.
+/// * `url_launcher` – die Links aus dem Info-Dialog.
+/// * `package_info_plus`, `share_plus`, `mobile_scanner`, `file_picker`.
+///
+/// Der Fehler fiele also nicht beim Start auf, sondern später, an
+/// irgendeiner Stelle, die mit dem fehlenden Programm nichts zu tun hat.
+///
+/// Deshalb steht es an **einer** Stelle und wird von jedem Weg aus aufgerufen,
+/// der eine Maschine anlegt – und es steht in derselben Datei wie die
+/// Maschinen, damit man es beim Suchen danach findet.
+enum FlutterEngines {
+    static func registerPlugins(on engine: FlutterEngine) {
+        GeneratedPluginRegistrant.register(with: engine)
+    }
+}
+
+/// Der Abschnitt „Mehr“: der Werkzeugkasten.
+///
+/// Hier stehen die Dinge, die man **nicht** jeden Tag braucht – und die drei
+/// Bildschirme, die auf iOS jetzt **nativ** sind. Sie stehen deshalb hier und
+/// nicht in Flutter: Sie sind reine Einstellungen, sie brauchen keine
+/// Dart-Isolate, und sie sehen dadurch aus wie die übrigen Apps auf dem Gerät.
+class MoreSectionController: UIViewController {
+    private var navigation: UINavigationController!
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = Appearance.background
+
+        let liste = MoreScreen()
+        navigation = UINavigationController(rootViewController: liste)
+        // Grosse Titel: Sie sind der Grund, warum die Leiste in iOS wie in iOS
+        // aussieht.
+        navigation.navigationBar.prefersLargeTitles = true
+        navigation.navigationBar.tintColor = Appearance.accent
+
+        addChild(navigation)
+        view.addSubview(navigation.view)
+        navigation.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            navigation.view.topAnchor.constraint(equalTo: view.topAnchor),
+            navigation.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navigation.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            navigation.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+        navigation.didMove(toParent: self)
+    }
+}

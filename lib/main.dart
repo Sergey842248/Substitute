@@ -33,6 +33,11 @@ import 'pages/dashboard/Dashboard.dart';
 import 'pages/share/SyncShareHub.dart';
 import 'pages/search/SearchMenu.dart';
 import 'pages/dashboard/settings/VPlanLogin.dart';
+import 'pages/dashboard/SickTrack.dart';
+import 'pages/dashboard/settings/PlanSettings.dart';
+import 'pages/dashboard/settings/TeacherShorts.dart';
+import 'pages/dashboard/settings/ConfigBackupSettings.dart';
+import 'pages/dashboard/settings/DeveloperOptions.dart';
 import 'services/AppAppearance.dart';
 import 'services/AppLanguage.dart';
 import 'services/StorageStartupRepair.dart';
@@ -40,6 +45,7 @@ import 'services/SchoolStorage.dart';
 import 'services/sync/SyncCoordinator.dart';
 import 'services/sync/SyncEngine.dart';
 import 'services/AppClock.dart';
+import 'services/NativeShell.dart';
 
 /// Compares two version strings (e.g. '3.7.10') numerically segment by segment.
 /// Returns < 0 if [a] is older, 0 if equal, > 0 if [a] is newer.
@@ -65,8 +71,23 @@ int compareVersions(String a, String b) {
 Future<void> _bereiteSprache(SharedPreferences prefs) =>
     AppLanguage.migrate(prefs);
 
-Future<void> main() async {
+Future<void> main([List<String> args = const <String>[]]) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // **Vor** allem anderen: Welche Rolle hat diese Ansicht?
+  //
+  // Auf iOS baut eine native `UIKit`-Schale die Navigationsleiste, und jede
+  // Flutter-Ansicht bekommt nur einen Abschnitt zu zeigen. Das steht in den
+  // Startargumenten (`--substitute-role=…`), gesetzt von `RootTabBarController`.
+  //
+  // Das muss hier gelesen werden und nicht später: Ob die App ihre eigene
+  // Navigationsleiste baut und ob diese Ansicht den Hintergrund-Sync macht,
+  // entscheidet sich **vor** dem ersten Frame. Einen Frame zu spät hieße hier
+  // nicht nur ein spätes Nachziehen, sondern eine sichtbar doppelte Leiste.
+  //
+  // Auf Android, im Web und in den Tests ist `args` leer – dort bleibt es bei
+  // [NativeShellRole.full], und die App verhält sich exakt wie vorher.
+  NativeShell.readRole(args);
 
   // Der Systemstartbildschirm (einfarbig, ohne Icon) bleibt stehen, bis
   // `runApp` das erste Bild zeichnet. Deshalb wird hier erst geladen
@@ -218,14 +239,13 @@ Future<Widget> wartenderAppStart([SharedPreferences? prefs]) async {
   // App ist von jeher dunkel) und die Systemsprache statt der gewählten – und
   // beide kämen einen Frame zu spät, als ein heller Blitz und ein Neubau des
   // ganzen Bildschirms.
-  final SharedPreferences instance = prefs ?? await SharedPreferences.getInstance();
+  final SharedPreferences instance =
+      prefs ?? await SharedPreferences.getInstance();
   return MyApp(
     startThemeMode: AppAppearance.modeOf(AppAppearance.themeOf(instance)),
     // `null`, wenn die App der Systemsprache folgt – siehe [AppLanguage].
     startLocale: AppLanguage.forMaterialApp(instance),
-    initialPage: hasCredentials
-        ? null
-        : VPlanLogin(blockBack: true),
+    initialPage: hasCredentials ? null : VPlanLogin(blockBack: true),
   );
 }
 
@@ -411,7 +431,8 @@ class _MyAppState extends State<MyApp> {
     // Nur der Weg, wenn beim Start nichts mitgegeben wurde – etwa in einem
     // Widget-Test. Die Systemsprache kommt aus dem Kontext, in dem die App
     // gerade läuft.
-    return AppLanguage.localeFor(prefs, WidgetsBinding.instance.platformDispatcher.locale);
+    return AppLanguage.localeFor(
+        prefs, WidgetsBinding.instance.platformDispatcher.locale);
   }
 
   @override
@@ -555,13 +576,107 @@ class _MyAppState extends State<MyApp> {
             highlightColor: Colors.transparent,
             splashFactory: NoSplash.splashFactory,
           ),
-          home: widget.initialPage ??
-              Scaffold(
-                body: HomePage(),
-              ),
+          // Ohne native Schale wird der Startbildschirm über `home` gesetzt – so
+          // wie es immer war.
+          //
+          // **Mit** nativer Schale nicht: Dort liefert die native Seite eine
+          // `initialRoute` (`/abschnitt/plan` und so weiter), und `home`
+          // stünde daneben als zweite, widersprechende Angabe. Der Weg über
+          // [onGenerateInitialRoutes] ist derselbe, den die Leiste ohnehin
+          // nimmt – es gibt also nur **einen**, und nicht einen je Plattform.
+          home: NativeShell.isSection
+              ? null
+              : widget.initialPage ?? Scaffold(body: HomePage()),
+
+          // Die native Schale sagt, welchen Abschnitt sie geöffnet hat. Ohne
+          // diese beiden Zeilen fände `Navigator` zu `/abschnitt/plan` keinen
+          // Weg und würde mit einem Fehler dastehen – „Could not find a
+          // generator for route".
+          onGenerateInitialRoutes: NativeShell.isSection
+              ? (String route) => [
+                    _routeFor(RouteSettings(name: route)),
+                  ]
+              : null,
+          onGenerateRoute: NativeShell.isSection
+              ? (RouteSettings settings) => _routeFor(settings)
+              : null,
         );
       },
     );
+  }
+
+  /// Der Weg, den eine Route der nativen Schale nimmt.
+  ///
+  /// ## Die drei Fälle
+  ///
+  /// * `/abschnitt/…` – ein Reiter der Leiste. Die **Rolle** entscheidet, was
+  ///   steht, nicht der Teil hinter dem Schrägstrich: Der Abschnitt ergibt sich
+  ///   schon daraus, dass diese Ansicht für ihn angelegt wurde, und die
+  ///   Leiste nennt dieselbe Sache an zwei Stellen – im Argument und in der
+  ///   Route. Das Argument ist das **echte**, das Route nur zusätzliche
+  ///   Information für den Fall, dass jemand die Route von Hand öffnet.
+  ///
+  /// * `/werkzeug/…` – ein Werkzeug, das die native Schale **über** ihrer
+  ///   Bildschirmreihe geöffnet hat. Es ist ein vollständiger Bildschirm mit
+  ///   eigenem Zustand; die Leiste verschwindet dabei, denn man ist in einem
+  ///   Werkzeug und nicht auf einem anderen Reiter.
+  ///
+  /// * Fehlen die Zugangsdaten, hat [MyApp.initialPage] Vorrang vor allem.
+  ///   Wer sich nicht anmelden kann, darf nicht in den Plan kommen, und das
+  ///   ist wichtiger als der Name der Route.
+  Route<dynamic> _routeFor(RouteSettings settings) {
+    final String name = settings.name ?? '/';
+    final bool werkzeug = name.startsWith('/werkzeug/');
+
+    // Die Leiste verschwindet für Werkzeuge und für die Anmeldung – beides
+    // sind Bildschirme, die **über** allem stehen.
+    if (werkzeug || widget.initialPage != null) {
+      NativeShell.setChromeVisible(false);
+    }
+
+    if (widget.initialPage != null) {
+      return MaterialPageRoute(
+        builder: (_) => widget.initialPage!,
+        settings: settings,
+      );
+    }
+
+    if (werkzeug) {
+      return MaterialPageRoute(
+        builder: (_) => _werkzeug(name),
+        settings: settings,
+      );
+    }
+
+    return MaterialPageRoute(
+      builder: (_) => Scaffold(body: HomePage()),
+      settings: settings,
+    );
+  }
+
+  /// Welches Werkzeug zu `/werkzeug/…` gehört.
+  ///
+  /// Bewusst ein `switch` mit einem **unbekannten** Fall und kein `??`: Eine
+  /// Route, die man von Hand aufruft, soll etwas zeigen und nicht abstürzen.
+  Widget _werkzeug(String name) {
+    switch (name) {
+      case '/werkzeug/anmelden':
+        return const VPlanLogin();
+      case '/werkzeug/krankheitstracker':
+        return const SickTrack();
+      case '/werkzeug/plan-einstellungen':
+        return PlanSettings();
+      case '/werkzeug/lehrerkuerzel':
+        return TeacherShorts();
+      case '/werkzeug/sicherung':
+        return const ConfigBackupSettings();
+      case '/werkzeug/entwickleroptionen':
+        return DeveloperOptions();
+      default:
+        return const Scaffold(
+          body: Center(child: Text('Diese Seite gibt es nicht.')),
+        );
+    }
   }
 }
 
@@ -607,7 +722,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     super.initState();
     eastereggController = AnimationController(vsync: this);
     // Set initial tab based on constructor parameter, default to vplanStudents
-    activeText = widget.initialTab ?? 'vplanStudents';
+    //
+    // Auf iOS entscheidet **nicht** dieser Bildschirm, welcher Abschnitt
+    // sichtbar ist, sondern die native Schale: Sie baut die Leiste und legt
+    // für jeden Eintrag eine eigene Flutter-Ansicht an. Diese Ansicht zeigt
+    // dann genau den Abschnitt, für den sie angelegt wurde – deshalb steht
+    // hier die Rolle, nicht der `initialTab`.
+    activeText = widget.initialTab ?? _startKeyFuerRolle();
 
     // Refresh all VPlans in the background when app opens – aber erst, wenn der
     // erste Frame steht.
@@ -619,6 +740,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     // Haupt-Thread belegen, während Flutter den ersten Frame zeichnen will.
     // Nach dem Frame kostet es nichts, weil es ohnehin nur im Hintergrund
     // passiert.
+    //
+    // Auf iOS macht das **nur die Plan-Ansicht** – siehe [NativeShell.runsBackgroundWork].
     _nachDemErstenBild(_refreshAllPlans);
 
     // Der automatische Sync. Ohne ihn passiert ein Sync nur, wenn jemand die
@@ -626,7 +749,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     // nie aufsucht, überträgt nie etwas. Der Koordinator richtet sich selbst
     // aus, ist ohne eingerichtete Kette ein wirkungsloses Nichts und bricht
     // nach Fehlern mit wachsender Wartezeit ab.
-    SyncCoordinator.instance.attach();
+    //
+    // Auch dieser Auftrag gehört nur einer Ansicht. Lief er in allen, würde er
+    // mehrfach stattfinden, und die Ansichten merken sich nur **jeweils selbst**,
+    // dass er läuft – sie könnten einander nicht abwehren.
+    if (NativeShell.runsBackgroundWork) {
+      SyncCoordinator.instance.attach();
+    }
 
     // Der Sync-Eintrag in der Leiste folgt der Einstellung aus „Aussehen".
     // Der Zuhörer sorgt dafür, dass die Leiste sich auch dann neu aufbaut,
@@ -649,7 +778,27 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   StreamSubscription<SyncOutcome>? _syncSubscription;
 
+  /// Welcher Abschnitt in dieser Ansicht steht.
+  ///
+  /// Ohne native Schale (`full`) ist es der normale Startabschnitt. Mit
+  /// nativer Schale ist es der, für den die Ansicht angelegt wurde.
+  static String _startKeyFuerRolle() {
+    switch (NativeShell.role) {
+      case NativeShellRole.sectionSearch:
+        return 'search';
+      case NativeShellRole.sectionSync:
+        return 'syncShare';
+      case NativeShellRole.sectionPlan:
+      case NativeShellRole.full:
+        return 'vplanStudents';
+    }
+  }
+
   Future<void> _refreshAllPlans() async {
+    // Auf iOS holt nur die Plan-Ansicht die Pläne. Jede Ansicht hätte sonst
+    // ihre eigene, und drei gleichzeitige Durchgänge bedeuten drei Anfragen
+    // an dieselbe Adresse und drei Schreibvorgänge in dieselbe Datei.
+    if (!NativeShell.runsBackgroundWork) return;
     try {
       await VPlanAPI().refreshAllPlansInBackground();
       // Benachrichtige die VPlan-Übersicht, damit sie ihre Vorschauen
@@ -1122,8 +1271,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     // Vorher hat sich jeder Bildschirm selbst beholfen, mit
                     // festen Prozentwerten (`0.69` Höhe, `0.1` Rand), und der
                     // Startbildschirm eben nicht – daher der Fehler dort.
-                    bottom: MediaQuery.of(context).size.height * 0.1 +
-                        MediaQuery.paddingOf(context).bottom,
+                    //
+                    // Unter der nativen Schale steht **keine** eigene Leiste
+                    // mehr im Weg – `UITabBarController` hat sie selbst
+                    // gebaut und den Platz schon abgezogen. Deshalb wird hier
+                    // nur noch der sichere Bereich des Geräts addiert, sonst
+                    // entstünde unten ein Streifen, den nichts füllt.
+                    bottom: NativeShell.isSection
+                        ? MediaQuery.paddingOf(context).bottom
+                        : MediaQuery.of(context).size.height * 0.1 +
+                            MediaQuery.paddingOf(context).bottom,
                   ),
                   decoration: BoxDecoration(
                     borderRadius: const BorderRadius.only(
@@ -1143,70 +1300,78 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   ),
                 ),
                 // FOOTER
-                Positioned(
-                  bottom: 0,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(30),
-                        topRight: Radius.circular(30),
+                //
+                // Unter der nativen Schale **nicht**: Dort steht die Leiste von
+                // `UITabBarController`, mit grossen Titeln, SF-Symbolen und dem
+                // Material, das iOS selbst dafür vorsieht. Eine zweite Leiste
+                // darüber wäre genau das, was die Umstellung loswerden soll –
+                // und sie würde dem System die Berührungen der echten Leiste
+                // wegnehmen.
+                if (!NativeShell.isSection)
+                  Positioned(
+                    bottom: 0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          topRight: Radius.circular(30),
+                        ),
+                        color: Theme.of(context).colorScheme.surface,
                       ),
-                      color: Theme.of(context).colorScheme.surface,
-                    ),
-                    width: MediaQuery.of(context).size.width,
-                    height: MediaQuery.of(context).size.height * 0.1 +
-                        MediaQuery.paddingOf(context).bottom,
-                    alignment: Alignment.bottomCenter,
-                    padding: EdgeInsets.only(
-                      bottom: MediaQuery.paddingOf(context).bottom,
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        ...pages.map(
-                          (e) => Container(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                InkWell(
-                                  onTap: () {
-                                    activeText = e['key'];
-                                    setState(() {});
-                                  },
-                                  child: Container(
-                                    padding: EdgeInsets.all(7),
-                                    child: SvgPicture.asset(
-                                      e['icon'],
-                                      colorFilter: ColorFilter.mode(
-                                        activeText == e['key']
-                                            ? Theme.of(context).primaryColor
-                                            : inaktiv,
-                                        BlendMode.srcIn,
+                      width: MediaQuery.of(context).size.width,
+                      height: MediaQuery.of(context).size.height * 0.1 +
+                          MediaQuery.paddingOf(context).bottom,
+                      alignment: Alignment.bottomCenter,
+                      padding: EdgeInsets.only(
+                        bottom: MediaQuery.paddingOf(context).bottom,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          ...pages.map(
+                            (e) => Container(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  InkWell(
+                                    onTap: () {
+                                      activeText = e['key'];
+                                      setState(() {});
+                                    },
+                                    child: Container(
+                                      padding: EdgeInsets.all(7),
+                                      child: SvgPicture.asset(
+                                        e['icon'],
+                                        colorFilter: ColorFilter.mode(
+                                          activeText == e['key']
+                                              ? Theme.of(context).primaryColor
+                                              : inaktiv,
+                                          BlendMode.srcIn,
+                                        ),
+                                        width: 28,
                                       ),
-                                      width: 28,
                                     ),
                                   ),
-                                ),
-                                SvgPicture.asset(
-                                  'assets/img/active.svg',
-                                  width: 13,
-                                  colorFilter: ColorFilter.mode(
-                                    e['key'] == activeText
-                                        ? Theme.of(context).primaryColor
-                                        : Colors.transparent,
-                                    BlendMode.srcIn,
+                                  SvgPicture.asset(
+                                    'assets/img/active.svg',
+                                    width: 13,
+                                    colorFilter: ColorFilter.mode(
+                                      e['key'] == activeText
+                                          ? Theme.of(context).primaryColor
+                                          : Colors.transparent,
+                                      BlendMode.srcIn,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
