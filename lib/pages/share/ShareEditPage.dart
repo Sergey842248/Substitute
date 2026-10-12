@@ -180,6 +180,12 @@ class _ShareEditPageState extends State<ShareEditPage> {
           label: _labelController.text.trim(),
           searchable: _searchable,
           selection: _selection,
+          // Auch beim Bearbeiten zählt, was im Formular steht: Vorher stand das
+          // Passwortfeld hier nicht in der Anfrage, ein neu eingetipptes
+          // Passwort wurde also stillschweigend verworfen und ein
+          // abgeschaltetes ignoriert. Ein leeres Feld heißt hier ausdrücklich
+          // „kein Passwort" – nicht „unverändert".
+          sharePassword: password,
         );
       }
       if (!mounted) return;
@@ -231,130 +237,143 @@ class _ShareEditPageState extends State<ShareEditPage> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final bool editing = widget.share != null;
 
     return Scaffold(
       body: SafeArea(
-        child: ListPage(
-          title: widget.share == null ? l10n.shareCreate : l10n.shareEdit,
-          children: <Widget>[
-            // Beim Speichern: Die neue Ladeanzeige. Die frühere (`LoadingProcess`, ein
-            // Lottie-Bild) hatte keine feste Höhe – in einer Liste bekommt sie
-            // unbeschränkte Höhe und wurde gar nicht sichtbar.
-            if (_busy) const LoadingIndicatorBlock(),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                child: Text(
-                  _error!,
-                  style: const TextStyle(color: Colors.redAccent, fontSize: 14),
+        // Die Ladeanzeige liegt über der ganzen Seite und nicht als Zeile oben
+        // im Inhalt: Sie war vorher dort, wo man nicht hinsieht. Der Knopf, auf
+        // den gedrückt wurde, steht ganz unten – die Anzeige darüber war
+        // außerhalb des Bildes, und beim Anlegen schien deshalb gar nichts zu
+        // passieren.
+        child: BusyOverlay(
+          busy: _busy,
+          label: l10n.loading,
+          child: ListPage(
+            title: editing ? l10n.shareEdit : l10n.shareCreate,
+            children: <Widget>[
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                  child: Text(
+                    _error!,
+                    style: const TextStyle(
+                        color: Colors.redAccent, fontSize: 14),
+                  ),
                 ),
+
+              _sectionTitle(l10n.shareSelectClasses),
+              // Eigene Meldung: Die Klassen-Sektion zeigte den Personentext
+              // („Noch keine Personen. Füge eine Person hinzu …") – auch dann,
+              // wenn Klassen vorhanden waren.
+              if (_classes.isEmpty)
+                _empty(l10n.noClassesYet)
+              else
+                Wrap(
+                  spacing: 8,
+                  children: _classes
+                      .map((String short) => FilterChip(
+                            label: Text(short),
+                            selected: _selection.classIds.contains(short),
+                            onSelected: (bool value) =>
+                                _toggleClass(short, value),
+                          ))
+                      .toList(),
+                ),
+              _rowButtons(l10n),
+
+              _sectionTitle(l10n.shareSelectPersons),
+              if (_persons.isEmpty)
+                _empty(l10n.noPersonsYet)
+              else
+                // Dieselben Feldmarken wie bei den Klassen darüber. Vorher stand
+                // hier eine Liste mit Kontrollkästchen – zwei Systeme für
+                // dieselbe Frage auf derselben Seite, und die Liste brach mitten
+                // in der Seite ab, während die Chips nebeneinander Platz finden.
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: _persons
+                      .map((({String id, String name}) person) => FilterChip(
+                            label: Text(person.name),
+                            selected:
+                                _selection.personIds.contains(person.id),
+                            onSelected: (bool value) =>
+                                _togglePerson(person.id, value),
+                          ))
+                      .toList(),
+                ),
+
+              _sectionTitle(l10n.shareSearchable),
+              _switchTile(
+                l10n.shareSearchable,
+                l10n.shareSearchableSubtitle,
+                _searchable,
+                (bool value) => setState(() => _searchable = value),
               ),
 
-            _sectionTitle(l10n.shareSelectClasses),
-            // Eigene Meldung: Die Klassen-Sektion zeigte den Personentext
-            // („Noch keine Personen. Füge eine Person hinzu ...") – auch dann,
-            // wenn Klassen vorhanden waren.
-            if (_classes.isEmpty)
-              _empty(l10n.noClassesYet)
-            else
-              Wrap(
-                spacing: 8,
-                children: _classes
-                    .map((String short) => FilterChip(
-                          label: Text(short),
-                          selected: _selection.classIds.contains(short),
-                          onSelected: (bool value) =>
-                              _toggleClass(short, value),
-                        ))
-                    .toList(),
+              _sectionTitle(l10n.sharePassword),
+              _switchTile(
+                l10n.sharePasswordOwn,
+                l10n.sharePasswordSubtitle,
+                _passwordController.text.trim().isNotEmpty,
+                (bool value) => setState(() {
+                  if (value) {
+                    _passwordController.text =
+                        ShareManager.generateSharePassword();
+                  } else {
+                    _passwordController.clear();
+                  }
+                }),
               ),
-            _rowButtons(l10n),
-
-            _sectionTitle(l10n.shareSelectPersons),
-            if (_persons.isEmpty)
-              _empty(l10n.noPersonsYet)
-            else
-              // Dieselben Feldmarken wie bei den Klassen darüber. Vorher stand
-              // hier eine Liste mit Kontrollkästchen – zwei Systeme für
-              // dieselbe Frage auf derselben Seite, und die Liste brach mitten
-              // in der Seite ab, während die Chips nebeneinander Platz finden.
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: _persons
-                    .map((({String id, String name}) person) => FilterChip(
-                          label: Text(person.name),
-                          selected: _selection.personIds.contains(person.id),
-                          onSelected: (bool value) =>
-                              _togglePerson(person.id, value),
-                        ))
-                    .toList(),
-              ),
-
-            _sectionTitle(l10n.shareSearchable),
-            _switchTile(
-              l10n.shareSearchable,
-              l10n.shareSearchableSubtitle,
-              _searchable,
-              (bool value) => setState(() => _searchable = value),
-            ),
-
-            _sectionTitle(l10n.sharePassword),
-            _switchTile(
-              l10n.sharePasswordOwn,
-              l10n.sharePasswordSubtitle,
-              _passwordController.text.trim().isNotEmpty,
-              (bool value) => setState(() {
-                if (value) {
-                  _passwordController.text = ShareManager.generateSharePassword();
-                } else {
-                  _passwordController.clear();
-                }
-              }),
-            ),
-            if (_passwordController.text.trim().isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Column(
-                  children: <Widget>[
-                    InputField(
-                      controller: _passwordController,
-                      labelText: l10n.sharePasswordHint,
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton.icon(
-                        onPressed: () => setState(() {
-                          _passwordController.text =
-                              ShareManager.generateSharePassword();
-                        }),
-                        icon: const Icon(Icons.refresh_rounded, size: 16),
-                        label: Text(l10n.sharePasswordGenerate,
-                            style: const TextStyle(fontSize: 13)),
+              if (_passwordController.text.trim().isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Column(
+                    children: <Widget>[
+                      InputField(
+                        controller: _passwordController,
+                        labelText: l10n.sharePasswordHint,
                       ),
-                    ),
-                  ],
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: () => setState(() {
+                            _passwordController.text =
+                                ShareManager.generateSharePassword();
+                          }),
+                          icon: const Icon(Icons.refresh_rounded, size: 16),
+                          label: Text(l10n.sharePasswordGenerate,
+                              style: const TextStyle(fontSize: 13)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+
+              // Die erweiterten Optionen stehen ganz unten und sind eingeklappt:
+              // Ein Share ist im Normalfall sichtbar für die eigene Schule, und
+              // niemand braucht dafür einen Schalter für "Pläne teilen" – die
+              // Pläne gehören zu den geteilten Klassen und sind dabei.
+              _advancedTile(l10n),
+
+              _sectionTitle(l10n.shareLabel),
+              InputField(
+                controller: _labelController,
+                labelText: l10n.shareLabelHint,
               ),
 
-            // Die erweiterten Optionen stehen ganz unten und sind eingeklappt: Ein
-            // Share ist im Normalfall sichtbar für die eigene Schule, und
-            // niemand braucht dafür einen Schalter für "Pläne teilen" – die
-            // Pläne gehören zu den geteilten Klassen und sind dabei.
-            _advancedTile(l10n),
-
-            _sectionTitle(l10n.shareLabel),
-            InputField(
-              controller: _labelController,
-              labelText: l10n.shareLabelHint,
-            ),
-
-            Button(
-              text: l10n.shareImport,
-              onPressed: _busy ? null : _save,
-            ),
-            const SizedBox(height: 30),
-          ],
+              Button(
+                // "Übernehmen" war hier das falsche Wort: Es steht am Ende einer
+                // Seite, auf der nichts übernommen, sondern ein Share
+                // erstellt wird. Beim Bearbeiten heißt derselbe Knopf
+                // "Änderungen speichern" – auch das sagt, was passiert.
+                text: editing ? l10n.shareEditSubmit : l10n.shareCreateSubmit,
+                onPressed: _busy ? null : _save,
+              ),
+              const SizedBox(height: 30),
+            ],
+          ),
         ),
       ),
     );

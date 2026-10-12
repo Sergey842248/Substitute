@@ -1210,7 +1210,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Auswählen, was für andere sichtbar sein soll';
 
   @override
+  String get shareCreateSubmit => 'Erstellen';
+
+  @override
   String get shareEdit => 'Share bearbeiten';
+
+  @override
+  String get shareEditSubmit => 'Änderungen speichern';
 
   @override
   String get shareEmpty =>

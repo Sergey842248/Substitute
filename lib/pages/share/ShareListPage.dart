@@ -69,8 +69,9 @@ class _ShareListPageState extends State<ShareListPage> {
     final SharedPreferences? prefs = _prefs;
     if (prefs == null) return;
     final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final bool editing = share != null;
 
-    final bool? created = await Navigator.push<bool>(
+    final bool? saved = await Navigator.push<bool>(
       context,
       MaterialPageRoute<bool>(
         builder: (BuildContext context) => ShareEditPage(
@@ -80,11 +81,19 @@ class _ShareListPageState extends State<ShareListPage> {
         ),
       ),
     );
-    if (created == true) {
+    if (saved == true) {
       await _load();
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.sharePublished)));
+      // Beim Bearbeiten wurde derselbe Share überschrieben – das ist nicht
+      // dasselbe Ereignis wie ein Anlegen, und „Share erstellt" behauptete
+      // das Gegenteil.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            editing ? l10n.shareUpdated : l10n.sharePublished,
+          ),
+        ),
+      );
     }
   }
 

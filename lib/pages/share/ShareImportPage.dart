@@ -119,15 +119,21 @@ class _ShareImportPageState extends State<ShareImportPage> {
         if (mounted) setState(() => _selectedShareId = null);
         return;
       }
+      if (!mounted) return;
       setState(() => _busy = true);
     }
 
     try {
       // Keine Schulnummer nötig: Der Nutzername ist der Schlüssel. Das Schulpasswort
       // wird nur zusätzlich versucht – es ist der zweite Weg hinein, den der
-      //_share_ anlegt, damit Kolleginnen der eigenen Schule den Share ohne die
+      // Share anlegt, damit Kolleginnen der eigenen Schule den Share ohne die
       // zehn Wörter öffnen können.
-      final Map<String, dynamic> payload = ShareManager.unlock(
+      //
+      // `unlockAsync` statt `unlock`: Die Schlüsselableitung (PBKDF2, 120 000
+      // Runden je Hülle) lief auf dem UI-Thread. Währenddessen wird kein Frame
+      // gezeichnet – die drei Punkte blieben reglos stehen, bis plötzlich der
+      // Share offen war. Genau das war die „hängende" Ladeanimation.
+      final Map<String, dynamic> payload = await ShareManager.unlockAsync(
         record,
         widget.owner.username,
         sharePassword: sharePassword,
@@ -262,104 +268,113 @@ class _ShareImportPageState extends State<ShareImportPage> {
 
     return Scaffold(
       body: SafeArea(
-        child: ListPage(
-          title: l10n.shareOf(widget.owner.displayName),
-          children: <Widget>[
-            if (_busy) const Center(child: LoadingIndicator()),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  _error!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.redAccent),
+        // Über der ganzen Seite statt als Zeile oben im Inhalt: Die Zeile stand
+        // dort, wo man nicht hinsieht – der Share, auf den man getippt hat,
+        // kann weiter unten stehen – und sie überlappte die Liste, statt sie zu
+        // ersetzen.
+        child: BusyOverlay(
+          busy: _busy,
+          label: l10n.loading,
+          child: ListPage(
+            title: l10n.shareOf(widget.owner.displayName),
+            children: <Widget>[
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    _error!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
                 ),
-              ),
 
-            // Schritt 1: Alle Shares der Person auflisten. Sobald einer
-            // gewählt ist, wird er markiert – sonst ist nicht erkennbar, welcher
-            // gerade geöffnet wird.
-            if (payload == null) ...<Widget>[
-              for (final ShareSummary share in widget.owner.shares)
-                _shareTile(l10n, share),
-            ],
-            if (_needsPassword && payload == null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                child: Text(
-                  l10n.sharePasswordRequired,
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-              ),
-
-            // Schritt 2: Was steckt drin, was davon wird übernommen, und wie.
-            if (payload != null && _counts != null) ...<Widget>[
-              _sectionTitle(l10n.shareContents),
-              _contentLine(l10n.shareContentsClasses(_counts!.classes)),
-              _contentLine(l10n.shareContentsPersons(_counts!.persons)),
-              _contentLine(l10n.shareContentsPlans(_counts!.plans)),
-
-              // Schritt 2a: Die Auswahl. Alles ist vorausgewählt, damit man
-              // sieht, was der Share überhaupt enthält – abwählen geht einzeln.
-              _sectionTitle(l10n.shareSelectItems),
-              if (_classChoices.isEmpty && _personChoices.isEmpty)
-                _contentLine(l10n.shareNothingToImport),
-              if (_classChoices.isNotEmpty) ...<Widget>[
-                _subTitle(l10n.shareSelectClasses),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: _classChoices
-                      .map((String short) => FilterChip(
-                            label: Text(short),
-                            selected: _selection.classIds.contains(short),
-                            onSelected: _busy
-                                ? null
-                                : (bool value) => _toggleClass(short, value),
-                          ))
-                      .toList(),
-                ),
+              // Schritt 1: Alle Shares der Person auflisten. Sobald einer
+              // gewählt ist, wird er markiert – sonst ist nicht erkennbar,
+              // welcher gerade geöffnet wird.
+              if (payload == null) ...<Widget>[
+                for (final ShareSummary share in widget.owner.shares)
+                  _shareTile(l10n, share),
               ],
-              if (_personChoices.isNotEmpty) ...<Widget>[
-                _subTitle(l10n.shareSelectPersons),
-                // Dieselben Chips wie bei den Klassen. Vorher stand hier eine
-                // Liste mit Kontrollkästchen und die Auswahl brach mitten in der
-                // Seite ab: Die Klassen wurden als Feldmarken gewählt, die
-                // Personen als Zeilen – zwei Systeme für dieselbe Frage. Jetzt
-                // steht beides als Feldmarken übereinander, und es passt auch
-                // mehr Personen nebeneinander in eine Zeile.
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: _personChoices
-                      .map((({String id, String name}) person) => FilterChip(
-                            label: Text(person.name),
-                            selected: _selection.personIds.contains(person.id),
-                            onSelected: _busy
-                                ? null
-                                : (bool value) =>
-                                    _togglePerson(person.id, value),
-                          ))
-                      .toList(),
+              if (_needsPassword && payload == null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                  child: Text(
+                    l10n.sharePasswordRequired,
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
                 ),
+
+              // Schritt 2: Was steckt drin, was davon wird übernommen, und wie.
+              if (payload != null && _counts != null) ...<Widget>[
+                _sectionTitle(l10n.shareContents),
+                _contentLine(l10n.shareContentsClasses(_counts!.classes)),
+                _contentLine(l10n.shareContentsPersons(_counts!.persons)),
+                _contentLine(l10n.shareContentsPlans(_counts!.plans)),
+
+                // Schritt 2a: Die Auswahl. Alles ist vorausgewählt, damit man
+                // sieht, was der Share überhaupt enthält – abwählen geht einzeln.
+                _sectionTitle(l10n.shareSelectItems),
+                if (_classChoices.isEmpty && _personChoices.isEmpty)
+                  _contentLine(l10n.shareNothingToImport),
+                if (_classChoices.isNotEmpty) ...<Widget>[
+                  _subTitle(l10n.shareSelectClasses),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: _classChoices
+                        .map((String short) => FilterChip(
+                              label: Text(short),
+                              selected: _selection.classIds.contains(short),
+                              onSelected: _busy
+                                  ? null
+                                  : (bool value) =>
+                                      _toggleClass(short, value),
+                            ))
+                        .toList(),
+                  ),
+                ],
+                if (_personChoices.isNotEmpty) ...<Widget>[
+                  _subTitle(l10n.shareSelectPersons),
+                  // Dieselben Chips wie bei den Klassen. Vorher stand hier eine
+                  // Liste mit Kontrollkästchen und die Auswahl brach mitten in
+                  // der Seite ab: Die Klassen wurden als Feldmarken gewählt, die
+                  // Personen als Zeilen – zwei Systeme für dieselbe Frage. Jetzt
+                  // steht beides als Feldmarken übereinander, und es passt auch
+                  // mehr Personen nebeneinander in eine Zeile.
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: _personChoices
+                        .map((({String id, String name}) person) => FilterChip(
+                              label: Text(person.name),
+                              selected:
+                                  _selection.personIds.contains(person.id),
+                              onSelected: _busy
+                                  ? null
+                                  : (bool value) =>
+                                      _togglePerson(person.id, value),
+                            ))
+                        .toList(),
+                  ),
+                ],
+                if (_classChoices.isNotEmpty || _personChoices.isNotEmpty)
+                  _selectAllRow(l10n, payload),
+
+                // Schritt 2b: Erweiterte Optionen. Ganz unten und
+                // eingeklappt: Wer die Daten einfach übernehmen will, ist mit
+                // Original und "alle ausgewählt" fertig – ohne sich durch drei
+                // Radio-Buttons und einen Schalter zu arbeiten, die er nicht
+                // braucht.
+                _advancedTile(l10n),
+
+                Button(
+                  text: l10n.shareImport,
+                  onPressed: _busy ? null : _import,
+                ),
+                const SizedBox(height: 30),
               ],
-              if (_classChoices.isNotEmpty || _personChoices.isNotEmpty)
-                _selectAllRow(l10n, payload),
-
-              // Schritt 2b: Erweiterte Optionen. Ganz unten und
-              // eingeklappt: Wer die Daten einfach übernehmen will, ist mit
-              // Original und "alle ausgewählt" fertig – ohne sich durch drei
-              // Radio-Buttons und einen Schalter zu arbeiten, die er nicht
-              // braucht.
-              _advancedTile(l10n),
-
-              Button(
-                text: l10n.shareImport,
-                onPressed: _busy ? null : _import,
-              ),
-              const SizedBox(height: 30),
             ],
-          ],
+          ),
         ),
       ),
     );

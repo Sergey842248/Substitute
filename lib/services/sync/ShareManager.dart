@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../crypto/PayloadCrypto.dart';
@@ -468,6 +469,30 @@ class ShareManager {
         jsonEncode(shares.map((LocalShare s) => s.toJson()).toList()),
       );
 
+  /// Schreibt [share] in die eigene Liste – **an der Stelle, an der er
+  /// schon stand**.
+  ///
+  /// Ein bearbeiteter Share wird überschrieben, nicht angehängt: Sonst stünde
+  /// nach jeder Bearbeitung derselbe Share noch einmal in der Liste, und weil
+  /// er ans Ende wandert, sähe es aus, als wäre ein neuer dazugekommen.
+  /// `_republish` unten sorgt zusätzlich dafür, dass die ID dieselbe bleibt –
+  /// beide Hälften gehören zusammen, sonst ist die Liste zwar kurz, der
+  /// Inhalt aber ein zweiter Share.
+  static Future<LocalShare> _replaceShare(
+    SharedPreferences prefs,
+    LocalShare share,
+  ) async {
+    final List<LocalShare> shares = readShares(prefs);
+    final int index = shares.indexWhere((LocalShare s) => s.id == share.id);
+    if (index < 0) {
+      shares.add(share);
+    } else {
+      shares[index] = share;
+    }
+    await _writeShares(prefs, shares);
+    return share;
+  }
+
   /// Baut den Inhalt eines Shares aus den ausgewählten Daten zusammen.
   ///
   /// Es werden **nur** die ausgewählten Klassen und Personen übernommen: Wer
@@ -576,6 +601,11 @@ class ShareManager {
   /// Schulzugangsdaten zu öffnen. Mit Passwort nur über das Passwort – das
   /// Passwort schützt also gerade auch vor Leuten, denen die
   /// Schulzugangsdaten bekannt sind.
+  ///
+  /// [existing] ist der Share, der **überschrieben** werden soll. Er behält
+  /// seine ID und sein Erstellungsdatum – ein bearbeiteter Share ist derselbe
+  /// Share, nicht ein neu entstandener. Ohne [existing] wird die ID aus dem
+  /// Nutzernamen berechnet und ein neuer Share angelegt.
   Future<LocalShare> publish({
     required SharedPreferences prefs,
     required String schoolNumber,
@@ -586,6 +616,7 @@ class ShareManager {
     required ShareSelection selection,
     required bool searchable,
     String? sharePassword,
+    LocalShare? existing,
   }) async {
     final String username = readUsername(prefs) ?? '';
     if (username.isEmpty) throw const ShareException('noUsername');
@@ -605,28 +636,18 @@ class ShareManager {
       throw const ShareException('nothingSelected');
     }
 
-    final String shareId = shareIdFor(username);
+    final String shareId = existing?.id ?? shareIdFor(username);
     final bool protected = sharePassword != null && sharePassword.trim().isNotEmpty;
 
-    final Map<String, dynamic> envelopes = <String, dynamic>{};
-    if (protected) {
-      envelopes[ShareSlot.byPassword.id] = PayloadCrypto.encryptJson(
-        _keyFor(username, Passphrase.normalize(sharePassword)),
-        payload,
-        salt: keyDomain,
-      );
-    } else {
-      envelopes[ShareSlot.byUsername.id] = PayloadCrypto.encryptJson(
-        _keyFor(username, ''),
-        payload,
-        salt: keyDomain,
-      );
-      envelopes[ShareSlot.bySchool.id] = PayloadCrypto.encryptJson(
-        _keyFor(username, schoolPassword),
-        payload,
-        salt: keyDomain,
-      );
-    }
+    final Map<String, dynamic> envelopes = await compute(
+      _sealShare,
+      (
+        username: username,
+        sharePassword: sharePassword,
+        schoolPassword: schoolPassword,
+        payload: payload,
+      ),
+    );
 
     final DateTime now = DateTime.now().toUtc();
     await client.publishShare(
@@ -646,28 +667,39 @@ class ShareManager {
       displayName: displayName,
       label: label,
       searchable: searchable,
-      createdAt: now,
+      // Das Erstellungsdatum gehört zu **einem** Share. Ein bearbeiteter
+      // Share ist nicht neu entstanden, deshalb bleibt sein altes Datum
+      // stehen – vorher bekam jeder Bearbeitung ein neues, und die Liste sah
+      // danach aus, als wäre ein zweiter Share dazugekommen.
+      createdAt: existing?.createdAt ?? now,
       updatedAt: now,
       hasPassword: protected,
       selection: selection,
     );
 
-    final List<LocalShare> shares = readShares(prefs)
-      ..removeWhere((LocalShare s) => s.id == shareId)
-      ..add(share);
-    await _writeShares(prefs, shares);
+    await _replaceShare(prefs, share);
     if (protected) {
       await prefs.setString(sharePasswordStorageKey, sharePassword);
+    } else {
+      // Das Passwort ist abgeschaltet: Was einmal gespeichert war, darf nicht
+      // liegen bleiben und beim nächsten Bearbeiten ungefragt wieder verwendet
+      // werden.
+      await prefs.remove(sharePasswordStorageKey);
     }
     return share;
   }
 
-  /// Ändert die Eigenschaften eines eigenen Shares und lädt ihn neu hoch.
+  /// Ändert die Eigenschaften eines bestehenden Shares und lädt ihn neu hoch.
   ///
   /// Der **Inhalt** wird dabei neu aus der gespeicherten Auswahl gebaut – der
   /// Nutzer muss also nicht erneut auswählen, bekommt aber trotzdem frische
   /// Daten, wenn inzwischen etwas dazugekommen ist.
-  Future<void> update({
+  ///
+  /// Das ist ein **Überschreiben**, kein Neuanlegen: Es bleibt dieselbe ID,
+  /// dieselbe Zeile in der Liste und dasselbe Erstellungsdatum. Genau das war
+  /// vorher anders – [publish] legte einen neuen Share an, während die alte
+  /// Zeile stehen blieb.
+  Future<LocalShare> update({
     required SharedPreferences prefs,
     required String schoolNumber,
     required String schoolPassword,
@@ -676,6 +708,7 @@ class ShareManager {
     bool? searchable,
     String? displayName,
     ShareSelection? selection,
+    String? sharePassword,
   }) async {
     final ShareSelection effective = selection ?? share.selection;
     final Map<String, dynamic> payload =
@@ -689,7 +722,7 @@ class ShareManager {
       updatedAt: DateTime.now().toUtc(),
     );
 
-    await publish(
+    return publish(
       prefs: prefs,
       schoolNumber: schoolNumber,
       schoolPassword: schoolPassword,
@@ -698,7 +731,12 @@ class ShareManager {
       payload: payload,
       selection: effective,
       searchable: updated.searchable,
-      sharePassword: share.hasPassword ? readSharePassword(prefs) : null,
+      // Das Passwort kommt aus dem Formular, wenn der Bearbeitungsbildschirm
+      // eines schickt. `null` bedeutet: ungesichert. Ohne das konnte ein
+      // Bearbeiten das Passwort weder setzen noch abschalten – es wurde still
+      // das alte verwendet oder eines eingegebenes verworfen.
+      sharePassword: sharePassword ?? (share.hasPassword ? readSharePassword(prefs) : null),
+      existing: share,
     );
   }
 
@@ -780,6 +818,29 @@ class ShareManager {
     }
     throw const ShareException('wrongCredentials');
   }
+
+  /// Öffnet einen Share – wie [unlock], aber ohne den Bildschirm anzuhalten.
+  ///
+  /// [unlock] braucht für jede angebotene Hülle eine PBKDF2-Ableitung mit
+  /// 120 000 Runden. Auf dem UI-Thread gerechnet steht die Oberfläche für den
+  /// ganzen Vorgang still: Die Ladeanzeige bleibt stehen, statt sich zu
+  /// bewegen, und man sieht nicht, worauf man wartet. Hier läuft die Rechnung
+  /// in einem eigenen Isolate, die Anzeige läuft weiter.
+  static Future<Map<String, dynamic>> unlockAsync(
+    ShareRecord record,
+    String username, {
+    String? sharePassword,
+    String? schoolPassword,
+  }) =>
+      compute(
+        _openShare,
+        (
+          record: record,
+          username: username,
+          sharePassword: sharePassword,
+          schoolPassword: schoolPassword,
+        ),
+      );
 
   /// Wie viele Klassen und Personen ein geöffneter Share enthält – für die
   /// Vorauswahl in der Import-Oberfläche.
@@ -1294,6 +1355,70 @@ class ShareManager {
     return result.isEmpty ? 'Klasse' : result;
   }
 }
+
+/// Verschlüsselt einen Share-Inhalt – läuft in einem **eigenen Isolate**.
+///
+/// PBKDF2 mit 120 000 Runden ist in reinem Dart teuer: Jede Hülle braucht
+/// eine eigene Ableitung, ein Share ohne Passwort also zwei. Auf dem
+/// UI-Thread blockiert das die Oberfläche für gut eine Sekunde – und weil
+/// dann kein einziger Frame gezeichnet wird, wirkt eine Ladeanzeige wie
+/// eingefroren, statt sich zu bewegen. Deshalb wird hier gearbeitet, ohne
+/// dass der Bildschirm stillsteht.
+///
+/// Aufgerufen über [compute]; deshalb eine Top-Level-Funktion und keine
+/// Methode: `compute` braucht etwas, das in einen anderen Isolate geschickt
+/// werden kann.
+Map<String, dynamic> _sealShare(
+  ({
+    String username,
+    String? sharePassword,
+    String schoolPassword,
+    Map<String, dynamic> payload,
+  }) request,
+) {
+  final Map<String, dynamic> envelopes = <String, dynamic>{};
+  final String? sharePassword = request.sharePassword;
+  if (sharePassword != null && sharePassword.trim().isNotEmpty) {
+    envelopes[ShareSlot.byPassword.id] = PayloadCrypto.encryptJson(
+      ShareManager._keyFor(
+        request.username,
+        Passphrase.normalize(sharePassword),
+      ),
+      request.payload,
+      salt: ShareManager.keyDomain,
+    );
+  } else {
+    envelopes[ShareSlot.byUsername.id] = PayloadCrypto.encryptJson(
+      ShareManager._keyFor(request.username, ''),
+      request.payload,
+      salt: ShareManager.keyDomain,
+    );
+    envelopes[ShareSlot.bySchool.id] = PayloadCrypto.encryptJson(
+      ShareManager._keyFor(request.username, request.schoolPassword),
+      request.payload,
+      salt: ShareManager.keyDomain,
+    );
+  }
+  return envelopes;
+}
+
+/// Entschlüsselt einen Share – ebenfalls in einem eigenen Isolate, aus
+/// demselben Grund wie [_sealShare]. Wird von [ShareManager.unlockAsync]
+/// aufgerufen.
+Map<String, dynamic> _openShare(
+  ({
+    ShareRecord record,
+    String username,
+    String? sharePassword,
+    String? schoolPassword,
+  }) request,
+) =>
+    ShareManager.unlock(
+      request.record,
+      request.username,
+      sharePassword: request.sharePassword,
+      schoolPassword: request.schoolPassword,
+    );
 
 /// Fehler beim Teilen oder Importieren.
 class ShareException implements Exception {

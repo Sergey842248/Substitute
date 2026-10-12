@@ -235,7 +235,7 @@ void main() {
     labelField.controller!.text = 'Scheisskopf';
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Übernehmen'));
+    await tester.tap(find.text('Erstellen'));
     await tester.pumpAndSettle();
 
     // Warnung sichtbar …
@@ -260,7 +260,7 @@ void main() {
     labelField.controller!.text = 'Freunde';
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Übernehmen'));
+    await tester.tap(find.text('Erstellen'));
     await tester.pumpAndSettle();
 
     // Keine Namenswarnung.
@@ -283,7 +283,7 @@ void main() {
     labelField.controller!.text = 'Freunde';
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Übernehmen'));
+    await tester.tap(find.text('Erstellen'));
     await tester.pump(const Duration(milliseconds: 200));
 
     // `l10n.syncFailed` ist eine Funktion und wurde als String interpoliert –
@@ -327,7 +327,7 @@ void main() {
     labelField.controller!.text = 'A';
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Übernehmen'));
+    await tester.tap(find.text('Erstellen'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('mindestens zwei Zeichen'), findsNothing);

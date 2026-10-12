@@ -1200,7 +1200,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareCreateSubtitle => 'Choose what should be visible to others';
 
   @override
+  String get shareCreateSubmit => 'Create';
+
+  @override
   String get shareEdit => 'Edit share';
+
+  @override
+  String get shareEditSubmit => 'Save changes';
 
   @override
   String get shareEmpty =>

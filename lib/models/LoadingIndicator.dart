@@ -106,6 +106,77 @@ class _LoadingIndicatorState extends State<LoadingIndicator>
   }
 }
 
+/// Eine Seite, die während einer langen Aktion gesperrt ist.
+///
+/// Vorher stand die Ladeanzeige als Zeile **im** Listeninhalt, und das hat an
+/// zwei Stellen nicht funktioniert:
+///
+/// * Sie war oben in einer langen Liste, während man unten auf den Knopf
+///   gedrückt hatte – sie war also außerhalb des Bildes. Beim Anlegen eines
+///   Shares schien deshalb gar nichts zu passieren.
+/// * Sie war eine Zeile neben dem Inhalt, nicht über ihm: Man konnte
+///   weitertippen, während gearbeitet wurde.
+///
+/// Diese Hülle legt die Anzeige **mittig über die Seite**, dimmt den Inhalt
+/// dahinter ab und schluckt jede weitere Eingabe, bis die Aktion fertig ist.
+class BusyOverlay extends StatelessWidget {
+  const BusyOverlay({
+    Key? key,
+    required this.busy,
+    required this.child,
+    this.label,
+    this.size = 40,
+  }) : super(key: key);
+
+  /// Ob gerade gearbeitet wird.
+  final bool busy;
+
+  /// Die Seite darunter.
+  final Widget child;
+
+  /// Ein Text unter der Anzeige, z.B. „Share wird gespeichert …".
+  final String? label;
+
+  /// Größe der Punkte.
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!busy) return child;
+    return Stack(
+      children: <Widget>[
+        child,
+        // `Positioned.fill` über allem: Die Anzeige hängt an keiner Stelle der
+        // Liste und ist deshalb auch dann sichtbar, wenn man weit unten steht.
+        Positioned.fill(
+          child: ColoredBox(
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.7),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  LoadingIndicator(size: size),
+                  if (label != null) ...<Widget>[
+                    const SizedBox(height: 14),
+                    Text(
+                      label!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// Die Ladeanzeige als Zeile für eine Seite – mit gleichmäßigem Abstand
 /// darüber und darunter, damit sie nicht am Inhalt klebt.
 class LoadingIndicatorBlock extends StatelessWidget {

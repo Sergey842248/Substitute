@@ -2222,11 +2222,23 @@ abstract class AppLocalizations {
   /// **'Choose what should be visible to others'**
   String get shareCreateSubtitle;
 
+  /// No description provided for @shareCreateSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get shareCreateSubmit;
+
   /// No description provided for @shareEdit.
   ///
   /// In en, this message translates to:
   /// **'Edit share'**
   String get shareEdit;
+
+  /// No description provided for @shareEditSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes'**
+  String get shareEditSubmit;
 
   /// No description provided for @shareEmpty.
   ///
