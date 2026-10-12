@@ -151,7 +151,7 @@ enum AppStore {
     /// das gewohnte Bild – und nicht ein helles, das er nie gesehen hat.
     static var theme: AppearanceTheme {
         switch string(AppAppearanceKeys.theme) {
-        case AppAppearanceTheme.light: return .light
+        case AppearanceTheme.light: return .light
         default: return .dark
         }
     }

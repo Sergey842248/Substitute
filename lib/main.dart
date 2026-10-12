@@ -379,6 +379,18 @@ class _MyAppState extends State<MyApp> {
       });
     };
     AppAppearance.aenderung.addListener(_appearanceListener);
+
+    // Auf iOS wird das Aussehen auch in den **nativen** Einstellungen
+    // umgestellt. Dart hat den Wert zu diesem Zeitpunkt noch nicht gesehen –
+    // `SharedPreferences` merkt sich nur, was es selbst geschrieben hat, und
+    // geschrieben hat hier die native Seite.
+    //
+    // Ohne diesen Zuhörer würde beim Umschalten die Leiste und die
+    // Einstellungsseite mitziehen, der Plan aber in der alten Helligkeit
+    // stehen bleiben: zwei Helligkeiten auf einmal, und beide „richtig"
+    // gerechnet.
+    NativeShell.onAppearanceChanged(_themeVonDerNativenSeite);
+
     // Nur noch, wenn die Einstellung **nicht** schon mitgegeben wurde. Sonst
     // wäre das ein `setState` auf denselben Wert und ein zweiter Aufbau des
     // ganzen Bildschirms, kurz nach dem ersten.
@@ -387,6 +399,22 @@ class _MyAppState extends State<MyApp> {
         if (mounted) setState(() => _themeMode = mode);
       });
     }
+  }
+
+  /// Liest Theme **und** Sprache neu ein, weil die native Seite sie geändert
+  /// hat.
+  ///
+  /// Beides kommt über denselben Weg: Die native Seite meldet nur „ich habe
+  /// etwas geschrieben", und hier wird nachgelesen. So kann es nicht zwei
+  /// Stellen geben, die unterschiedliche Werte für dieselbe Sache behaupten.
+  void _themeVonDerNativenSeite() {
+    if (!mounted) return;
+    AppAppearance.reloadTheme().then((ThemeMode mode) {
+      if (mounted) setState(() => _themeMode = mode);
+    });
+    AppLanguage.reloadLanguage().then((Locale? sprache) {
+      if (mounted) setState(() => _locale = sprache);
+    });
   }
 
   @override

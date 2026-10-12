@@ -62,9 +62,15 @@ enum NativeShellBridge {
     }
 
     /// Registriert den Kanal einer Ansicht.
-    static func register(channelWith messenger: FlutterBinaryMessenger) {
+    ///
+    /// Es wird bewusst die **Maschine** übergeben und nicht ihr Vermittler:
+    /// Dessen Objective-C-Typ (`NSObject<FlutterBinaryMessenger>`) müsste man in
+    /// Swift ausschreiben, und eine falsch geschriebene Typangabe wäre ein
+    /// Compilerfehler an genau der Stelle, an der es am wenigsten auffällt.
+    /// So muss niemand den Typ benennen.
+    static func register(on engine: FlutterEngine) {
         let channel = FlutterMethodChannel(
-            name: channelName, binaryMessenger: messenger)
+            name: channelName, binaryMessenger: engine.binaryMessenger)
         channels.append(channel)
 
         channel.setMethodCallHandler { call, result in

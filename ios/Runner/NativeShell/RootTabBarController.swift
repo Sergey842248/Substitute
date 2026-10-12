@@ -52,8 +52,12 @@ final class RootTabBarController: UITabBarController {
     /// Gelesen von der Reihenfolge hier und **nicht** umgekehrt: Die Reihenfolge
     /// ist eine Entscheidung der Oberfläche, und die Abschnitte wählen sich nicht
     /// gegenseitig aus.
-    private enum Tab {
-                case plan
+    ///
+    /// `Equatable` braucht es, weil [bauen] die alte Liste mit der gewünschten
+    /// vergleicht, um zu erfahren, ob sich überhaupt etwas geändert hat – und
+    /// einen **Schlüssel**, um den zuletzt gesehen Abschnitt wiederzufinden.
+    private enum Tab: Equatable {
+        case plan
         case search
         case sync
         case more
@@ -99,16 +103,45 @@ final class RootTabBarController: UITabBarController {
 
     /// Setzt die Leiste aus den Abschnitten zusammen.
     ///
-    /// Sie wird **neu gebaut**, nicht nur eingefärbt, wenn sich die Einstellung
-    /// ändert: Der Sync-Eintrag kommt hinzu oder geht weg, und dafür gibt es in
-    /// `UITabBarController` keinen Schalter – man setzt die Abschnitte neu.
+    /// ## Warum hier **nicht** bei jeder Änderung neu gebaut wird
+    ///
+    /// Der naheliegende Aufbau wäre: bei jeder Meldung alles neu erzeugen. Das
+    /// ist aber falsch, und zwar teuer:
+    ///
+    /// Jeder Abschnitt besitzt eine **Flutter-Maschine**, und die bringt beim
+    /// Start die ganze App mit – auch die teuren Durchgänge beim Start
+    /// (`healForms`, `repairLists`). Würde ein **Hell-auf-Dunkel**-Wechsler die
+    /// Leiste neu bauen, liefen die **dreimal** durch, obwohl sich an der Zahl
+    /// der Abschnitte **nichts** geändert hat.
+    ///
+    /// Gebaut wird deshalb nur, wenn sich die Menge der Abschnitte wirklich
+    /// geändert hat – also genau dann, wenn der Sync-Eintrag ein- oder
+    /// weggenommen wird. Sonst genügt es, die Farben zu setzen.
     private func bauen() {
+        let gewuenscht = abschnitte()
+
+        // Nichts hinzugekommen, nichts weg: Nichts zu tun. Das ist der Fall für
+        // **jede** Helligkeits- und Sprachänderung.
+        guard gewuenscht != controllers else {
+            farbenSetzen()
+            return
+        }
+
         let aktuelleAuswahl = selectedIndex
+        // Welcher Abschnitt war gerade da? Das wird über seinen **Schlüssel**
+        // behalten und nicht über seine Nummer – die verschiebt sich, sobald der
+        // Sync-Eintrag davor weggeht.
+        //
+        // Ohne das sprang die Leiste beim Abschalten von „Sync" vom Plan auf
+        // „Suche", obwohl man im Plan war.
+        let vorherAktiv: Tab? =
+            aktuelleAuswahl >= 0 && aktuelleAuswahl < controllers.count
+            ? controllers[aktuelleAuswahl] : nil
 
         var neuer: [UIViewController] = []
-        controllers = []
+        var neuListe: [Tab] = []
 
-        for section in abschnitte() {
+        for section in gewuenscht {
             let controller: UIViewController
             switch section {
             case .plan, .search, .sync:
@@ -124,15 +157,18 @@ final class RootTabBarController: UITabBarController {
             }
             controller.tabBarItem = tabBarItem(for: section)
             neuer.append(controller)
-            controllers.append(section)
+            neuListe.append(section)
         }
 
+        controllers = neuListe
         setViewControllers(neuer, animated: false)
-        // Nach dem Neuaufbau ist die Nummer ungültig. Die alte Auswahl wird
-        // nur übernommen, wenn sie noch etwas bedeutet – sonst läge die Leiste
-        // auf einem Abschnitt, den es gar nicht mehr gibt.
-        if aktuelleAuswahl >= 0 && aktuelleAuswahl < neuer.count {
-            selectedIndex = aktuelleAuswahl
+
+        // Der zuletzt gesehen Abschnitt wird wiederhergestellt, wenn er noch
+        // da ist – sonst die erste Stelle.
+        if let vorherAktiv,
+           let index = neuListe.firstIndex(of: vorherAktiv)
+        {
+            selectedIndex = index
         } else {
             selectedIndex = 0
         }
@@ -184,9 +220,11 @@ final class RootTabBarController: UITabBarController {
     private func farbenSetzen() {
         tabBar.tintColor = Appearance.accent
         view.backgroundColor = Appearance.background
-        if chromeHidden {
-            tabBar.isHidden = true
-        }
+        // Ausdrücklich **beide** Zustände, nicht nur „verstecken, wenn
+        // ausgeblendet". Sonst hinge die Leiste in einem Zustand fest, den
+        // jemand anders gesetzt hat, und niemand bräuchte sie wieder
+        // einzuschalten.
+        tabBar.isHidden = chromeHidden
     }
 
     @objc private func settingsDidChange() {
@@ -284,7 +322,7 @@ class PlanSectionController: UIViewController {
         // Abschnitten kurz der Bildschirm dahinter durchscheinen.
         controller.view.backgroundColor = Appearance.background
 
-        NativeShellBridge.register(channelWith: engine.binaryMessenger)
+        NativeShellBridge.register(on: engine)
 
         flutterViewController = controller
         view = controller.view

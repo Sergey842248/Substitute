@@ -39,7 +39,7 @@ final class MoreScreen: ListScreen {
                 symbol: "paintpalette"
             ) {
                 let controller = AppearanceScreen()
-                navigationController?.pushViewController(controller, animated: true)
+                self.navigationController?.pushViewController(controller, animated: true)
             },
             .choice(
                 title: L.language,
@@ -47,7 +47,7 @@ final class MoreScreen: ListScreen {
                 symbol: "globe"
             ) {
                 let controller = LanguageScreen()
-                navigationController?.pushViewController(controller, animated: true)
+                self.navigationController?.pushViewController(controller, animated: true)
             },
             .choice(
                 title: L.schools,
@@ -55,7 +55,7 @@ final class MoreScreen: ListScreen {
                 symbol: "building.2"
             ) {
                 let controller = SchoolsScreen()
-                navigationController?.pushViewController(controller, animated: true)
+                self.navigationController?.pushViewController(controller, animated: true)
             },
         ]
 
@@ -73,7 +73,7 @@ final class MoreScreen: ListScreen {
                     symbol: "lock"
                 ) {
                     FlutterRoute.present(
-                        .vplanLogin, from: navigationController)
+                        .vplanLogin, from: self.navigationController)
                 })
         }
 
@@ -89,7 +89,7 @@ final class MoreScreen: ListScreen {
                 subtitle: L.planSettingsSubtitle,
                 symbol: "calendar.badge.clock"
             ) {
-                FlutterRoute.present(.planSettings, from: navigationController)
+                FlutterRoute.present(.planSettings, from: self.navigationController)
             })
         einstellungen.append(
             .choice(
@@ -97,7 +97,7 @@ final class MoreScreen: ListScreen {
                 subtitle: L.teacherShortsSubtitle,
                 symbol: "person.text.rectangle"
             ) {
-                FlutterRoute.present(.teacherShorts, from: navigationController)
+                FlutterRoute.present(.teacherShorts, from: self.navigationController)
             })
         einstellungen.append(
             .choice(
@@ -105,7 +105,7 @@ final class MoreScreen: ListScreen {
                 subtitle: L.backupSubtitle,
                 symbol: "externaldrive.badge.timemachine"
             ) {
-                FlutterRoute.present(.backup, from: navigationController)
+                FlutterRoute.present(.backup, from: self.navigationController)
             })
         einstellungen.append(
             .choice(
@@ -113,7 +113,7 @@ final class MoreScreen: ListScreen {
                 subtitle: L.developerOptionsSubtitle,
                 symbol: "hammer"
             ) {
-                FlutterRoute.present(.developerOptions, from: navigationController)
+                FlutterRoute.present(.developerOptions, from: self.navigationController)
             })
 
         return [
@@ -129,7 +129,7 @@ final class MoreScreen: ListScreen {
                         subtitle: L.sickTrackSubtitle,
                         symbol: "cross.case"
                     ) {
-                        FlutterRoute.present(.sickTrack, from: navigationController)
+                        FlutterRoute.present(.sickTrack, from: self.navigationController)
                     }
                 ]),
         ]

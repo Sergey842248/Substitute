@@ -33,7 +33,12 @@ enum Row {
     /// Der Wert wird hier **nicht** gemerkt. Wer den Bildschirm baut, gibt ihn
     /// bei jedem Aufbau mit, und der Schalter schreibt ihn – so kann die Zeile
     /// gar nichts anderes anzeigen, als gespeichert ist.
-    case toggle(
+    ///
+    /// Der Fall heißt `toggleRow` und nicht `toggle`, weil es unterhalb schon
+    /// eine gleichnamige [Row.toggle]-Funktion gibt: Zwei Dinge mit derselben
+    /// Signatur an einem Ort lässt Swift nicht zu – und die Funktion ist die,
+    /// die man aufrufen will, weil sie die Vorgaben mitbringt.
+    case toggleRow(
         title: String,
         subtitle: String?,
         symbol: String,
@@ -46,14 +51,14 @@ enum Row {
     /// Es sind gleichwertige Möglichkeiten, und ein Schalter müsste durch
     /// seinen Zustand sagen, was beim Umstellen passiert. Die Flächen zeigen
     /// beide, und die gewählte ist gefüllt.
-    case segment(
+    case segmentRow(
         title: String,
         subtitle: String?,
         symbol: String,
         options: [SegmentOption])
 
     /// Eine Zeile, die nichts tut, sondern nur einen Text zeigt.
-    case text(title: String, subtitle: String?, symbol: String)
+    case textRow(title: String, subtitle: String?, symbol: String)
 
     /// Eine Zeile, die schon auf sich selbst aufmerksam macht.
     ///
@@ -133,7 +138,7 @@ extension Row {
         value: Bool,
         action: @escaping (Bool) -> Void
     ) -> Row {
-        .toggle(
+        .toggleRow(
             title: title, subtitle: subtitle, symbol: symbol,
             value: value, action: action)
     }
@@ -145,7 +150,7 @@ extension Row {
         symbol: String,
         options: [SegmentOption]
     ) -> Row {
-        .segment(
+        .segmentRow(
             title: title, subtitle: subtitle, symbol: symbol,
             options: options)
     }
@@ -154,7 +159,7 @@ extension Row {
     static func text(title: String, subtitle: String? = nil, symbol: String)
         -> Row
     {
-        .text(title: title, subtitle: subtitle, symbol: symbol)
+        .textRow(title: title, subtitle: subtitle, symbol: symbol)
     }
 }
 
@@ -229,6 +234,23 @@ class ListScreen: UIViewController {
     /// Wird bei [neuLaden] gerufen, nicht einmal beim Aufbau – deshalb darf
     /// hier gelesen werden, ohne dass man sich sorgen muss, wann.
     func makeSections() -> [Section] { [] }
+
+    /// Was beim Wischen nach links passiert.
+    ///
+    /// ## Warum ein **Haken** und nicht das Überschreiben der Methode
+    ///
+    /// Der naheliegende Weg wäre gewesen, in einer Unterklasse
+    /// `tableView(_:trailingSwipeActionsConfigurationForRowAt:)` mit `override`
+    /// zu überschreiben. Das lässt Swift **nicht** zu: Die Delegate-Methoden
+    /// stehen in einer Erweiterung, und was dort steht, kann eine Unterklasse
+    /// nicht überschreiben – der Compiler sagt „does not override any method
+    /// from its superclass", und die Aktion fällt still weg.
+    ///
+    /// Deshalb geht der Weg über diese Methode: Sie steht im Klassenrumpf und
+    /// ist damit ganz normal überschreibbar, und die Liste fragt sie nur ab.
+    func swipeActions(at indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        nil
+    }
 
     /// Liest die Abschnitte neu und baut die Liste neu auf.
     func neuLaden() {
@@ -430,6 +452,16 @@ final class SegmentCell: UITableViewCell {
 // MARK: - Die Liste
 
 extension ListScreen: UITableViewDataSource, UITableViewDelegate {
+    /// Die Aktionen beim Wischen – von der Oberklasse **umsetzbar**.
+    ///
+    /// Siehe [swipeActions(at:)].
+    func tableView(
+        _ tableView: UITableView,
+        trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath
+    ) -> UISwipeActionsConfiguration? {
+        swipeActions(at: indexPath)
+    }
+
     func numberOfSections(in tableView: UITableView) -> Int {
         sections.count
     }
@@ -446,13 +478,13 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
         let row = sections[indexPath.section].rows[indexPath.row]
 
         switch row {
-        case let .segment(_, _, _, options):
+        case let .segmentRow(_, _, _, options):
             let cell = tableView.dequeueReusableCell(
                 withIdentifier: SegmentCell.reuseId, for: indexPath) as! SegmentCell
             cell.configure(options: options, accent: Appearance.accent)
             return cell
 
-        case let .toggle(titel, untertitel, symbol, wert, aktion):
+        case let .toggleRow(titel, untertitel, symbol, wert, aktion):
             let cell = dequeue(indexPath)
             (cell as? SubtitleCell)?.setzeInhalt(
                 titel: titel, untertitel: untertitel, symbol: symbol)
@@ -460,12 +492,23 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
 
             let schalter = UISwitch()
             schalter.isOn = wert
+            // Der Absender einer `UIAction` ist die **Aktion**, nicht der
+            // Schalter – `s.isOn` gibt es also nicht. Den Schalter hält der
+            // Wurf ohnehin fest.
+            //
+            // `schalter` wird **schwach** gefangen: Der Schalter hält die
+            // Aktion, die Aktion würde den Schalter halten – ein Kreis, der die
+            // Zelle am Leben hält, obwohl sie längst aus der Liste ist.
             schalter.addAction(
-                UIAction { s in aktion(s.isOn) }, for: .valueChanged)
+                UIAction { [weak schalter] _ in
+                    guard let schalter else { return }
+                    aktion(schalter.isOn)
+                },
+                for: .valueChanged)
             cell.accessoryView = schalter
             return cell
 
-        case let .text(titel, untertitel, symbol):
+        case let .textRow(titel, untertitel, symbol):
             let cell = dequeue(indexPath)
             (cell as? SubtitleCell)?.setzeInhalt(
                 titel: titel, untertitel: untertitel, symbol: symbol)
@@ -521,7 +564,7 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
         case let .choice(_, _, _, _, _, aktion): aktion()
         // Beim Schalter erledigt die Kachel das selbst – die ganze Zeile
         // tippen zu lassen wäre eine zweite, schlechtere Stelle dafür.
-        case .toggle, .segment, .text, .warning: break
+        case .toggleRow, .segmentRow, .textRow, .warning: break
         }
     }
 
@@ -546,9 +589,9 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
         _ tableView: UITableView, heightForRowAt indexPath: IndexPath
     ) -> CGFloat {
         switch sections[indexPath.section].rows[indexPath.row] {
-        case .segment: return 66
-        case .toggle, .choice: return 72
-        case .text, .warning: return 52
+        case .segmentRow: return 66
+        case .toggleRow, .choice: return 72
+        case .textRow, .warning: return 52
         }
     }
 }

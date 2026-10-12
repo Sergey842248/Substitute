@@ -110,14 +110,11 @@ final class SchoolsScreen: ListScreen {
     /// zeigt – und eine Aktion, die nicht tut, was sie ankündigt, ist
     /// schlechter als gar keine.
     ///
-    /// `override` ist nötig, weil die Liste ihre Zellen in einer Erweiterung
-    /// aufbaut. Diese Methoden stammen zwar aus dem `UITableViewDelegate` und
-    /// sind deshalb überschreibbar – ohne das Schlüsselwort weigert sich Swift
-    /// aber, sie als Überschreibung zu erkennen.
-    override func tableView(
-        _ tableView: UITableView,
-        trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath
-    ) -> UISwipeActionsConfiguration? {
+    /// Siehe [ListScreen.swipeActions(at:)] – warum hier ein Haken steht und
+    /// keine `UITableViewDelegate`-Methode überschrieben wird.
+    override func swipeActions(at indexPath: IndexPath)
+        -> UISwipeActionsConfiguration?
+    {
         let liste = profiles()
         guard indexPath.row < liste.count else { return nil }
         let profil = liste[indexPath.row]

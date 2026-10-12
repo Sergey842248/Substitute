@@ -114,10 +114,14 @@ enum AppearanceObserver {
 
     /// Wird gerufen, wenn die **Systemeinstellung** sich ändert.
     ///
-    /// Nur relevant, wenn die App dem Gerät folgt – siehe [Appearance.followsSystem].
-    /// Auch dann aber nicht für den Akzent: Der wird aus der **eingestellten**
-    /// Helligkeit gebildet, damit native Leiste und Flutter-Seite zusammen
-    /// bleiben.
+    /// Die App folgt dem Gerät **nicht** – es gibt nur hell und dunkel, und die
+    /// werden hier fest eingestellt.
+    ///
+    /// Auch darum wird hier der Akzent nicht neu gebildet: Er entsteht aus der
+    /// **eingestellten** Helligkeit, damit native Leiste und Flutter-Seite
+    /// zusammenbleiben. Aus dem Gerät holen würde bedeuten, dass die Leiste dem
+    /// Gerät folgt und die Seite der Einstellung – zwei Bilder um dieselbe
+    /// Zeit.
     static func systemInterfaceStyleDidChange() {
         settingsDidChange()
     }
