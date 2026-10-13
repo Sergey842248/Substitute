@@ -871,6 +871,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       case NativeShellRole.sectionSync:
         return 'syncShare';
       case NativeShellRole.sectionPlan:
+      case NativeShellRole.tool:
       case NativeShellRole.full:
         return 'vplanStudents';
     }

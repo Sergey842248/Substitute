@@ -24,6 +24,12 @@ enum NativeShellRole {
 
   /// Sync & Teilen.
   sectionSync,
+
+  /// Ein Flutter-Werkzeug, das von der nativen „Mehr“-Ansicht geöffnet wird.
+  ///
+  /// Es ist kein Reiter und baut deshalb keine eigene Tab-Leiste. Es liegt
+  /// aber in einer nativen Hülle und muss bis an deren unteren Rand reichen.
+  tool,
 }
 
 /// Die Verbindung zur nativen Schale auf iOS.
@@ -68,8 +74,24 @@ class NativeShell {
   /// wie es war.
   static NativeShellRole get role => _role;
 
-  /// true, wenn nicht die ganze App, sondern nur ein Abschnitt gezeigt wird.
-  static bool get isSection => _role != NativeShellRole.full;
+  /// true, wenn diese Ansicht einer der drei unteren Reiter ist.
+  ///
+  /// Ein [NativeShellRole.tool] ist zwar ebenfalls in der nativen Hülle, aber
+  /// kein Reiter: Es bleibt ein vollständiger Flutter-Bildschirm und darf
+  /// deshalb weder die Reiter-Route noch deren Navigation übernehmen.
+  static bool get isSection =>
+      _role == NativeShellRole.sectionPlan ||
+      _role == NativeShellRole.sectionSearch ||
+      _role == NativeShellRole.sectionSync;
+
+  /// Ob diese Ansicht bis an den unteren Rand der nativen Hülle reichen darf.
+  ///
+  /// Reiter liegen hinter der transparenten Tab-Leiste. Werkzeuge werden aus
+  /// dem nativen „Mehr“-Bildschirm geöffnet; dort wird die Tab-Leiste zwar
+  /// ausgeblendet, Flutter bekäme ohne diese Kennzeichnung aber weiterhin den
+  /// alten unteren Safe-Area-Abstand und zeigte eine leere Zwischenschicht.
+  static bool get extendsToNativeBottom =>
+      isSection || _role == NativeShellRole.tool;
 
   /// Der Name des Kanals, über den eine **bestimmte** Ansicht ihre
   /// Nachrichten empfängt.
@@ -111,6 +133,8 @@ class NativeShell {
         return NativeShellRole.sectionSearch;
       case 'sync':
         return NativeShellRole.sectionSync;
+      case 'tool':
+        return NativeShellRole.tool;
       default:
         return NativeShellRole.full;
     }
@@ -158,6 +182,8 @@ class NativeShell {
         return '/abschnitt/suche';
       case NativeShellRole.sectionSync:
         return '/abschnitt/sync';
+      case NativeShellRole.tool:
+        return '/';
       case NativeShellRole.full:
         return '/';
     }

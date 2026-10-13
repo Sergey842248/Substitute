@@ -207,7 +207,7 @@ class _ListPageState extends State<ListPage> {
       // transparente Tab-Leiste reichen. Der zusätzliche Platz steht als
       // letztes Listenelement und nicht dauerhaft am Bildschirmrand.
       child: SafeArea(
-        bottom: !NativeShell.isSection,
+        bottom: !NativeShell.extendsToNativeBottom,
         child: Container(
           child: Stack(
             children: [

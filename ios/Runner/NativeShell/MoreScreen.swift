@@ -186,9 +186,12 @@ enum FlutterRoute {
     ) {
         let options = FlutterEngineGroupOptions()
         options.entrypoint = "main"
-        // Ohne Rolle: Diese Ansicht ist **die ganze App** – sie hat ihre
-        // eigene Leiste, und sie ist keine Karte der Leiste darunter.
-        options.entrypointArgs = []
+        // Werkzeuge sind keine Reiter, aber sie stehen in der nativen Hülle.
+        // Die Rolle verhindert, dass Flutter ihren weiterhin gemeldeten
+        // unteren Safe-Area-Bereich als dauerhafte leere Schicht zeichnet.
+        // Sie bleibt bewusst von den Reiter-Rollen getrennt: Die Tab-Leiste
+        // wird für ein Werkzeug weiterhin ausgeblendet.
+        options.entrypointArgs = ["--substitute-role=tool"]
         options.initialRoute = route.dartRoute
 
         // Eine eigene Maschine: Das Werkzeug soll die Abschnitte nicht
