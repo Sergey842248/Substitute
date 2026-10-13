@@ -536,9 +536,23 @@ class _ListPageState extends State<ListPage> {
   /// Der Inhalt bei [fillHeight]: Eine [Column] über die volle Höhe statt einer
   /// [ListView]. [Expanded]-Kinder bekommen dadurch den Rest der Höhe – das ist
   /// der Punkt: So teilt sich das Grid den Bildschirm, statt zu überlaufen.
+  ///
+  /// ## Warum der Abschluss hier **fest** steht und nicht im Scrollpfad
+  ///
+  /// Bei dieser Variante gibt es überhaupt kein Scrollen, also gibt es auch
+  /// nichts, was man „ nach unten schchieben“ könnte. Der Platz für die Tab-Leiste
+  /// muss deshalb **vorab** feststehen: Die [Expanded]-Kinder teilen sich hier
+  /// den Rest der Höhe, und die Leiste liegt nach dem Raster, nicht darüber.
+  ///
+  /// Vorher stand er hier nicht – [ListPage] setzte den Abschluss nur in den
+  /// [ListView]-Zweig. Die Wochenansicht war dadurch genau eine Bildschirmhöhe
+  /// zu hoch, und die letzte Stunde lag hinter der Leiste.
   Widget _buildFillingContent() {
     return Column(
-      children: widget.children,
+      children: <Widget>[
+        ...widget.children,
+        const NativeShellScrollEndInset(),
+      ],
     );
   }
 }

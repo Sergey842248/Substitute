@@ -329,12 +329,34 @@ class NativeShell {
 /// gesamten Bildschirm: Nur ganz unten kann man den letzten Eintrag dadurch
 /// über die Leiste schieben; während des restlichen Scrollens bleibt der
 /// Inhalt hinter der transparenten Leiste sichtbar.
+///
+/// ## Für wen er gilt – und für wen nicht
+///
+/// Geprüft wird [NativeShell.extendsToNativeBottom], **nicht** [isSection].
+///
+/// Der Unterschied ist genau der Fehler, der die Werkzeuge betraf hat: Ein
+/// Werkzeug wie „Lehrerkürzel festlegen" ist **kein** Reiter – es hat kein
+/// `--substitute-role=plan` und damit auch kein [isSection]. Nach der alten
+/// Prüfung bekam es keinen Abschluss, obwohl es sehr wohl bis an den unteren
+/// Rand reicht ([extendsToNativeBottom] gilt dort ausdrücklich zu).
+///
+/// Und wofür braucht es den Platz überhaupt, wenn die Leiste ausgeblendet ist?
+/// Für den **sicheren Bereich des Geräts**: [untererBereich] ist mindestens so
+/// gross wie der Abstand für die Geste-Zone am unteren Rand. Ohne den Abschluss
+/// reichte der letzte Eintrag bis in genau diese Zone hinein.
+///
+/// ## Warum nicht einfach immer
+///
+/// Auf Android und im Web gibt es keine native Leiste, und [ueberdeckung]
+/// bleibt dort auf `0`. Der Abschnitt würde dann zwar nur den sicheren Bereich
+/// einfügen – aber doppelt, denn `SafeArea` setzt ihn bereits. Deshalb gilt er
+/// nur dort, wo Flutter wirklich bis an den unteren Rand reicht.
 class NativeShellScrollEndInset extends StatelessWidget {
   const NativeShellScrollEndInset({super.key});
 
   @override
   Widget build(BuildContext context) {
-    if (!NativeShell.isSection) return const SizedBox.shrink();
+    if (!NativeShell.extendsToNativeBottom) return const SizedBox.shrink();
 
     return ValueListenableBuilder<double>(
       valueListenable: NativeShell.ueberdeckung,

@@ -336,14 +336,34 @@ final class RootTabBarController: UITabBarController {
     }
 
     /// Berechnet den verdeckten Streifen und sagt ihn allen Ansichten.
+    ///
+    /// ## Warum hier auch `0` gemeldet wird
+    ///
+    /// Früher stand hier ein `guard !tabBar.isHidden … else { return }`. Damit
+    /// wurde bei ausgeblendeter Leiste **gar nichts** gesagt – und die Ansicht
+    /// behielt den **letzten** Wert behalten. Wer die Leiste also verlor, sah
+    /// weiterhin den Platz, den sie belegt hatte: ein Loch am unteren Rand, das
+    /// niemand erklären konnte.
+    ///
+    /// Jetzt wird in jedem Fall gemeldet. `0` ist dabei nicht „nichts",
+    /// sondern der **richtige** Wert: Es ist nichts verdeckt.
     private func meldeUeberdeckung() {
-        guard !tabBar.isHidden, !view.bounds.isEmpty else { return }
+        guard !view.bounds.isEmpty else { return }
+
+        // Ohne Leiste verdeckt sie nichts – und die Ansicht reicht dann bis zum
+        // unteren Rand. `safeAreaInsets.bottom` greift trotzdem, weil der
+        // Inhalt nicht in die Geste-Zone hineinreichen soll.
+        guard !tabBar.isHidden else {
+            NativeShellBridge.setzeUeberdeckung(view.safeAreaInsets.bottom)
+            return
+        }
 
         // Der obere Rand der Leiste, bezogen auf **diesen** Bildschirm. Liegt
         // die Leiste ausserhalb (etwa weil sie gerade weganimiert wird), ergibt
         // das einen Unsinn – deshalb wird das abgefangen.
         let leistenOberrand = tabBar.frame.minY
         guard leistenOberrand > 0, leistenOberrand < view.bounds.height else {
+            NativeShellBridge.setzeUeberdeckung(view.safeAreaInsets.bottom)
             return
         }
 
