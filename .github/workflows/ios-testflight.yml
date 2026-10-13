@@ -93,54 +93,6 @@ jobs:
           # Generate Flutter/iOS build configuration and CocoaPods integration.
           flutter build ios --release --no-codesign --build-name "${APP_VERSION}" --build-number "${BUILD_NUMBER}"
 
-      - name: Fix Runner signing identity for automatic signing
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PYTHON'
-          from pathlib import Path
-          import re
-
-          root = Path("ios")
-          project = root / "Runner.xcodeproj/project.pbxproj"
-          if not project.is_file():
-              raise SystemExit(f"Missing Xcode project file: {project}")
-
-          # Find hard-coded signing identities in the app project's build settings
-          # and source xcconfig files. Do not edit generated Flutter files or Pods.
-          files = [project]
-          for path in root.rglob("*.xcconfig"):
-              if any(part in {"Pods", ".symlinks", "ephemeral", "build"} for part in path.parts):
-                  continue
-              files.append(path)
-
-          pattern = re.compile(
-              r'(?m)^([\t ]*CODE_SIGN_IDENTITY(?:\[[^\]]+\])?[\t ]*=[\t ]*)([\"\']?)Apple Distribution\2([\t ]*;?[\t ]*(?://.*)?$)'
-          )
-          total = 0
-          for path in files:
-              original = path.read_text(encoding="utf-8")
-              updated, count = pattern.subn(r'\1\2Apple Development\2\3', original)
-              if count:
-                  path.write_text(updated, encoding="utf-8")
-                  print(f"Changed {count} Apple Distribution signing override(s) to Apple Development in {path}.")
-                  total += count
-
-          if total == 0:
-              found = []
-              for path in files:
-                  for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-                      if "CODE_SIGN_IDENTITY" in line and "Apple Distribution" in line:
-                          found.append(f"{path}:{number}: {line.strip()}")
-              if found:
-                  print("\n".join(found))
-                  raise SystemExit("Found a Distribution identity but could not safely rewrite it.")
-              raise SystemExit(
-                  "No literal Apple Distribution CODE_SIGN_IDENTITY was found in the Runner project or source xcconfig files. "
-                  "The setting may be inherited elsewhere; inspect Xcode build settings before retrying."
-              )
-          PYTHON
-
       - name: Prepare App Store Connect API key and export options
         shell: bash
         run: |
@@ -199,9 +151,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Do not force CODE_SIGN_IDENTITY globally: that conflicts with the
-          # development signing defaults of Flutter plugin/package targets.
-          # Xcode automatic signing selects the Distribution identity for the archive.
           xcodebuild \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
