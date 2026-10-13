@@ -430,7 +430,11 @@
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				// TestFlight/App-Store-Archive: kein Entwicklungszertifikat.
+				// Mit "iPhone Developer" versucht Xcode auf einem CI-Runner ein
+				// weiteres Development-Zertifikat anzulegen und scheitert, sobald
+				// das Apple-Konto dessen Limit erreicht hat.
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
