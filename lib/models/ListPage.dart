@@ -537,22 +537,23 @@ class _ListPageState extends State<ListPage> {
   /// [ListView]. [Expanded]-Kinder bekommen dadurch den Rest der Höhe – das ist
   /// der Punkt: So teilt sich das Grid den Bildschirm, statt zu überlaufen.
   ///
-  /// ## Warum der Abschluss hier **fest** steht und nicht im Scrollpfad
+  /// ## Warum hier **kein** [NativeShellScrollEndInset] steht
   ///
-  /// Bei dieser Variante gibt es überhaupt kein Scrollen, also gibt es auch
-  /// nichts, was man „ nach unten schchieben“ könnte. Der Platz für die Tab-Leiste
-  /// muss deshalb **vorab** feststehen: Die [Expanded]-Kinder teilen sich hier
-  /// den Rest der Höhe, und die Leiste liegt nach dem Raster, nicht darüber.
+  /// Der Platz für die native Tab-Leiste gehört ans **Ende einer Scrollstrecke**,
+  /// nicht als fester Rand um den Bildschirm. Als fester Rand wäre er immer
+  /// sichtbar und sähe aus wie eine Schicht zwischen Inhalt und Leiste – genau
+  /// der Fehler, der in der Wochenansicht passiert ist.
   ///
-  /// Vorher stand er hier nicht – [ListPage] setzte den Abschluss nur in den
-  /// [ListView]-Zweig. Die Wochenansicht war dadurch genau eine Bildschirmhöhe
-  /// zu hoch, und die letzte Stunde lag hinter der Leiste.
+  /// Der Bildschirm, der [fillHeight] benutzt, ist der Plan einer Woche, und der
+  /// bringt sein **eigenes** Scrollen mit (siehe `WeekPlanGrid`): Dort steht der
+  /// Abschluss am Ende der Scrollstrecke. Hier einen zweiten anzufügen würde
+  /// denselben Platz **zweimal** reservieren – einmal als fester Rand und einmal
+  /// am Ende.
+  ///
+  /// [Überall sonst](_buildContent) gilt der Abschluss weiterhin unverändert.
   Widget _buildFillingContent() {
     return Column(
-      children: <Widget>[
-        ...widget.children,
-        const NativeShellScrollEndInset(),
-      ],
+      children: widget.children,
     );
   }
 }

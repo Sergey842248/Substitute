@@ -7,20 +7,20 @@ import 'package:substitute/services/NativeShell.dart';
 ///
 /// ## Der Fehler, den diese Tests festhalten
 ///
-/// Der Abschluss am Listenende stand an **zwei** Stellen, aber nicht an der
-/// dritten, und er prüfte die **falsche** Rolle:
+/// Der Platz für die native Tab-Leiste gehört ans **Ende einer Scrollstrecke**.
+/// Als fester Rand um den Bildschirm ist er immer sichtbar und sieht aus wie
+/// eine Schicht zwischen Inhalt und Leiste.
 ///
-/// * `ListPage` setzte ihn nur in den `ListView`-Zweig. Die Variante
-///   `fillHeight` – eine [Column] ohne Scrollen – vergaß ihn ganz. Genau die
-///   Wochenansicht benutzt [fillHeight], und dadurch lag die letzte Stunde
-///   hinter der Tab-Leiste.
-/// * Geprüft wurde [NativeShell.isSection]. Ein Werkzeug wie „Lehrerkürzel
-///   festlegen“ hat aber keine Reiter-Rolle, sondern [NativeShellRole.tool] –
-///   es bekam also keinen Abspruch, obwohl es sehr wohl bis an den unteren Rand
-///   reicht.
+/// Genau das ist zweimal passiert:
 ///
-/// [NativeShell.extendsToNativeBottom] ist die eine Aussage, auf die es
-/// ankommt: „Reicht diese Ansicht bis an den unteren Rand der nativen Hülle?“
+/// * In [ListPage] stand er nur im `ListView`-Zweig. Die Wochenansicht
+///   benutzt [ListPage.fillHeight] – die Variante ohne Scrollen – und bekam
+///   daraufhin gar keinen Platz; die letzte Stunde lag hinter der Leiste.
+/// * Der Ausweg „dann halt dauerhaft einplanen“ brachte den **festen Streifen**
+///   hervor, den der Nutzer als Schicht beschrieben hat.
+///
+/// Die Auflösung ist beides nicht: Der Bildschirm bringt sein **eigenes**
+/// Scrollen mit (`WeekPlanGrid`), und der Platz steht am Ende davon.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -29,9 +29,8 @@ void main() {
     NativeShell.debugSetRole(NativeShellRole.full);
   });
 
-  /// Eine [ListPage] mit [fillHeight] – die Variante ohne Scrollen.
+  /// Eine [ListPage] mit [ListPage.fillHeight] – die Variante ohne Scrollen.
   Widget fuellHoehe() => MaterialApp(
-        localizationsDelegates: const <LocalizationsDelegate<Object>>[],
         home: ListPage(
           title: 'Test',
           fillHeight: true,
@@ -39,17 +38,40 @@ void main() {
         ),
       );
 
-  group('Wer den Abschluss am Listenende bekommt', () {
+  /// Eine [ListPage] mit [ListView] – die scrollende Variante.
+  Widget scrollend() => MaterialApp(
+        home: ListPage(
+          title: 'Test',
+          children: const <Widget>[Text('Zeile')],
+        ),
+      );
+
+  /// Die Höhe, die der Abschluss am Ende wirklich einnimmt.
+  ///
+  /// Geprüft wird die **Höhe** und nicht nur das Vorhandensein, denn
+  /// [NativeShellScrollEndInset] baut sich ohne native Schale zu einem
+  /// [SizedBox] der Höhe `0` – „im Baum“ wäre also kein Befund, „so hoch“ schon.
+  ///
+  /// Fehlt das Widget **ganz** – so wie im Zweig ohne Scrollen –, zählt das
+  /// ebenfalls als `0`. Beides bedeutet: Dieser Bildschirm reserviert keinen
+  /// Platz, und genau darum geht es in den Tests.
+  Future<double> hoehe(WidgetTester tester) async {
+    await tester.pumpAndSettle();
+    final Finder abschluss = find.byType(NativeShellScrollEndInset);
+    if (abschluss.evaluate().isEmpty) return 0;
+    return tester.getSize(abschluss).height;
+  }
+
+  group('Wer den Abspruch am Listenende bekommt', () {
     test('ein Reiter', () {
       NativeShell.debugSetRole(NativeShellRole.sectionPlan);
       expect(NativeShell.extendsToNativeBottom, isTrue);
     });
 
     test('ein Werkzeug – auch ohne Reiter-Rolle', () {
-      // Das ist der eigentliche Fehler gewesen: „Lehrerkürzel festlegen“ ist
-      // kein Reiter. Nach der alten Prüfung (`isSection`) wäre es durchgefallen,
-      // obwohl es in einer nativen Hülle liegt und bis an deren unteren Rand
-      // reichen muss.
+      // „Lehrerkürzel festlegen“ ist kein Reiter. Nach einer Prüfung auf
+      // [NativeShell.isSection] wäre es durchgefallen, obwohl es sehr wohl bis
+      // an den unteren Rand reicht.
       NativeShell.debugSetRole(NativeShellRole.tool);
       expect(NativeShell.isSection, isFalse,
           reason: 'ein Werkzeug ist ausdrücklich kein Reiter');
@@ -58,71 +80,52 @@ void main() {
     });
 
     test('die ganze App auf Android nicht', () {
-      // Ohne native Schale gibt es keine Leiste, und [SafeArea] setzt den
-      // sicheren Bereich bereits. Ein zusätzlicher Abschnitt wäre doppelt.
       NativeShell.debugSetRole(NativeShellRole.full);
       expect(NativeShell.extendsToNativeBottom, isFalse);
     });
   });
 
-  group('Die Liste hängt den Abschluss an', () {
-    /// Die Höhe, die der Abschluss am Ende wirklich einnimmt.
-    ///
-    /// Geprüft wird die **Höhe** und nicht das Vorhandensein des Widgets:
-    /// [NativeShellScrollEndInset] steht immer im Baum – es baut sich nur ohne
-    /// native Schale zu einem [SizedBox] der Höhe `0`. „Vorhanden“ wäre damit
-    /// kein Befund; „so hoch“ schon.
-    Future<double> hoehe(WidgetTester tester) async {
-      await tester.pumpAndSettle();
-      return tester.getSize(find.byType(NativeShellScrollEndInset)).height;
-    }
-
-    testWidgets('auch dann, wenn sie nicht scrollt',
-        (WidgetTester tester) async {
-      // Der [fillHeight]-Zweig. Er hatte den Abschluss nicht – und die
-      // Wochenansicht ist genau dieser Zweig.
+  group('Die scrollende Liste', () {
+    testWidgets('hat den Abschluss am Ende', (WidgetTester tester) async {
       NativeShell.debugSetRole(NativeShellRole.sectionPlan);
       NativeShell.ueberdeckung.value = 80;
 
-      await tester.pumpWidget(fuellHoehe());
-
-      expect(await hoehe(tester), greaterThan(0),
-          reason: 'ohne Scrollen muss der Platz fest eingeplant sein – '
-              'sonst liegt die letzte Stunde hinter der Leiste');
-    });
-
-    testWidgets('im scrollenden Zweig wie bisher', (WidgetTester tester) async {
-      NativeShell.debugSetRole(NativeShellRole.sectionPlan);
-      NativeShell.ueberdeckung.value = 80;
-
-      await tester.pumpWidget(MaterialApp(
-        home: ListPage(
-          title: 'Test',
-          children: const <Widget>[Text('Zeile')],
-        ),
-      ));
+      await tester.pumpWidget(scrollend());
 
       expect(await hoehe(tester), greaterThan(0));
     });
 
-    testWidgets('beim Werkzeug – „Lehrerkürzel festlegen“',
-        (WidgetTester tester) async {
-      // Der gemeldete Fehler: Das Werkzeug hat keine Reiter-Rolle und bekam
-      // deshalb nach der alten Prüfung keinen Abspruch.
+    testWidgets('beim Werkzeug ebenfalls', (WidgetTester tester) async {
       NativeShell.debugSetRole(NativeShellRole.tool);
       NativeShell.ueberdeckung.value = 34;
 
-      await tester.pumpWidget(fuellHoehe());
+      await tester.pumpWidget(scrollend());
 
       expect(await hoehe(tester), greaterThan(0),
           reason: 'ein Werkzeug reicht bis an den unteren Rand und braucht '
               'deshalb den Platz genauso');
     });
 
-    testWidgets('nicht auf Android', (WidgetTester tester) async {
-      // Ohne native Schale gibt es weder Leiste noch Abschnitt; [SafeArea]
-      // setzt den sicheren Bereich bereits.
+    testWidgets('auf Android nicht', (WidgetTester tester) async {
       NativeShell.debugSetRole(NativeShellRole.full);
+
+      await tester.pumpWidget(scrollend());
+
+      expect(await hoehe(tester), 0);
+    });
+  });
+
+  group('Die Liste ohne Scrollen', () {
+    testWidgets('bekommt **keinen** festen Platz', (WidgetTester tester) async {
+      // Das ist der eigentliche Fehler: Ein fester Rand am unteren Bildschirm
+      // ist **immer** sichtbar und sieht aus wie eine Schicht zwischen Inhalt
+      // und Leiste. Der Platz gehört ans Ende einer Scrollstrecke – und die
+      // bringt dieser Bildschirm selbst mit (`WeekPlanGrid`).
+      //
+      // Ein zweiter Platz wäre hier auch doppelt: `WeekPlanGrid` setzt ihn
+      // bereits ans Ende seines eigenen Scrollens.
+      NativeShell.debugSetRole(NativeShellRole.sectionPlan);
+      NativeShell.ueberdeckung.value = 80;
 
       await tester.pumpWidget(fuellHoehe());
 

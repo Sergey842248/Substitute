@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:substitute/services/NativeShell.dart';
 import 'package:intl/intl.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:substitute/services/AppColors.dart';
@@ -60,18 +61,34 @@ class WeekPlanGrid extends StatelessWidget {
   /// Wird beim Tippen auf das Stiftsymbol aufgerufen.
   final void Function(String course, DateTime day)? onSignatureTap;
 
-  /// So viele Zeilen passen ohne Scrollen auf den Bildschirm.
+  //// So viele Zeilen passen ohne Scrollen auf den Bildschirm.
   ///
-  /// Darüber hinaus wird die Woche scrollbar – mit derselben Zeilenhöhe, damit
-  /// das Raster beim Scrollen nicht springt.
+  /// Früher wurde hier entschieden, **ab** wie vielen Zeilen gescrollt wird.
+  /// Jetzt wird **immer** gescrollt, und diese Zahl hat nur noch eine
+  /// Bedeutung: Sie hält fest, wie viele Zeilen bequem nebeneinander stehen.
+  ///
+  /// ## Warum immer
+  ///
+  /// Die native iOS-Leiste liegt über dem Inhalt. Damit die letzte Stunde
+  /// **unter** die Leiste geschoben werden kann, muss es etwas geben, das man
+  /// verschieben kann – also eine Scrollansicht. Ohne sie musste der Platz
+  /// **immer** unten freigehalten werden, und genau dieser feste Streifen sah
+  /// aus wie eine Schicht zwischen Raster und Leiste.
+  ///
+  /// Scrollt die Ansicht, gehört der Platz ans **Ende** der Scrollstrecke – dort
+  /// erscheint er nur, wenn man ganz unten ist, und beim Scrollen bleibt das
+  /// Raster hinter der Leiste sichtbar. Das ist dasselbe Verhalten wie auf
+  /// allen anderen Bildschirmen.
+  ///
+  /// Scrollen, obwohl wenig da ist, ist trotzdem unschön; es bewegt sich aber
+  /// nur um die Höhe der Leiste, und dafür ist die letzte Stunde erreichbar.
   static const int rowsWithoutScrolling = 8;
 
-  /// Wie viele Zeilen beim Scrollen **über** den achten hinaus sichtbar sein
-  /// sollen – hier eine halbe.
+  /// Wie viele Zeilen über [rowsWithoutScrolling] hinaus bequem sichtbar sind.
   ///
-  /// Ohne diesen Rest wäre die neunte Stunde exakt unterhalb der Kante und man
-  /// sähe nicht, dass es weitergeht. Der halbe Rest ist der Hinweis: Es ist
-  /// etwas da, man muss nur scrollen.
+  /// Nur noch ein **Hinweis** an die Gestaltung, keine Bedingung mehr: Alle
+  /// Zeilen bekommen denselben Anteil der Höhe, und was nicht passt, wird
+  /// gescrollt.
   static const double scrollPeekRows = 0.5;
 
   /// Die Zeilen des Rasters: so viele, wie der Tag mit den meisten Stunden hat.
@@ -96,7 +113,6 @@ class WeekPlanGrid extends StatelessWidget {
     final int rows = _rowCount;
     if (days.isEmpty || rows == 0) return const SizedBox.shrink();
 
-
     // Welche Kurse bekommen an welchem Tag das Stiftsymbol? Wird hier – vor
     // dem Aufbau – einmal je Tag berechnet und nicht beim Zellenaufbau
     // mitgezählt: Das Widget ist zustandslos, ein Zähler darin würde über
@@ -119,14 +135,13 @@ class WeekPlanGrid extends StatelessWidget {
         // bliebe unten ein leeres Band stehen und die Stunden würden kleiner
         // gesetzt als nötig.
         //
-        // Ab der neunten Zeile wird durch `8 + scrollPeekRows` geteilt und
-        // gescrollt: Acht volle Zeilen plus ein halber Rest der neunten, der
-        // sichtbar bleibt und damit verrät, dass noch etwas kommt.
-        final double rowHeight =
-            (constraints.maxHeight - headerHeight) /
-            (rows < rowsWithoutScrolling
-                ? rows
-                : rowsWithoutScrolling + scrollPeekRows);
+        // Früher wurde ab der neunten Zeile nur noch durch `8 + 0,5` geteilt,
+        // damit die neunte Stunde halb sichtbar als Hinweis auf mehr blieb.
+        // Das ist nicht mehr nötig, denn die Ansicht scrollt jetzt immer: Der
+        // Platz am Ende zeigt an, dass es weitergeht, und alle Zeilen bekommen
+        // denselben Anteil – die Stunden werden also nicht kleiner, nur weil
+        // viele da sind.
+        final double rowHeight = (constraints.maxHeight - headerHeight) / rows;
 
         final Widget rowsWidget = Column(
           mainAxisSize: MainAxisSize.min,
@@ -156,6 +171,15 @@ class WeekPlanGrid extends StatelessWidget {
                   }).toList(),
                 ),
               ),
+            // Der Platz für die native Tab-Leiste, **am Ende der
+            // Scrollstrecke** und nicht als fester Rand um das Raster.
+            //
+            // Als fester Rand wäre er immer sichtbar – eine Schicht zwischen
+            // Raster und Leiste, die man nicht wegscrollen kann. Hier erscheint
+            // er erst ganz unten, und beim Scrollen bleibt das Raster hinter
+            // der Leiste sichtbar: dasselbe wie auf allen anderen
+            // Bildschirmen.
+            const NativeShellScrollEndInset(),
           ],
         );
 
@@ -177,11 +201,25 @@ class WeekPlanGrid extends StatelessWidget {
                     .toList(),
               ),
             ),
-            // Erst ab der neunten Zeile wird gescrollt.
+            // **Immer** scrollbar, nicht erst ab der neunten Zeile.
+            //
+            // Der Grund ist nicht die Menge der Zeilen, sondern die Leiste:
+            // Sie liegt über dem Inhalt, und nur eine Scrollansicht erlaubt,
+            // die letzte Stunde unter ihr hervorzuholen. Ohne Scrollen
+            // müsste der Platz dauerhaft unten freigehalten werden – und
+            // genau dieser feste Streifen sah aus wie eine Schicht.
+            //
+            // `physics: null` heisst:-es wird nur gescrollt, wenn auch etwas
+            // über den Rand hinausreicht. Das ist wichtig, weil der Absende-
+            // Platz die Ansicht immer etwas überstehen lässt: Auf einer
+            // knappen Woche würde man sonst einen kleinen, scheinbar
+            // grundlosen Weg sehen.
             Expanded(
-              child: rows > rowsWithoutScrolling
-                  ? SingleChildScrollView(child: rowsWidget)
-                  : rowsWidget,
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics()),
+                child: rowsWidget,
+              ),
             ),
           ],
         );
@@ -256,20 +294,20 @@ class WeekPlanGrid extends StatelessWidget {
                   color: color,
                 ),
               ),
-            Text(
-              // Nur die Tageszahl, nicht das ganze Datum: Bei sechs Spalten
-              // ist eine Spalte gut 60 Pixel breit – „21.9." passt dort bei
-              // 14 Pixeln Schrift nicht hinein und würde ständig
-              // herunterskaliert. Der Monat steht ohnehin in der Zeile
-              // darüber („21.09. - 26.09.").
-              DateFormat('d').format(day.date),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                height: 1.05,
-                color: color.withValues(alpha: 0.9),
+              Text(
+                // Nur die Tageszahl, nicht das ganze Datum: Bei sechs Spalten
+                // ist eine Spalte gut 60 Pixel breit – „21.9." passt dort bei
+                // 14 Pixeln Schrift nicht hinein und würde ständig
+                // herunterskaliert. Der Monat steht ohnehin in der Zeile
+                // darüber („21.09. - 26.09.").
+                DateFormat('d').format(day.date),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.05,
+                  color: color.withValues(alpha: 0.9),
+                ),
               ),
-            ),
             ],
           ),
         ),
@@ -563,7 +601,8 @@ class WeekPlanGrid extends StatelessWidget {
             if (info.isNotEmpty)
               Text(
                 info,
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
               ),
             if (course.isNotEmpty && course != subject)
               _detailLine(context, Icons.bookmark_rounded, course),
@@ -572,8 +611,9 @@ class WeekPlanGrid extends StatelessWidget {
                 context,
                 Icons.location_on_rounded,
                 place,
-                color:
-                    data['placeChanged'] == true ? AppColors.aktionston(context) : null,
+                color: data['placeChanged'] == true
+                    ? AppColors.aktionston(context)
+                    : null,
               ),
             if (teacher.isNotEmpty)
               _detailLine(
@@ -659,5 +699,6 @@ class WeekPlanGrid extends StatelessWidget {
     return result;
   }
 
-  static String _dayId(DateTime date) => '${date.year}-${date.month}-${date.day}';
+  static String _dayId(DateTime date) =>
+      '${date.year}-${date.month}-${date.day}';
 }
