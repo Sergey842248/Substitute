@@ -64,8 +64,8 @@ class WeekPlanGrid extends StatelessWidget {
   //// So viele Zeilen passen ohne Scrollen auf den Bildschirm.
   ///
   /// Früher wurde hier entschieden, **ab** wie vielen Zeilen gescrollt wird.
-  /// Jetzt wird **immer** gescrollt, und diese Zahl hat nur noch eine
-  /// Bedeutung: Sie hält fest, wie viele Zeilen bequem nebeneinander stehen.
+  /// Jetzt wird **immer** gescrollt, und diese Zahl hält nur noch fest, wie
+  /// viele Zeilen bequem nebeneinander stehen.
   ///
   /// ## Warum immer
   ///
@@ -84,11 +84,11 @@ class WeekPlanGrid extends StatelessWidget {
   /// nur um die Höhe der Leiste, und dafür ist die letzte Stunde erreichbar.
   static const int rowsWithoutScrolling = 8;
 
-  /// Wie viele Zeilen über [rowsWithoutScrolling] hinaus bequem sichtbar sind.
+  /// Wie viele Zeilen über [rowsWithoutScrolling] hinaus bequem sichtbar sind
+  /// – hier eine halbe.
   ///
-  /// Nur noch ein **Hinweis** an die Gestaltung, keine Bedingung mehr: Alle
-  /// Zeilen bekommen denselben Anteil der Höhe, und was nicht passt, wird
-  /// gescrollt.
+  /// Ohne diesen Rest würde die neunte Stunde exakt unterhalb der Kante liegen
+  /// und man sähe nicht, dass es weitergeht. Der halbe Rest ist der Hinweis.
   static const double scrollPeekRows = 0.5;
 
   /// Die Zeilen des Rasters: so viele, wie der Tag mit den meisten Stunden hat.
@@ -135,13 +135,18 @@ class WeekPlanGrid extends StatelessWidget {
         // bliebe unten ein leeres Band stehen und die Stunden würden kleiner
         // gesetzt als nötig.
         //
-        // Früher wurde ab der neunten Zeile nur noch durch `8 + 0,5` geteilt,
-        // damit die neunte Stunde halb sichtbar als Hinweis auf mehr blieb.
-        // Das ist nicht mehr nötig, denn die Ansicht scrollt jetzt immer: Der
-        // Platz am Ende zeigt an, dass es weitergeht, und alle Zeilen bekommen
-        // denselben Anteil – die Stunden werden also nicht kleiner, nur weil
-        // viele da sind.
-        final double rowHeight = (constraints.maxHeight - headerHeight) / rows;
+        // Ab der neunten Zeile wird durch `8 + scrollPeekRows` geteilt: Acht
+        // volle Zeilen plus ein halber Rest der neunten, der sichtbar bleibt und
+        // damit verrät, dass noch etwas kommt.
+        //
+        // Diese Aufteilung ist **unverändert** geblieben. Sie ist gutes Gestealten
+        // und hat mit der Navigationsleiste nichts zu tun – sie zu ändern wäre
+        // eine zweite, stillere Verschlechterung: Die Stundenzeilen würden nur
+        // noch kleiner, wenn viele da sind.
+        final double rowHeight = (constraints.maxHeight - headerHeight) /
+            (rows < rowsWithoutScrolling
+                ? rows
+                : rowsWithoutScrolling + scrollPeekRows);
 
         final Widget rowsWidget = Column(
           mainAxisSize: MainAxisSize.min,
@@ -209,15 +214,13 @@ class WeekPlanGrid extends StatelessWidget {
             // müsste der Platz dauerhaft unten freigehalten werden – und
             // genau dieser feste Streifen sah aus wie eine Schicht.
             //
-            // `physics: null` heisst:-es wird nur gescrollt, wenn auch etwas
-            // über den Rand hinausreicht. Das ist wichtig, weil der Absende-
-            // Platz die Ansicht immer etwas überstehen lässt: Auf einer
-            // knappen Woche würde man sonst einen kleinen, scheinbar
-            // grundlosen Weg sehen.
+            // Die schlichte Physik: Es wird gescrollt, wenn etwas über den Rand
+            // hinausreicht – und das ist hier immer der Fall, weil der
+            // Absende-Platz die Ansicht genau um seine Höhe überstehen lässt.
+            // Kein `AlwaysScrollable`, das auch ohne Inhalt wippen würde.
             Expanded(
               child: SingleChildScrollView(
-                physics: const ClampingScrollPhysics(
-                    parent: AlwaysScrollableScrollPhysics()),
+                physics: const ClampingScrollPhysics(),
                 child: rowsWidget,
               ),
             ),

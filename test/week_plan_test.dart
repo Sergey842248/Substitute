@@ -17,6 +17,7 @@ import 'package:substitute/pages/vplan/WeekPlan.dart';
 import 'package:substitute/pages/vplan/WeekPlanGrid.dart';
 import 'package:substitute/services/PlanWeek.dart';
 import 'package:substitute/services/AppClock.dart';
+import 'package:substitute/services/NativeShell.dart';
 
 /// Die vier Textangaben, die eine Rasterzelle zeigt – als Widgets, nicht als
 /// Zeichenketten: Raum und Lehrer wiederholen sich in der Woche, `find.text`
@@ -63,8 +64,8 @@ void main() {
   /// Die Offline-Pläne der Schulwoche (Mo–Fr), fertig als JSON-Strings.
   List<String> _offlineWeek() => <String>[
         for (int i = 0; i < 5; i++)
-          jsonEncode(
-              DemoData.buildDayPlan(DateTime(2026, 9, 21).add(Duration(days: i)))),
+          jsonEncode(DemoData.buildDayPlan(
+              DateTime(2026, 9, 21).add(Duration(days: i)))),
       ];
 
   /// Wie [seedOfflineWeek], aber mit sichtbaren Zeiten und Lehrern – dann
@@ -244,41 +245,44 @@ void main() {
     await AppClock.setOverriddenNow(null);
   });
 
-  testWidgets('the whole week fits on the screen without scrolling',
-      (WidgetTester tester) async {
+  testWidgets(
+      'the whole week fits on the screen, and the last hour can be '
+      'lifted clear of the tab bar', (WidgetTester tester) async {
     seedOfflineWeek();
     await pumpWeekPlan(tester, size: const Size(400, 800));
 
-    // Nichts darf außerhalb des Bildschirms liegen – insbesondere nicht die
-    // letzte Stundenzeile, die bei einem Scroll-Grid abgeschnitten wäre.
+    // **Erstens: nichts ragt über den Bildschirm hinaus.** Das war und bleibt der
+    // eigentliche Zweck des Rasters: Die ganze Woche steht auf einen Blick, ohne
+    // dass eine Stundenzeile abgeschnitten wäre.
     final Size screen = tester.view.physicalSize / tester.view.devicePixelRatio;
     final Rect grid = tester.getRect(find.byType(WeekPlanGrid));
     expect(grid.bottom, lessThanOrEqualTo(screen.height),
         reason: 'the grid must not overflow the screen');
 
-    // Der Inhalt steht in einer Column, nicht in einer scrollbaren Liste.
-    // (Die [ListView] der Kopfzeile von [ListPage] ist davon unberührt – sie
-    // ist ohnehin nicht scrollbar.)
+    // **Zweitens: die Stundenzeilen sind scrollbar.** Früher stand hier
+    // `findsNothing`, weil die Woche gar nicht scrollte und die native
+    // Navigationsleiste deshalb über der untersten Stunde lag. Scrollt sie
+    // nicht, gibt es nichts, was man unter der Leiste hervorholen könnte – und
+    // die letzte Stunde ist nur durch einen **festen** Rand unter dem Raster zu
+    // retten, der immer sichtbar ist und wie eine Schicht zwischen Inhalt und
+    // Leiste aussieht.
+    //
+    // Der Platz gehört deshalb ans Ende der Scrollstrecke: Erst ganz unten
+    // erscheint er, beim Scrollen bleibt das Raster hinter der Leiste sichtbar.
     expect(
       find.descendant(
         of: find.byType(WeekPlanGrid),
-        matching: find.byType(ListView),
+        matching: find.byType(SingleChildScrollView),
       ),
-      findsNothing,
+      findsOneWidget,
+      reason:
+          'die Stundenzeilen müssen scrollbar sein, damit die letzte Stunde '
+          'unter der Navigationsleiste hervorzuholen ist',
     );
 
-    // Und auf der Seite ist **nirgends** etwas vertikal scrollbar. Die
-    // Scrollables, die es gibt (Kopfzeile, Aktionsleiste), sind mit
-    // `NeverScrollableScrollPhysics` ausdrücklich darauf festgelegt.
-    for (final Scrollable scrollable
-        in tester.widgetList<Scrollable>(find.byType(Scrollable))) {
-      if (scrollable.axisDirection != AxisDirection.down) continue;
-      expect(
-        scrollable.physics,
-        const NeverScrollableScrollPhysics(),
-        reason: 'no vertical scrolling on the week view',
-      );
-    }
+    // Und der Platz ist am Ende, nicht rundherum.
+    expect(find.byType(NativeShellScrollEndInset), findsOneWidget,
+        reason: 'der Platz für die Leiste gehört ans Ende der Scrollstrecke');
 
     await AppClock.setOverriddenNow(null);
   });
@@ -303,18 +307,18 @@ void main() {
     // Viele Stunden auf einem kleinen Bildschirm ist der Fall, in dem ein
     // Grid überläuft: Die Zellen werden sehr flach. Genau dafür gibt es das
     // Herunterskalieren im Grid – dieser Test wacht darüber, dass es wirkt.
-    final Map<String, dynamic> bigPlan = DemoData.buildDayPlan(DateTime(2026, 9, 21));
-    final List<dynamic> kl =
-        bigPlan['data']['Klassen']['Kl'] as List<dynamic>;
+    final Map<String, dynamic> bigPlan =
+        DemoData.buildDayPlan(DateTime(2026, 9, 21));
+    final List<dynamic> kl = bigPlan['data']['Klassen']['Kl'] as List<dynamic>;
     final Map<String, dynamic> kl0 = Map<String, dynamic>.from(kl.first as Map);
-    final Map<String, dynamic> pl =
-        Map<String, dynamic>.from(kl0['Pl'] as Map);
+    final Map<String, dynamic> pl = Map<String, dynamic>.from(kl0['Pl'] as Map);
     // Aus jeder Stunde werden fünf, damit es deutlich zu viele werden.
     final List<dynamic> std = List<dynamic>.from(pl['Std'] as List<dynamic>);
     final List<dynamic> many = <dynamic>[];
     for (int i = 0; i < std.length; i++) {
       for (int j = 0; j < 5; j++) {
-        final Map<String, dynamic> lesson = Map<String, dynamic>.from(std[i] as Map);
+        final Map<String, dynamic> lesson =
+            Map<String, dynamic>.from(std[i] as Map);
         lesson['St'] = '${i * 5 + j + 1}';
         many.add(lesson);
       }
@@ -331,7 +335,10 @@ void main() {
       'classes': ['5a'],
       'offlineVPData': <String>[
         for (int i = 0; i < 5; i++)
-          jsonEncode(i == 0 ? bigPlan : DemoData.buildDayPlan(DateTime(2026, 9, 21).add(Duration(days: i)))),
+          jsonEncode(i == 0
+              ? bigPlan
+              : DemoData.buildDayPlan(
+                  DateTime(2026, 9, 21).add(Duration(days: i)))),
       ],
     });
 
@@ -424,12 +431,15 @@ void main() {
     await AppClock.setOverriddenNow(null);
   });
 
-testWidgets('tapping a day shows the additional information of that day',
+  testWidgets('tapping a day shows the additional information of that day',
       (WidgetTester tester) async {
     // Der Montag bekommt eine eigene Zusatzinfo, der Dienstag eine andere.
     final Map<String, dynamic> monday =
         DemoData.buildDayPlan(DateTime(2026, 9, 21));
-    monday['info'] = <String>['Morgen Sport in der Halle', 'Bitte Turnsachen mitbringen'];
+    monday['info'] = <String>[
+      'Morgen Sport in der Halle',
+      'Bitte Turnsachen mitbringen'
+    ];
     final Map<String, dynamic> tuesday =
         DemoData.buildDayPlan(DateTime(2026, 9, 22));
     tuesday['info'] = <String>['Nur bis zur vierten Stunde'];
@@ -443,8 +453,8 @@ testWidgets('tapping a day shows the additional information of that day',
         jsonEncode(monday),
         jsonEncode(tuesday),
         for (int i = 2; i < 5; i++)
-          jsonEncode(
-              DemoData.buildDayPlan(DateTime(2026, 9, 21).add(Duration(days: i)))),
+          jsonEncode(DemoData.buildDayPlan(
+              DateTime(2026, 9, 21).add(Duration(days: i)))),
       ],
     });
     await pumpWeekPlan(tester);
@@ -464,8 +474,8 @@ testWidgets('tapping a day shows the additional information of that day',
     await AppClock.setOverriddenNow(null);
   });
 
-testWidgets('the course selection is available in the week view',
-    (WidgetTester tester) async {
+  testWidgets('the course selection is available in the week view',
+      (WidgetTester tester) async {
     seedOfflineWeek();
     await pumpWeekPlan(tester);
 
@@ -479,11 +489,12 @@ testWidgets('the course selection is available in the week view',
     await AppClock.setOverriddenNow(null);
   });
 
-testWidgets('every course of a doubled period gets its own row',
+  testWidgets('every course of a doubled period gets its own row',
       (WidgetTester tester) async {
     // In der 1. Stunde liegen zwei Kurse (Parallelkurs). Beide müssen
     // erscheinen – untereinander, beide in derselben Stundennummer.
-    final Map<String, dynamic> plan = DemoData.buildDayPlan(DateTime(2026, 9, 21));
+    final Map<String, dynamic> plan =
+        DemoData.buildDayPlan(DateTime(2026, 9, 21));
     final List<dynamic> kl = plan['data']['Klassen']['Kl'] as List<dynamic>;
     final Map<String, dynamic> kl0 = Map<String, dynamic>.from(kl.first as Map);
     final Map<String, dynamic> pl = Map<String, dynamic>.from(kl0['Pl'] as Map);
@@ -509,8 +520,8 @@ testWidgets('every course of a doubled period gets its own row',
       'offlineVPData': <String>[
         jsonEncode(plan),
         for (int i = 1; i < 5; i++)
-          jsonEncode(
-              DemoData.buildDayPlan(DateTime(2026, 9, 21).add(Duration(days: i)))),
+          jsonEncode(DemoData.buildDayPlan(
+              DateTime(2026, 9, 21).add(Duration(days: i)))),
       ],
     });
     await pumpWeekPlan(tester);
@@ -522,24 +533,33 @@ testWidgets('every course of a doubled period gets its own row',
     await AppClock.setOverriddenNow(null);
   });
 
-testWidgets('up to eight lessons a day fit without scrolling',
+  testWidgets('up to eight lessons a day still fill the screen',
       (WidgetTester tester) async {
     seedOfflineWeek();
     await pumpWeekPlan(tester);
 
-    // Der Demo-Plan hat 6 Stunden pro Tag – das passt ohne Scrollen.
+    // Der Demo-Plan hat 6 Stunden pro Tag. Sie teilen sich die verfügbare
+    // Höhe **wie vorher** – die Stunden werden nicht kleiner, nur weil die
+    // native Navigationsleiste jetzt über dem Inhalt liegt.
+    final Size screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+    final Rect grid = tester.getRect(find.byType(WeekPlanGrid));
+    expect(grid.bottom, lessThanOrEqualTo(screen.height),
+        reason: 'das Raster darf nicht über den Bildschirm hinausragen');
+
+    // Scrollbar ist es trotzdem – aber nur um den Platz am Ende. Das heißt hier
+    // also gerade **nicht**, dass die Stunden kleiner geworden wären.
     expect(
       find.descendant(
         of: find.byType(WeekPlanGrid),
-        matching: find.byType(Scrollable),
+        matching: find.byType(SingleChildScrollView),
       ),
-      findsNothing,
+      findsOneWidget,
     );
 
     await AppClock.setOverriddenNow(null);
   });
 
-testWidgets('more than eight lessons a day make the week scrollable',
+  testWidgets('more than eight lessons a day make the week scrollable',
       (WidgetTester tester) async {
     // Neun Einträge am Montag.
     final Map<String, dynamic> plan = _planWithLessons(9);
@@ -551,8 +571,8 @@ testWidgets('more than eight lessons a day make the week scrollable',
       'offlineVPData': <String>[
         jsonEncode(plan),
         for (int i = 1; i < 5; i++)
-          jsonEncode(
-              DemoData.buildDayPlan(DateTime(2026, 9, 21).add(Duration(days: i)))),
+          jsonEncode(DemoData.buildDayPlan(
+              DateTime(2026, 9, 21).add(Duration(days: i)))),
       ],
     });
     await pumpWeekPlan(tester);
@@ -570,7 +590,7 @@ testWidgets('more than eight lessons a day make the week scrollable',
     await AppClock.setOverriddenNow(null);
   });
 
-testWidgets('a ninth lesson is partly visible, hinting at more to scroll',
+  testWidgets('a ninth lesson is partly visible, hinting at more to scroll',
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'vplanSchoolnumber': '999999',
@@ -580,16 +600,15 @@ testWidgets('a ninth lesson is partly visible, hinting at more to scroll',
       'offlineVPData': <String>[
         jsonEncode(_planWithLessons(9)),
         for (int i = 1; i < 5; i++)
-          jsonEncode(
-              DemoData.buildDayPlan(DateTime(2026, 9, 21).add(Duration(days: i)))),
+          jsonEncode(DemoData.buildDayPlan(
+              DateTime(2026, 9, 21).add(Duration(days: i)))),
       ],
     });
     await pumpWeekPlan(tester);
 
     // Die neunte Zeile liegt im Scrollbereich. Sie muss teilweise im Bild
     // sein – ohne diesen Rest sähe man nicht, dass es weitergeht.
-    final Size screen =
-        tester.view.physicalSize / tester.view.devicePixelRatio;
+    final Size screen = tester.view.physicalSize / tester.view.devicePixelRatio;
     final Rect ninth = tester.getRect(
       find.byKey(const ValueKey<String>('lessonCell_2026-9-21_8')),
     );
@@ -601,14 +620,15 @@ testWidgets('a ninth lesson is partly visible, hinting at more to scroll',
     await AppClock.setOverriddenNow(null);
   });
 
-testWidgets('the header takes less space so more lessons fit on screen',
+  testWidgets('the header takes less space so more lessons fit on screen',
       (WidgetTester tester) async {
     seedOfflineWeek();
     await pumpWeekPlan(tester, size: const Size(400, 800));
 
     // Zwischen der Kopfzeile der Seite und der ersten Rasterzeile soll kein
     // nennenswerter Leerstand mehr sein – er ginge zulasten der Stunden.
-    final Rect appBar = tester.getRect(find.byIcon(Icons.refresh).hitTestable());
+    final Rect appBar =
+        tester.getRect(find.byIcon(Icons.refresh).hitTestable());
     final Rect range = tester.getRect(find.text('21.09. - 25.09.'));
     expect(range.top - appBar.bottom, lessThan(70),
         reason: 'the date row must sit close below the app bar');
@@ -616,7 +636,7 @@ testWidgets('the header takes less space so more lessons fit on screen',
     await AppClock.setOverriddenNow(null);
   });
 
-testWidgets('the weekday and the date below it are not scaled down',
+  testWidgets('the weekday and the date below it are not scaled down',
       (WidgetTester tester) async {
     seedOfflineWeek();
     await pumpWeekPlan(tester, size: const Size(400, 800));
@@ -637,7 +657,9 @@ testWidgets('the weekday and the date below it are not scaled down',
     final Size content = tester.getSize(
       find
           .descendant(
-            of: find.ancestor(of: weekday, matching: find.byType(FittedBox)).first,
+            of: find
+                .ancestor(of: weekday, matching: find.byType(FittedBox))
+                .first,
             matching: find.byType(Column),
           )
           .first,
@@ -646,13 +668,14 @@ testWidgets('the weekday and the date below it are not scaled down',
         reason: 'the weekday and its date must fit without being scaled down');
     expect(content.width, lessThanOrEqualTo(fitted.width + 0.5));
 
-    expect(tester.widget<Text>(weekday).style!.fontSize, greaterThanOrEqualTo(17));
+    expect(
+        tester.widget<Text>(weekday).style!.fontSize, greaterThanOrEqualTo(17));
     expect(tester.widget<Text>(date).style!.fontSize, greaterThanOrEqualTo(15));
 
     await AppClock.setOverriddenNow(null);
   });
 
-testWidgets('a week with only one available day still shows all days',
+  testWidgets('a week with only one available day still shows all days',
       (WidgetTester tester) async {
     // Nur der **Mittwoch** hat einen Plan. Trotzdem muss die ganze Woche
     // dastehen – die anderen Tage leer.
@@ -697,7 +720,7 @@ testWidgets('a week with only one available day still shows all days',
     await AppClock.setOverriddenNow(null);
   });
 
-testWidgets('the date range stays correct for every day of the week',
+  testWidgets('the date range stays correct for every day of the week',
       (WidgetTester tester) async {
     // Der Fehler trat am Sonntag auf: Start und Ende lagen in verschiedenen
     // Wochen (z.B. „25.10. - 24.10.“). Deshalb wird jeder Wochentag geprüft.
@@ -728,13 +751,14 @@ testWidgets('the date range stays correct for every day of the week',
 
       // Immer dieselbe Woche: Montag bis Samstag, aufsteigend.
       expect(find.text('21.09. - 25.09.'), findsOneWidget,
-          reason: 'wrong range on weekday ${DateTime(2026, 9, 21).add(Duration(days: offset)).weekday}');
+          reason:
+              'wrong range on weekday ${DateTime(2026, 9, 21).add(Duration(days: offset)).weekday}');
     }
 
     await AppClock.setOverriddenNow(null);
   });
 
-testWidgets('the arrows keep working after a week without any plan',
+  testWidgets('the arrows keep working after a week without any plan',
       (WidgetTester tester) async {
     // Ausgangswoche (14.09.) ohne jeden Plan, Zielwoche (21.09.) mit genau
     // einem. Genau dieser Übergang ist previously hängen geblieben: Der
@@ -795,7 +819,7 @@ testWidgets('the arrows keep working after a week without any plan',
     await AppClock.setOverriddenNow(null);
   });
 
-testWidgets('the arrow jumps over empty weeks to the next one with a plan',
+  testWidgets('the arrow jumps over empty weeks to the next one with a plan',
       (WidgetTester tester) async {
     // Wochenabstand: 05.10. (Plan) – dann drei leere Wochen (Ferien) – dann
     // 09.11. (Plan). Ein Klick auf "weiter" muss direkt auf den 09.11. führen
@@ -841,7 +865,7 @@ testWidgets('the arrow jumps over empty weeks to the next one with a plan',
     await AppClock.setOverriddenNow(null);
   });
 
-testWidgets('the arrow lands in the week of the found plan, not the next one',
+  testWidgets('the arrow lands in the week of the found plan, not the next one',
       (WidgetTester tester) async {
     // Der Plan liegt am **Donnerstag** der übernächsten Woche. Die Woche davor
     // ist komplett leer. Gesucht wird ab dem Montag dieser Woche – und die
@@ -880,7 +904,7 @@ testWidgets('the arrow lands in the week of the found plan, not the next one',
     await AppClock.setOverriddenNow(null);
   });
 
-testWidgets('the loading indicator shows three points that move',
+  testWidgets('the loading indicator shows three points that move',
       (WidgetTester tester) async {
     await tester.pumpWidget(const MaterialApp(
       home: Scaffold(body: Center(child: LoadingIndicator())),
@@ -900,7 +924,7 @@ testWidgets('the loading indicator shows three points that move',
         reason: 'the points must animate, not stand still');
   });
 
-test('week arithmetic survives the change of clock (DST)', () {
+  test('week arithmetic survives the change of clock (DST)', () {
     // In der Nacht zum 25.10.2026 wird die Uhr in Deutschland eine Stunde
     // ZURÜCK gestellt. Mit `add(Duration(days: 7))` sprang der Wochenanfang
     // deshalb auf Sonntag, 25.10., 23:00 – und aus dem Sonntag wurde wieder
@@ -922,7 +946,8 @@ test('week arithmetic survives the change of clock (DST)', () {
           reason: 'a Monday must stay a Monday');
 
       for (int weeks = 1; weeks <= 3; weeks++) {
-        final DateTime shifted = startOfSchoolWeek(addSchoolDays(monday, 7 * weeks));
+        final DateTime shifted =
+            startOfSchoolWeek(addSchoolDays(monday, 7 * weeks));
         expect(shifted.weekday, DateTime.monday,
             reason: 'the week start must remain a Monday');
         expect(shifted.difference(monday).inDays, 7 * weeks,
@@ -949,7 +974,7 @@ test('week arithmetic survives the change of clock (DST)', () {
     }
   });
 
-testWidgets('navigating across the clock change reaches the following weeks',
+  testWidgets('navigating across the clock change reaches the following weeks',
       (WidgetTester tester) async {
     // Genau der gemeldete Ablauf: Woche mit Plänen → zwei leere Wochen
     // (Ferien) → Woche mit einem Plan. Die Zielwoche liegt über der
@@ -994,10 +1019,11 @@ testWidgets('navigating across the clock change reaches the following weeks',
     await AppClock.setOverriddenNow(null);
   });
 
-testWidgets('a changed room or teacher is marked by colour only',
+  testWidgets('a changed room or teacher is marked by colour only',
       (WidgetTester tester) async {
     // Ein Tag, in dem Raum **und** Lehrer dieser einen Stunde geändert wurden.
-    final Map<String, dynamic> plan = DemoData.buildDayPlan(DateTime(2026, 9, 21));
+    final Map<String, dynamic> plan =
+        DemoData.buildDayPlan(DateTime(2026, 9, 21));
     final List<dynamic> kl = plan['data']['Klassen']['Kl'] as List<dynamic>;
     final Map<String, dynamic> kl0 = Map<String, dynamic>.from(kl.first as Map);
     final Map<String, dynamic> pl = Map<String, dynamic>.from(kl0['Pl'] as Map);
@@ -1023,7 +1049,8 @@ testWidgets('a changed room or teacher is marked by colour only',
       'offlineVPData': <String>[
         jsonEncode(plan),
         for (int i = 1; i < 5; i++)
-          jsonEncode(DemoData.buildDayPlan(DateTime(2026, 9, 21).add(Duration(days: i)))),
+          jsonEncode(DemoData.buildDayPlan(
+              DateTime(2026, 9, 21).add(Duration(days: i)))),
       ],
     });
     await pumpWeekPlan(tester);
@@ -1120,7 +1147,7 @@ testWidgets('a changed room or teacher is marked by colour only',
     expect(prefs.getBool('hideTeacher'), isTrue);
   });
 
-testWidgets('week view can navigate to the previous and next week',
+  testWidgets('week view can navigate to the previous and next week',
       (WidgetTester tester) async {
     seedOfflineWeek();
     await pumpWeekPlan(tester);
