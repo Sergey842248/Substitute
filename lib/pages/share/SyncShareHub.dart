@@ -5,6 +5,7 @@ import 'package:substitute/models/ListItem.dart';
 import 'package:substitute/pages/dashboard/settings/SyncSettings.dart';
 import 'package:substitute/pages/share/ShareBrowsePage.dart';
 import 'package:substitute/pages/share/ShareListPage.dart';
+import 'package:substitute/services/NativeShell.dart';
 
 import '../../models/swipe_page_transition.dart';
 
@@ -89,10 +90,9 @@ class _SyncShareHubState extends State<SyncShareHub> {
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
     return Container(
-      // **Keine** eigene Höhe und **kein** eigener unterer Rand: Den Platz für
-      // die Navigationsleiste reserviert der Inhaltsbereich in `main.dart`, und
-      // zwar für jeden Bildschirm. Ein zweiter Abstand addiert sich, und die
-      // Liste schöbe sich sichtbar nach oben.
+      // Keine eigene Höhe: Der Abschluss der Liste erhält den Platz für die
+      // überlagerte iOS-Leiste. Er steht als letztes Listenelement und nicht
+      // dauerhaft unter dem gesamten Bildschirm.
       child: Scrollbar(
         thickness: 3,
         radius: const Radius.circular(100),
@@ -144,6 +144,7 @@ class _SyncShareHubState extends State<SyncShareHub> {
                   ),
                 ),
               ),
+            const NativeShellScrollEndInset(),
           ],
         ),
       ),

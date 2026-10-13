@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:substitute/services/NativeShell.dart';
 
 class ListPage extends StatefulWidget {
   ListPage({
@@ -201,7 +202,11 @@ class _ListPageState extends State<ListPage> {
 
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
+      // In einem nativen iOS-Abschnitt darf der Inhalt bis unter die
+      // transparente Tab-Leiste reichen. Der zusätzliche Platz steht als
+      // letztes Listenelement und nicht dauerhaft am Bildschirmrand.
       child: SafeArea(
+        bottom: !NativeShell.isSection,
         child: Container(
           child: Stack(
           children: [
@@ -490,7 +495,10 @@ class _ListPageState extends State<ListPage> {
       physics: const BouncingScrollPhysics(
         parent: AlwaysScrollableScrollPhysics(),
       ),
-      children: widget.children,
+      children: <Widget>[
+        ...widget.children,
+        const NativeShellScrollEndInset(),
+      ],
     ),
   );
   if (widget.onRefresh == null) {

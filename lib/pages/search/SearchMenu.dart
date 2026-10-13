@@ -2,6 +2,7 @@ import 'package:substitute/models/ListItem.dart';
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:substitute/l10n/app_localizations.dart';
+import 'package:substitute/services/NativeShell.dart';
 
 import '../../models/swipe_page_transition.dart';
 import '../dashboard/FindRoom.dart';
@@ -38,7 +39,14 @@ class SearchMenu extends StatelessWidget {
     ];
     return Container(
       height: MediaQuery.of(context).size.height * 0.69,
-      margin: EdgeInsets.only(bottom: MediaQuery.of(context).size.height * 0.1),
+      // Die Android-Leiste bleibt außerhalb des Inhalts. Auf iOS steht der
+      // Abstand dagegen ausschließlich am Ende der Liste, damit die native
+      // Leiste direkt über dem Inhalt liegen kann.
+      margin: EdgeInsets.only(
+        bottom: NativeShell.isSection
+            ? 0
+            : MediaQuery.of(context).size.height * 0.1,
+      ),
       alignment: Alignment.center,
       child: Scrollbar(
         thickness: 3,
@@ -91,6 +99,7 @@ class SearchMenu extends StatelessWidget {
                 ),
               ),
             ),
+            const NativeShellScrollEndInset(),
           ],
         ),
       ),

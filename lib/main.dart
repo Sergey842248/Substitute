@@ -790,24 +790,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late String activeText;
   bool _hasCheckedForUpdates = false;
 
-  /// Der untere Bereich, den die native Leiste verdeckt.
-  ///
-  /// Er kommt **nach** dem ersten Bild: Die native Seite misst, wo ihre Leiste
-  /// tatsächlich liegt, und das lässt sich erst sagen, wenn der Bildschirm
-  /// einmal aufgebaut ist. Ohne dieses Zuhören stünde hier bis zum nächsten
-  /// Bildaufbau ein Wert von `0`, und der letzte Eintrag eines Bildschirms
-  /// stünde dann hinter der Leiste.
-  double _untererBereich = 0;
-
-  /// Siehe [_untererBereich] – der Zuhörer darauf.
-  late final VoidCallback _ueberdeckungListener;
-
-  void _merkeUeberdeckung() {
-    if (!mounted) return;
-    if (_untererBereich == NativeShell.untererBereich(context)) return;
-    setState(() => _untererBereich = NativeShell.untererBereich(context));
-  }
-
   @override
   void initState() {
     super.initState();
@@ -864,11 +846,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _appearanceListener = _ladeEintrag;
     AppAppearance.aenderung.addListener(_appearanceListener);
     unawaited(_ladeEintrag());
-
-    // Die native Leiste kann ihre Höhe später noch melden – etwa wenn sie
-    // wegen fehlender Zugangsdaten weg ist und später wieder kommt.
-    _ueberdeckungListener = _merkeUeberdeckung;
-    NativeShell.ueberdeckung.addListener(_ueberdeckungListener);
 
     // Fremde Daten können mitten in der Sitzung eintreffen. Wer sie nicht
     // bemerkt, glaubt, der Sync hätte nicht funktioniert – die Daten waren ja
@@ -935,7 +912,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void dispose() {
     _syncSubscription?.cancel();
     AppAppearance.aenderung.removeListener(_appearanceListener);
-    NativeShell.ueberdeckung.removeListener(_ueberdeckungListener);
     eastereggController.dispose();
     super.dispose();
   }
@@ -1364,36 +1340,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   padding: EdgeInsets.only(
                     left: 10,
                     right: 10,
-                    // **Der Platz für die Navigationsleiste wird hier
-                    // reserviert, nicht in jedem Bildschirm einzeln.**
-                    //
-                    // Der Stapel reicht bis zum unteren Rand, und die Leiste
-                    // liegt darüber. Ohne diesen Abstand erreicht kein
-                    // scrollbarer Bildschirm sein Ende über der Leiste: Der
-                    // letzte Eintrag bleibt dahinter, und beim Scrollen sieht
-                    // man ihn nur während der Bewegung – der Bereich ist zu
-                    // kurz, um ihn vollständig hineinzuschieben.
-                    //
-                    // Vorher hat sich jeder Bildschirm selbst beholfen, mit
-                    // festen Prozentwerten (`0.69` Höhe, `0.1` Rand), und der
-                    // Startbildschirm eben nicht – daher der Fehler dort.
-                    //
-                    // Unter der nativen Schale liegt die Leiste **auf** dem
-                    // Inhalt, nicht daneben.
-                    //
-                    // Deshalb wird hier genau der Platz reserviert, den die
-                    // Leiste wirklich verdeckt – von der nativen Seite
-                    // **gemessen**, weil sich `UITabBarController` je
-                    // iOS-Version anders verhält. Eine Zahl im Quelltext wäre in
-                    // der einen Version zu klein (ein Stück Inhalt bliebe
-                    // verdeckt) und in der anderen zu gross (ein Loch stünde
-                    // darunter).
-                    //
-                    // Der Wert ist mindestens so gross wie der sichere Bereich
-                    // des Geräts: Der Inhalt soll ohnehin nicht in die
-                    // Geste-Zone am unteren Rand hineinreichen.
+                    // Die native iOS-Leiste liegt direkt über diesem Bereich.
+                    // Hier darf deshalb kein dauerhafter unterer Rand stehen:
+                    // sonst sähe man stets eine leere Schicht statt des
+                    // Inhalts durch die transparente Leiste. Scrollbare Seiten
+                    // hängen ihren Abstand nur an ihr jeweiliges Ende an
+                    // ([NativeShellScrollEndInset]).
                     bottom: NativeShell.isSection
-                        ? _untererBereich
+                        ? 0
                         : MediaQuery.of(context).size.height * 0.1 +
                             MediaQuery.paddingOf(context).bottom,
                   ),

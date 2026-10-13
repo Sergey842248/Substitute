@@ -295,3 +295,26 @@ class NativeShell {
     return math.max(ueberdeckung.value, sicher);
   }
 }
+
+/// Leerraum, der ausschließlich am Ende einer scrollbaren Ansicht steht.
+///
+/// Die native iOS-Leiste liegt über dem Inhalt. Dieser Abstand gehört daher
+/// in die Scrollposition der einzelnen Seite und nicht als fester Rand um den
+/// gesamten Bildschirm: Nur ganz unten kann man den letzten Eintrag dadurch
+/// über die Leiste schieben; während des restlichen Scrollens bleibt der
+/// Inhalt hinter der transparenten Leiste sichtbar.
+class NativeShellScrollEndInset extends StatelessWidget {
+  const NativeShellScrollEndInset({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!NativeShell.isSection) return const SizedBox.shrink();
+
+    return ValueListenableBuilder<double>(
+      valueListenable: NativeShell.ueberdeckung,
+      builder: (BuildContext context, double _, Widget? __) => SizedBox(
+        height: NativeShell.untererBereich(context),
+      ),
+    );
+  }
+}

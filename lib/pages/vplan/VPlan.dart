@@ -23,6 +23,7 @@ import '../dashboard/settings/VPlanLogin.dart';
 
 import '../../models/ListItem.dart';
 import '../../models/LoadingIndicator.dart';
+import '../../services/NativeShell.dart';
 
 import './LessonPreview.dart';
 import './Plan.dart';
@@ -524,6 +525,10 @@ class _VPlanState extends State<VPlan> with RouteAware {
                 ), // closes ClassWidget
               ), // closes SizeTransition
             ), // closes AnimatedList
+            // Nur der Schluss der Übersicht bekommt Platz für die überlagerte
+            // iOS-Leiste. Beim normalen Scrollen bleibt der Plan darunter
+            // sichtbar.
+            const NativeShellScrollEndInset(),
           ], // closes Column's children
         ), // closes Column
       ), // closes SingleChildScrollView

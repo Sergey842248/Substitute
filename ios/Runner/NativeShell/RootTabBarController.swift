@@ -275,23 +275,28 @@ final class RootTabBarController: UITabBarController {
         tabBar.tintColor = Appearance.accent
         view.backgroundColor = Appearance.background
 
-        // Die Leiste liegt **auf** dem Inhalt, nicht als eigene Schicht darüber.
+        // Die Leiste ist die oberste Ebene direkt über dem Flutter-Inhalt.
+        // Sie bekommt deshalb weder einen eigenen Hintergrund noch einen
+        // Schatten oder einen Abstand zum unteren Rand. So bleiben Pläne,
+        // Listen und Karten hinter ihr sichtbar statt durch eine zusätzliche
+        // Fläche getrennt zu werden.
         //
-        // Ohne diese drei Angaben malt das System die Leiste als schwebendes
-        // Gebilde: durchsichtig, mit weichem Rand und einem Schatten, und mit
-        // Abstand zum unteren Bildschirmrand. Zwischen ihr und dem Inhalt steht
-        // dann eine Lücke, in der der Inhalt durchscheint – genau die „Schicht
-        // dazwischen", die stört.
-        //
-        // * `isTranslucent` aus: eine deckende Leiste kann keinen Inhalt
-        //   durchlassen.
-        // * Der Hintergrund in der **Farbe des Inhaltsgrunds**: Wäre er eine
-        //   andere, sähe man den Übergang als Streifen.
-        // * `scrollEdgeAppearance` ebenfalls: Das ist die Variante, die das
-        //   System beim Scrollen einsetzt, und sie ist die schwebende.
-        tabBar.isTranslucent = false
-        tabBar.backgroundColor = Appearance.background
-        tabBar.scrollEdgeAppearance = tabBar.standardAppearance
+        // Der Platz, in den man am Ende einer Liste scrollen kann, wird nicht
+        // hier reserviert: Das erledigt der Abschluss der jeweiligen
+        // Scroll-Ansicht auf der Dart-Seite. Ein globaler Innenabstand würde
+        // nämlich auch dann als leere Fläche sichtbar, wenn man noch gar nicht
+        // am Ende des Inhalts ist.
+        let appearance = UITabBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.backgroundColor = .clear
+        appearance.shadowColor = .clear
+        tabBar.isTranslucent = true
+        tabBar.standardAppearance = appearance
+        tabBar.scrollEdgeAppearance = appearance
+        if #available(iOS 15.0, *) {
+            tabBar.compactScrollEdgeAppearance = appearance
+        }
+        tabBar.backgroundColor = .clear
 
         // Das Fenster trägt die Helligkeit für alles, was **das System** malt:
         // Alarme, Auswahllisten, die Action-Sheets. Ohne dieses Nachziehen
