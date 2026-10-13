@@ -2,12 +2,6 @@ name: Build and upload iOS app for internal TestFlight
 
 on:
   workflow_dispatch:
-    inputs:
-      changelog:
-        description: 'What to test in this build'
-        required: false
-        type: string
-        default: ''
 
 permissions:
   contents: read
@@ -28,7 +22,6 @@ jobs:
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
       ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
-      TESTFLIGHT_CHANGELOG: ${{ inputs.changelog }}
 
     steps:
       - name: Check out repository
@@ -203,9 +196,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
+          # No changelog is supplied; Fastlane's changelog option is optional.
           fastlane pilot upload \
             --api_key_path "${ASC_API_KEY_JSON}" \
             --app_identifier "${BUNDLE_ID}" \
             --ipa "${IPA_PATH}" \
-            --distribute_external false \
-            --changelog "${TESTFLIGHT_CHANGELOG}"
+            --distribute_external false
