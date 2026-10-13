@@ -149,11 +149,19 @@ enum AppStore {
     /// **Dunkel ist der Standard**, und das ist Absicht: So sah die App aus,
     /// bevor es diese Einstellung gab. Wer sie zum ersten Mal öffnet, bekommt
     /// das gewohnte Bild – und nicht ein helles, das er nie gesehen hat.
+    ///
+    /// ## Warum hier steht „was gespeichert ist", nicht „was folgt"
+    ///
+    /// [AppearanceTheme] kennt nur hell und dunkel, und diese Datei hält sich
+    /// daran. Ein Wert, den es nicht gibt – etwa von einer Hand in den Speicher
+    /// geschrieben –, ergibt deshalb `nil` und wird zu **dunkel**. Es gibt hier
+    /// bewusst kein „wie das Gerät": Flutter bietet dieselben zwei an, und ein
+    /// dritter Wert erzeugte einen Zustand, den die Flutter-Seite nicht kennt.
     static var theme: AppearanceTheme {
-        switch string(AppAppearanceKeys.theme) {
-        case AppearanceTheme.light: return .light
-        default: return .dark
+        guard let gespeichert = string(AppAppearanceKeys.theme) else {
+            return .dark
         }
+        return AppearanceTheme(rawValue: gespeichert) ?? .dark
     }
 
     static func setTheme(_ value: AppearanceTheme) {
