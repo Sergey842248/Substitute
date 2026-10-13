@@ -151,6 +151,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Do not force CODE_SIGN_IDENTITY globally: that conflicts with the
+          # development signing defaults of Flutter plugin/package targets.
+          # Xcode automatic signing selects the Distribution identity for the archive.
           xcodebuild \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
@@ -159,7 +162,6 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath "${RUNNER_TEMP}/Substitute.xcarchive" \
             CODE_SIGN_STYLE=Automatic \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
             DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" \
             PRODUCT_BUNDLE_IDENTIFIER="${BUNDLE_ID}" \
             FLUTTER_BUILD_NUMBER="${BUILD_NUMBER}" \
