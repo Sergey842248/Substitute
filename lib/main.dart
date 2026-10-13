@@ -325,6 +325,39 @@ class MyApp extends StatefulWidget {
   /// auch, wenn sie zur Laufzeit wechselt.
   final Locale? startLocale;
 
+  /// Welcher Reiter zu einer Route der nativen Schale gehört.
+  ///
+  /// ## Warum der Reiter in der **Route** steht und nicht in der Rolle
+  ///
+  /// Die native Seite nennt ihren Abschnitt auf zwei Wegen: als Startargument
+  /// (`--substitute-role=plan`) und als Route (`/abschnitt/plan`). Die beiden
+  /// sind nicht gleich gut:
+  ///
+  /// * Fällt der **Weg** zu einer Route aus, findet `Navigator` keinen
+  ///   Generator – und die App stürzt **beim Start** ab.
+  /// * Fällt die **Rolle** aus, weiß diese App nichts darüber, welcher Reiter
+  ///   gemeint war, und zeigt die ganze App.
+  ///
+  /// Der zweite Fall ist harmlos, der erste nicht. Deshalb wird hier nicht nach
+  /// der Rolle gefragt, sondern nach der Route – die ist das, was die native
+  /// Seite tatsächlich geöffnet hat, und sie ist auch dann da, wenn das
+  /// Argument unterwegs verloren ging.
+  ///
+  /// Leer heißt: **keine** native Schale. Dann steht die ganze App, mit ihrer
+  /// eigenen Leiste – so wie auf Android, im Web und in den meisten Tests.
+  static String startTabForRoute(String route) {
+    switch (route) {
+      case '/abschnitt/suche':
+        return 'search';
+      case '/abschnitt/sync':
+        return 'syncShare';
+      case '/abschnitt/plan':
+        return 'vplanStudents';
+      default:
+        return '';
+    }
+  }
+
   /// Die Sprache der App umstellen.
   ///
   /// `null` heißt: **der Systemsprache folgen**. Das ist keine besondere
@@ -609,9 +642,7 @@ class _MyAppState extends State<MyApp> {
           //
           // **Mit** nativer Schale nicht: Dort liefert die native Seite eine
           // `initialRoute` (`/abschnitt/plan` und so weiter), und `home`
-          // stünde daneben als zweite, widersprechende Angabe. Der Weg über
-          // [onGenerateInitialRoutes] ist derselbe, den die Leiste ohnehin
-          // nimmt – es gibt also nur **einen**, und nicht einen je Plattform.
+          // stünde daneben als zweite, widersprechende Angabe.
           home: NativeShell.isSection
               ? null
               : widget.initialPage ?? Scaffold(body: HomePage()),
@@ -619,15 +650,28 @@ class _MyAppState extends State<MyApp> {
           // Die native Schale sagt, welchen Abschnitt sie geöffnet hat. Ohne
           // diese beiden Zeilen fände `Navigator` zu `/abschnitt/plan` keinen
           // Weg und würde mit einem Fehler dastehen – „Could not find a
-          // generator for route".
+          // generator for route", und die App stürzte **beim Start** ab.
           onGenerateInitialRoutes: NativeShell.isSection
               ? (String route) => [
                     _routeFor(RouteSettings(name: route)),
                   ]
               : null,
-          onGenerateRoute: NativeShell.isSection
-              ? (RouteSettings settings) => _routeFor(settings)
-              : null,
+
+          // Diese eine ist **immer** da, nicht nur unter der nativen Schale.
+          //
+          // Grund: `initialRoute` und die Rolle kommen beide von der nativen
+          // Seite, und sie kommen auf **zwei** Wegen an – als Startargument
+          // und als Route. Könnte eines davon ausfallen, wäre die andere noch
+          // da, und ohne `onGenerateRoute` stünde der Bildschirm ohne Weg zu
+          // ihr da.
+          //
+          // Deshalb ist die Rolle an zwei Stellen nötig, aber der Weg zu ihr
+          // nur an einer: Fällt das Argument aus, wird hier `/abschnitt/plan`
+          // immer noch aufgelöst – und zwar auf die ganze App, weil dann keine
+          // Rolle bekannt ist. Falscher Abschnitt, aber kein Absturz: Ein
+          // Absturz beim Start nimmt niemandem mehr etwas weg, ein falsch
+          // angezeigter Bildschirm schon.
+          onGenerateRoute: _routeFor,
         );
       },
     );
@@ -637,12 +681,10 @@ class _MyAppState extends State<MyApp> {
   ///
   /// ## Die drei Fälle
   ///
-  /// * `/abschnitt/…` – ein Reiter der Leiste. Die **Rolle** entscheidet, was
-  ///   steht, nicht der Teil hinter dem Schrägstrich: Der Abschnitt ergibt sich
-  ///   schon daraus, dass diese Ansicht für ihn angelegt wurde, und die
-  ///   Leiste nennt dieselbe Sache an zwei Stellen – im Argument und in der
-  ///   Route. Das Argument ist das **echte**, das Route nur zusätzliche
-  ///   Information für den Fall, dass jemand die Route von Hand öffnet.
+  /// * `/abschnitt/…` – ein Reiter der Leiste. Welcher das ist, steht im
+  ///   Teil hinter dem Schrägstrich, **nicht** in der Rolle: Die Route ist das,
+  ///   was die native Seite tatsächlich geöffnet hat, und die Rolle steht an
+  ///   zwei Stellen, von denen eine ausfallen kann. Siehe [startTabForRoute].
   ///
   /// * `/werkzeug/…` – ein Werkzeug, das die native Schale **über** ihrer
   ///   Bildschirmreihe geöffnet hat. Es ist ein vollständiger Bildschirm mit
@@ -677,7 +719,10 @@ class _MyAppState extends State<MyApp> {
     }
 
     return MaterialPageRoute(
-      builder: (_) => Scaffold(body: HomePage()),
+      // Der Reiter steht in der **Route**, nicht in der Rolle – siehe
+      // [MyApp.startTabForRoute].
+      builder: (_) =>
+          Scaffold(body: HomePage(initialTab: MyApp.startTabForRoute(name))),
       settings: settings,
     );
   }

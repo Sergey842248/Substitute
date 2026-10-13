@@ -47,6 +47,26 @@ enum AppStore {
 
     // ---------------------------------------------------------- Schulbereich
 
+    /// Der Schlüssel, unter dem der aktive Schulbereich steht.
+    ///
+    /// **Ohne** den Schulbereich einbezogen – und genau das ist hier der
+    /// wichtigste Satz dieser Datei.
+    ///
+    /// Dieser Wert **sagt**, welcher Schulbereich gilt. Er kann deshalb nicht
+    /// selbst in einem Schlüssel stehen, der den Schulbereich einbezieht: Um
+    /// ihn zu lesen, müsste man ihn zuerst wissen.
+    ///
+    /// Das ist keine Feinheit, sondern ein Absturz: Ein `key("activeSchoolId")`
+    /// hier drin – also [key] – rief wiederum `activeSchoolId` auf, und das
+    /// wiederum [key]. Endlose Wiederholung, Stapelüberlauf, und die App stürzte
+    /// **beim Start** ab, noch bevor ein Bild gezeichnet war. Das ist auf iOS
+    /// geschehen und auf Android nicht, weil dort nur Dart läuft und Dart
+    /// denselben Fehler nicht macht.
+    ///
+    /// `SchoolStorage` schreibt ihn aus demselben Grund ohne Vorspann: siehe
+    /// `_activeSchoolKey` dort.
+    private static let activeSchoolKey = "activeSchoolId"
+
     /// Die Kennung des Schulbereichs, für den gerade gespeichert wird.
     ///
     /// Für die erste Schule ist das `default`, und dann tragen die Schlüssel
@@ -55,12 +75,13 @@ enum AppStore {
     /// ihre Werte ohne Vorspann, und mit einem Vorspann geschrieben, wären sie
     /// unsichtbar – die App erschiene frisch installiert.
     static var activeSchoolId: String {
-        defaults.string(forKey: key("activeSchoolId")) ?? "default"
+        defaults.string(forKey: prefix + activeSchoolKey) ?? "default"
     }
 
     /// Der Schlüssel einer Einstellung, so wie Flutter sie schreibt.
     ///
-    /// Hier wird der Schulbereich einbezogen; siehe [scoped].
+    /// Hier wird der Schulbereich einbezogen. **Nur** für Werte, die einem
+    /// Bereich gehören – für den Bereich selbst nimmt man [activeSchoolKey].
     static func key(_ name: String) -> String {
         let schoolId = activeSchoolId
         guard schoolId != "default" else {
@@ -95,7 +116,10 @@ enum AppStore {
     }
 
     static func setActiveSchool(_ schoolId: String) {
-        defaults.set(schoolId, forKey: key("activeSchoolId"))
+        // Siehe [activeSchoolKey]: Auch beim Schreiben **ohne** den
+        // Schulbereich einbezogen. Über [key] ginge es nicht – der Aufruf
+        // müsste erst den Bereich lesen, den man gerade setzt.
+        defaults.set(schoolId, forKey: prefix + activeSchoolKey)
     }
 
     // -------------------------------------------------------- Benachrichtigungen
