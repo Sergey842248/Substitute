@@ -1,13 +1,8 @@
-name: Build and upload iOS app to TestFlight
+name: Build and upload iOS app for internal TestFlight
 
 on:
   workflow_dispatch:
     inputs:
-      testflight_group:
-        description: 'Exact name of an existing external TestFlight testing group in App Store Connect'
-        required: true
-        type: string
-        default: 'External Testers'
       changelog:
         description: 'What to test in this build'
         required: false
@@ -23,7 +18,7 @@ concurrency:
 
 jobs:
   build-and-upload:
-    name: Build, sign, and submit to TestFlight beta review
+    name: Build, sign, and upload for internal TestFlight
     runs-on: macos-26
     timeout-minutes: 90
 
@@ -33,7 +28,6 @@ jobs:
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
       ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
-      TESTFLIGHT_GROUP: ${{ inputs.testflight_group }}
       TESTFLIGHT_CHANGELOG: ${{ inputs.changelog }}
 
     steps:
@@ -60,7 +54,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for name in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY TESTFLIGHT_GROUP; do
+          for name in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY; do
             if [[ -z "${!name:-}" ]]; then
               echo "::error::Required secret/input is missing: ${name}"
               exit 1
@@ -79,12 +73,32 @@ jobs:
           flutter --version
           flutter pub get
 
-          # App Store Connect requires a unique build number for each upload.
-          BUILD_NUMBER="$(date -u +%s)"
+          # Use the build number maintained by the project in pubspec.yaml.
+          # Example: version: 3.9.8+3908 -> marketing version 3.9.8, build 3908.
+          # Do not replace this with a timestamp; that produces large, unrelated build numbers.
+          VERSION_FIELD="$(python3 - <<'PYTHON'
+          from pathlib import Path
+          import re
+
+          text = Path("pubspec.yaml").read_text(encoding="utf-8")
+          match = re.search(r"^version:\s*['\"]?([^\s'\"]+)['\"]?\s*(?:#.*)?$", text, re.MULTILINE)
+          if not match:
+              raise SystemExit("Could not read the version field from pubspec.yaml")
+          print(match.group(1))
+          PYTHON
+          )"
+
+          if [[ ! "${VERSION_FIELD}" =~ ^([0-9]+\.[0-9]+\.[0-9]+)\+([0-9]+)$ ]]; then
+            echo "::error::pubspec.yaml must contain version: MAJOR.MINOR.PATCH+BUILD, for example version: 3.9.8+3908. Found: ${VERSION_FIELD}"
+            exit 1
+          fi
+          APP_VERSION="${BASH_REMATCH[1]}"
+          BUILD_NUMBER="${BASH_REMATCH[2]}"
+          echo "Using app version ${APP_VERSION} (${BUILD_NUMBER}) from pubspec.yaml"
           echo "BUILD_NUMBER=${BUILD_NUMBER}" >> "$GITHUB_ENV"
 
           # Generate Flutter/iOS build configuration and CocoaPods integration.
-          flutter build ios --release --no-codesign --build-number "${BUILD_NUMBER}"
+          flutter build ios --release --no-codesign --build-name "${APP_VERSION}" --build-number "${BUILD_NUMBER}"
 
       - name: Prepare App Store Connect API key and export options
         shell: bash
@@ -185,7 +199,7 @@ jobs:
           echo "IPA_PATH=${IPA_PATH}" >> "$GITHUB_ENV"
           echo "Exported IPA: ${IPA_PATH}"
 
-      - name: Upload to App Store Connect and submit for TestFlight beta review
+      - name: Upload to App Store Connect for internal TestFlight
         shell: bash
         run: |
           set -euo pipefail
@@ -193,7 +207,5 @@ jobs:
             --api_key_path "${ASC_API_KEY_JSON}" \
             --app_identifier "${BUNDLE_ID}" \
             --ipa "${IPA_PATH}" \
-            --distribute_external true \
-            --groups "${TESTFLIGHT_GROUP}" \
-            --submit_beta_review true \
+            --distribute_external false \
             --changelog "${TESTFLIGHT_CHANGELOG}"
