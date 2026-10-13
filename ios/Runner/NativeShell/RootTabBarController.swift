@@ -324,8 +324,30 @@ class PlanSectionController: UIViewController {
 
         NativeShellBridge.register(on: engine)
 
+        // Die Flutter-View gehört dem `FlutterViewController`. Sie darf nicht
+        // zugleich die Root-View dieses Controllers sein: UIKit bricht dann
+        // beim ersten Anzeigen mit einer Ausnahme ab ("A view can only be
+        // associated with at most one view controller at a time").
+        //
+        // Deshalb bekommt dieser Tab eine eigene Host-View und nimmt Flutter
+        // als Kind auf. So werden die View-Controller-Lebenszyklen auch
+        // korrekt an Flutter weitergegeben.
+        let hostView = UIView()
+        hostView.backgroundColor = Appearance.background
+        view = hostView
+
+        addChild(controller)
+        let flutterView = controller.view!
+        flutterView.translatesAutoresizingMaskIntoConstraints = false
+        hostView.addSubview(flutterView)
+        NSLayoutConstraint.activate([
+            flutterView.leadingAnchor.constraint(equalTo: hostView.leadingAnchor),
+            flutterView.trailingAnchor.constraint(equalTo: hostView.trailingAnchor),
+            flutterView.topAnchor.constraint(equalTo: hostView.topAnchor),
+            flutterView.bottomAnchor.constraint(equalTo: hostView.bottomAnchor),
+        ])
+        controller.didMove(toParent: self)
         flutterViewController = controller
-        view = controller.view
     }
 
     private func titleForSection() -> String? {
