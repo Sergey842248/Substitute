@@ -293,9 +293,6 @@ final class RootTabBarController: UITabBarController {
         tabBar.isTranslucent = true
         tabBar.standardAppearance = appearance
         tabBar.scrollEdgeAppearance = appearance
-        if #available(iOS 15.0, *) {
-            tabBar.compactScrollEdgeAppearance = appearance
-        }
         tabBar.backgroundColor = .clear
 
         // Das Fenster trägt die Helligkeit für alles, was **das System** malt:
