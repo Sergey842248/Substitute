@@ -396,10 +396,24 @@ final class SubtitleCell: UITableViewCell {
     /// demselben Grund hätte es auch die Haken und Pfeile verschluckt – das
     /// System zeichnet sie nur neben dem eingebauten Aufbau.
     private func aufbauen() {
-        // Der eigene Aufbau ersetzt die eingebauten Felder vollständig.
-        textLabel = nil
-        detailTextLabel = nil
-        imageView = nil
+        // Die eingebauten Felder werden **entfernt**, nicht auf `nil` gesetzt.
+        //
+        // `textLabel`, `detailTextLabel` und `imageView` sind auf
+        // `UITableViewCell` nur lesbar – `textLabel = nil` ist kein
+        // „Feld ausschalten", sondern ein Schreibversuch auf ein
+        // schreibgeschütztes Feld, und der Compiler weist ihn ab.
+        //
+        // Weglassen dürfte man sie trotzdem nicht: Die Zelle legt sie beim
+        // Aufbau selbst an, sie sind also sehr wohl da. Leer, ja – aber sie
+        // **sind** da, und sie halten den eingebauten Aufbau am Leben, den wir
+        // gar nicht benutzen. Sie zu entfernen ist deshalb nicht Kosmetik,
+        // sondern die Voraussetzung dafür, dass unser Stapel allein die Höhe
+        // der Zeile bestimmt.
+        //
+        // `accessoryView` und `accessoryType` **darf** man setzen – die sind
+        // schreibbar. Sie werden auf „keins" gesetzt, damit das System keinen
+        // Platz für sie reserviert: Unser Zubehör steckt im Stapel.
+        contentView.subviews.forEach { $0.removeFromSuperview() }
         accessoryView = nil
         accessoryType = .none
 
