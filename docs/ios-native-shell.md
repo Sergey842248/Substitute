@@ -109,9 +109,35 @@ sich nicht beide durchsetzen.
 native Schale zurückhaben will, setzt die Zeile in `Info.plist` wieder ein –
 sonst ist nichts zu tun.
 
+## Die Leiste zeigt nur Symbole
+
+Unter den Symbolen steht **kein Text**. Der gewählte Reiter ist allein an der
+Farbe zu erkennen (`tintColor`).
+
+Ein **sichtbarer** Titel ist nicht dasselbe wie ein zugänglicher Name: Ohne
+`accessibilityLabel` sagt VoiceOver nur „Button" – und die Leiste ist genau die
+Stelle, über die man mit den Augen nichts erfährt. Der Name steht deshalb in
+`accessibilityLabel`, auch wenn er nirgends zu sehen ist.
+
+Früher lag hier je Reiter ein `selectedImage`. Mehrere davon – etwa
+`magnifyingglass.circle.fill` – gibt es in SF Symbols **nicht**;
+`UIImage(systemName:)` liefert dafür `nil`, und `nil` als ausgewähltes Bild
+bedeutet, dass der Reiter im aktiven Zustand gar nichts anzeigt. Deshalb nur
+noch die Auswahl über die Farbe.
+
+## Ohne Zugangsdaten keine Leiste
+
+Solange kein Benutzername hinterlegt ist, steht die Anmeldeseite über allem, und
+die Leiste wird ausgeblendet. Sie taucht wieder auf, sobald
+`AppStore.hasCredentials` stimmt.
+
+Geprüft wird das **beim Wiedererwachen der App**, nicht nur bei einer Meldung:
+Zugangsdaten werden in Flutter eingetragen, und `settingsChanged` melden nur das
+Aussehen und die Sprache.
+
 ## Wichtig fürs Bearbeiten
 
-Zwei Dinge, die man leicht übersieht:
+Vier Dinge, die man leicht übersieht:
 
 1. **Jede neue Flutter-Maschine braucht ihre Programme.**
    `GeneratedPluginRegistrant.register(with:)` im `AppDelegate` gilt nur für die
@@ -123,3 +149,16 @@ Zwei Dinge, die man leicht übersieht:
    `NativeShell.notifySettingsChanged()` wird abgeschickt und **nicht**
    abgewartet. Wer darauf wartet, hängt das Umstellen einer Einstellung an
    einem Kanal, der auf Android und in den Tests gar nicht antwortet.
+
+3. **Die Routennamen müssen auf beiden Seiten gleich sein.**
+   Die native Seite baut die Route aus der Rolle – und die ist englisch:
+   `/abschnitt/search`. Stand in Dart `/abschnitt/suche`, lief der Reiter ins
+   Leere und blieb auf „loading...". Prüfbar über
+   `test/native_shell_route_test.dart`.
+
+4. **Zeilenhöhen in nativen Listen nicht fest vorgeben.**
+   Feste Werte sind für irgend eine Sprache zu klein, und was nicht passt, wird
+   nicht abgeschnitten, sondern **überlagert**. Die Listen lassen ihre Höhe
+   deshalb selbst messen (`UITableView.automaticDimension`) – und nehmen auch
+   das Zubehör in den eigenen Stapel auf, weil `accessoryView` vom System über
+   den Inhalt gelegt wird und den Platz für den Text nicht abzieht.

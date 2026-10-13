@@ -347,7 +347,7 @@ class MyApp extends StatefulWidget {
   /// eigenen Leiste – so wie auf Android, im Web und in den meisten Tests.
   static String startTabForRoute(String route) {
     switch (route) {
-      case '/abschnitt/suche':
+      case '/abschnitt/search':
         return 'search';
       case '/abschnitt/sync':
         return 'syncShare';
@@ -801,7 +801,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     // für jeden Eintrag eine eigene Flutter-Ansicht an. Diese Ansicht zeigt
     // dann genau den Abschnitt, für den sie angelegt wurde – deshalb steht
     // hier die Rolle, nicht der `initialTab`.
-    activeText = widget.initialTab ?? _startKeyFuerRolle();
+    //
+    // **Und** `initialTab` wird gegen '' geprüft, nicht nur gegen `null`. Das
+    // ist kein theoreticaler Punkt: `MyApp.startTabForRoute` liefert '' für
+    // alles, was keine Abschnittsroute ist, und `'' ?? …` greift **nicht** –
+    // `??` prüft nur `null`. Ein leerer Wert hier landete in `activeText`, und
+    // dort passte er zu keinem Eintrag der Seitenliste: Der Bildschirm stand
+    // dann dauerhaft auf „loading…" (das war der Fehler im Such-Reiter).
+    activeText = (widget.initialTab?.isEmpty ?? true)
+        ? _startKeyFuerRolle()
+        : widget.initialTab!;
 
     // Refresh all VPlans in the background when app opens – aber erst, wenn der
     // erste Frame steht.

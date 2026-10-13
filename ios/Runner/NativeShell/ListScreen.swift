@@ -269,6 +269,13 @@ class ListScreen: UIViewController {
         // Zwischen den Zeilen einer Gruppe läuft in iOS **keine** Linie; die
         // Gruppen selbst sind es, die den Abschnitt teilen.
         tableView.separatorStyle = .none
+        // Die Zeilenhöhe folgt dem Text – siehe [heightForRowAt].
+        //
+        // Der Schätzwert ist nicht Kosmetik: Er ist der Wert, mit dem die Liste
+        // beim Scrollen rechnet. Ohne ihn wüsste sie nicht, wo die nächste
+        // Zeile steht, und würde beim Scrollen springen.
+        tableView.estimatedRowHeight = 72
+        tableView.rowHeight = UITableView.automaticDimension
         tableView.dataSource = self
         tableView.delegate = self
         tableView.register(SubtitleCell.self, forCellReuseIdentifier: SubtitleCell.reuseId)
@@ -333,25 +340,131 @@ class ListScreen: UIViewController {
 /// sieht man erst auf dem Gerät.
 ///
 /// Der Stil wird deshalb hier einmal festgelegt, statt ihn in jedem Bildschirm
-/// zu wiederholen.
+/// zu wiederholen – aber die **Felder** ersetzt sie durch eigene, siehe
+/// [aufbauen()].
 final class SubtitleCell: UITableViewCell {
     static let reuseId = "SubtitleCell"
 
+    /// Der Text links neben dem Symbol.
+    private let beschriftung = UILabel()
+
+    /// Die Erklärung darunter.
+    private let erklaerung = UILabel()
+
+    /// Das Symbol links.
+    private let symbolView = UIImageView()
+
+    /// Hält Symbol und Text in einer Zeile nebeneinander.
+    private let zeile = UIStackView()
+
+    /// Hält Symbol, Titel und Erklärung untereinander.
+    private let spalte = UIStackView()
+
+    /// Das Zubehör am rechten Rand – Schalter, Haken oder Pfeil.
+    private let zubehoerBehaelter = UIStackView()
+
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        // `super.init` bekommt `.subtitle` – **nicht** den `style`, der
-        // hereinkommt. Der ist bei der Wiederverwendung der des zuletzt
-        // benutzten Bildschirms und wäre hier der falsche.
         super.init(style: .subtitle, reuseIdentifier: reuseIdentifier)
-        textLabel?.numberOfLines = 0
-        detailTextLabel?.numberOfLines = 0
-        // Der Abstand zwischen beiden Zeilen ist in iOS enger, als die
-        // Vorgabe macht – und die Vorgabe sieht hier nach zwei getrennten
-        // Angaben aus, nicht nach einem Titel mit Erklärung darunter.
-        detailTextLabel?.numberOfLines = 0
+        aufbauen()
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) fehlt") }
+
+    /// Baut das Layout auf.
+    ///
+    /// ## Warum nicht die eingebauten `textLabel`/`detailTextLabel`
+    ///
+    /// Weil deren Layout eine **feste** Höhe vorsieht. Beide Labels bekommen
+    /// dort nur eine feste Zahl Zeilen, und der Rest wird abgeschnitten – bei
+    /// einer deutschen Erklärung wie „Blendet das Synchronisations-Menü in
+    /// der Navigationsleiste am unteren Rand ein oder aus" läuft der Text
+    /// dabei über den Rand der Zeile und über das Symbol hinweg.
+    ///
+    /// Mit dem eigenen Stapel entscheidet die Zeilenhöhe der Inhalt, und der
+    /// Text hat so viele Zeilen, wie er braucht.
+    ///
+    /// `setContentHuggingPriority` ist dabei nicht Kosmetik: Ohne die niedrige
+    /// Priorität würde der Stapel die Zelle über seine eigene Höhe hinaus
+    /// dehnen wollen, und `UITableView` würde die berechnete Höhe verwerfen.
+    ///
+    /// ## Warum das Zubehör **im** Stapel steht und nicht in `accessoryView`
+    ///
+    /// `accessoryView` legt das System **über** den Inhalt der Zelle, und es
+    /// rechnet den Platz beim eigenen Layout nicht mit: Ein Schalter am rechten
+    /// Rand läge dann **auf** dem Text, sobald der Text breit genug ist. Aus
+    /// demselben Grund hätte es auch die Haken und Pfeile verschluckt – das
+    /// System zeichnet sie nur neben dem eingebauten Aufbau.
+    private func aufbauen() {
+        // Der eigene Aufbau ersetzt die eingebauten Felder vollständig.
+        textLabel = nil
+        detailTextLabel = nil
+        imageView = nil
+        accessoryView = nil
+        accessoryType = .none
+
+        beschriftung.font = .preferredFont(forTextStyle: .body)
+        beschriftung.adjustsFontForContentSizeCategory = true
+        // Ohne das bricht der Text bei grosser Systemschrift mitten im Wort ab.
+        beschriftung.lineBreakMode = .byWordWrapping
+
+        erklaerung.font = .preferredFont(forTextStyle: .footnote)
+        erklaerung.adjustsFontForContentSizeCategory = true
+        erklaerung.lineBreakMode = .byWordWrapping
+        // Die Erklärung wird eher gestaucht als der Titel – der Titel ist das,
+        // woran man den Eintrag überhaupt erkennt.
+        erklaerung.setContentCompressionResistancePriority(
+            .defaultLow, for: .horizontal)
+
+        symbolView.contentMode = .scaleAspectFit
+        symbolView.setContentHuggingPriority(
+            .required, for: .horizontal)
+        symbolView.setContentCompressionResistancePriority(
+            .required, for: .horizontal)
+
+        zubehoerBehaelter.axis = .horizontal
+        zubehoerBehaelter.alignment = .center
+        zubehoerBehaelter.spacing = 6
+        zubehoerBehaelter.translatesAutoresizingMaskIntoConstraints = false
+
+        zeile.axis = .horizontal
+        zeile.alignment = .center
+        zeile.spacing = 12
+        zeile.translatesAutoresizingMaskIntoConstraints = false
+
+        spalte.axis = .vertical
+        spalte.alignment = .fill
+        spalte.spacing = 2
+        spalte.translatesAutoresizingMaskIntoConstraints = false
+
+        zeile.addArrangedSubview(symbolView)
+        spalte.addArrangedSubview(beschriftung)
+        spalte.addArrangedSubview(erklaerung)
+        zeile.addArrangedSubview(spalte)
+        // Das Zubehör ist ein **angeordnetes Feld**, nicht `accessoryView`.
+        //
+        // `accessoryView` legt das System über den Inhalt und rechnet den Platz
+        // beim eigenen Layout nicht mit: Ein Schalter am rechten Rand läge dann
+        // auf dem Text, sobald der Text breit genug ist. Im Stapel ist es statt
+        // dessen ein Teil der Zeile – und der Text weicht ihm aus.
+        zeile.addArrangedSubview(zubehoerBehaelter)
+
+        contentView.addSubview(zeile)
+        NSLayoutConstraint.activate([
+            // Symbole 17 Punkte – so breit, wie der Stapel es vorgibt, und
+            // nicht mehr: Die iOS-Vorgabe ist 20, was hier zu viel Luft lässt.
+            symbolView.widthAnchor.constraint(equalToConstant: 22),
+
+            zeile.topAnchor.constraint(
+                equalTo: contentView.topAnchor, constant: 11),
+            zeile.leadingAnchor.constraint(
+                equalTo: contentView.layoutMarginsGuide.leadingAnchor),
+            zeile.trailingAnchor.constraint(
+                equalTo: contentView.layoutMarginsGuide.trailingAnchor),
+            zeile.bottomAnchor.constraint(
+                equalTo: contentView.bottomAnchor, constant: -11),
+        ])
+    }
 
     /// Trägt Text und Symbol ein, wie die gerade geltende Helligkeit es will.
     func setzeInhalt(
@@ -360,15 +473,65 @@ final class SubtitleCell: UITableViewCell {
         symbol: String,
         istGefaehrlich: Bool = false
     ) {
-        textLabel?.text = titel
-        detailTextLabel?.text = untertitel
-        detailTextLabel?.isHidden = (untertitel ?? "").isEmpty
-        imageView?.image = UIImage(
+        beschriftung.text = titel
+        beschriftung.textColor = istGefaehrlich ? .systemRed : .label
+
+        let hatErklaerung = !(untertitel ?? "").isEmpty
+        erklaerung.text = untertitel
+        erklaerung.textColor = .secondaryLabel
+        // Ein leeres, aber sichtbares Feld würde einen Absatz mit leerer Höhe
+        // offenlassen – der Stapel zählt jedes angeordnete Feld.
+        erklaerung.isHidden = !hatErklaerung
+
+        symbolView.image = UIImage(
             systemName: symbol,
             withConfiguration: UIImage.SymbolConfiguration(
                 pointSize: 16, weight: .regular))
-        textLabel?.textColor = istGefaehrlich ? .systemRed : .label
-        detailTextLabel?.textColor = .secondaryLabel
+        symbolView.tintColor = istGefaehrlich ? .systemRed : .secondaryLabel
+
+        // Die ganze Zeile sagt VoiceOver, was sie zeigt.
+        accessibilityLabel = [titel, untertitel].compactMap { $0 }.joined(separator: ", ")
+    }
+
+    /// Setzt das Zubehör am rechten Rand.
+    ///
+    /// `nil` heisst: nichts. Der alte Zubehör wird jedes Mal entfernt – die
+    /// Zelle wird über die Wiederverwendung mehrfach benutzt, und ohne das
+    /// Entfernen stünde das Zubehör der vorigen Zeile noch daneben.
+    func setzeZubehoer(_ neu: UIView?) {
+        zubehoerBehaelter.arrangedSubviews.forEach {
+            zubehoerBehaelter.removeArrangedSubview($0)
+            $0.removeFromSuperview()
+        }
+        if let neu {
+            zubehoerBehaelter.addArrangedSubview(neu)
+        }
+    }
+
+    /// Der Haken eines gewählten Wertes oder der Pfeil, der weiterführt.
+    ///
+    /// Als **eigene Symbole** statt als `accessoryType`, weil das System diese
+    /// nur neben dem eingebauten Layout zeichnet – neben dem eigenen Stapel
+    /// erschienen sie gar nicht, und die Zeile täte so, als gäbe es dort
+    /// nichts zu wählen.
+    static func symbolFuer(_ art: Row.Accessory) -> UIImageView? {
+        let name: String
+        switch art {
+        case .none: return nil
+        case .disclosure: name = "chevron.right"
+        case .checkmark: name = "checkmark"
+        }
+        let view = UIImageView(image: UIImage(
+            systemName: name,
+            withConfiguration: UIImage.SymbolConfiguration(
+                pointSize: 14, weight: .semibold)))
+        view.tintColor = .tertiaryLabel
+        // Darf weder gestaucht noch zusammengedrückt werden: Sonst verschwindet
+        // der Haken genau dann, wenn die Zeile einmal breit wird.
+        view.setContentHuggingPriority(.required, for: .horizontal)
+        view.setContentCompressionResistancePriority(
+            .required, for: .horizontal)
+        return view
     }
 }
 
@@ -417,6 +580,13 @@ final class SegmentCell: UITableViewCell {
                 withConfiguration: UIImage.SymbolConfiguration(
                     pointSize: 13, weight: .medium))
             button.configuration?.imagePadding = 6
+            // Bei grosser Systemschrift passt „Wochenansicht" nicht mehr in
+            // eine Kachel. Ohne das bricht der Text **mitten im Wort** ab und
+            // läuft über den Nachbarn; damit wird er am Ende abgeschnitten und
+            // die Kachel bleibt lesbar.
+            button.configuration?.titleLineBreakMode = .byTruncatingTail
+            // Der Knopf muss sich anpassen, statt den Text zu quetschen.
+            button.configuration?.titleAlignment = .center
 
             // Der Klick geht an den Aufrufer, nicht hier hin: Er muss den Wert
             // **speichern**, und das Wissen darum liegt dort.
@@ -486,7 +656,7 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
 
         case let .toggleRow(titel, untertitel, symbol, wert, aktion):
             let cell = dequeue(indexPath)
-            (cell as? SubtitleCell)?.setzeInhalt(
+            cell.setzeInhalt(
                 titel: titel, untertitel: untertitel, symbol: symbol)
             cell.selectionStyle = .none
 
@@ -505,48 +675,50 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
                     aktion(schalter.isOn)
                 },
                 for: .valueChanged)
-            cell.accessoryView = schalter
+            cell.setzeZubehoer(schalter)
             return cell
 
         case let .textRow(titel, untertitel, symbol):
             let cell = dequeue(indexPath)
-            (cell as? SubtitleCell)?.setzeInhalt(
+            cell.setzeInhalt(
                 titel: titel, untertitel: untertitel, symbol: symbol)
             cell.selectionStyle = .none
-            cell.accessoryView = nil
-            cell.accessoryType = .none
+            cell.setzeZubehoer(nil)
             return cell
 
         case let .warning(titel, untertitel, symbol):
             let cell = dequeue(indexPath)
-            (cell as? SubtitleCell)?.setzeInhalt(
+            cell.setzeInhalt(
                 titel: titel, untertitel: untertitel, symbol: symbol,
                 istGefaehrlich: true)
             cell.selectionStyle = .none
-            cell.accessoryView = nil
-            cell.accessoryType = .none
+            cell.setzeZubehoer(nil)
             return cell
 
         case let .choice(titel, untertitel, symbol, zubehoer, gefaehrlich, _):
             let cell = dequeue(indexPath)
-            (cell as? SubtitleCell)?.setzeInhalt(
+            cell.setzeInhalt(
                 titel: titel, untertitel: untertitel, symbol: symbol,
                 istGefaehrlich: gefaehrlich)
-            cell.accessoryView = nil
-            cell.accessoryType = {
-                switch zubehoer {
-                case .none: return .none
-                case .disclosure: return .disclosureIndicator
-                case .checkmark: return .checkmark
-                }
-            }()
+            // Haken und Pfeil als eigene Symbole im Stapel – siehe
+            // [SubtitleCell.symbolFuer(_:)]. Mit `accessoryType` erschienen sie
+            // neben dem eigenen Aufbau gar nicht.
+            cell.setzeZubehoer(
+                SubtitleCell.symbolFuer(zubehoer))
             return cell
         }
     }
 
-    private func dequeue(_ indexPath: IndexPath) -> UITableViewCell {
+    /// Holt eine Zelle und macht sie bereit.
+    ///
+    /// Rückgabe ist bewusst [SubtitleCell] und nicht `UITableViewCell`: Alle
+    /// Zeilen mit Text brauchen `setzeInhalt` und `setzeZubehoer`, und beide
+    /// gibt es nur hier. Mit `UITableViewCell` als Typ müsste jeder Aufrufer
+    /// erst fragen, ob es zufällig doch eine `SubtitleCell` ist – und ein
+    /// stillschweigendes „nein" ergäbe eine leere Zeile statt eines Fehlers.
+    private func dequeue(_ indexPath: IndexPath) -> SubtitleCell {
         let cell = liste.dequeueReusableCell(
-            withIdentifier: SubtitleCell.reuseId, for: indexPath)
+            withIdentifier: SubtitleCell.reuseId, for: indexPath) as! SubtitleCell
         // Ohne `.clear` läge die Standardhinterlegung der Zelle **über** der
         // gesetzten Farbe, und die Zeile bliebe grau, egal was man einstellt.
         cell.backgroundColor = Appearance.surface
@@ -582,16 +754,39 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
 
     /// Wie hoch eine Zeile wird.
     ///
-    /// Feste Werte je Art und **kein** Raten aus der Textlänge: Die Höhe ist
-    /// einmal festgelegt, damit eine zweizeilige Erklärung in jeder Sprache
-    /// gleich hoch steht und beim Tippen nicht springt.
+    /// ## Warum die Liste ihre Höhe **selbst** bestimmt
+    ///
+    /// Vorher standen hier feste Werte – 72 Punkte für eine Zeile mit
+    /// Erklärung. Das ist bei knappen Texten in Ordnung und bei ausführlichen
+    /// ein Fehler: „Blendet das Synchronisations-Menü in der Navigationsleiste
+    /// am unteren Rand ein oder aus" braucht auf dem Telefon drei Zeilen, und in
+    /// 72 Punkte passen zwei. Was nicht passt, wird nicht abgeschnitten, sondern
+    /// **überlagert** – der Text läuft dann über den Rand der Zeile und über das
+    /// Symbol hinweg, und die nächste Zeile fängt ihn ab.
+    ///
+    /// Eine feste Höhe kann das nicht lösen, weil sie der Textlänge nicht
+    /// folgen kann. Sie müsste gross genug für den längsten Text sein – und
+    /// dann wären alle anderen Zeilen auf einem iPhone wie riesige Leerflächen.
+    ///
+    /// Deshalb misst **jede** Zeile sich selbst: [UITableView.automaticDimension]
+    /// lässt die Liste den Inhalt fragen. Auch die Kachelzeile [Row.segmentRow]
+    /// misst sich – dort sind es zwei Knöpfe, und deren Höhe folgt dem Text in
+    /// ihnen, nicht einer Zahl im Quelltext.
+    ///
+    /// [UITableView.estimatedRowHeight] ist dabei nicht ein tuning, sondern
+    /// nötig: Ohne Schätzwert weiss die Liste beim Scrollen nicht, wo die
+    /// nächste Zeile kommt, und würde springen.
     func tableView(
         _ tableView: UITableView, heightForRowAt indexPath: IndexPath
     ) -> CGFloat {
         switch sections[indexPath.section].rows[indexPath.row] {
-        case .segmentRow: return 66
-        case .toggleRow, .choice: return 72
-        case .textRow, .warning: return 52
+        case .segmentRow, .toggleRow, .choice, .textRow, .warning:
+            // Alle Zeilen messen sich selbst – siehe die Beschreibung oben.
+            // Eine eigene Höhe je Art gibt es hier bewusst nicht mehr: Jede
+            // feste Zahl ist für **irgendeine** Sprache oder Schriftgrösse zu
+            // klein, und was nicht passt, wird nicht abgeschnitten, sondern
+            // überlagert.
+            return UITableView.automaticDimension
         }
     }
 }

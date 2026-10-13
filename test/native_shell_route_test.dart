@@ -27,8 +27,12 @@ void main() {
   group('Der Reiter zu einer Route', () {
     test('steht in der Route, nicht in der Rolle', () {
       // Ohne irgendeine Rolle – so, als kämen die Startargumente nicht an.
+      //
+      // **Englische** Namen: Die native Seite baut die Route aus der Rolle,
+      // und die ist englisch (`search`). Ein deutscher Name hier – so naheliegend
+      // er auch wäre – liess den Reiter ins Leere laufen.
       expect(MyApp.startTabForRoute('/abschnitt/plan'), 'vplanStudents');
-      expect(MyApp.startTabForRoute('/abschnitt/suche'), 'search');
+      expect(MyApp.startTabForRoute('/abschnitt/search'), 'search');
       expect(MyApp.startTabForRoute('/abschnitt/sync'), 'syncShare');
     });
 
@@ -52,6 +56,20 @@ void main() {
       }
     });
 
+    test('nimmt den Namen, den die native Seite wirklich sendet', () {
+      // Der Fehler, der den Such-Reiter auf „loading…" festhalten ließ:
+      // Die native Seite sandte `/abschnitt/search`, hier stand aber
+      // `/abschnitt/suche`. Der Rückfall war der leere Wert – und der leere
+      // Wert passte zu keinem Eintrag der Seitenliste.
+      //
+      // Deshalb steht hier ausdrücklich der englische Name. Die Namen auf
+      // beiden Seiten müssen **gleich** sein; welcher Sprache sie folgen, ist
+      // zweitrangig – wichtig ist nur, dass keiner von ihnen leer ausfällt.
+      expect(MyApp.startTabForRoute('/abschnitt/search'), 'search');
+      expect(MyApp.startTabForRoute('/abschnitt/suche'), '',
+          reason: 'die deutsche Form wird nicht gesendet – siehe oben');
+    });
+
     test('entspricht dem, was die native Seite sendet', () {
       // Die beiden Seiten müssen dasselbe sprechen: Was `RootTabBarController`
       // als `initialRoute` setzt, muss hier wieder ankommen.
@@ -62,11 +80,14 @@ void main() {
       // Namen, aber dieselbe Bedeutung.
       const Map<String, String> erwartet = <String, String>{
         'plan': '/abschnitt/plan',
-        'search': '/abschnitt/suche',
+        'search': '/abschnitt/search',
         'sync': '/abschnitt/sync',
       };
       erwartet.forEach((String rolle, String route) {
         NativeShell.readRole(<String>['--substitute-role=$rolle']);
+        // Genau das prüft der Test: Die Rolle wird zu einer Route, und die
+        // Route wird wieder zu einem Reiter. Fehlt ein Glied in dieser Kette,
+        // bleibt der Bildschirm leer.
         expect(
           MyApp.startTabForRoute(route),
           isNot(''),

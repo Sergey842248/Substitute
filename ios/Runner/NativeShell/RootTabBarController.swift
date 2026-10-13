@@ -93,6 +93,25 @@ final class RootTabBarController: UITabBarController {
             self, selector: #selector(settingsDidChange),
             name: AppStore.syncTabDidChange, object: nil)
 
+        // ## Warum zusätzlich ans Wiedererwachen der App
+        ///
+        // Ob die Leiste stehen darf, hängt an den Zugangsdaten – und die werden
+        // **in Flutter** eingetragen, auf der Anmeldeseite. Das erreicht diese
+        // Seite über keinen der obigen Wege: `settingsChanged` melden nur das
+        // Aussehen und die Sprache, weil nur dort etwas darüber gesagt wird.
+        ///
+        // Ohne diesen Zuhörer bliebe die Leiste nach dem Anmelden weg – und
+        // bliebe auch dann weg, wenn man sie von Hand schliesse und die App
+        // wieder aufmacht. Sie käme erst nach einem Neustart zurück, was sich
+        // wie ein Fehler anfühlt und nicht wie eine Regel.
+        //
+        // Beim Wiedererwachen wird deshalb nur **geprüft**, ob die Leiste
+        // gerade stehen darf. Das ist billig und kommt genau dann zum Tragen,
+        // wenn sich etwas geändert haben könnte.
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(settingsDidChange),
+            name: UIApplication.didBecomeActiveNotification, object: nil)
+
         bauen()
         farbenSetzen()
     }
@@ -187,29 +206,64 @@ final class RootTabBarController: UITabBarController {
         return liste
     }
 
+    /// Der Eintrag eines Reiters: **nur** ein Symbol, kein Text.
+    ///
+    /// ## Warum kein Text unter dem Symbol
+    ///
+    /// Gewünscht ist eine Leiste mit Symbolen allein. Das ist auch in Ordnung
+    /// so – allerdings nur, wenn die Symbole **selbsterklärend** sind.
+    ///
+    /// ## Warum trotzdem ein Name für VoiceOver
+    ///
+    /// Ein sichtbarer Titel ist nicht dasselbe wie ein zugänglicher Name. Ohne
+    /// `accessibilityLabel` sagt VoiceOver nur „Button“ – und die Leiste ist
+    /// genau die Stelle, über die man mit den Augen nichts erfährt. Der Name
+    /// wird deshalb gesetzt, auch wenn er nirgends **zu sehen** ist.
+    ///
+    /// ## Warum kein eigenes Symbol für den gewählten Zustand
+    ///
+    /// Früher lag hier ein `selectedImage`. Mehrere davon – etwa
+    /// `magnifyingglass.circle.fill` oder
+    /// `arrow.triangle.2.circlepath.circle.fill` – **gibt es in SF Symbols
+    /// nicht**. `UIImage(systemName:)` liefert dafür `nil`, und `nil` als
+    /// ausgewähltes Bild bedeutet: Der Reiter zeigt im aktiven Zustand
+    /// **gar nichts**, weil das ungewählte Bild dann ebenfalls wegfällt.
+    ///
+    /// Statt eine Liste zu pflegen, die immer einen Teil falsch hat, wird die
+    /// Auswahl allein über die **Farbe** gezeigt: `tabBar.tintColor` färbt den
+    /// gewählten Eintrag, die anderen bleiben grau. Das ist zugleich das, was
+    /// iOS selbst tut, wenn man `isEnabled`-Zustände über `tintColor` steuert.
     private func tabBarItem(for section: Tab) -> UITabBarItem {
+        let titel: String
+        let symbol: String
+
         switch section {
         case .plan:
-            return UITabBarItem(
-                title: L.vplanStudents,
-                image: UIImage(systemName: "calendar"),
-                selectedImage: UIImage(systemName: "calendar.circle.fill"))
+            titel = L.vplanStudents
+            symbol = "calendar"
         case .search:
-            return UITabBarItem(
-                title: L.search,
-                image: UIImage(systemName: "magnifyingglass"),
-                selectedImage: UIImage(systemName: "magnifyingglass.circle.fill"))
+            titel = L.search
+            symbol = "magnifyingglass"
         case .sync:
-            return UITabBarItem(
-                title: L.syncShare,
-                image: UIImage(systemName: "arrow.triangle.2.circlepath"),
-                selectedImage: UIImage(systemName: "arrow.triangle.2.circlepath.circle.fill"))
+            titel = L.syncShare
+            symbol = "arrow.triangle.2.circlepath"
         case .more:
-            return UITabBarItem(
-                title: L.dashboard,
-                image: UIImage(systemName: "ellipsis.circle"),
-                selectedImage: UIImage(systemName: "ellipsis.circle.fill"))
+            titel = L.dashboard
+            symbol = "ellipsis.circle"
         }
+
+        // `title: nil` – **nicht** `title: ""`. Ein leerer Titel würde in manchen
+        // iOS-Versionen den Platz trotzdem reservieren und die Symbole
+        // nach oben schieben, statt sie zu zentrieren.
+        let eintrag = UITabBarItem(
+            title: nil,
+            image: UIImage(systemName: symbol),
+            selectedImage: nil)
+
+        // Für VoiceOver und für „Was ist das?"-Menüs, nie sichtbar.
+        eintrag.accessibilityLabel = titel
+        eintrag.accessibilityTraits = .button
+        return eintrag
     }
 
     /// Trägt die gewählte Helligkeit auf die Leiste.
@@ -224,7 +278,7 @@ final class RootTabBarController: UITabBarController {
         // ausgeblendet". Sonst hinge die Leiste in einem Zustand fest, den
         // jemand anders gesetzt hat, und niemand bräuchte sie wieder
         // einzuschalten.
-        tabBar.isHidden = chromeHidden
+        tabBar.isHidden = chromeHidden || !AppStore.hasCredentials
     }
 
     @objc private func settingsDidChange() {
@@ -247,7 +301,7 @@ final class RootTabBarController: UITabBarController {
     /// Einträge führen, hinter denen gerade nichts liegt.
     func setzeChromeSichtbar(_ sichtbar: Bool) {
         chromeHidden = !sichtbar
-        tabBar.isHidden = !sichtbar
+        farbenSetzen()
     }
 
     override func traitCollectionDidChange(
