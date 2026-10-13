@@ -111,6 +111,23 @@ enum NativeShellBridge {
         }
     }
 
+    /// Wie viele Punkte die Leiste am unteren Rand verdeckt.
+    ///
+    /// Gesendet wird nur dann, wenn sich der Wert geändert hat: Diese Methode wird
+    /// bei **jedem** Bildaufbau gerufen, und ein Aufruf über den Kanal ist nicht
+    /// gratis – Dutzende Aufrufe beim Scrollen wären es.
+    static func setzeUeberdeckung(_ punkte: Double) {
+        guard punkte != zuletztGesendeteUeberdeckung else { return }
+        zuletztGesendeteUeberdeckung = punkte
+        for channel in channels {
+            channel.invokeMethod(
+                "tabBarInset", arguments: ["height": punkte])
+        }
+    }
+
+    /// Der zuletzt gesendete Wert – siehe [setzeUeberdeckung(_:)].
+    private static var zuletztGesendeteUeberdeckung: Double = -1
+
     /// Wie viele Ansichten sind überhaupt da?
     ///
     /// Nur zum Nachsehen in der Konsole. Ohne Auskunft darüber, ob die

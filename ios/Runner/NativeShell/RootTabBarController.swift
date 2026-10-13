@@ -266,7 +266,7 @@ final class RootTabBarController: UITabBarController {
         return eintrag
     }
 
-    /// Trägt die gewählte Helligkeit auf die Leiste.
+    //// Trägt die gewählte Helligkeit auf die Leiste.
     ///
     /// Nur die Leiste, nicht den ganzen Bildschirm: Die Abschnitte tragen ihr
     /// Bild selbst, und würde man ihnen das hier aufzwingen, sähe man beim
@@ -274,11 +274,84 @@ final class RootTabBarController: UITabBarController {
     private func farbenSetzen() {
         tabBar.tintColor = Appearance.accent
         view.backgroundColor = Appearance.background
+
+        // Die Leiste liegt **auf** dem Inhalt, nicht als eigene Schicht darüber.
+        //
+        // Ohne diese drei Angaben malt das System die Leiste als schwebendes
+        // Gebilde: durchsichtig, mit weichem Rand und einem Schatten, und mit
+        // Abstand zum unteren Bildschirmrand. Zwischen ihr und dem Inhalt steht
+        // dann eine Lücke, in der der Inhalt durchscheint – genau die „Schicht
+        // dazwischen", die stört.
+        //
+        // * `isTranslucent` aus: eine deckende Leiste kann keinen Inhalt
+        //   durchlassen.
+        // * Der Hintergrund in der **Farbe des Inhaltsgrunds**: Wäre er eine
+        //   andere, sähe man den Übergang als Streifen.
+        // * `scrollEdgeAppearance` ebenfalls: Das ist die Variante, die das
+        //   System beim Scrollen einsetzt, und sie ist die schwebende.
+        tabBar.isTranslucent = false
+        tabBar.backgroundColor = Appearance.background
+        tabBar.scrollEdgeAppearance = tabBar.standardAppearance
+
+        // Das Fenster trägt die Helligkeit für alles, was **das System** malt:
+        // Alarme, Auswahllisten, die Action-Sheets. Ohne dieses Nachziehen
+        // bliebe es beim hellen Bild dunkel – die Leiste und die
+        // Einstellungsseite wären hell, jeder vom System gezeichnete Dialog
+        // aber dunkel.
+        //
+        // Der AppDelegate setzt das einmal beim Start; ab hier wird es bei jeder
+        // Änderung nachgezogen, sonst gälte nur der Stand von damals.
+        view.window?.overrideUserInterfaceStyle =
+            Appearance.current == .dark ? .dark : .light
+
         // Ausdrücklich **beide** Zustände, nicht nur „verstecken, wenn
         // ausgeblendet". Sonst hinge die Leiste in einem Zustand fest, den
         // jemand anders gesetzt hat, und niemand bräuchte sie wieder
         // einzuschalten.
         tabBar.isHidden = chromeHidden || !AppStore.hasCredentials
+    }
+
+    // MARK: - Wie viel die Leiste überdeckt
+
+    /// Wie viele Punkte am unteren Rand die Leiste verdeckt – **gemessen**, nicht
+    /// angenommen.
+    ///
+    /// ## Warum gemessen und nicht gerechnet
+    ///
+    /// Das Verhalten von `UITabBarController` unterscheidet sich je iOS-Version.
+    /// Früher legte das System die Leiste **unter** den Inhalt und kürzte den
+    /// Bildschirm darüber; der Bildschirm endete dann genau über der Leiste, und
+    /// es gab nichts zu überdecken. Neuere Systeme lassen die Leiste über dem
+    /// Inhalt schweben, und der Inhalt reicht bis zum unteren Bildschirmrand.
+    ///
+    /// Eine Zahl im Quelltext – „die Leiste ist 49 Punkte hoch" – wäre damit
+    /// entweder zu klein (ein Stück Content bliebe verdeckt) oder zu gross (ein
+    /// Loch stünde darunter). Gemessen stimmt beides nicht: Es ist genau der
+    /// Abstand, um den der Inhalt wirklich zu kurz ist.
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        meldeUeberdeckung()
+    }
+
+    /// Berechnet den verdeckten Streifen und sagt ihn allen Ansichten.
+    private func meldeUeberdeckung() {
+        guard !tabBar.isHidden, !view.bounds.isEmpty else { return }
+
+        // Der obere Rand der Leiste, bezogen auf **diesen** Bildschirm. Liegt
+        // die Leiste ausserhalb (etwa weil sie gerade weganimiert wird), ergibt
+        // das einen Unsinn – deshalb wird das abgefangen.
+        let leistenOberrand = tabBar.frame.minY
+        guard leistenOberrand > 0, leistenOberrand < view.bounds.height else {
+            return
+        }
+
+        let ueberdeckt = view.bounds.height - leistenOberrand
+        // Der sichere Bereich kommt mit: Ist die Leiste unterhalb des Inhalts,
+        // ist der Streifen zwar leer, aber das Gerät hat unten einen Bereich,
+        // in den der Inhalt nicht hineinreichen soll.
+        let gebraucht = max(ueberdeckt, view.safeAreaInsets.bottom)
+
+        NativeShellBridge.setzeUeberdeckung(gebraucht)
     }
 
     @objc private func settingsDidChange() {

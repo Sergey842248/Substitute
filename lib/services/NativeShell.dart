@@ -1,7 +1,8 @@
 import 'dart:async';
+import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
 /// Welche **Rolle** diese Instanz der App auf iOS gerade hat.
 ///
@@ -232,21 +233,65 @@ class NativeShell {
   /// Meldet, dass sich die Farben geändert haben.
   ///
   /// Die native Seite ruft das an, wenn jemand in den **nativen** Einstellungen
-  /// auf Hell/Dunkel umstellt. Dart hat den Wert zu diesem Zeitpunkt noch im
-  /// alten Stand – `SharedPreferences` merkt sich, was es selbst geschrieben
-  /// hat, und ein Wert, den die native Seite geschrieben hat, sieht es erst
-  /// beim nächsten Lesen.
+  /// auf Hell/Dunkel umstellt.
   ///
-  /// Deshalb wird hier nicht der neue Wert geschickt, sondern nur die
-  /// **Aufforderung**, ihn zu holen. So kann es nicht zwei Quellen für dieselbe
-  /// Wahrheit geben.
+  /// ## Der Empfänger ist gerade die Ansicht, die den Befehl auslöst
+  ///
+  /// Früher stand hier eine Zeile, die den Empfänger in den Abschnitten
+  /// **abgelehnt** hätte – mit der Begründung, dort gebe es nichts zu melden.
+  /// Das war genau verkehrt: Auf iOS ist **jede** Ansicht ein Abschnitt, und die
+  /// Abschnitte sind gerade die, deren Bild von der Einstellung abhängt. Die
+  /// Zeile hat die Meldung also dort abgefangen, wo sie gebraucht wird – und
+  /// der Hell-Modus blieb aus, während die Leiste und die Einstellungsseite
+  /// hell wurden. Zwei Helligkeiten nebeneinander, beide „richtig“ gerechnet.
+  ///
+  /// ## Warum kein Wert mitkommt
+  ///
+  /// Es wird nur die **Aufforderung** geschickt, ihn zu holen. Ein
+  /// mitgeschickter Wert wäre eine zweite Quelle für dieselbe Sache.
   static void onAppearanceChanged(VoidCallback neuLaden) {
-    if (isSection) return;
     channel.setMethodCallHandler((MethodCall call) async {
-      if (call.method == 'appearanceChanged') {
-        neuLaden();
+      switch (call.method) {
+        case 'appearanceChanged':
+          neuLaden();
+        case 'tabBarInset':
+          // Wie viele Punkte die Leiste am unteren Rand verdeckt. Gemessen von
+          // der nativen Seite – sie weiss, wo die Leiste wirklich liegt.
+          final Object? argument = call.arguments;
+          if (argument is Map && argument['height'] is num) {
+            ueberdeckung.value = (argument['height'] as num).toDouble();
+          }
       }
       return null;
     });
+  }
+
+  /// Wie viele Punkte am unteren Rand von der Navigationsleiste verdeckt
+  /// werden.
+  ///
+  /// ## Warum die Zahl von **dort** kommt
+  ///
+  /// `UITabBarController` verhält sich je iOS-Version anders: Früher legte es
+  /// die Leiste unter den Inhalt und kürzte den Bildschirm darüber – es gab
+  /// nichts zu überdecken. Neuere Systeme lassen sie über dem Inhalt schweben,
+  /// und der Inhalt reicht bis zum unteren Rand.
+  ///
+  /// Eine im Dart-Code festgeschriebene Zahl wäre damit falsch: In der einen
+  /// iOS-Version zu klein (ein Stück Inhalt bliebe verdeckt), in der anderen zu
+  /// gross (ein Loch stünde darunter). Gemessen ist es der Abstand, um den der
+  /// Inhalt wirklich zu kurz ist – auf jedem Gerät und in jeder Version.
+  ///
+  /// Startwert `0`: Solange die native Seite nichts gemeldet hat, soll nichts
+  /// dazugerechnet werden. Sonst stünde auf einem Aufbau ohne Leiste ein Loch.
+  static final ValueNotifier<double> ueberdeckung = ValueNotifier<double>(0);
+
+  /// Der untere Bereich, den ein Bildschirm zusätzlich braucht.
+  ///
+  /// Das ist die Überdeckung – aber mindestens der sichere Bereich des Geräts.
+  /// Der ist auch dann nötig, wenn die Leiste den Inhalt gar nicht verdeckt:
+  /// Der Inhalt soll nicht in die Geste-Zone am unteren Rand hineinreichen.
+  static double untererBereich(BuildContext context) {
+    final double sicher = MediaQuery.paddingOf(context).bottom;
+    return math.max(ueberdeckung.value, sicher);
   }
 }

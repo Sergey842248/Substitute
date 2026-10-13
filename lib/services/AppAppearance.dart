@@ -90,17 +90,24 @@ class AppAppearance {
 
   /// Liest das Theme **neu** ein, weil die native Seite es geändert hat.
   ///
-  /// Nötig aus demselben Grund, warum es [notifySettingsChanged] gibt, nur in
-  /// der Gegenrichtung: [SharedPreferences] hält fest, was **es** zuletzt
-  /// gelesen oder geschrieben hat. Ein Wert, den die native Seite inzwischen
-  /// geschrieben hat, steht hier noch nicht – ohne dieses erneute Lesen würde
-  /// die App ihren eigenen Sprung nicht mitmachen.
+  /// ## Warum hier `reload()` und nicht nur `getInstance()`
   ///
-  /// Deshalb wird hier ausdrücklich nicht der neue Wert übergeben: Dart holt
-  /// ihn sich selbst, und damit kann es nicht zwei Stellen geben, die
-  /// unterschiedliche Werte für dieselbe Sache behaupten.
+  /// [SharedPreferences] hält einen **Cache**. `getInstance()` liefert die
+  /// bereits geladene Instanz zurück – und die kennt nur, was **Dart** selbst
+  /// geschrieben hat. Der Wert, den die native Seite eben in `UserDefaults`
+  /// gelegt hat, steht dort nicht drin; ohne [SharedPreferences.reload] lasse
+  /// man also weiter den alten Wert und der Hell-Modus bliebe aus.
+  ///
+  /// Das ist derselbe Fehler, den [notifySettingsChanged] auf der anderen Seite
+  /// verhindert – nur dort, wo er bisher niemand bemerkt hat, weil Dart auf
+  /// iOS lange der einzige Schreiber war.
+  ///
+  /// Der neue Wert wird ausdrücklich nicht übergeben: Dart holt ihn sich
+  /// selbst, und damit kann es nicht zwei Stellen geben, die unterschiedliche
+  /// Werte für dieselbe Sache behaupten.
   static Future<ThemeMode> reloadTheme() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
     final ThemeMode mode = modeOf(themeOf(prefs));
     aenderung.value++;
     return mode;

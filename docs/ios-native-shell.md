@@ -109,6 +109,36 @@ sich nicht beide durchsetzen.
 native Schale zurückhaben will, setzt die Zeile in `Info.plist` wieder ein –
 sonst ist nichts zu tun.
 
+## Die Leiste liegt auf dem Inhalt
+
+Die Leiste schwebt nicht als eigene Schicht über dem Bildschirm, sondern liegt
+**auf** dem Inhalt. Drei Angaben sorgen dafür:
+
+* `isTranslucent = false` – eine deckende Leiste kann keinen Inhalt durchlassen,
+* der Hintergrund in der Farbe des Inhaltsgrunds,
+* `scrollEdgeAppearance = standardAppearance` – das ist die Variante, die das
+  System beim Scrollen einsetzt, und sie ist die schwebende.
+
+Damit sie dabei nicht den letzten Eintrag eines Bildschirms verdeckt, braucht
+jeder Bildschirm unten einen zusätzlichen Bereich – und dessen Höhe ist
+**gemessen**, nicht festgeschrieben (`meldeUeberdeckung()`).
+
+Der Grund fürs Messen: `UITabBarController` verhält sich je iOS-Version
+anders. Früher legte es die Leiste unter den Inhalt und kürzte den Bildschirm
+darüber – es gab nichts zu überdecken. Neuere Systeme lassen sie darüber
+schweben, und der Inhalt reicht bis zum unteren Rand. Eine Zahl im Dart-Code
+wäre in der einen Version zu klein und in der anderen zu gross.
+
+## Der Hell-Modus braucht einen Cache-Neulauf
+
+Die native Seite schreibt direkt in `UserDefaults`. Dart liest aber aus dem
+**Cache** von `SharedPreferences`, und der kennt nur, was Dart selbst
+geschrieben hat.
+
+Deshalb rufen `AppAppearance.reloadTheme` und `AppLanguage.reloadLanguage`
+vor dem Lesen `prefs.reload()` auf. Ohne das liest Dart den alten Wert weiter –
+und der Hell-Modus bleibt aus, während die Leiste hell wird.
+
 ## Die Leiste zeigt nur Symbole
 
 Unter den Symbolen steht **kein Text**. Der gewählte Reiter ist allein an der
@@ -137,7 +167,7 @@ Aussehen und die Sprache.
 
 ## Wichtig fürs Bearbeiten
 
-Vier Dinge, die man leicht übersieht:
+Fünf Dinge, die man leicht übersieht:
 
 1. **Jede neue Flutter-Maschine braucht ihre Programme.**
    `GeneratedPluginRegistrant.register(with:)` im `AppDelegate` gilt nur für die
@@ -162,3 +192,9 @@ Vier Dinge, die man leicht übersieht:
    deshalb selbst messen (`UITableView.automaticDimension`) – und nehmen auch
    das Zubehör in den eigenen Stapel auf, weil `accessoryView` vom System über
    den Inhalt gelegt wird und den Platz für den Text nicht abzieht.
+
+5. **Wer von `UserDefaults` schreibt, muss `SharedPreferences.reload()` sagen.**
+   Dart liest aus einem Cache, und der kennt nur Darts eigene Schreibvorgänge.
+   Jede native Änderung an einer Einstellung, die Dart anzeigt, braucht deshalb
+   ein `reload()` auf der Dart-Seite – sonst bleibt der alte Wert stehen, ohne
+   dass irgendwo ein Fehler erscheint.

@@ -169,13 +169,15 @@ class AppLanguage {
   ///
   /// Siehe [AppAppearance.reloadTheme] – derselbe Grund in der anderen
   /// Richtung: [SharedPreferences] kennt nur, was es selbst geschrieben hat, und
-  /// die native Seite schreibt ohne Umweg daran vorbei.
+  /// die native Seite schreibt ohne Umweg daran vorbei. Deshalb steht hier das
+  /// [SharedPreferences.reload]: Ohne es bliebe der alte Wert im Cache stehen.
   ///
   /// Liefert `null`, wenn die App der Systemsprache folgen soll – das ist kein
   /// fehlender Wert, sondern die Anweisung an `MaterialApp`, selbst zu nehmen
   /// (siehe [forMaterialApp]).
   static Future<Locale?> reloadLanguage() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
     return forMaterialApp(prefs);
   }
 }
