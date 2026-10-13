@@ -57,7 +57,8 @@ class _ShareImportPageState extends State<ShareImportPage> {
 
   /// Die Klassen und Personen des geöffneten Shares, wie sie angezeigt werden.
   List<String> _classChoices = <String>[];
-  List<({String id, String name})> _personChoices = <({String id, String name})>[];
+  List<({String id, String name})> _personChoices =
+      <({String id, String name})>[];
 
   /// Was davon übernommen wird. Standardmäßig **alles** – wer einen Share
   /// öffnet, will ihn erst einmal sehen und erst dann entscheiden, was davon
@@ -78,9 +79,10 @@ class _ShareImportPageState extends State<ShareImportPage> {
   String? _error;
   bool _needsPassword = false;
 
-  String get _schoolPassword => widget.prefs.getString(
-            SchoolStorage.scopedKey(widget.prefs, 'vplanPassword'),
-          ) ??
+  String get _schoolPassword =>
+      widget.prefs.getString(
+        SchoolStorage.scopedKey(widget.prefs, 'vplanPassword'),
+      ) ??
       '';
 
   /// Öffnet einen Share. Bei einem passwortgeschützten Share wird zuerst nach
@@ -267,7 +269,10 @@ class _ShareImportPageState extends State<ShareImportPage> {
     final Map<String, dynamic>? payload = _payload;
 
     return Scaffold(
+      // ListPage behandelt die Safe Area selbst; außen darf kein zweiter
+      // permanenter unterer iOS-Abstand entstehen.
       body: SafeArea(
+        bottom: false,
         // Über der ganzen Seite statt als Zeile oben im Inhalt: Die Zeile stand
         // dort, wo man nicht hinsieht – der Share, auf den man getippt hat,
         // kann weiter unten stehen – und sie überlappte die Liste, statt sie zu
@@ -327,8 +332,7 @@ class _ShareImportPageState extends State<ShareImportPage> {
                               selected: _selection.classIds.contains(short),
                               onSelected: _busy
                                   ? null
-                                  : (bool value) =>
-                                      _toggleClass(short, value),
+                                  : (bool value) => _toggleClass(short, value),
                             ))
                         .toList(),
                   ),
@@ -380,8 +384,7 @@ class _ShareImportPageState extends State<ShareImportPage> {
     );
   }
 
-  Widget _shareTile(AppLocalizations l10n, ShareSummary share) =>
-      Material(
+  Widget _shareTile(AppLocalizations l10n, ShareSummary share) => Material(
         color: Theme.of(context).scaffoldBackgroundColor,
         child: Container(
           margin: const EdgeInsets.all(10),
@@ -520,8 +523,8 @@ class _ShareImportPageState extends State<ShareImportPage> {
           // ignore: deprecated_member_use
           onChanged: _busy
               ? null
-              : (ShareImportMode? value) => setState(
-                  () => _mode = value ?? ShareImportMode.original),
+              : (ShareImportMode? value) =>
+                  setState(() => _mode = value ?? ShareImportMode.original),
           title: Text(title),
           subtitle: Text(
             subtitle,

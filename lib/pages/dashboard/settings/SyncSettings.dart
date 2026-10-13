@@ -132,8 +132,8 @@ class _SyncSettingsState extends State<SyncSettings> {
       deviceId: device.deviceId,
       deviceName: deviceName,
       // Voreingestellt mit Einstellungen: Wer einen Sync einrichtet, will in
-    // der Regel, dass beide Geräte gleich aussehen. Abschalten lässt es sich
-    // jederzeit.
+      // der Regel, dass beide Geräte gleich aussehen. Abschalten lässt es sich
+      // jederzeit.
       includeSettings: true,
       lastSync: null,
     );
@@ -166,7 +166,8 @@ class _SyncSettingsState extends State<SyncSettings> {
         SnackBar(
           content: Text(switch (check.errorCode) {
             'tooFewWords' => l10n.syncPassphraseTooFewWords,
-            'unknownWords' => l10n.syncPassphraseUnknownWord(check.detail ?? ''),
+            'unknownWords' =>
+              l10n.syncPassphraseUnknownWord(check.detail ?? ''),
             _ => l10n.syncPassphraseEmpty,
           }),
         ),
@@ -512,8 +513,8 @@ class _SyncSettingsState extends State<SyncSettings> {
                 if (!sheetContext.mounted) return;
                 Navigator.pop(sheetContext);
                 if (!mounted) return;
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text(l10n.syncPassphraseCopied)));
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.syncPassphraseCopied)));
               },
             ),
           ],
@@ -566,6 +567,7 @@ class _SyncSettingsState extends State<SyncSettings> {
 
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: ListPage(
           title: l10n.syncTitle,
           onRefresh: state == null ? null : _runSync,
@@ -577,7 +579,10 @@ class _SyncSettingsState extends State<SyncSettings> {
             // "Show additional sync options and information" eingeschaltet ist –
             // dann nämlich, wenn man wirklich wissen will, ob der Server läuft.
             if (_showDetails) _serverTile(l10n),
-            if (state == null) ..._offlineChildren(l10n) else ..._onlineChildren(l10n, state),
+            if (state == null)
+              ..._offlineChildren(l10n)
+            else
+              ..._onlineChildren(l10n, state),
             if (!_busy) const SizedBox(height: 30),
           ],
         ),
@@ -595,7 +600,9 @@ class _SyncSettingsState extends State<SyncSettings> {
       );
     }
     return _tile(
-      icon: _serverRunning ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+      icon: _serverRunning
+          ? Icons.check_circle_rounded
+          : Icons.error_outline_rounded,
       title: _serverRunning ? l10n.syncServerRunning : l10n.syncServerStopped,
       subtitle: SyncEngine.serverUrl(_prefs!).toString(),
       onTap: _checkServer,
@@ -645,7 +652,8 @@ class _SyncSettingsState extends State<SyncSettings> {
         // Die Zahl der Geräte in der Kette. Ohne sie ist ein Sync mit einem
         // einzigen Gerät nicht von einem Sync mit zwanzig zu unterscheiden –
         // beide melden nur "alles aktuell".
-        if (coordinator.peerCount != null) l10n.syncPeerCount(coordinator.peerCount!),
+        if (coordinator.peerCount != null)
+          l10n.syncPeerCount(coordinator.peerCount!),
       ].join(' · '),
       onTap: null,
     );
@@ -686,7 +694,8 @@ class _SyncSettingsState extends State<SyncSettings> {
       _tile(
         icon: Icons.sync_rounded,
         title: l10n.syncNow,
-        subtitle: '$lastSync · ${state.deviceName.isEmpty ? l10n.syncDeviceUnknown : state.deviceName}',
+        subtitle:
+            '$lastSync · ${state.deviceName.isEmpty ? l10n.syncDeviceUnknown : state.deviceName}',
         onTap: _runSync,
       ),
       // "Automatisch synchronisiert" und der Zähler der Einträge sagen, was im
@@ -803,8 +812,7 @@ class _SyncSettingsState extends State<SyncSettings> {
 ///
 /// Top-Level und nicht Teil der Seite, weil auch die Share-Seiten ihre
 /// Fehler genauso beschriften sollen.
-String syncErrorMessage(AppLocalizations l10n, String? code) =>
-    switch (code) {
+String syncErrorMessage(AppLocalizations l10n, String? code) => switch (code) {
       'network' => l10n.syncErrorNetwork,
       'timeout' => l10n.syncErrorTimeout,
       'notFound' => l10n.syncErrorNotFound,

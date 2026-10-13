@@ -71,6 +71,7 @@ class _PlanModeSettingsState extends State<PlanModeSettings> {
     );
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: ListPage(
           title: l10n.planSettings,
           children: [

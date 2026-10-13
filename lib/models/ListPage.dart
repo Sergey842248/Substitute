@@ -189,7 +189,8 @@ class _ListPageState extends State<ListPage> {
 
   @override
   Widget build(BuildContext context) {
-    _headerHeight = MediaQuery.of(context).size.height * widget.headerHeightFactor;
+    _headerHeight =
+        MediaQuery.of(context).size.height * widget.headerHeightFactor;
     widget.actions ??= [];
     widget.smallTitle ??= false;
     widget.onPop ??= () => Navigator.pop(context);
@@ -209,220 +210,169 @@ class _ListPageState extends State<ListPage> {
         bottom: !NativeShell.isSection,
         child: Container(
           child: Stack(
-          children: [
-            // HEADER mit konkaven Ecken.
-            // Keine Animation der Höhe: Sie muss 1:1 dem Scroll-Offset folgen,
-            // sonst wächst der sichtbare Inhaltsbereich schneller als der
-            // Scrollbereich der Liste und der Offset wird zurückgeklemmt
-            // (die Liste springt dann beim Scrollen wieder nach oben).
-            Container(
-              key: const ValueKey('listpage_header'),
-              alignment: Alignment.topCenter,
-              color: Theme.of(context).colorScheme.surface,
-              height: topHeight,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  // Header Content
-                  ListView(
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.only(
-                          top: (topHeight / 5.5).toDouble(),
-                          bottom: 10,
-                          left: 10,
-                        ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            // Platz für die mittige Option, damit Titel
-                            // und Aktions-Buttons nicht darunter laufen.
-                            Padding(
-                              padding: EdgeInsets.only(
-                                right: widget.headerCenter != null ? 40 : 0,
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                if (widget.showBackButton) ...[
-                                  InkWell(
-                                    onTap: () => widget.onPop!(),
-                                    child: Container(
-                                      alignment: Alignment.center,
-                                      padding: const EdgeInsets.all(9),
-                                      decoration: BoxDecoration(
-                                        borderRadius: const BorderRadius.all(
-                                          Radius.circular(100),
+            children: [
+              // HEADER mit konkaven Ecken.
+              // Keine Animation der Höhe: Sie muss 1:1 dem Scroll-Offset folgen,
+              // sonst wächst der sichtbare Inhaltsbereich schneller als der
+              // Scrollbereich der Liste und der Offset wird zurückgeklemmt
+              // (die Liste springt dann beim Scrollen wieder nach oben).
+              Container(
+                key: const ValueKey('listpage_header'),
+                alignment: Alignment.topCenter,
+                color: Theme.of(context).colorScheme.surface,
+                height: topHeight,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // Header Content
+                    ListView(
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.only(
+                            top: (topHeight / 5.5).toDouble(),
+                            bottom: 10,
+                            left: 10,
+                          ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Platz für die mittige Option, damit Titel
+                              // und Aktions-Buttons nicht darunter laufen.
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  right: widget.headerCenter != null ? 40 : 0,
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    if (widget.showBackButton) ...[
+                                      InkWell(
+                                        onTap: () => widget.onPop!(),
+                                        child: Container(
+                                          alignment: Alignment.center,
+                                          padding: const EdgeInsets.all(9),
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                const BorderRadius.all(
+                                              Radius.circular(100),
+                                            ),
+                                            color:
+                                                Theme.of(context).dividerColor,
+                                          ),
+                                          child: Icon(
+                                            backIcon,
+                                            size: 19,
+                                            // Nicht `splashColor`: Die ist im hellen
+                                            // Modus Schwarz mit 6 % Deckkraft und damit
+                                            // auf dem grauen Kreis praktisch unsichtbar.
+                                            // `focusColor` ist die Textfarbe des Themes
+                                            // (fast Schwarz im Hellen, Weiß im Dunkeln).
+                                            color: Theme.of(context).focusColor,
+                                          ),
                                         ),
-                                        color: Theme.of(context).dividerColor,
                                       ),
-                                      child: Icon(
-                                        backIcon,
-                                        size: 19,
-                                        // Nicht `splashColor`: Die ist im hellen
-                                        // Modus Schwarz mit 6 % Deckkraft und damit
-                                        // auf dem grauen Kreis praktisch unsichtbar.
-                                        // `focusColor` ist die Textfarbe des Themes
-                                        // (fast Schwarz im Hellen, Weiß im Dunkeln).
-                                        color: Theme.of(context).focusColor,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 12),
-                                ],
-                                Expanded(
-                                  child: Row(
-                                    children: [
-                                      // Der Titel nimmt den restlichen Platz ein, die
-                                      // Aktions-Buttons werden dadurch rechtsbündig
-                                      // am rechten Rand angezeigt.
-                                      Expanded(
-                                        child: AnimatedOpacity(
-                                          duration: Duration(
-                                              milliseconds: topHeight == 0 ? 700 : 100),
-                                          opacity: topHeight == 0 ? 0 : 1,
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              if (widget.onTitleClick != null) {
-                                                widget.onTitleClick!();
-                                              }
-                                            },
-                                            child: Text(
-                                              widget.title,
-                                              overflow: TextOverflow.ellipsis,
-                                              maxLines: widget.smallTitle! ? 2 : 1,
-                                              style: TextStyle(
-                                                fontSize:
-                                                widget.smallTitle! ? 22 : 30,
-                                                fontWeight: FontWeight.bold,
-                                                fontFamily: 'Questrial',
+                                      SizedBox(width: 12),
+                                    ],
+                                    Expanded(
+                                      child: Row(
+                                        children: [
+                                          // Der Titel nimmt den restlichen Platz ein, die
+                                          // Aktions-Buttons werden dadurch rechtsbündig
+                                          // am rechten Rand angezeigt.
+                                          Expanded(
+                                            child: AnimatedOpacity(
+                                              duration: Duration(
+                                                  milliseconds: topHeight == 0
+                                                      ? 700
+                                                      : 100),
+                                              opacity: topHeight == 0 ? 0 : 1,
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  if (widget.onTitleClick !=
+                                                      null) {
+                                                    widget.onTitleClick!();
+                                                  }
+                                                },
+                                                child: Text(
+                                                  widget.title,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  maxLines: widget.smallTitle!
+                                                      ? 2
+                                                      : 1,
+                                                  style: TextStyle(
+                                                    fontSize: widget.smallTitle!
+                                                        ? 22
+                                                        : 30,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontFamily: 'Questrial',
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
+                                          if (widget.actions!.isNotEmpty)
+                                            SingleChildScrollView(
+                                              scrollDirection: Axis.horizontal,
+                                              reverse: true,
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: widget.actions!,
+                                              ),
+                                            ),
+                                        ],
                                       ),
-                                      if (widget.actions!.isNotEmpty)
-                                        SingleChildScrollView(
-                                          scrollDirection: Axis.horizontal,
-                                          reverse: true,
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: widget.actions!,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
+                                    ),
+                                    SizedBox(width: 5),
+                                  ],
                                 ),
-                                SizedBox(width: 5),
-                                ],
                               ),
-                            ),
-                            if (widget.headerCenter != null)
-                              widget.headerCenter!,
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // left concave corner
-                  Positioned(
-                    bottom: -cornerRadius,
-                    left: 0,
-                    child: Container(
-                      width: cornerRadius,
-                      height: cornerRadius,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                      ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).scaffoldBackgroundColor,
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(cornerRadius),
+                              if (widget.headerCenter != null)
+                                widget.headerCenter!,
+                            ],
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ),
 
-                  // right concave corner
-                  Positioned(
-                    bottom: -cornerRadius,
-                    right: 0,
-                    child: Container(
-                      width: cornerRadius,
-                      height: cornerRadius,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                      ),
+                    // left concave corner
+                    Positioned(
+                      bottom: -cornerRadius,
+                      left: 0,
                       child: Container(
+                        width: cornerRadius,
+                        height: cornerRadius,
                         decoration: BoxDecoration(
-                          color: Theme.of(context).scaffoldBackgroundColor,
-                          borderRadius: BorderRadius.only(
-                            topRight: Radius.circular(cornerRadius),
-                          ),
+                          color: Theme.of(context).colorScheme.surface,
                         ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Collapsed Header Title
-            // IgnorePointer: solange die Kopfzeile erweitert ist (topHeight
-            // != 0), ist dieser Titel unsichtbar und darf keine Taps
-            // abfangen - sonst wuerden die Buttons der erweiterten Kopfzeile
-            // (Refresh, Einstellungen, Pfeile) nie einen Tap bekommen.
-            IgnorePointer(
-              ignoring: topHeight != 0,
-              child: AnimatedOpacity(
-                duration: Duration(milliseconds: topHeight == 0 ? 700 : 100),
-                opacity: topHeight == 0 ? 1 : 0,
-                child: Container(
-                alignment: Alignment.topLeft,
-                margin: const EdgeInsets.all(20),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    if (widget.showBackButton) ...[
-                      InkWell(
-                        onTap: () => widget.onPop!(),
                         child: Container(
-                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(100),
+                            color: Theme.of(context).scaffoldBackgroundColor,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(cornerRadius),
                             ),
-                            color: Theme.of(context).dividerColor,
-                          ),
-                          child: Icon(
-                            backIcon,
-                            size: 16,
-                            // Siehe Kommentar am Zurück-Button oben.
-                            color: Theme.of(context).focusColor,
                           ),
                         ),
                       ),
-                      SizedBox(width: 20),
-                    ],
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          if (widget.onTitleClick != null) {
-                            widget.onTitleClick!();
-                          }
-                        },
-                        child: Text(
-                          widget.title,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: widget.smallTitle! ? 2 : 1,
-                          style: TextStyle(
-                            fontSize: 23,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Questrial',
+                    ),
+
+                    // right concave corner
+                    Positioned(
+                      bottom: -cornerRadius,
+                      right: 0,
+                      child: Container(
+                        width: cornerRadius,
+                        height: cornerRadius,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                        ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).scaffoldBackgroundColor,
+                            borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(cornerRadius),
+                            ),
                           ),
                         ),
                       ),
@@ -430,99 +380,165 @@ class _ListPageState extends State<ListPage> {
                   ],
                 ),
               ),
-              ),
-            ),
 
-            // CONTENT
-            // Folgt exakt der Einklappung (ohne Animation): Jedes
-            // eingeklappte Pixel holt genau ein Pixel Sichtfläche dazu, der
-            // Scrollbereich der Liste wächst also im gleichen Maß wie der
-            // Offset. Mit einer Animation (oder einem Sprung) schrumpfte der
-            // Scrollbereich kurzzeitig unter dem Offset, woraufhin Flutter
-            // diesen zurückklemmte und die Liste wieder nach oben sprang.
-            Positioned(
-              top: topHeight + cornerRadius,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(cornerRadius),
+              // Collapsed Header Title
+              // IgnorePointer: solange die Kopfzeile erweitert ist (topHeight
+              // != 0), ist dieser Titel unsichtbar und darf keine Taps
+              // abfangen - sonst wuerden die Buttons der erweiterten Kopfzeile
+              // (Refresh, Einstellungen, Pfeile) nie einen Tap bekommen.
+              IgnorePointer(
+                ignoring: topHeight != 0,
+                child: AnimatedOpacity(
+                  duration: Duration(milliseconds: topHeight == 0 ? 700 : 100),
+                  opacity: topHeight == 0 ? 1 : 0,
+                  child: Container(
+                    alignment: Alignment.topLeft,
+                    margin: const EdgeInsets.all(20),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        if (widget.showBackButton) ...[
+                          InkWell(
+                            onTap: () => widget.onPop!(),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                borderRadius: const BorderRadius.all(
+                                  Radius.circular(100),
+                                ),
+                                color: Theme.of(context).dividerColor,
+                              ),
+                              child: Icon(
+                                backIcon,
+                                size: 16,
+                                // Siehe Kommentar am Zurück-Button oben.
+                                color: Theme.of(context).focusColor,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 20),
+                        ],
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              if (widget.onTitleClick != null) {
+                                widget.onTitleClick!();
+                              }
+                            },
+                            child: Text(
+                              widget.title,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: widget.smallTitle! ? 2 : 1,
+                              style: TextStyle(
+                                fontSize: 23,
+                                fontWeight: FontWeight.w600,
+                                fontFamily: 'Questrial',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                child: Padding(
-                  padding: widget.contentPadding ??
-                      const EdgeInsets.only(
-                        // Konstant, damit die Höhe des Inhalts nicht vom
-                        // Scroll-Zustand abhängt - davon hängt ab, wie weit die
-                        // Liste scrollbar bleibt.
-                        top: 15,
-                        left: 20,
-                        right: 20,
-                        bottom: 10,
-                      ),
-                  child: _buildContent(),
+              ),
+
+              // CONTENT
+              // Folgt exakt der Einklappung (ohne Animation): Jedes
+              // eingeklappte Pixel holt genau ein Pixel Sichtfläche dazu, der
+              // Scrollbereich der Liste wächst also im gleichen Maß wie der
+              // Offset. Mit einer Animation (oder einem Sprung) schrumpfte der
+              // Scrollbereich kurzzeitig unter dem Offset, woraufhin Flutter
+              // diesen zurückklemmte und die Liste wieder nach oben sprang.
+              Positioned(
+                top: topHeight + cornerRadius,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(cornerRadius),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: widget.contentPadding ??
+                        const EdgeInsets.only(
+                          // Konstant, damit die Höhe des Inhalts nicht vom
+                          // Scroll-Zustand abhängt - davon hängt ab, wie weit die
+                          // Liste scrollbar bleibt.
+                          top: 15,
+                          left: 20,
+                          right: 20,
+                          bottom: 10,
+                        ),
+                    child: _buildContent(),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
 
   Widget _buildContent() {
-  if (widget.fillHeight) return _buildFillingContent();
-  final Widget list = NotificationListener<ScrollNotification>(
-    onNotification: (notification) {
-      // Nur eine ScrollUpdateNotification mit gesetzten dragDetails stammt
-      // von einer echten Finger-Drag-Geste. Programmatische Scrolls (Tastatur/
-      // Scroll-into-view beim Fokussieren eines Feldes, wiederhergestellte
-      // Scroll-Position via jumpTo/animateTo, o.ä.) haben dragDetails == null
-      // und dürfen die Kopfzeile NICHT einklappen lassen.
-      if (widget.collapseHeaderOnScroll &&
-          notification is ScrollUpdateNotification &&
-          notification.dragDetails != null) {
-        _userScrolled = true;
-      }
-      return false;
-    },
-    child: ListView(
-      controller: controller,
-      physics: const BouncingScrollPhysics(
-        parent: AlwaysScrollableScrollPhysics(),
+    if (widget.fillHeight) return _buildFillingContent();
+    final Widget list = NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        // Nur eine ScrollUpdateNotification mit gesetzten dragDetails stammt
+        // von einer echten Finger-Drag-Geste. Programmatische Scrolls (Tastatur/
+        // Scroll-into-view beim Fokussieren eines Feldes, wiederhergestellte
+        // Scroll-Position via jumpTo/animateTo, o.ä.) haben dragDetails == null
+        // und dürfen die Kopfzeile NICHT einklappen lassen.
+        if (widget.collapseHeaderOnScroll &&
+            notification is ScrollUpdateNotification &&
+            notification.dragDetails != null) {
+          _userScrolled = true;
+        }
+        return false;
+      },
+      child: ListView(
+        controller: controller,
+        // [ListView] übernimmt ohne explizites Padding automatisch den unteren
+        // MediaQuery-Safe-Area-Wert. In der nativen iOS-Schale wäre das wieder
+        // die dauerhafte Zwischenschicht unter dem Inhalt, obwohl [SafeArea]
+        // oben bereits keinen unteren Rand mehr setzt. Der gezielte Abschluss
+        // darunter liefert den Abstand ausschließlich am Listenende.
+        padding: EdgeInsets.zero,
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
+        children: <Widget>[
+          ...widget.children,
+          const NativeShellScrollEndInset(),
+        ],
       ),
-      children: <Widget>[
-        ...widget.children,
-        const NativeShellScrollEndInset(),
-      ],
-    ),
-  );
-  if (widget.onRefresh == null) {
-    return list;
-  }
-  if (widget.noSpinnerRefreshIndicator) {
-    return RefreshIndicator.noSpinner(
+    );
+    if (widget.onRefresh == null) {
+      return list;
+    }
+    if (widget.noSpinnerRefreshIndicator) {
+      return RefreshIndicator.noSpinner(
+        onRefresh: widget.onRefresh!,
+        child: list,
+      );
+    }
+    return RefreshIndicator(
       onRefresh: widget.onRefresh!,
+      color: Theme.of(context).primaryColor,
       child: list,
     );
   }
-  return RefreshIndicator(
-    onRefresh: widget.onRefresh!,
-    color: Theme.of(context).primaryColor,
-    child: list,
-  );
-}
 
-/// Der Inhalt bei [fillHeight]: Eine [Column] über die volle Höhe statt einer
-/// [ListView]. [Expanded]-Kinder bekommen dadurch den Rest der Höhe – das ist
-/// der Punkt: So teilt sich das Grid den Bildschirm, statt zu überlaufen.
-Widget _buildFillingContent() {
-  return Column(
-    children: widget.children,
-  );
-}
+  /// Der Inhalt bei [fillHeight]: Eine [Column] über die volle Höhe statt einer
+  /// [ListView]. [Expanded]-Kinder bekommen dadurch den Rest der Höhe – das ist
+  /// der Punkt: So teilt sich das Grid den Bildschirm, statt zu überlaufen.
+  Widget _buildFillingContent() {
+    return Column(
+      children: widget.children,
+    );
+  }
 }

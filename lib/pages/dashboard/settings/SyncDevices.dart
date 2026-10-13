@@ -95,6 +95,7 @@ class _SyncDevicesState extends State<SyncDevices> {
 
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: ListPage(
           title: l10n.syncDevices,
           onRefresh: _load,

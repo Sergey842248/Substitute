@@ -53,6 +53,7 @@ class _PreviewSettingsState extends State<PreviewSettings> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: ListPage(
           title: l10n.previewSettings,
           children: [

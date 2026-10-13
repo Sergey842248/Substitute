@@ -116,14 +116,14 @@ class _ShareEditPageState extends State<ShareEditPage> {
 
   String _schoolNumber() =>
       widget.prefs.getString(
-            SchoolStorage.scopedKey(widget.prefs, 'vplanSchoolnumber'),
-          ) ??
+        SchoolStorage.scopedKey(widget.prefs, 'vplanSchoolnumber'),
+      ) ??
       '';
 
   String _schoolPassword() =>
       widget.prefs.getString(
-            SchoolStorage.scopedKey(widget.prefs, 'vplanPassword'),
-          ) ??
+        SchoolStorage.scopedKey(widget.prefs, 'vplanPassword'),
+      ) ??
       '';
 
   Future<void> _save() async {
@@ -240,7 +240,10 @@ class _ShareEditPageState extends State<ShareEditPage> {
     final bool editing = widget.share != null;
 
     return Scaffold(
+      // ListPage behandelt die Safe Area selbst; außen darf kein zweiter
+      // permanenter unterer iOS-Abstand entstehen.
       body: SafeArea(
+        bottom: false,
         // Die Ladeanzeige liegt über der ganzen Seite und nicht als Zeile oben
         // im Inhalt: Sie war vorher dort, wo man nicht hinsieht. Der Knopf, auf
         // den gedrückt wurde, steht ganz unten – die Anzeige darüber war
@@ -257,8 +260,8 @@ class _ShareEditPageState extends State<ShareEditPage> {
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
                   child: Text(
                     _error!,
-                    style: const TextStyle(
-                        color: Colors.redAccent, fontSize: 14),
+                    style:
+                        const TextStyle(color: Colors.redAccent, fontSize: 14),
                   ),
                 ),
 
@@ -296,8 +299,7 @@ class _ShareEditPageState extends State<ShareEditPage> {
                   children: _persons
                       .map((({String id, String name}) person) => FilterChip(
                             label: Text(person.name),
-                            selected:
-                                _selection.personIds.contains(person.id),
+                            selected: _selection.personIds.contains(person.id),
                             onSelected: (bool value) =>
                                 _togglePerson(person.id, value),
                           ))
@@ -451,7 +453,9 @@ class _ShareEditPageState extends State<ShareEditPage> {
               onPressed: () => setState(() {
                 _selection = _selection.copyWith(
                   classIds: _classes.toSet(),
-                  personIds: _persons.map((({String id, String name}) p) => p.id).toSet(),
+                  personIds: _persons
+                      .map((({String id, String name}) p) => p.id)
+                      .toSet(),
                 );
               }),
               child: Text(l10n.shareSelectEverything,
@@ -464,8 +468,8 @@ class _ShareEditPageState extends State<ShareEditPage> {
                   personIds: <String>{},
                 );
               }),
-              child:
-                  Text(l10n.shareSelectNothing, style: const TextStyle(fontSize: 13)),
+              child: Text(l10n.shareSelectNothing,
+                  style: const TextStyle(fontSize: 13)),
             ),
           ],
         ),

@@ -60,6 +60,7 @@ class _LanguageState extends State<Language> {
     final String? choice = _currentChoice;
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: ListPage(
           title: l10n.language,
           children: <Widget>[

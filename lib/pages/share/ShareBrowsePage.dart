@@ -145,11 +145,11 @@ class _ShareBrowsePageState extends State<ShareBrowsePage> {
   }
 
   /// Öffnet die Shares der Person, deren zehn Wörter in der Suchzeile stehen.
-///
-/// Der frühere eigene Menüpunkt „Nutzername eingeben" ist entfallen: Es ist
-/// derselbe Text in derselben Zeile – die Suche erkennt eine Wortphrase und
-/// behandelt sie als Nutzernamen.
-Future<void> _openByUsername(String username) async {
+  ///
+  /// Der frühere eigene Menüpunkt „Nutzername eingeben" ist entfallen: Es ist
+  /// derselbe Text in derselben Zeile – die Suche erkennt eine Wortphrase und
+  /// behandelt sie als Nutzernamen.
+  Future<void> _openByUsername(String username) async {
     final SharedPreferences? prefs = _prefs;
     final SyncApiClient? client = _client;
     if (prefs == null || client == null || username.isEmpty) return;
@@ -199,8 +199,8 @@ Future<void> _openByUsername(String username) async {
     if (!mounted) return;
     setState(() => _resolving = false);
     if (shares.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.shareErrorWrongCredentials)));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.shareErrorWrongCredentials)));
       return;
     }
     await _openShares(ShareOwner(
@@ -243,16 +243,21 @@ Future<void> _openByUsername(String username) async {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
+      // ListPage behandelt die Safe Area selbst; außen darf kein zweiter
+      // permanenter unterer iOS-Abstand entstehen.
       body: SafeArea(
+        bottom: false,
         child: ListPage(
           title: l10n.shareBrowse,
           onRefresh: _signedIn && !_isDemo ? _refresh : null,
           children: <Widget>[
             if (_loading) const Center(child: LoadingIndicator()),
-            if (_isDemo) _emptyState(l10n.shareDemoNoShares, l10n.shareBrowseEmptySubtitle),
-            if (!_isDemo && !_signedIn)
+            if (_isDemo)
               _emptyState(
-                  l10n.shareBrowseLoginRequired, l10n.shareBrowseLoginRequiredSubtitle),
+                  l10n.shareDemoNoShares, l10n.shareBrowseEmptySubtitle),
+            if (!_isDemo && !_signedIn)
+              _emptyState(l10n.shareBrowseLoginRequired,
+                  l10n.shareBrowseLoginRequiredSubtitle),
             if (_signedIn && !_isDemo) ...<Widget>[
               // Die Suchzeile steht über allem: Sie ist der einzige Weg in
               // diese Liste – sowohl für einen Namen als auch für die zehn
@@ -354,8 +359,8 @@ Future<void> _openByUsername(String username) async {
       );
 
   /// Der Eintrag, der erscheint, sobald in der Suchzeile eine Wortphrase
-/// steht: Er öffnet die Shares genau dieser Person.
-Widget _passphraseTile(AppLocalizations l10n) => Material(
+  /// steht: Er öffnet die Shares genau dieser Person.
+  Widget _passphraseTile(AppLocalizations l10n) => Material(
         color: Theme.of(context).scaffoldBackgroundColor,
         child: Container(
           margin: const EdgeInsets.all(10),

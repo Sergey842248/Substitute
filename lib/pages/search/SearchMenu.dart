@@ -101,6 +101,7 @@ class SearchMenu extends StatelessWidget {
             ),
             const NativeShellScrollEndInset(),
           ],
+          padding: EdgeInsets.zero,
         ),
       ),
     );

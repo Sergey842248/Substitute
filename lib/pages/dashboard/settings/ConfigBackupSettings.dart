@@ -48,6 +48,7 @@ class _ConfigBackupSettingsState extends State<ConfigBackupSettings> {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: ListPage(
           title: l10n.backup,
           children: [

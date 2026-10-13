@@ -100,6 +100,7 @@ class _SyncShareHubState extends State<SyncShareHub> {
         controller: _rollen,
         child: ListView(
           controller: _rollen,
+          padding: EdgeInsets.zero,
           physics: const BouncingScrollPhysics(),
           shrinkWrap: true,
           children: <Widget>[

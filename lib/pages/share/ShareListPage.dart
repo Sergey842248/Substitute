@@ -218,11 +218,15 @@ class _ShareListPageState extends State<ShareListPage> {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
+      // ListPage behandelt die Safe Area selbst; außen darf kein zweiter
+      // permanenter unterer iOS-Abstand entstehen.
       body: SafeArea(
+        bottom: false,
         child: ListPage(
           title: l10n.shareTitle,
           children: <Widget>[
-            if (_busy || _prefs == null) const Center(child: LoadingIndicator()),
+            if (_busy || _prefs == null)
+              const Center(child: LoadingIndicator()),
             if (_prefs != null) ...<Widget>[
               _usernameTile(l10n),
               _displayNameTile(l10n),
@@ -416,8 +420,8 @@ List<({String id, String name})> readPersons(SharedPreferences prefs) {
   // Über den Sync-Leser, nicht über `getStringList`: `persons` wird als
   // JSON-Zeichenkette gespeichert, weil es Objekte enthält. Ein
   // `getStringList` darauf wirft einen TypeError und nimmt die Seite mit.
-  final List<String> raw =
-      SyncDataReader.readLines(prefs, SchoolStorage.scopedKey(prefs, 'persons'));
+  final List<String> raw = SyncDataReader.readLines(
+      prefs, SchoolStorage.scopedKey(prefs, 'persons'));
   final List<({String id, String name})> result =
       <({String id, String name})>[];
   for (final String entry in raw) {
@@ -449,8 +453,7 @@ String shareNameError(AppLocalizations l10n, NameVerdict verdict) =>
     };
 
 /// Nur für die Fehleranzeige der Share-Seiten.
-String shareErrorMessage(AppLocalizations l10n, String code) =>
-    switch (code) {
+String shareErrorMessage(AppLocalizations l10n, String code) => switch (code) {
       'nameBlocked' => l10n.shareNameBlocked,
       'noUsername' => l10n.shareErrorNoUsername,
       'usernameTooLong' => l10n.shareErrorUsernameTooLong,

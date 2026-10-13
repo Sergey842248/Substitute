@@ -79,6 +79,7 @@ class _LessonInfoSettingsState extends State<LessonInfoSettings> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: ListPage(
           title: l10n.lessonInfoSettings,
           children: [

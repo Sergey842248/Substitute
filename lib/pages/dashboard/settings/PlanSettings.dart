@@ -75,6 +75,7 @@ class _PlanSettingsState extends State<PlanSettings> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: ListPage(
           title: l10n.planSettings,
           children: [
