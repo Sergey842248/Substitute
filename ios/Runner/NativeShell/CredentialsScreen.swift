@@ -61,7 +61,7 @@ final class CredentialsScreen: FormScreen {
                         wert: eigeneUrl
                     ) {[weak self] neu in
                         self?.eigeneUrl = neu
-                        self?.neuLaden()
+                        self?.neuLaden(animiert: true)
                     }
                 ]),
 

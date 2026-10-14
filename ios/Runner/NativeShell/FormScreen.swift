@@ -116,10 +116,50 @@ class FormScreen: UIViewController {
     /// Speicher ändern kann, während der Bildschirm im Hintergrund liegt – und
     /// weil manche Bildschirme den Inhalt eines Feldes von **ausserhalb** setzen,
     /// etwa nachdem ein QR-Code gelesen wurde.
-    func neuLaden() {
+    ///
+    /// Ist [animiert] gesetzt, wird die Änderung zwischen zwei
+    /// Formularzuständen überblendet. Das ist besonders bei einem Schalter
+    /// wichtig, der weitere Felder ein- oder ausblendet: Die Änderung soll wie
+    /// eine Folge der Schalterbewegung wirken, nicht wie ein harter Sprung.
+    func neuLaden(animiert: Bool = false) {
         abschnitte = makeSections()
         guard isViewLoaded else { return }
-        tableView.reloadData()
+        guard animiert, !UIAccessibility.isReduceMotionEnabled else {
+            tableView.reloadData()
+            return
+        }
+
+        UIView.transition(
+            with: tableView,
+            duration: 0.22,
+            options: [.transitionCrossDissolve, .allowAnimatedContent]
+        ) {
+            self.tableView.reloadData()
+        }
+    }
+
+    /// Führt die Änderung erst aus, nachdem die systemeigene Bewegung eines
+    /// [UISwitch] sichtbar war. Einige Schalter bauen anschließend das gesamte
+    /// Formular neu auf; ohne diese kurze Wartezeit würde der alte Schalter
+    /// sofort entfernt und seine native iOS-Animation abgeschnitten.
+    private func nachSchalterAnimation(
+        _ schalter: UISwitch,
+        aktion: @escaping (Bool) -> Void
+    ) {
+        let neuerWert = schalter.isOn
+        guard !UIAccessibility.isReduceMotionEnabled else {
+            aktion(neuerWert)
+            return
+        }
+
+        // Während die Bewegung läuft, kann ein zweiter Tipp keinen veralteten
+        // Zustand speichern. Die Dauer entspricht der kurzen, nativen
+        // UISwitch-Transition und verzögert nur Umbauten des Formulars.
+        schalter.isUserInteractionEnabled = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { [weak schalter] in
+            schalter?.isUserInteractionEnabled = true
+            aktion(neuerWert)
+        }
     }
 
     // --------------------------------------------------------------- Aufbau
@@ -430,9 +470,9 @@ extension FormScreen: UITableViewDataSource, UITableViewDelegate {
             // Schalter halten – ein Kreis, der die Zelle am Leben hält, obwohl
             // sie längst aus der Liste ist.
             schalter.addAction(
-                UIAction { [weak schalter] _ in
-                    guard let schalter else { return }
-                    aktion(schalter.isOn)
+                UIAction { [weak self, weak schalter] _ in
+                    guard let self, let schalter else { return }
+                    self.nachSchalterAnimation(schalter, aktion: aktion)
                 }, for: .valueChanged)
             cell.setzeZubehoer(schalter)
             return cell
