@@ -518,6 +518,40 @@ final class SubtitleCell: UITableViewCell {
     /// Quelltext steht, kann dort nicht veralten.
     private static let randAbstand: CGFloat = 11
 
+    /// Der Platz, den ein Haken oder ein Pfeil am rechten Rand **immer**
+    /// bekommen – auch dann, wenn keiner dasteht.
+    ///
+    /// Der Grund ist der Zeilenumbruch, nicht die Symmetrie: Die Breite, die
+    /// rechts neben dem Text steht, ist Teil der Breite, an der die Erklärung
+    /// umbricht. Bekommt die gewählte Zeile einen Haken und die anderen nicht,
+    /// ist die Textspalte bei der einen 16 Punkte breiter als bei den anderen –
+    /// und eine Erklärung, die dort genau an der Grenze lag, braucht auf der
+    /// einen Seite plötzlich **eine Zeile mehr**. Die Folge ist der gemeldete
+    /// Fehler: Beim Umschalten der Auswahl springt die gewählte Zeile eine Zeile
+    /// nach unten, und weil alle Zeilen darunter folgen, verschiebt sich die
+    /// halbe Liste.
+    ///
+    /// Deshalb ist der Platz **fest**: Zeile für Zeile gleich, mit Haken und ohne.
+    /// Genau so macht es iOS es in seinen eigenen Listen auch.
+    private static let zubehoerBreite: CGFloat = 16
+
+    /// Der leere Platz an der Stelle, wo sonst ein Haken oder ein Pfeil stünde.
+    ///
+    /// Ohne ihn hätte eine Zeile ohne Auswahl mehr Platz für ihren Text als eine
+    /// mit – und derselbe Text bricht in beiden Fällen anders um. Siehe
+    /// [zubehoerBreite].
+    static func platzhalter() -> UIView {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        // Beide Prioritäten `required`: Der Platz soll weder kleiner werden, wenn
+        // nebenan gerade ein Schalter steht, noch auf wachsen, wenn keiner
+        // da ist – beides würde die Textspalte wieder verschieben.
+        view.setContentHuggingPriority(.required, for: .horizontal)
+        view.setContentCompressionResistancePriority(.required, for: .horizontal)
+        view.widthAnchor.constraint(equalToConstant: zubehoerBreite).isActive = true
+        return view
+    }
+
     /// Der Text links neben dem Symbol.
     private let beschriftung = UILabel()
 
@@ -1020,6 +1054,20 @@ final class SubtitleCell: UITableViewCell {
             withConfiguration: UIImage.SymbolConfiguration(
                 pointSize: 14, weight: .semibold)))
         view.tintColor = .tertiaryLabel
+        // Die Vorgabemode eines `UIImageView` ist `scaleToFill`: Ohne das
+        // dehnte die feste Breite das Symbol in die Breite hinein, und der Haken
+        // wäre verzerrt. `scaleAspectFit` lässt es in seinem Kasten stehen –
+        // je nachdem, wie breit „chevron.right" wirklich ist, bleibt links und
+        // rechts ein kleiner Leerraum, und genau der ist gewollt: Er macht den
+        // Platz von Haken und Pfeil gleich.
+        view.contentMode = .scaleAspectFit
+        view.translatesAutoresizingMaskIntoConstraints = false
+        // **Fest**, und nicht von der Breite des Symbols abhängig: Sonst wäre
+        // der Haken breiter als der Pfeil, und die Textspalte würde allein davon
+        // abhängen, welche Zeile gerade welche Art Zubehör trägt. Siehe
+        // [zubehoerBreite].
+        view.widthAnchor.constraint(
+            equalToConstant: SubtitleCell.zubehoerBreite).isActive = true
         // Darf weder gestaucht noch zusammengedrückt werden: Sonst verschwindet
         // der Haken genau dann, wenn die Zeile einmal breit wird.
         view.setContentHuggingPriority(.required, for: .horizontal)
@@ -1120,8 +1168,14 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
             // Haken und Pfeil als eigene Symbole im Stapel – siehe
             // [SubtitleCell.symbolFuer(_:)]. Mit `accessoryType` erschienen sie
             // neben dem eigenen Aufbau gar nicht.
+            //
+            // Und ohne Haken **derselbe Platz** wie mit einem – siehe
+            // [SubtitleCell.platzhalter()]. Sonst wäre der Text der gewählten
+            // Zeile schmaler als der aller anderen, und eine Erklärung an der
+            // Umbruchgrenze würde genau beim Wechsel der Auswahl eine Zeile
+            // springen: „Automatisch" schöbe alle Zeilen darunter mit.
             cell.setzeZubehoer(
-                SubtitleCell.symbolFuer(zubehoer))
+                SubtitleCell.symbolFuer(zubehoer) ?? SubtitleCell.platzhalter())
             return cell
         }
     }

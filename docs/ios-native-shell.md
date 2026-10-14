@@ -271,6 +271,22 @@ Fünf Dinge, die man leicht übersieht:
      Zeile, die auch danach nicht passt, eine Endlosschleife aus Messen und
      Layouten.
 
+   * **Der Platz rechts vom Text gehört zur Umbruchbreite – und darf nicht vom
+     Zubehör abhängen.** Beim Umschalten einer Auswahl („Automatisch" auf
+     „Latest") bekommt die bisher gewählte Zeile ihren Haken weg und die neue
+     ihn dazu. Ohne festen Platz wäre die Textspalte der gewählten Zeile 16
+     Punkte schmaler als die der übrigen, und eine Erklärung, die genau an der
+     Umbruchgrenze lag, brauchte dort plötzlich eine Zeile mehr: Die gewählte
+     Zeile sprang nach unten und **alle** Zeilen darunter mit. Deshalb bekommen
+     Haken und Pfeil über `SubtitleCell.zubehoerBreite` denselben festen Platz,
+     und eine Zeile ohne Auswahl über `SubtitleCell.platzhalter()` denselben
+     leeren Platz. Nebenbei zwei Kleinigkeiten, die dazugehören: Der Haken darf
+     seine Breite nicht von der Breite des SF Symbols erben (sonst wäre der
+     Haken breiter als der Pfeil und die Spalte würde allein davon abhängen,
+     welche Art Zubehör eine Zeile trägt), und ein `UIImageView` mit fester
+     Breite braucht `contentMode = .scaleAspectFit` – sonst dehnt die
+     Vorgabemode `scaleToFill` das Symbol und der Haken sitzt verzerrt da.
+
 5. **Wer von `UserDefaults` schreibt, muss `SharedPreferences.reload()` sagen.**
    Dart liest aus einem Cache, und der kennt nur Darts eigene Schreibvorgänge.
    Jede native Änderung an einer Einstellung, die Dart anzeigt, braucht deshalb
