@@ -456,16 +456,23 @@ enum L {
             "The app goes back to using the real time")
     }
 
+    /// Der Name der Zeile – bewusst kurz.
+    ///
+    /// „Zusätzliche Sync-Angaben zeigen" war eine Anweisung im Titel eines
+    /// Schalters. Ein Schalter **ist** die Anweisung; im Titel wiederholt sie
+    /// sie sich nur. Der Name sagt, **was** eingestellt wird, und der Schalter
+    /// daneben sagt, dass es ein- und ausgeschaltet wird.
     static var showSyncDetails: String {
-        pick(
-            "Zusätzliche Sync-Angaben zeigen",
-            "Show additional sync options and information")
+        pick("Sync-Details", "Sync details")
     }
 
+    /// Die Erklärung darunter – das Detail, das im Namen keinen Platz hat.
+    ///
+    /// Kurz genug, um neben einem Schalter auf **einer** Zeile zu stehen.
     static var showSyncDetailsSubtitle: String {
         pick(
-            "Zeigt der Sync-Seite Serverstatus, automatischen Abgleich und die Zahl der übertragenen Einträge",
-            "Adds server status, automatic sync and the number of transferred entries to the sync page")
+            "Serverstatus, automatischer Abgleich und übertragene Einträge",
+            "Server status, automatic sync and transferred entries")
     }
 
     static var deleteOfflinePlans: String {

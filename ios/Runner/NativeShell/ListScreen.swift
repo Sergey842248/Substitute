@@ -527,10 +527,25 @@ final class SubtitleCell: UITableViewCell {
         beschriftung.adjustsFontForContentSizeCategory = true
         // Ohne das bricht der Text bei grosser Systemschrift mitten im Wort ab.
         beschriftung.lineBreakMode = .byWordWrapping
+        // `numberOfLines = 0` ist hier **nicht** Kosmetik, sondern der ganze
+        // Unterschied zwischen einer Zeile und einem Text, der aus dem
+        // Bildschirmrand herausläuft.
+        //
+        // `UILabel` hat von sich aus genau **eine** Zeile. Mit
+        // `lineBreakMode = .byWordWrapping` und einer Zeile malt das System den
+        // Text nicht um – es malt ihn einzeilig **über den Rand hinaus**, ohne
+        // Restzeichen. Man sieht das an einer langen Überschrift eines
+        // Schalters: Der Schalter am rechten Rand wird weggeschoben und steht
+        // draussen.
+        //
+        // Mit `0` bricht der Text an den Kanten des Stapels um, und die Zeile
+        // wird – siehe `heightForRowAt` – so hoch, wie er es braucht.
+        beschriftung.numberOfLines = 0
 
         erklaerung.font = .preferredFont(forTextStyle: .footnote)
         erklaerung.adjustsFontForContentSizeCategory = true
         erklaerung.lineBreakMode = .byWordWrapping
+        erklaerung.numberOfLines = 0
         // Die Erklärung wird eher gestaucht als der Titel – der Titel ist das,
         // woran man den Eintrag überhaupt erkennt.
         erklaerung.setContentCompressionResistancePriority(
@@ -556,6 +571,13 @@ final class SubtitleCell: UITableViewCell {
         spalte.alignment = .fill
         spalte.spacing = 2
         spalte.translatesAutoresizingMaskIntoConstraints = false
+        // Der Text weicht dem Zubehör aus, und zwar **entschieden**: Ein Stapel,
+        // der auf seine volle Wortbreite besteht, drängt Schalter, Haken und
+        // Menü-Knopf aus der Zeile. Wer hier nachgibt, bestimmt die Breite der
+        // ganzen Zeile.
+        spalte.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        spalte.setContentCompressionResistancePriority(
+            .defaultLow, for: .horizontal)
 
         zeile.addArrangedSubview(symbolView)
         spalte.addArrangedSubview(beschriftung)
