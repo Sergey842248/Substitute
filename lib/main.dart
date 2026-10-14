@@ -29,7 +29,7 @@ import 'dart:io';
 /* pages */
 import 'pages/vplan/VPlan.dart';
 import 'pages/vplan/VPlanAPI.dart';
-import 'pages/dashboard/Dashboard.dart';
+import 'pages/dashboard/Settings.dart';
 import 'pages/share/SyncShareHub.dart';
 import 'pages/search/SearchMenu.dart';
 import 'pages/dashboard/settings/VPlanLogin.dart';
@@ -274,22 +274,40 @@ Color darken(Color c, [int percent = 10]) {
 
 /// Groesse des Logos oben links in der Kopfzeile.
 ///
-/// Das Feld, in dem es sitzt, ist 45 x 45 Punkte – so hoch wie die Zeile mit
-/// dem Wort „Substitute“. Das Logo selbst fuellt dieses Feld aber **nicht** aus:
-/// 45 Punkte sind fast so breit wie das Wort daneben und damit der mit
-/// Abstand groesste Gegenstand der Kopfzeile; die Symbole der Leiste unten
-/// sind 28 Punkte breit, daneben wirkt das Logo riesig.
+/// Das Feld, in dem es sitzt, ist [kKopfzeileHoehe] breit und hoch. Das Logo
+/// selbst fuellt dieses Feld aber **nicht** aus: Es waere dann fast so breit
+/// wie das Wort daneben und damit der mit Abstand groesste Gegenstand der
+/// Kopfzeile.
 ///
-/// 24 x 24 ist noch kleiner als die Symbole der Leiste unten (28 Punkte) – es
-/// ist ein Erkennungszeichen, kein Gegenstand der Anzeige. Es bleibt gross
-/// genug, um auf dem Startbildschirm, in der Suche und im Werkzeugkasten
-/// wiedererkannt zu werden, und laesst ringsum Luft, sodass es nicht am Rand
-/// klebt. `BoxFit.contain` verhindert zusaetzlich, dass das Logo verzerrt wird
+/// 28 x 28 ist genau so breit wie die Symbole der Leiste unten – das Logo und
+/// diese Symbole gehoeren zur selben Ebene und sollen auch gleich gross
+/// wirken. `BoxFit.contain` verhindert zusaetzlich, dass das Logo verzerrt wird
 /// – es ist nicht quadratisch (608 zu 564 Pixeln).
 ///
 /// Eine Zahl an zwei Stellen, damit Taschen-Hase und Kopfzeile nach einem
 /// Tippen auf das Logo nicht unterschiedlich gross aussehen.
-const double kLogoGroesse = 24;
+const double kLogoGroesse = 28;
+
+/// Die Hoehe der Kopfzeile **ohne** den sicheren Bereich des Geraets.
+///
+/// ## Warum eine feste Zahl und nicht ein Anteil der Bildschirmhoehe
+///
+/// Vorher stand hier `size.height * 0.2` – ein Fuenftel des Bildschirms fuer
+/// eine Zeile mit einem Wort, einem Symbol und einem Knopf. Auf einem 800
+/// Punkte hohen Telefon sind das 160 Punkte, fuer die Zeile selbst 45. Der Rest
+/// war Leerraum, und zwar sichtbarer: Der Inhalt fing bei `size.height * 0.14`
+/// an und uebermalte von dort aus den Rest der Kopfzeile. Sichtbar blieben rund
+/// 50 Punkte Luft ueber einer Zeile, die kaum 40 davon braucht.
+///
+/// Das war nicht nur verschenkter Platz, es kostete an anderer Stelle: Weil die
+/// Kopfzeile so hoch war und die Schrift zusaetzlich auf neun Zehntel
+/// heruntergerechnet wurde (siehe [MyApp.build]), mussten Karten, Symbole und
+/// Texte kleiner ausfallen, damit sie ueberhaupt neben ihr Platz fanden.
+///
+/// Eine feste Zahl nennt genau das, was die Leiste wirklich verbraucht, und
+/// laesst den Rest dem Inhalt. 56 ist die uebliche Hoehe einer Kopfleiste und
+/// fasst das Wort (26), das Logo ([kLogoGroesse]) und den Knopf (48) bequem.
+const double kKopfzeileHoehe = 56;
 
 class MyApp extends StatefulWidget {
   const MyApp({
@@ -585,12 +603,22 @@ class _MyAppState extends State<MyApp> {
                 ]);
               }
             }
-            return MediaQuery(
-              data: data.copyWith(
-                textScaler: TextScaler.linear(0.9),
-              ),
-              child: child!,
-            );
+            // ## Kein `textScaler` mehr
+            //
+            // Hier stand lange `TextScaler.linear(0.9)`: Jeder Text der App
+            // wurde auf neun Zehntel seiner eigenen Groesse heruntergerechnet –
+            // auch dann, wenn die Schriftgroesse des Systems auf dem grossen
+            // steht. Das war die Antwort auf ein Platzproblem, das woanders
+            // lag (die Kopfleiste nahm ein Fuenftel, die Navigationsleiste ein
+            // Zehntel des Bildschirms ein) und an der falschen Stelle behoben
+            // wurde: verkleinert wurde nicht der Platz, sondern alles, was
+            // darin stehen sollte.
+            //
+            // [kKopfzeileHoehe] nimmt diesen Platz jetzt weg, also darf die
+            // Schrift wieder das sein, was sie ist. `MediaQueryData data` wird
+            // oben weiter gebraucht – fuer die Groesse, nicht fuer die
+            // Schrift.
+            return child!;
           },
           debugShowCheckedModeBanner: false,
           navigatorObservers: [routeObserver],
@@ -1108,11 +1136,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       // Überschrift: eigene Geräte, mit anderen teilen, deren Angebote
       // finden.
       //
-      // **Vor** dem Dashboard, nicht danach: Das Dashboard ist der
-      // Bildschirm mit Einstellungen und Werkzeugen, und ein Bildschirm, den
-      // man beim Tippen mitnimmt, gehört nicht an den rechten Rand. Die
-      // Leiste liest sich damit von links nach rechts wie ein Weg: Pläne
-      // ansehen, suchen, mit anderen teilen, Werkzeuge.
+      // **Vor** den Einstellungen, nicht danach: Die Einstellungen tragen die
+      // Dinge, die man ab und an nachschlägt, und ein Bildschirm, den man beim
+      // Tippen mitnimmt, gehört nicht an den rechten Rand. Die Leiste liest
+      // sich damit von links nach rechts wie ein Weg: Pläne ansehen, suchen,
+      // mit anderen teilen, einstellen.
       //
       // Wer den Eintrag nicht braucht, schaltet ihn unter Einstellungen →
       // Aussehen ab. Ausgeschaltet verschwindet nur der **Eintrag** – die
@@ -1125,12 +1153,25 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           'icon': 'assets/img/sync.svg',
           'widget': const SyncShareHub(),
         },
+      // Der rechte Rand heisst „Einstellungen“ – und **ist** die Seite mit den
+      // Einstellungen.
+      //
+      // Vorher stand dort ein Bildschirm namens „Dashboard“, der selbst nur
+      // eine Liste von Einträgen war: Krankheitstracker, Schulen,
+      // Einstellungen. Wer ihn öffnete, musste noch einmal tippen, um
+      // überhaupt dort anzukommen, wo er hinwollte – und der Name sagte nichts
+      // darüber, was zu sehen ist.
+      //
+      // Der Krankheitstracker liegt jetzt beim Suchsymbol und die Schulen
+      // stehen in den Einstellungen direkt unter den Zugangsdaten. Was übrig
+      // bleibt, ist genau die Einstellungsseite – also steht sie da jetzt
+      // ohne Umweg, und zwar unter dem Namen, den sie trägt.
       {
-        'key': 'dashboard',
-        'text': AppLocalizations.of(context)!.dashboard,
+        'key': 'settings',
+        'text': AppLocalizations.of(context)!.settings,
         'index': 3,
-        'icon': 'assets/img/dashboard.svg',
-        'widget': Dashboard(),
+        'icon': 'assets/img/settings.svg',
+        'widget': Settings(),
       },
     ];
 
@@ -1140,6 +1181,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         activeWidget = pages[i]['widget'];
       }
     }
+
+    // Der sichere Bereich oben (Statusleiste, Kerbe). Die Kopfzeile misst
+    // ihren Platz daraus und **doppelt** ihn nicht: Er steckt schon in
+    // [kKopfzeileHoehe].
+    final double sicherOben = MediaQuery.paddingOf(context).top;
+    final double kopfzeilenHoehe = sicherOben + kKopfzeileHoehe;
     return Scaffold(
       body: SizedBox(
         height: MediaQuery.of(context).size.height,
@@ -1151,193 +1198,195 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             child: Stack(
               children: [
                 // APPBAR
+                //
+                // Nur so hoch, wie sie wirklich braucht: der sichere Bereich
+                // oben plus [kKopfzeileHoehe]. Vorher stand hier
+                // `size.height * 0.2`, waehrend der Inhalt erst bei
+                // `size.height * 0.14` anfing – die Kopfzeile reichte also
+                // unter den Inhalt hinein und was als Streifen sichtbar.
                 Container(
                   alignment: Alignment.topCenter,
                   color: Theme.of(context).colorScheme.surface,
-                  height: MediaQuery.of(context).size.height * 0.2,
+                  height: kopfzeilenHoehe,
                   width: MediaQuery.of(context).size.width,
-                  padding: const EdgeInsets.only(
-                    top: 10,
-                    bottom: 10,
-                  ),
-                  child: SafeArea(
-                    child: Stack(
-                      children: [
-                        Container(
-                          alignment: Alignment.center,
-                          height: 45,
-                          child: Text(
-                            'Substitute',
-                            style: TextStyle(
-                              fontSize: 23,
-                              color: Theme.of(context).focusColor,
-                              fontFamily: 'Crackman',
-                            ),
+                  padding: EdgeInsets.only(top: sicherOben),
+                  child: Stack(
+                    children: [
+                      Container(
+                        alignment: Alignment.center,
+                        height: kKopfzeileHoehe,
+                        child: Text(
+                          'Substitute',
+                          style: TextStyle(
+                            // 26 statt 23: In der flacheren Leiste ist jetzt
+                            // Platz dafuer, und der Schriftzug soll der
+                            // Kopfleiste gelten, nicht dem Bildschirm.
+                            fontSize: 26,
+                            color: Theme.of(context).focusColor,
+                            fontFamily: 'Crackman',
                           ),
                         ),
-                        if (widget.showBackButton)
-                          Positioned(
-                            left: 10,
-                            top: 0,
-                            bottom: 0,
-                            child: Center(
-                              child: InkWell(
-                                onTap: () => Navigator.pop(context),
-                                child: Container(
-                                  alignment: Alignment.center,
-                                  padding: const EdgeInsets.all(9),
-                                  decoration: BoxDecoration(
-                                    borderRadius: const BorderRadius.all(
-                                      Radius.circular(100),
-                                    ),
-                                    color: Theme.of(context).dividerColor,
+                      ),
+                      if (widget.showBackButton)
+                        Positioned(
+                          left: 10,
+                          top: 0,
+                          bottom: 0,
+                          child: Center(
+                            child: InkWell(
+                              onTap: () => Navigator.pop(context),
+                              child: Container(
+                                alignment: Alignment.center,
+                                padding: const EdgeInsets.all(9),
+                                decoration: BoxDecoration(
+                                  borderRadius: const BorderRadius.all(
+                                    Radius.circular(100),
                                   ),
-                                  child: Icon(
-                                    Icons.arrow_back_rounded,
-                                    size: 19,
-                                    // Nicht `splashColor`: Die ist im hellen
-                                    // Modus Schwarz mit 6 % Deckkraft und damit
-                                    // auf dem grauen Kreis praktisch unsichtbar.
-                                    // `focusColor` ist die Textfarbe des Themes
-                                    // (fast Schwarz im Hellen, Weiß im Dunkeln).
-                                    color: Theme.of(context).focusColor,
-                                  ),
+                                  color: Theme.of(context).dividerColor,
+                                ),
+                                child: Icon(
+                                  Icons.arrow_back_rounded,
+                                  size: 19,
+                                  // Nicht `splashColor`: Die ist im hellen
+                                  // Modus Schwarz mit 6 % Deckkraft und damit
+                                  // auf dem grauen Kreis praktisch unsichtbar.
+                                  // `focusColor` ist die Textfarbe des Themes
+                                  // (fast Schwarz im Hellen, Weiß im Dunkeln).
+                                  color: Theme.of(context).focusColor,
                                 ),
                               ),
                             ),
                           ),
-                        InkWell(
-                          onTap: () async {
-                            // Implement developer mode logic here if needed in the future
-                          },
-                          child: Container(
-                            alignment: Alignment.centerRight,
-                            height: 45,
-                            margin: EdgeInsets.only(
-                              right: MediaQuery.of(context).size.width * 0.07,
-                            ),
-                            // padding: const EdgeInsets.all(10),
-                            child: IconButton(
-                              icon: Icon(Icons.more_horiz_rounded),
-                              color: Colors.grey.shade400,
-                              onPressed: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  backgroundColor: Colors.transparent,
-                                  builder: (context) => ModalBottomSheet(
-                                    title:
-                                        AppLocalizations.of(context)!.appInfo,
-                                    bigTitle: true,
-                                    extraButton: {
-                                      'onTap': () {
-                                        Share.share(
-                                          'Check out Substitute on Github: https://www.github.com/Sergey842248/Substitute',
-                                        );
-                                      },
-                                      'child': const Icon(
-                                        Icons.share_rounded,
-                                        size: 18,
-                                      ),
+                        ),
+                      InkWell(
+                        onTap: () async {
+                          // Implement developer mode logic here if needed in the future
+                        },
+                        child: Container(
+                          alignment: Alignment.centerRight,
+                          height: kKopfzeileHoehe,
+                          margin: EdgeInsets.only(
+                            right: MediaQuery.of(context).size.width * 0.07,
+                          ),
+                          // padding: const EdgeInsets.all(10),
+                          child: IconButton(
+                            icon: Icon(Icons.more_horiz_rounded),
+                            color: Colors.grey.shade400,
+                            onPressed: () {
+                              showModalBottomSheet(
+                                context: context,
+                                backgroundColor: Colors.transparent,
+                                builder: (context) => ModalBottomSheet(
+                                  title: AppLocalizations.of(context)!.appInfo,
+                                  bigTitle: true,
+                                  extraButton: {
+                                    'onTap': () {
+                                      Share.share(
+                                        'Check out Substitute on Github: https://www.github.com/Sergey842248/Substitute',
+                                      );
                                     },
-                                    content: Column(
-                                      // Der Dialog zentriert Titel und
-                                      // Knöpfe bereits; der Inhalt war
-                                      // linksbündig und sah dadurch
-                                      // uneinheitlich aus.
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        // Die Angaben zu Haupt- und
-                                        // ehemaligem Entwickler wurden entfernt.
-                                        ...[
-                                          {
-                                            'name':
-                                                AppLocalizations.of(context)!
-                                                    .openIssue,
-                                            'link':
-                                                'https://www.github.com/Sergey842248/Substitute/issues/new?template=bug_report.yml',
-                                          },
-                                          {
-                                            'name':
-                                                AppLocalizations.of(context)!
-                                                    .github,
-                                            'link':
-                                                'https://www.github.com/Sergey842248/Substitute',
-                                          }
-                                        ].map(
-                                          (e) => Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: InkWell(
-                                              onTap: () => launchUrl(
-                                                  Uri.parse(e['link']!)),
-                                              child: Text(
-                                                '${e['name']}',
-                                                textAlign: TextAlign.center,
-                                                style: TextStyle(
-                                                  decoration:
-                                                      TextDecoration.underline,
-                                                  decorationColor:
-                                                      Theme.of(context)
-                                                          .focusColor,
-                                                  fontSize: 17,
-                                                ),
+                                    'child': const Icon(
+                                      Icons.share_rounded,
+                                      size: 18,
+                                    ),
+                                  },
+                                  content: Column(
+                                    // Der Dialog zentriert Titel und
+                                    // Knöpfe bereits; der Inhalt war
+                                    // linksbündig und sah dadurch
+                                    // uneinheitlich aus.
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      // Die Angaben zu Haupt- und
+                                      // ehemaligem Entwickler wurden entfernt.
+                                      ...[
+                                        {
+                                          'name': AppLocalizations.of(context)!
+                                              .openIssue,
+                                          'link':
+                                              'https://www.github.com/Sergey842248/Substitute/issues/new?template=bug_report.yml',
+                                        },
+                                        {
+                                          'name': AppLocalizations.of(context)!
+                                              .github,
+                                          'link':
+                                              'https://www.github.com/Sergey842248/Substitute',
+                                        }
+                                      ].map(
+                                        (e) => Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: InkWell(
+                                            onTap: () => launchUrl(
+                                                Uri.parse(e['link']!)),
+                                            child: Text(
+                                              '${e['name']}',
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                decoration:
+                                                    TextDecoration.underline,
+                                                decorationColor:
+                                                    Theme.of(context)
+                                                        .focusColor,
+                                                fontSize: 17,
                                               ),
                                             ),
                                           ),
                                         ),
-                                        Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Text(
-                                            AppLocalizations.of(context)!
-                                                .version(version),
-                                            textAlign: TextAlign.center,
-                                            style: const TextStyle(
-                                              fontSize: 17,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Text(
+                                          AppLocalizations.of(context)!
+                                              .version(version),
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
-                                );
-                              },
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      if (!widget.showBackButton)
+                        Container(
+                          alignment: Alignment.centerLeft,
+                          margin: EdgeInsets.only(
+                            left: MediaQuery.of(context).size.width * 0.1,
+                          ),
+                          height: kKopfzeileHoehe,
+                          width: kKopfzeileHoehe,
+                          child: InkWell(
+                            onTap: eastereggIconChange,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 500),
+                              transitionBuilder: (child, animation) =>
+                                  FadeTransition(
+                                opacity: animation,
+                                child: ScaleTransition(
+                                  scale: animation,
+                                  child: child,
+                                ),
+                              ),
+                              child: eastereggIcon,
                             ),
                           ),
                         ),
-                        if (!widget.showBackButton)
-                          Container(
-                            alignment: Alignment.centerLeft,
-                            margin: EdgeInsets.only(
-                              left: MediaQuery.of(context).size.width * 0.1,
-                            ),
-                            height: 45,
-                            width: 45,
-                            child: InkWell(
-                              onTap: eastereggIconChange,
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 500),
-                                transitionBuilder: (child, animation) =>
-                                    FadeTransition(
-                                  opacity: animation,
-                                  child: ScaleTransition(
-                                    scale: animation,
-                                    child: child,
-                                  ),
-                                ),
-                                child: eastereggIcon,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+                    ],
                   ),
                 ),
                 // CONTENT
                 Container(
-                  margin: EdgeInsets.only(
-                    top: MediaQuery.of(context).size.height * 0.14,
-                  ),
+                  // Genau unter der Kopfzeile. Der Abstand ist damit
+                  // weggeraeumt, den der Unterschied zwischen `0.2` und `0.14`
+                  // uber der Kopfzeile liegen liess.
+                  margin: EdgeInsets.only(top: kopfzeilenHoehe),
                   padding: EdgeInsets.only(
                     left: 10,
                     right: 10,
@@ -1353,9 +1402,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             MediaQuery.paddingOf(context).bottom,
                   ),
                   decoration: BoxDecoration(
+                    // 30 wie die Leiste unten und wie die Kopfzeilen der
+                    // Inhalte: Bei 45 standen drei verschiedene Radien in
+                    // derselben App nebeneinander.
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(45),
-                      topRight: Radius.circular(45),
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
                     ),
                     color: Theme.of(context).scaffoldBackgroundColor,
                   ),

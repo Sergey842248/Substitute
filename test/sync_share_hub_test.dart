@@ -18,9 +18,9 @@ import 'package:substitute/services/sync/SyncCoordinator.dart';
 /// am oberen Rand und ein ausklappender Bereich, der mit nichts anfangen
 /// konnte.
 ///
-/// Der `Dashboard`-Tab löst das einfach richtig: eine nackte Liste mit fester
-/// Höhe, ganz ohne `ListPage`. Die Seite tut es genauso, und genau das prüft
-/// der zweite Test unten.
+/// Der `Settings`-Tab löst das einfach richtig: eine nackte Liste, ganz ohne
+/// `ListPage`. Die Seite tut es genauso, und genau das prüft der zweite Test
+/// unten.
 void main() {
   /// Der Koordinator hängt seine Zeitgeber an die App, nicht an einen
   /// Bildschirm – er soll weiterlaufen, auch wenn jemand den Bildschirm
@@ -59,26 +59,28 @@ void main() {
     testWidgets('zeigt den Sync-Eintrag', (WidgetTester tester) async {
       await starteApp(tester);
       expect(navigationsEintraege, findsNWidgets(4),
-          reason: 'vier Einträge: Start, Suche, Dashboard, Sync & Share');
+          reason: 'vier Einträge: Start, Suche, Sync & Share, Einstellungen');
       expect(syncSymbol, findsOneWidget,
           reason: 'das Sync-Symbol fehlt in der Leiste');
       aufraeumen();
     });
 
-    testWidgets('der Sync-Eintrag steht vor dem Dashboard, nicht am Rand',
+    testWidgets('der Sync-Eintrag steht vor den Einstellungen, nicht am Rand',
         (WidgetTester tester) async {
       await starteApp(tester);
-      // Das Dashboard trägt die Einstellungen, und ein Bildschirm, den man beim
-      // Tippen mitnimmt, gehört nicht an den rechten Rand. Die Reihenfolge ist
-      // ein Weg: Pläne ansehen, suchen, mit anderen teilen, Werkzeuge.
-      final List<SvgPicture> eintraege = tester
-          .widgetList<SvgPicture>(navigationsEintraege)
-          .toList();
+      // Die Einstellungen tragen die Dinge, die man ab und an nachschlägt, und
+      // ein Bildschirm, den man beim Tippen mitnimmt, gehört nicht an den
+      // rechten Rand. Die Reihenfolge ist ein Weg: Pläne ansehen, suchen, mit
+      // anderen teilen, einstellen.
+      final List<SvgPicture> eintraege =
+          tester.widgetList<SvgPicture>(navigationsEintraege).toList();
       expect(eintraege, hasLength(4));
       expect(eintraege[2].toString(), contains('sync.svg'),
           reason: 'der Sync-Eintrag ist nicht an dritter Stelle');
-      expect(eintraege.last.toString(), contains('dashboard.svg'),
-          reason: 'das Dashboard steht nicht am rechten Rand');
+      // Der rechte Rand ist nicht mehr das „Dashboard“, sondern die Seite mit
+      // den Einstellungen – mit dem Zahnrad als Symbol.
+      expect(eintraege.last.toString(), contains('settings.svg'),
+          reason: 'am rechten Rand steht nicht das Symbol der Einstellungen');
       aufraeumen();
     });
 

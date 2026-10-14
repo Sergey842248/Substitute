@@ -18,6 +18,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get credentialsSubtitle => 'stundenplan24 Anmeldeinformationen';
 
   @override
+  String get schools => 'Schulen';
+
+  @override
+  String get schoolsSubtitle => 'Schulbereiche und Zugangsdaten wechseln';
+
+  @override
   String get notifications => 'Benachrichtigungen';
 
   @override
@@ -98,9 +104,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get vplanTeachers => 'Vertretungsplan Lehrer';
-
-  @override
-  String get dashboard => 'Dashboard';
 
   @override
   String get appTitle => 'Substitute';

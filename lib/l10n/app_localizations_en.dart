@@ -18,6 +18,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get credentialsSubtitle => 'stundenplan24 credentials';
 
   @override
+  String get schools => 'Schools';
+
+  @override
+  String get schoolsSubtitle => 'Switch school areas and credentials';
+
+  @override
   String get notifications => 'Notifications';
 
   @override
@@ -99,9 +105,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vplanTeachers => 'vplan teachers';
-
-  @override
-  String get dashboard => 'dashboard';
 
   @override
   String get appTitle => 'Substitute';

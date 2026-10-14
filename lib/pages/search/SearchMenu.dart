@@ -6,14 +6,36 @@ import 'package:substitute/services/NativeShell.dart';
 
 import '../../models/swipe_page_transition.dart';
 import '../dashboard/FindRoom.dart';
+import '../dashboard/SickTrack.dart';
 import '../teacherVPlan/TeacherVPlan.dart';
 
 /// Zentrales Such-Menü: bündelt alle Suchfunktionen (Lehrer, freie Räume,
-/// Raumplan) an einem Ort. Wird als eigener Tab im unteren Menü angezeigt.
+/// Raumplan) **und** den Krankheitstracker. Wird als eigener Tab im unteren
+/// Menü angezeigt.
+///
+/// ## Warum der Krankheitstracker hier steht
+///
+/// Er stand vorher im „Dashboard“ – einem Bildschirm am rechten Rand der
+/// Leiste, der inzwischen die Einstellungen sind und selbst nichts mehr war.
+/// Dort war er der einzige Eintrag, der nichts mit einem Suchbegriff zu tun
+/// hatte, und wer eine verpasste Stunde nachsehen wollte, musste erst den
+/// rechten Reiter finden.
+///
+/// Der Tracker **sucht** genauso wie die beiden anderen: nach der Klasse, der
+/// die Stunden gefehlt haben. Er gehoert damit an dieselbe Stelle und nicht in
+/// eine Liste, die sich um etwas anderes dreht.
+///
+/// Auf iOS ist das derselbe Weg: Dort liegt der Such-Reiter als Flutter-Ansicht
+/// in der nativen Schale, und der Werkzeugkasten ist nicht mehr dafuer da.
 class SearchMenu extends StatelessWidget {
   SearchMenu({Key? key}) : super(key: key);
 
-  final double margin = 8;
+  /// Der Luft zwischen den drei Teilen eines Eintrags.
+  ///
+  /// 5 statt 8: Mit der flacheren Kopfleiste (siehe `kKopfzeileHoehe`) ist
+  /// der Inhalthoehe genug Platz fuer beide, ohne dass eine Liste von drei
+  /// Eintraegen ueber zwei Bildschirmhaetten reicht.
+  final double margin = 5;
 
   @override
   Widget build(BuildContext context) {
@@ -36,17 +58,25 @@ class SearchMenu extends StatelessWidget {
         'subtitle': AppLocalizations.of(context)!.roomPlanSubtitle,
         'link': const FindRoom(),
       },
+      {
+        'icon': Icon(
+          Icons.sick_rounded,
+          color: Theme.of(context).focusColor,
+        ),
+        'title': AppLocalizations.of(context)!.sickTrack,
+        'subtitle': AppLocalizations.of(context)!.sickTrackSubtitle,
+        'link': const SickTrack(),
+      },
     ];
     return Container(
-      height: MediaQuery.of(context).size.height * 0.69,
-      // Die Android-Leiste bleibt außerhalb des Inhalts. Auf iOS steht der
-      // Abstand dagegen ausschließlich am Ende der Liste, damit die native
-      // Leiste direkt über dem Inhalt liegen kann.
-      margin: EdgeInsets.only(
-        bottom: NativeShell.isSection
-            ? 0
-            : MediaQuery.of(context).size.height * 0.1,
-      ),
+      // Keine eigene Hoehe mehr: Vorher stand hier `size.height * 0.69` plus
+      // ein weiteres Zehntel als unterer Rand – zusammen fast vier Fuenftel des
+      // Bildschirms fuer drei Eintraege, die nicht so viel brauchen. Die Liste
+      // nimmt jetzt den Platz, der da ist, und hoeher wird sie dadurch nicht.
+      //
+      // Die Android-Leiste bleibt ausserhalb des Inhalts. Auf iOS steht der
+      // Abstand dagegen ausschliesslich am Ende der Liste, damit die native
+      // Leiste direkt ueber dem Inhalt liegen kann.
       alignment: Alignment.center,
       child: Scrollbar(
         thickness: 3,
@@ -60,7 +90,7 @@ class SearchMenu extends StatelessWidget {
             ...elements.map(
               (e) => Center(
                 child: ListItem(
-                  padding: 20,
+                  padding: 16,
                   leading: e['icon'],
                   title: Container(
                     margin: EdgeInsets.only(top: margin, bottom: margin),

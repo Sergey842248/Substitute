@@ -116,6 +116,18 @@ abstract class AppLocalizations {
   /// **'stundenplan24 credentials'**
   String get credentialsSubtitle;
 
+  /// No description provided for @schools.
+  ///
+  /// In en, this message translates to:
+  /// **'Schools'**
+  String get schools;
+
+  /// No description provided for @schoolsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch school areas and credentials'**
+  String get schoolsSubtitle;
+
   /// No description provided for @notifications.
   ///
   /// In en, this message translates to:
@@ -265,12 +277,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'vplan teachers'**
   String get vplanTeachers;
-
-  /// No description provided for @dashboard.
-  ///
-  /// In en, this message translates to:
-  /// **'dashboard'**
-  String get dashboard;
 
   /// No description provided for @appTitle.
   ///
