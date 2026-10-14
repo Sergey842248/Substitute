@@ -66,58 +66,6 @@ enum Row {
     /// eine Zeile wird rot, nicht der ganze Bildschirm.
     case warning(title: String, subtitle: String?, symbol: String)
 
-    /// Eine Zeile, die eine **Sache aus den Daten** darstellt.
-    ///
-    /// ## Warum ein eigener Fall und nicht [.choice] mit zwei Feldern mehr
-    ///
-    /// [.choice] beschreibt, wie eine Zeile **aussieht** und was beim Tippen
-    /// passiert. Sie weiß nichts darüber, **was** sie darstellt – und für die
-    /// Bildschirme, die ihre Zeilen aus Dart bekommen, ist genau das die
-    /// entscheidende Angabe.
-    ///
-    /// Es gab zwei Wege, das zu lösen, und beide sind hier verworfen:
-    ///
-    /// * Die Art aus dem **Symbol** ableiten – ein `person.crop.square` bedeutet
-    ///   „Person". Damit hinge die Art an einer Dekoration: Wer das Symbol
-    ///   ändert, weil es ihm zu breit vorkommt, hat aus einer Liste stillschweigend
-    ///   eine Liste anderer Dinge gemacht, ohne dass irgendwo ein Fehler steht.
-    /// * Die Art in einer **zweiten Liste** neben der ersten führen, indexgleich.
-    ///   Dann müssen zwei Listen über dieselben Zeilen laufen und beide
-    ///   gleichzeitig wachsen. Fällt eine zurück, ist die Zuordnung still falsch –
-    ///   und ein Tipp auf die falsche Zeile löscht die falsche Sache.
-    ///
-    /// Deshalb steht die Angabe **in der Zeile**: [kennung] und [art] sind Teil
-    /// dessen, was sie darstellt, und können nicht von ihm abweichen.
-    case thing(
-        title: String,
-        subtitle: String?,
-        symbol: String,
-        // Die Kennung der Sache, so wie die Daten sie nennen. Kein Anzeigename –
-        // der kann sich ändern, die Kennung nicht, und beim Löschen wird nach ihr
-        // gesucht.
-        kennung: String,
-        art: ThingArt,
-        action: () -> Void)
-
-    /// Was für eine Sache eine [.thing]-Zeile darstellt.
-    ///
-    /// Eine eigene kleine Art und kein `String`: Sie wird an **drei** Stellen
-    /// gebraucht – Symbol, Farbe und die Frage, ob sich die Zeile löschen lässt –
-    /// und die müssen immer übereinstimmen. Bei einem `String` müsste jede Stelle
-    /// selbst raten, und eine davon irrt sich.
-    enum ThingArt {
-        /// Eine Klasse – eine ganze Klasse von Schülern.
-        ///
-        /// Geht auf, wenn der Plan dieser Klasse geöffnet wird.
-        case klasse
-
-        /// Eine einzelne Person, die zu einer Klasse gehört.
-        ///
-        /// Geht auf, wenn der Plan **dieser Person** geöffnet wird – und das ist
-        /// ein anderer Plan als der der Klasse, in der sie steht.
-        case person
-    }
-
     enum Accessory {
         case none
         case disclosure
@@ -213,17 +161,6 @@ extension Row {
     {
         .textRow(title: title, subtitle: subtitle, symbol: symbol)
     }
-
-    // **Kein** `static func thing` – im Gegensatz zu `choice` und `text`.
-    //
-    // Der Fall [.thing] hat keine Vorgabewerte, also braucht es auch keinen Weg
-    // drumherum: `.thing(title: …, art: …)` geht ohnehin nur über den Fall, und
-    // eine gleichnamige Funktion daneben ist in Swift genau dieselbe Unterschrift
-    // – der Compiler meldet „invalid redeclaration".
-    //
-    // `choice` und `text` dürfen das, weil ihre Fälle `choiceRow` und `textRow`
-    // heissen und der gleichnamige Wurf nur eine Kurzform davon ist. Bei `thing`
-    // gäbe es diese Kurzform nicht.
 }
 
 /// Ein Angebot in einer [Row.segment]-Zeile.
@@ -277,9 +214,6 @@ class ListScreen: UIViewController {
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
     private var appearanceToken: UUID?
 
-    /// Die Anmeldung bei [ScreenBridge] – siehe [datenQuelle].
-    private var datenToken: UUID?
-
     init(title: String, largeTitle: Bool = true) {
         super.init(nibName: nil, bundle: nil)
         self.title = title
@@ -300,24 +234,6 @@ class ListScreen: UIViewController {
     /// Wird bei [neuLaden] gerufen, nicht einmal beim Aufbau – deshalb darf
     /// hier gelesen werden, ohne dass man sich sorgen muss, wann.
     func makeSections() -> [Section] { [] }
-
-    /// Welcher Bildschirm aus [ScreenBridge] dieser Bildschirm zeichnet – oder
-    /// `nil`.
-    ///
-    /// ## Warum das der Bildschirm selbst sagt
-    ///
-    /// Weil **er** es ist, der weiss, woher seine Zeilen kommen. Die
-    /// Einstellungsseiten lesen aus dem Speicher und melden das hier – sie
-    /// brauchen keinen Kanal, und für sie wäre eine Anmeldung nur Arbeit ohne
-    /// Gegenwert.
-    ///
-    /// Der Bildschirm meldet sich damit selbst bei [ScreenBridge.horchZu], und
-    /// das geschieht **an einer** Stelle weiter unten, nicht in jedem Bildschirm
-    /// für sich: An fünf Stellen einzeln abzuschreiben wäre fünf Gelegenheiten,
-    /// eine zu vergessen – und ein Bildschirm, der sich nicht angemeldet hat,
-    /// sieht seine eigenen Zeilen kein zweites Mal, ohne dass irgendwo ein
-    /// Fehler stünde.
-    var datenQuelle: ScreenBridge.Screen? { nil }
 
     /// Was beim Wischen nach links passiert.
     ///
@@ -381,34 +297,19 @@ class ListScreen: UIViewController {
             self?.farbenSetzen()
         }
 
-        // Hier – und nicht in jedem Bildschirm für sich – siehe [datenQuelle].
-        if let quelle = datenQuelle {
-            datenToken = ScreenBridge.horchZu(quelle) { [weak self] in
-                self?.neuLaden()
-            }
-        }
-
         neuLaden()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         farbenSetzen()
-        // Beim Zurückkommen kann sich der Speicher geändert haben – und beim
-        // Bildschirm mit einer [datenQuelle] auch die Karte aus Dart.
+        // Beim Zurückkommen kann sich der Speicher geändert haben.
         neuLaden()
     }
 
     deinit {
         if let token = appearanceToken {
             AppearanceObserver.removeObserver(token)
-        }
-        // Auch das Abmelden ist Pflicht, nicht Ordnung: `ScreenBridge` hält die
-        // Anmeldung, bis sie von Hand zurückgenommen wird. Ohne das bliebe ein
-        // Weg zu diesem Bildschirm offen, lange nachdem er weg ist – und die
-        // Werte, die ankämen, würde niemand mehr zeichnen.
-        if let datenToken, let quelle = datenQuelle {
-            ScreenBridge.hoerAuf(quelle, token: datenToken)
         }
     }
 
@@ -819,16 +720,6 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
             cell.setzeZubehoer(
                 SubtitleCell.symbolFuer(zubehoer))
             return cell
-
-        case let .thing(titel, untertitel, symbol, _, _, _):
-            let cell = dequeue(indexPath)
-            cell.setzeInhalt(
-                titel: titel, untertitel: untertitel, symbol: symbol)
-            // Immer der **Pfeil**, nie der Haken: Eine [.thing]-Zeile ist keine
-            // Wahl zwischen Möglichkeiten, sie ist ein Weg weiter – auch dann,
-            // wenn daneben eine andere, gleichartige Zeile steht.
-            cell.setzeZubehoer(SubtitleCell.symbolFuer(.disclosure))
-            return cell
         }
     }
 
@@ -857,7 +748,6 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
         tableView.deselectRow(at: indexPath, animated: true)
         switch sections[indexPath.section].rows[indexPath.row] {
         case let .choice(_, _, _, _, _, aktion): aktion()
-        case let .thing(_, _, _, _, _, aktion): aktion()
         // Beim Schalter erledigt die Kachel das selbst – die ganze Zeile
         // tippen zu lassen wäre eine zweite, schlechtere Stelle dafür.
         case .toggleRow, .segmentRow, .textRow, .warning: break
@@ -904,7 +794,7 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
         _ tableView: UITableView, heightForRowAt indexPath: IndexPath
     ) -> CGFloat {
         switch sections[indexPath.section].rows[indexPath.row] {
-        case .segmentRow, .toggleRow, .choice, .thing, .textRow, .warning:
+        case .segmentRow, .toggleRow, .choice, .textRow, .warning:
             // Alle Zeilen messen sich selbst – siehe die Beschreibung oben.
             // Eine eigene Höhe je Art gibt es hier bewusst nicht mehr: Jede
             // feste Zahl ist für **irgendeine** Sprache oder Schriftgrösse zu

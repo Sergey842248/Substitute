@@ -20,11 +20,6 @@
 		AB01000000000000000000C8 /* NativeShellBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000B8 /* NativeShellBridge.swift */; };
 		AB01000000000000000000C9 /* RootTabBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000B9 /* RootTabBarController.swift */; };
 		AB01000000000000000000CA /* L.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000BA /* L.swift */; };
-		AB01000000000000000000D2 /* ScreenBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000D1 /* ScreenBridge.swift */; };
-		AB01000000000000000000D4 /* HomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000D3 /* HomeScreen.swift */; };
-		AB01000000000000000000D6 /* PlanOverviewScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000D5 /* PlanOverviewScreen.swift */; };
-		AB01000000000000000000D8 /* SyncHubScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000D7 /* SyncHubScreen.swift */; };
-		AB01000000000000000000DA /* NativeSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000D9 /* NativeSections.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
@@ -59,11 +54,6 @@
 		AB01000000000000000000B8 /* NativeShellBridge.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NativeShellBridge.swift; sourceTree = "<group>"; };
 		AB01000000000000000000B9 /* RootTabBarController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RootTabBarController.swift; sourceTree = "<group>"; };
 		AB01000000000000000000BA /* L.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = L.swift; sourceTree = "<group>"; };
-		AB01000000000000000000D1 /* ScreenBridge.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ScreenBridge.swift; sourceTree = "<group>"; };
-		AB01000000000000000000D3 /* HomeScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HomeScreen.swift; sourceTree = "<group>"; };
-		AB01000000000000000000D5 /* PlanOverviewScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PlanOverviewScreen.swift; sourceTree = "<group>"; };
-		AB01000000000000000000D7 /* SyncHubScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SyncHubScreen.swift; sourceTree = "<group>"; };
-		AB01000000000000000000D9 /* NativeSections.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NativeSections.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
@@ -142,11 +132,6 @@
 				AB01000000000000000000B8 /* NativeShellBridge.swift */,
 				AB01000000000000000000B9 /* RootTabBarController.swift */,
 				AB01000000000000000000BA /* L.swift */,
-				AB01000000000000000000D1 /* ScreenBridge.swift */,
-				AB01000000000000000000D3 /* HomeScreen.swift */,
-				AB01000000000000000000D5 /* PlanOverviewScreen.swift */,
-				AB01000000000000000000D7 /* SyncHubScreen.swift */,
-				AB01000000000000000000D9 /* NativeSections.swift */,
 			);
 			path = NativeShell;
 			sourceTree = "<group>";
@@ -269,11 +254,6 @@
 				AB01000000000000000000C8 /* NativeShellBridge.swift in Sources */,
 				AB01000000000000000000C9 /* RootTabBarController.swift in Sources */,
 				AB01000000000000000000CA /* L.swift in Sources */,
-				AB01000000000000000000D2 /* ScreenBridge.swift in Sources */,
-				AB01000000000000000000D4 /* HomeScreen.swift in Sources */,
-				AB01000000000000000000D6 /* PlanOverviewScreen.swift in Sources */,
-				AB01000000000000000000D8 /* SyncHubScreen.swift in Sources */,
-				AB01000000000000000000DA /* NativeSections.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
