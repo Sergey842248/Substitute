@@ -31,6 +31,9 @@ import 'pages/vplan/VPlan.dart';
 import 'pages/vplan/VPlanAPI.dart';
 import 'pages/dashboard/Dashboard.dart';
 import 'pages/share/SyncShareHub.dart';
+import 'pages/share/ShareListPage.dart';
+import 'pages/share/ShareBrowsePage.dart';
+import 'pages/dashboard/settings/SyncSettings.dart';
 import 'pages/search/SearchMenu.dart';
 import 'pages/dashboard/settings/VPlanLogin.dart';
 import 'pages/dashboard/SickTrack.dart';
@@ -46,6 +49,11 @@ import 'services/sync/SyncCoordinator.dart';
 import 'services/sync/SyncEngine.dart';
 import 'services/AppClock.dart';
 import 'services/NativeShell.dart';
+import 'services/NativeScreens.dart';
+import 'services/PlanTarget.dart';
+import 'pages/vplan/Plan.dart';
+import 'pages/vplan/PlanNativeBridge.dart';
+import 'pages/vplan/WeekPlan.dart';
 
 /// Compares two version strings (e.g. '3.7.10') numerically segment by segment.
 /// Returns < 0 if [a] is older, 0 if equal, > 0 if [a] is newer.
@@ -88,6 +96,31 @@ Future<void> main([List<String> args = const <String>[]]) async {
   // Auf Android, im Web und in den Tests ist `args` leer – dort bleibt es bei
   // [NativeShellRole.full], und die App verhält sich exakt wie vorher.
   NativeShell.readRole(args);
+
+  // Auch das gehört **vor** dem ersten Frame, und aus demselben Grund wie die
+  // Rolle: Die native Seite öffnet eine eigene Ansicht für den Plan einer
+  // Klasse und sagt ihr in den Startargumenten, welche. Fiel das hier vorbei,
+  // stünde in dieser Ansicht ein Plan ohne Klasse – eine leere Seite, die sich
+  // wie ein Fehler anfühlt und nicht wie ein leerer Plan.
+  //
+  // Auf Android, im Web und in den Tests ist `args` leer; dort bleibt
+  // [PlanTarget.isGesetzt] `false`, und es ändert sich nichts.
+  PlanTarget.read(args);
+
+  // Der Kanal für die nativen Bildschirme wird **hier** einmal angebracht und
+  // nicht von jedem Bildschirm für sich. Siehe
+  // [NativeScreens.ensureHandlerAttached] – `setMethodCallHandler` ersetzt den
+  // bisherigen Handler, und wer es mehrfach täte, gewönne der zuletzt gebaute
+  // Bildschirm: Die übrigen würden ihre Aktionen stillschweigend verlieren.
+  NativeScreens.ensureHandlerAttached();
+
+  // Und derselbe Kanal bekommt **einen** Zuhörer für die Tipps der nativen
+  // Bildschirme.
+  //
+  // Auch das genau **einmal** und nicht je Bildschirm: Wer sich zweimal anmeldete,
+  // bekäme jede Aktion zweimal – und „lösche die Person Müller" zweimal
+  // auszuführen ist kein Fehlerbild, sondern eine leere Liste ohne Erklärung.
+  PlanNativeBridge.install();
 
   // Der Systemstartbildschirm (einfarbig, ohne Icon) bleibt stehen, bis
   // `runApp` das erste Bild zeichnet. Deshalb wird hier erst geladen
@@ -697,9 +730,16 @@ class _MyAppState extends State<MyApp> {
   Route<dynamic> _routeFor(RouteSettings settings) {
     final String name = settings.name ?? '/';
     final bool werkzeug = name.startsWith('/werkzeug/');
+    // Der Plan einer Klasse, geöffnet von der nativen Übersicht. Siehe
+    // [_werkzeug] – dort steht, warum auch dieser Weg dort aufgelöst wird.
+    final bool plan = name.startsWith('/plan/') || name.startsWith('/sync/');
 
-    // Die Leiste verschwindet für Werkzeuge und für die Anmeldung – beides
+    // Die Leiste verschwindet für Werkzeuge und für die Anmeldeseite – beides
     // sind Bildschirme, die **über** allem stehen.
+    //
+    // Für den Plan **nicht**: Man geht dabei in einem Reiter weiter, und die
+    // Leiste zu verstecken hieße, den Weg zurück suchen zu müssen, statt ihn
+    // anzutippen. Genau dafür ist sie da.
     if (werkzeug || widget.initialPage != null) {
       NativeShell.setChromeVisible(false);
     }
@@ -711,7 +751,7 @@ class _MyAppState extends State<MyApp> {
       );
     }
 
-    if (werkzeug) {
+    if (werkzeug || plan) {
       return MaterialPageRoute(
         builder: (_) => _werkzeug(name),
         settings: settings,
@@ -745,11 +785,150 @@ class _MyAppState extends State<MyApp> {
         return const ConfigBackupSettings();
       case '/werkzeug/entwickleroptionen':
         return DeveloperOptions();
+
+      // Die beiden Werkzeuge, die hinter der **nativen** Plan-Übersicht liegen.
+      //
+      // Sie öffnen sich von dort aus, nicht aus dem Werkzeugkasten: Sie gehören
+      // zum Plan und nicht zu den Einstellungen. Ihre Liste baut in Flutter,
+      // weil sie aus dem VPlan kommt – siehe `PlanWerkzeugRoute` in Swift für
+      // die Begründung, warum nicht auch noch die Übersicht.
+      case '/werkzeug/klasse-hinzufuegen':
+        return const KlasseHinzufuegen();
+      case '/werkzeug/person-hinzufuegen':
+        return const PersonHinzufuegen();
+
+      // --------------------------------------------------------------
+      // Der Plan einer Klasse, geöffnet von der **nativen** Übersicht.
+      //
+      // Diese beiden Wege sind keine Werkzeuge: Sie stehen nicht in der Liste
+      // von [MoreScreen], und sie sind Reiter, keine Seiten darüber. Sie werden
+      // hier trotzdem aufgelöst, weil `Navigator` sonst keinen Generator für die
+      // Route fände und die App **beim Start** abstürzte – siehe
+      // [onGenerateRoute].
+      //
+      // Die Route sagt nur, ob der **Tag** oder die **Woche** gezeigt wird. Der
+      // Inhalt kommt aus [PlanTarget] – den liest [main] aus den
+      // Startargumenten, und zwar **vor** dem ersten Frame.
+      case '/plan/tag':
+        return _planAnsicht(woche: false);
+      case '/plan/woche':
+        return _planAnsicht(woche: true);
+
+      // --------------------------------------------------------------
+      // Die drei Bildschirme hinter „Sync & Teilen“.
+      //
+      // Sie öffnen sich **aus dem Reiter heraus**: Man tippt auf eine Zeile der
+      // nativen Liste, und der Bildschirm wandert in derselben Bildschirmreihe
+      // nach links. Die Tab-Leiste bleibt deshalb stehen – siehe [NativeScreens]
+      // und die Bemerkung bei `_routeFor`.
+      case '/sync/sync':
+        return const SyncSettings();
+      case '/sync/teilen':
+        return const ShareListPage();
+      case '/sync/angebote':
+        return const ShareBrowsePage();
+
       default:
         return const Scaffold(
           body: Center(child: Text('Diese Seite gibt es nicht.')),
         );
     }
+  }
+
+  /// Baut den Plan der in dieser Ansicht benannten Klasse oder Person.
+  ///
+  /// ## Warum hier ein eigener Bildschirm und kein `FutureBuilder`
+  ///
+  /// Weil das Nachschlagen **einmal** passiert und nicht bei jedem Aufbau. Ein
+  /// `FutureBuilder` im `build` würde die Suche bei jedem Drehen des Geräts und
+  /// bei jedem Wechsel der Helligkeit neu anstoßen – und die Liste der Personen
+  /// jedes Mal aus dem Speicher lesen.
+  ///
+  /// Stattdessen passiert sie in `initState`, und das Ergebnis wird **gehalten**.
+  /// Ein Plan, der sich seine Angaben nach dem ersten Aufbau nicht mehr merkt,
+  /// wäre einer, der beim Scrollen wieder verschwindet.
+  ///
+  /// ## Warum die Person **hier** gesucht wird und nicht mitgeschickt
+  ///
+  /// Die native Seite kennt nur die Kennung. Sie könnte den ganzen Datensatz
+  /// mitschicken – aber dann hätte sie eine **Kopie**, und die wäre veraltet,
+  /// sobald jemand in Flutter den Namen ändert. Hier wird er deshalb aus dem
+  /// Speicher geholt: Es gibt nur eine Quelle, und die ist die, die auch die
+  /// Übersicht liest.
+  ///
+  /// Findet sich die Kennung nicht mehr – sie wurde zwischen dem Antippen und
+  /// dem Öffnen gelöscht –, steht kein Plan da. Ein Plan ohne Angaben wäre eine
+  /// Seite, die so tut, als wäre nichts passiert.
+  Widget _planAnsicht({required bool woche}) {
+    return _PlanAnsicht(woche: woche);
+  }
+}
+
+/// Der Plan einer Klasse, den die native Übersicht geöffnet hat.
+///
+/// Siehe [_MyAppState._planAnsicht] – dort steht, warum das ein eigener
+/// Bildschirm ist und nicht ein `FutureBuilder`.
+class _PlanAnsicht extends StatefulWidget {
+  const _PlanAnsicht({required this.woche});
+
+  final bool woche;
+
+  @override
+  State<_PlanAnsicht> createState() => _PlanAnsichtState();
+}
+
+class _PlanAnsichtState extends State<_PlanAnsicht> {
+  /// Der fertige Bildschirm, sobald die Angaben da sind.
+  Widget? _plan;
+
+  @override
+  void initState() {
+    super.initState();
+    _laden();
+  }
+
+  Future<void> _laden() async {
+    final String classId = PlanTarget.classId;
+    final String? personId = PlanTarget.personId;
+    Widget Ergebnis = _gibtEsNicht();
+
+    if (classId.isNotEmpty) {
+      if (personId == null) {
+        Ergebnis = widget.woche
+            ? WeekPlan(classId: classId)
+            : Plan(classId: classId);
+      } else {
+        final List<Map<String, dynamic>> alle = await VPlanAPI().getPersons();
+        Map<String, dynamic>? person;
+        for (final Map<String, dynamic> eintrag in alle) {
+          if (eintrag['id'] == personId) {
+            person = eintrag;
+            break;
+          }
+        }
+        if (person != null) {
+          Ergebnis = widget.woche
+              ? WeekPlan(classId: classId, person: person)
+              : Plan(classId: classId, person: person);
+        }
+      }
+    }
+
+    if (!mounted) return;
+    setState(() => _plan = Ergebnis);
+  }
+
+  /// Was ohne Plan dasteht.
+  ///
+  /// Ein **Text** und keine leere Seite: Eine leere Seite sähe aus wie ein Plan,
+  /// in dem nichts steht – und man hätte kein Mittel, das zu unterscheiden.
+  static Widget _gibtEsNicht() => const Scaffold(
+        body: Center(child: Text('Diese Seite gibt es nicht.')),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return _plan ?? const SizedBox.shrink();
   }
 }
 
@@ -847,6 +1026,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     AppAppearance.aenderung.addListener(_appearanceListener);
     unawaited(_ladeEintrag());
 
+    // Die nativen Bildschirme brauchen ihre Werte, und zwar aus **dieser**
+    // Maschine – sie ist die, die den Speicher kennt und den VPlan fragen kann.
+    //
+    // Auf Android, im Web und in den Tests geschieht hier nichts: `publishPlan`
+    // gibt dann sofort zurück, weil es keine native Schale gibt. Die beiden
+    // Bildschirme dort sehen deshalb **genau** so aus wie vorher.
+    unawaited(PlanNativeBridge.publishPlan());
+
     // Fremde Daten können mitten in der Sitzung eintreffen. Wer sie nicht
     // bemerkt, glaubt, der Sync hätte nicht funktioniert – die Daten waren ja
     // da, nur nirgends sichtbar.
@@ -855,6 +1042,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       // ignore: avoid_print
       print('Sync hat ${outcome.merged} Änderungen gebracht');
       setState(() {});
+      // Ein Sync kann Klassen und Personen mitbringen. Unter der nativen Schale
+      // ist die Übersicht ein Bildschirm aus `UIKit`, und der weiss davon
+      // nichts, bis er es gesagt bekommt.
+      unawaited(PlanNativeBridge.publishPlan());
     });
   }
 
@@ -1052,6 +1243,32 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+
+    // Die Texte des Sync-Bildschirms nach oben schicken.
+    //
+    // Hier und nicht im Bildschirm selbst: Unter der nativen Schale steht der
+    // Sync als Bildschirm aus `UIKit`, und die Liste, die ihm die Texte
+    // liefert, würde gar nicht gebaut. Diese Stelle wird dagegen **immer**
+    // erreicht – sie hängt an der Sprache und an den Farben, und die ändern
+    // sich öfter als der Bildschirm.
+    //
+    // Deshalb wird hier auch nicht gefragt, ob gerade der Sync-Reiter offen ist:
+    // Es kostet drei Zeichen und spart das Nachfragen, wenn nicht.
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    PlanNativeBridge.publishSync(l10n);
+
+    // Und derselbe Weg noch einmal, nur als **Antwort** auf eine Frage: Wenn die
+    // native Seite ihren Bildschirm neu zeichnen will, fragt sie hier – und
+    // nicht über den allgemeinen Zuhörer, der weiß nicht, wie der Sync-Bildschirm
+    // zu versorgen ist.
+    //
+    // Das wird hier bei **jeder** Änderung von Sprache oder Farbe neu gesetzt.
+    // Das ist billig – es ist ein Verweis – und es hebt den Fehler auf, dass nach
+    // einem Sprachwechsel noch die alten Texte dastünden, weil niemand mehr
+    // wusste, wer sie schicken soll.
+    NativeScreens.onNeedsData(
+        NativeScreen.sync, () => PlanNativeBridge.publishSync(l10n));
+
     _loadVersion();
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(

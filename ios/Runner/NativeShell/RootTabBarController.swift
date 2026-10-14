@@ -109,11 +109,36 @@ final class RootTabBarController: UITabBarController {
         // gerade stehen darf. Das ist billig und kommt genau dann zum Tragen,
         // wenn sich etwas geändert haben könnte.
         NotificationCenter.default.addObserver(
-            self, selector: #selector(settingsDidChange),
+            self, selector: #selector(appDidBecomeActive),
             name: UIApplication.didBecomeActiveNotification, object: nil)
+
+        // Der Schulbereich ist der Fall, in dem die nativen Bildschirme ihre
+        // Werte **wirklich** neu brauchen: Klassen und Personen gehören danach
+        // einem anderen Bereich, und weiter anzuzeigen hieße, das Falsche zu
+        // zeigen – mit Daten, die existieren und deshalb nicht nach einem Fehler
+        // aussehen.
+        //
+        // Er kommt aus [SchoolsScreen], also von einer Stelle, die es vorher
+        // gar nicht gab: Solange die Übersicht in Flutter stand, hatte Flutter
+        // diesen Wechsel selbst mitbekommen.
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(schoolDidChange),
+            name: AppStore.activeSchoolDidChange, object: nil)
 
         bauen()
         farbenSetzen()
+
+        // Die Maschine, aus der die drei nativen Bildschirme ihre Werte holen.
+        //
+        // Sie wird **hier** gestartet und nicht von den Bildschirmen selbst,
+        // weil sie auch dann laufen muss, wenn gerade keiner von ihnen zu sehen
+        // ist: Der Plan lädt beim Start seine Pläne, und das geschieht auch dann,
+        // wenn man im Reiter „Suche" ist. Ein Start erst beim ersten Erscheinen
+        // hieße: kein Abruf, bis jemand zufällig den Plan öffnet.
+        //
+        // Siehe [NativeScreenEngine] – dort steht, warum ihr Bildschirm
+        // absichtlich nicht zu sehen ist.
+        _ = NativeScreenEngine.shared
     }
 
     deinit {
@@ -163,14 +188,26 @@ final class RootTabBarController: UITabBarController {
         for section in gewuenscht {
             let controller: UIViewController
             switch section {
-            case .plan, .search, .sync:
-                let flutterSection = PlanSectionController(engines: engines)
-                // Die Rolle **muss** hier gesetzt sein: Sie entscheidet, welcher
-                // Abschnitt in dieser Ansicht steht, und sie entscheidet es
-                // vor dem ersten Frame. Würde sie erst beim Aufbau gesetzt,
-                // stünde für einen Moment die falsche Seite.
-                flutterSection.einrichten(role: section.dartRole)
-                controller = flutterSection
+            case .plan, .sync:
+                // Beide sind **native** Reiter: eine Bildschirmreihe aus
+                // `UIKit`, deren Liste aus Dart-Werten gebaut wird. Siehe
+                // [PlanSectionHost] und [SyncSectionHost].
+                //
+                // Die Suche ist der einzige Reiter, der noch eine Flutter-Ansicht
+                // als Inhalt hat – dort entsteht das Ergebnis beim Tippen.
+                switch section {
+                case .plan: controller = PlanSectionHost()
+                case .sync: controller = SyncSectionHost()
+                case .search:
+                    let flutterSection = PlanSectionController(engines: engines)
+                    // Die Rolle **muss** hier gesetzt sein: Sie entscheidet,
+                    // welcher Abschnitt in dieser Ansicht steht, und sie
+                    // entscheidet es vor dem ersten Frame. Würde sie erst beim
+                    // Aufbau gesetzt, stünde für einen Moment die falsche Seite.
+                    flutterSection.einrichten(role: section.dartRole)
+                    controller = flutterSection
+                case .more: break
+                }
             case .more:
                 controller = MoreSectionController()
             }
@@ -381,12 +418,54 @@ final class RootTabBarController: UITabBarController {
         farbenSetzen()
     }
 
+    /// Beim Wiedererwachen: nur **fragen**, nicht vergessen.
+    ///
+    /// Der Unterschied zu [datenNeuLaden] ist wichtig: Hier wird nichts
+    /// verworfen, der Bildschirm behält seine Zeilen, und es kommen nur neue
+    /// dazu – oder dieselben noch einmal.
+    ///
+    /// Gerade das ist der Fall, der beim Zurückkommen aus der App auftreten
+    /// kann: Man hat den Plan einer Klasse geöffnet, dort etwas angelegt, und
+    /// kommt zurück. Ohne diese Frage stünde die Übersicht einen Durchgang zu
+    /// alt da – und niemand sähe einen Fehler, nur eine Liste, der eine Zeile
+    /// fehlt.
+    @objc private func appDidBecomeActive() {
+        bauen()
+        farbenSetzen()
+        NativeScreenEngine.shared.fordereDatenAn(screen: .plan)
+        NativeScreenEngine.shared.fordereDatenAn(screen: .sync)
+    }
+
+    /// Nach einem Wechsel des Schulbereichs: vergessen **und** fragen.
+    @objc private func schoolDidChange() {
+        datenNeuLaden()
+    }
+
     // ------------------------------------------------------------ von Flutter
 
     /// Wird von `NativeShellBridge` gerufen, wenn Flutter etwas geändert hat.
     func settingsGeaendertInFlutter() {
         bauen()
         farbenSetzen()
+    }
+
+    /// Lässt die nativen Bildschirme neu laden, wenn sich etwas geändert hat,
+    /// das **Dart** kennt.
+    ///
+    /// Der Schulbereich ist der wichtigste Fall: Nach dem Wechsel gehören die
+    /// Klassen und Personen auf dem Bildschirm dem **vorherigen** Bereich, und
+    /// sie weiter anzuzeigen hieße, das Falsche zu zeigen – mit Daten, die
+    /// durchaus existieren und deshalb nicht nach einem Fehler aussehen.
+    ///
+    /// Deshalb wird hier zuerst **vergessen** und dann gefragt. Das Fragen allein
+    /// genügt nicht: Dart würde zwar neue Werte schicken, aber zwischen dem
+    /// Wechsel und dem Eintreffen stünde der alte Bildschirm – und genau dieses
+    /// Fenster sieht man, wenn man schnell genug umschaltet.
+    func datenNeuLaden() {
+        ScreenBridge.vergiss(.plan)
+        ScreenBridge.vergiss(.sync)
+        NativeScreenEngine.shared.fordereDatenAn(screen: .plan)
+        NativeScreenEngine.shared.fordereDatenAn(screen: .sync)
     }
 
     /// Blendet die Leiste aus – für die Einführung und die Anmeldung.
