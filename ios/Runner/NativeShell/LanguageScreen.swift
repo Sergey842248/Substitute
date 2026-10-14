@@ -25,19 +25,19 @@ final class LanguageScreen: ListScreen {
                         subtitle: L.languageSystemSubtitle,
                         symbol: "globe",
                         accessory: gewaehlt == .system ? .checkmark : .none
-                    ) { self.wahl(.system) },
+                    ) { [weak self] in self?.wahl(.system) },
                     .choice(
                         title: "Deutsch",
                         subtitle: L.languageGermanSubtitle,
                         symbol: "textformat.abc",
                         accessory: gewaehlt == .deutsch ? .checkmark : .none
-                    ) { self.wahl(.deutsch) },
+                    ) { [weak self] in self?.wahl(.deutsch) },
                     .choice(
                         title: "English",
                         subtitle: L.languageEnglishSubtitle,
                         symbol: "textformat",
                         accessory: gewaehlt == .english ? .checkmark : .none
-                    ) { self.wahl(.english) },
+                    ) { [weak self] in self?.wahl(.english) },
                 ])
         ]
     }
@@ -50,10 +50,6 @@ final class LanguageScreen: ListScreen {
     private func wahl(_ choice: AppLanguageChoice) {
         AppStore.setLanguage(choice)
         neuLaden()
-        //// Siehe [AppStore.didWrite]didWrite] –– und aus demselben Grund wie in
-        // [AppearanceScreen.speichern].
-        AppStore.didWrite(und aus demselben Grund wie in
-        // [AppearanceScreen.speichern].
         AppStore.didWrite()
     }
 }

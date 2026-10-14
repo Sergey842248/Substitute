@@ -29,7 +29,7 @@ final class LessonsScreen: ListScreen {
         // Gelesen **vor** `super.init`, damit der erste Aufbau der Liste schon
         // die gespeicherten Zeilen zeigt. An einer späteren Stelle stünde die
         // Seite einen Frame lang leer – und leer bedeutet hier ausdrücklich
-        // „noch nichts angelegt“.
+        // „noch nichts angelegt".
         self.stunden = AppStore.lessons
         super.init(title: L.lessonTimes)
     }
@@ -43,7 +43,8 @@ final class LessonsScreen: ListScreen {
         // Bearbeiten.
         navigationItem.rightBarButtonItems = [
             UIBarButtonItem(
-                barButtonSystemItem: .add, target: self, action: #selector(hinzufuegen))
+                barButtonSystemItem: .add, target: self,
+                action: #selector(hinzufuegen))
         ]
         zeigeBearbeitungsknopf()
     }
@@ -57,25 +58,37 @@ final class LessonsScreen: ListScreen {
                 Section(
                     footer: L.lessonTimesSubtitle,
                     rows: [
-                        .text(title: L.noLessonTimes, symbol: "questionmark.circle")
+                        .text(
+                            title: L.noLessonTimes,
+                            symbol: "questionmark.circle")
                     ])
             ]
         }
 
         return [
-            Section(
-                footer: L.lessonTimesSubtitle,
-                rows: stunden.map {[weak self] stunde in
-                    .choice(
-                        title: "\(stunde.count). \(L.lessonCount)",
-                        subtitle: "\(stunde.start) – \(stunde.end)",
-                        symbol: "clock"
-                    ) { self?.zeitWaehlen(stunde.count - 1) }
-                }              })
+            Section(footer: L.lessonTimesSubtitle, rows: zeilen())
         ]
     }
 
-    // --------------------------------------------------------------- Lesen
+    /// Die Zeilen der Liste – eine je Stunde.
+    ///
+    /// Als eigene Methode und **nicht** als `map` über der Stunde: In der Zeile
+    /// selbst steht noch ein Verschluss, und verschachtelt man beides, muss der
+    /// Compiler raten, welcher der beiden der letzte ist.
+    private func zeilen() -> [Row] {
+        var zeilen: [Row] = []
+        for stunde in stunden {
+            zeilen.append(
+                .choice(
+                    title: "\(stunde.count). \(L.lessonCount)",
+                    subtitle: "\(stunde.start) – \(stunde.end)",
+                    symbol: "clock"
+                ) { [weak self] in
+                    self?.zeitWaehlen(stunde.count - 1)
+                })
+        }
+        return zeilen
+    }
 
     /// Schreibt die Liste und sagt beiden Seiten Bescheid.
     ///
@@ -86,7 +99,7 @@ final class LessonsScreen: ListScreen {
         AppStore.didWrite()
     }
 
-    // ------------------------------------------------------------ Verändern
+    // ------------------------------------------------------------- Verändern
 
     @objc private func hinzufuegen() {
         // Dieselbe Vorgabe wie in Dart: Die neue Stunde fängt **jetzt** an und
@@ -99,8 +112,10 @@ final class LessonsScreen: ListScreen {
         stunden.append(
             LessonTime(
                 count: stunden.count + 1,
-                start: LessonTime.zeit(kalender.dateComponents([.hour, .minute], from: jetzt)),
-                end: LessonTime.zeit(kalender.dateComponents([.hour, .minute], from: ende))
+                start: LessonTime.zeit(
+                    kalender.dateComponents([.hour, .minute], from: jetzt)),
+                end: LessonTime.zeit(
+                    kalender.dateComponents([.hour, .minute], from: ende))
             ))
         neuLaden()
         sichern()
@@ -119,22 +134,24 @@ final class LessonsScreen: ListScreen {
         let heute = kalender.startOfDay(for: Date())
 
         // Aus „08:15" einen **Zeitpunkt** machen. Dafür braucht man einen Tag:
-        // Eine Uhrzeit allein ist kein Datum, und `UIDatePicker` kann sich für
-        // `.time` nur merken, zu welcher Uhrzeit gerade gewählt steht.
-        // Deshalb wird der heutige Tag genommen – er wird ohnehin nicht angezeigt.
+        // Eine Uhrzeit allein ist kein Datum, und `UIDatePicker` merkt sich für
+        // `.time` nur, zu welcher Uhrzeit gerade gewählt steht. Deshalb wird der
+        // heutige Tag genommen – er wird ohnehin nicht angezeigt.
         var von = heute
         var bis = heute
         let startTeile = LessonTime.components(aus: stunde.start)
-        if let wert = kalender.date(bySettingHour: startTeile.hour ?? 0,
-                                    minute: startTeile.minute ?? 0,
-                                    second: 0, of: heute)
+        if let wert = kalender.date(
+            bySettingHour: startTeile.hour ?? 0,
+            minute: startTeile.minute ?? 0,
+            second: 0, of: heute)
         {
             von = wert
         }
         let endTeile = LessonTime.components(aus: stunde.end)
-        if let wert = kalender.date(bySettingHour: endTeile.hour ?? 0,
-                                    minute: endTeile.minute ?? 0,
-                                    second: 0, of: heute)
+        if let wert = kalender.date(
+            bySettingHour: endTeile.hour ?? 0,
+            minute: endTeile.minute ?? 0,
+            second: 0, of: heute)
         {
             bis = wert
         }
@@ -150,7 +167,8 @@ final class LessonsScreen: ListScreen {
             // Flutter-Seite ist, wo beide Zeiten nacheinander vom selben
             // Ausgangswert aus gewählt werden.
             let dauer = bis.timeIntervalSince(von)
-            let ende = beginn.addingTimeInterval(dauer.isFinite && dauer > 0 ? dauer : 2700)
+            let ende = beginn.addingTimeInterval(
+                dauer.isFinite && dauer > 0 ? dauer : 2700)
 
             self.stunden[index].start = LessonTime.zeit(
                 kalender.dateComponents([.hour, .minute], from: beginn))
@@ -162,7 +180,7 @@ final class LessonsScreen: ListScreen {
         present(UINavigationController(rootViewController: blatt), animated: true)
     }
 
-    // --------------------------------------------------------- Verschieben
+    // ---------------------------------------------------------- Verschieben
 
     override func zeileVerschoben(von quelle: IndexPath, nach ziel: IndexPath) {
         guard quelle.section == 0, ziel.section == 0 else { return }
@@ -188,7 +206,7 @@ final class LessonsScreen: ListScreen {
         }
     }
 
-    // -------------------------------------------------------------- Löschen
+    // --------------------------------------------------------------- Löschen
 
     override func swipeActions(at indexPath: IndexPath)
         -> UISwipeActionsConfiguration?
@@ -207,7 +225,8 @@ final class LessonsScreen: ListScreen {
     }
 
     /// Fragt vor dem Löschen nach – siehe [ListScreen.swipeActions(at:)].
-    private func frageObLoeschen(_ nummer: Int) {[weak self] let alarm = UIAlertController(
+    private func frageObLoeschen(_ nummer: Int) {
+        let alarm = UIAlertController(
             title: L.deleteLessonTitle,
             message: L.deleteLessonMessage(nummer),
             preferredStyle: .alert)
@@ -215,10 +234,10 @@ final class LessonsScreen: ListScreen {
         alarm.addAction(
             UIAlertAction(title: L.deleteAction, style: .destructive) { [weak self] _ in
                 guard let self else { return }
-                self?.stunden.removeAll { $0.count == nummer }
-                self?.neuLaden()
-                self?.sichern()
-                self?.melde(L.lessonDeleted(nummer))
+                self.stunden.removeAll { $0.count == nummer }
+                self.neuLaden()
+                self.sichern()
+                self.melde(L.lessonDeleted(nummer))
             })
         present(alarm, animated: true)
     }

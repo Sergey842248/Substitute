@@ -7,8 +7,8 @@ import UIKit
 ///
 /// Weil diese Seite in `UIKit` steht und gar nicht erst in Flutter läuft. Ein
 /// Blick in Flutter würde heißen, dass hier eine ganze Dart-Isolate für ein
-/// Bild entsteht, das die Kamera liefert – und die einzige Aufgabe dieses
-/// Bildes ist, einen Text zurückzugeben.
+/// Bild entsteht – und die einzige Aufgabe dieses Bildes ist, einen Text
+/// zurückzugeben.
 ///
 /// ## Der Rückweg ist derselbe wie beim Teilen
 ///
@@ -45,17 +45,11 @@ final class QRScannerController: UIViewController {
         navigationController?.navigationBar.tintColor = Appearance.accent
 
         // Ein Tippen irgendwo beendet den Scanner – das ist die Geste, die man
-        // erwartet, wenn einen etwas stört// Ein Tippen irgendwo beendet den Scanner – das ist die Geste, die man
         // erwartet, wenn einen etwas stört. `cancelsTouchesInView` bleibt aber
-        // `false`, sonst verschwände der Knopf „Einstellungen" unter dem Bild,
-        // das er gerade anbietet.
-        let tippen =  `cancelsTouchesInView` bleibt aber
         // `false`, sonst verschwände der Knopf „Einstellungen" unter dem Bild,
         // das er gerade anbietet.
         let tippen = UITapGestureRecognizer(
             target: self, action: #selector(abbruch))
-        tippen.cancelsTouchesInView = false
-        view.addGestureRecognizer(tippen)))
         tippen.cancelsTouchesInView = false
         view.addGestureRecognizer(tippen)
 
@@ -87,7 +81,7 @@ final class QRScannerController: UIViewController {
         session.stopRunning()
     }
 
-    // ------------------------------------------------------------- Ablauf
+    // ----------------------------------------------------------------- Ablauf
 
     /// Fragt nach der Erlaubnis – und startet erst danach.
     ///
@@ -105,8 +99,9 @@ final class QRScannerController: UIViewController {
         case .authorized:
             aufbauen()
         case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .video) { erlaubt in
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] erlaubt in
                 DispatchQueue.main.async {
+                    guard let self else { return }
                     if erlaubt {
                         self.aufbauen()
                     } else {
@@ -131,14 +126,14 @@ final class QRScannerController: UIViewController {
             let eingang = try? AVCaptureDeviceInput(device: geraet),
             session.canAddInput(eingang)
         else {
-            melde(L.cameraUnavailable)
+            abbrechenMitHinweis(L.cameraUnavailable)
             return
         }
         session.addInput(eingang)
 
         let ausgabe = AVCaptureMetadataOutput()
         guard session.canAddOutput(ausgabe) else {
-            melde(L.cameraUnavailable)
+            abbrechenMitHinweis(L.cameraUnavailable)
             return
         }
         session.addOutput(ausgabe)
@@ -170,18 +165,23 @@ final class QRScannerController: UIViewController {
         dismiss(animated: true)
     }
 
-    // --------------------------------------------------------- Die Meldungen
+    // ---------------------------------------------------------- Die Meldungen
 
-    private func melde(_ text: String) {
-        // Der Hinweis gehört **nicht** diesem Bildschirm: Er wird gleich
-        // verlassen. Gesucht wird deshalb zuerst die Ansicht, die danach zu sehen
-        // sein wird – vor dem Weggehen, weil sie sich während der Animation noch
-        // nicht geändert hat.
-        let eltern =
-            presentingViewController
-            ?? navigationController?.viewControllers.first
-        navigationController?.popViewController(animated: true)
-        guard let eltern else { return }
+    /// Bricht ab und sagt dem Bildschirm darunter, warum.
+    ///
+    /// ## Warum eigener Name und nicht [UIViewController.melde]
+    ///
+    /// Der Hinweis gehört **dem Bildschirm darunter**: Diesen wird man im
+    /// nächsten Augenblick nicht mehr sehen, und ein Hinweis, der an ihm hängt,
+    /// erreicht niemanden.
+    ///
+    /// Weggegangen wird mit `dismiss` und **nicht** mit `pop`: Der Scanner wird
+    /// von [CredentialsScreen] über der nativen Bildschirmreihe gezeigt, also als
+    /// eigener Bildschirm. Ein `pop` würde nur die Navigation leeren und eine leere
+    /// Seite stehen lassen – der Grund, warum man hergekommen ist, wäre dann weg.
+    private func abbrechenMitHinweis(_ text: String) {
+        guard let eltern = presentingViewController else { return }
+        dismiss(animated: true)
         Meldung.zeigen(text, in: eltern.view)
     }
 
@@ -218,8 +218,10 @@ final class QRScannerController: UIViewController {
         view.addSubview(stapel)
         NSLayoutConstraint.activate([
             stapel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            stapel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            stapel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
+            stapel.leadingAnchor.constraint(
+                equalTo: view.leadingAnchor, constant: 32),
+            stapel.trailingAnchor.constraint(
+                equalTo: view.trailingAnchor, constant: -32),
         ])
     }
 }
@@ -230,6 +232,7 @@ extension QRScannerController: AVCaptureMetadataOutputObjectsDelegate {
         didOutput metadataObjects: [AVMetadataObject],
         from connection: AVCaptureConnection
     ) {
+        // Die Bremse gegen mehrfaches Melden – siehe [onScan].
         guard !gemeldet else { return }
         guard
             let objekt = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
