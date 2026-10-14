@@ -556,15 +556,24 @@ class MoreSectionController: UIViewController {
 
         let liste = MoreScreen()
         navigation = UINavigationController(rootViewController: liste)
-        // Grosse Titel: Sie sind der Grund, warum die Leiste in iOS wie in iOS
-        // aussieht.
+        // ## Zuerst **ohne** grosse Titel
         //
-        // Der Startwert gilt nur für die Bildschirme, die einen wollen. Jeder
-        // Bildschirm stellt die Leiste beim Erscheinen selbst um – siehe
-        // [ListScreen.setzeGrosseTitel]. Der Werkzeugkasten selbst hat keinen
-        // Titel, und ohne diese Umstellung stünde unter der leeren Fläche genau
-        // der Platz, den sein Titel einmal eingenommen hat.
-        navigation.navigationBar.prefersLargeTitles = true
+        // Grosse Titel sind der Grund, warum die Leiste in iOS wie in iOS
+        // aussieht – aber sie sind eine Eigenschaft der **Leiste**, und die gilt
+        // für den ganzen Stapel, nicht für einen Bildschirm.
+        //
+        // `MoreScreen` hat gar keinen Titel (siehe dort). Der Platz für einen
+        // grossen Titel war deshalb nach dem Entfernen der Überschrift
+        // „Dashboard“ einfach geblieben – eine leere Fläche über der ersten
+        // Zeile. `largeTitleDisplayMode = .never` allein bringt sie **nicht**
+        // weg: Solange die Leiste grosse Titel führt, hält sie deren Höhe
+        // bereit, bis man scrollt.
+        //
+        // Deshalb steht hier `false`. Der Werkzeugkasten ist damit von der
+        // ersten Skizierung an flach, und jeder Bildschirm, der einen Titel
+        // zeigen will, schaltet die grossen Titel beim Erscheinen selbst ein –
+        // siehe [ListScreen.setzeGrosseTitel].
+        navigation.navigationBar.prefersLargeTitles = false
         navigation.navigationBar.tintColor = Appearance.accent
 
         addChild(navigation)

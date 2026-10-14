@@ -245,6 +245,11 @@ enum FlutterRoute {
             engine: engine, nibName: nil, bundle: nil)
         controller.title = route.title
 
+        // Grosse Titel wieder an: Der Werkzeugkasten hat keinen und hat sie
+        // deshalb abgestellt (siehe [MoreSectionController]), dieses Werkzeug
+        // schon – es ist ein Bildschirm wie jeder andere in der Reihe.
+        navigation?.navigationBar.prefersLargeTitles = true
+
         navigation?.pushViewController(controller, animated: true)
     }
 }

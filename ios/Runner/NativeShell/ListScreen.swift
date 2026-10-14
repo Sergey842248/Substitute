@@ -423,27 +423,38 @@ class ListScreen: UIViewController {
 
     /// Stellt die Leiste auf die Art von Titel ein, die dieser Bildschirm will.
     ///
-    /// ## Warum das hier und nicht nur im `init` steht
+    /// ## Was hier überhaupt eingestellt werden muss
     ///
-    /// `largeTitleDisplayMode = .never` lässt nur den **Text** verschwinden,
-    /// nicht den **Platz**. Solange `UINavigationBar.prefersLargeTitles` an
-    /// ist, hält die Leiste die volle Höhe eines grossen Titels bereit – man
-    /// sieht eine leere Fläche, und die erste Zeile rutscht darunter weg. Genau
-    /// das ist beim Werkzeugkasten passiert: Die Überschrift „Dashboard“ wurde
-    /// entfernt, und der leere Platz, den sie innehatte, blieb.
+    /// `largeTitleDisplayMode` allein genügt nicht. Das `.never` lässt nur den
+    /// **Text** verschwinden, nicht den **Platz**: Solange
+    /// `UINavigationBar.prefersLargeTitles` an ist, hält die Leiste die volle
+    /// Höhe eines grossen Titels bereit – man sieht eine leere Fläche, und die
+    /// erste Zeile rutscht darunter weg. Genau das ist beim Werkzeugkasten
+    /// passiert: Die Überschrift „Dashboard“ wurde entfernt, und der leere
+    /// Platz, den sie innehatte, blieb.
     ///
-    /// Der Platz hängt aber an der Leiste und nicht am Bildschirm, also muss
-    /// **die Leiste** umgestellt werden – und die ist an die ganze Bildschirmreihe
-    /// gegeben. Deshalb wird hier beides getan: Der Bildschirm sagt, was er
-    /// braucht, und die Bildschirmreihe folgt ihm.
+    /// Der Platz hängt an der **Leiste**, und die gehört der ganzen
+    /// Bildschirmreihe. Deshalb wird hier beides getan: Der Bildschirm sagt, was
+    /// er braucht (`grosseTitel`), und die Bildschirmreihe folgt ihm.
     ///
     /// ## Warum beim Erscheinen und nicht beim Aufbau
     ///
     /// Beim Aufbau existiert die Bildschirmreihe noch gar nicht sicher – und
-    /// beim Zurückkommen vom Bildschirm darunter wäre der Zustand vom Weggehen
+    /// beim Zurückkommen vom Bildschirm darüber wäre der Zustand vom Weggehen
     /// wieder da. `viewWillAppear` läuft in beiden Fällen.
+    ///
+    /// ## Warum der erzwungene Aufbau dahinter
+    ///
+    /// `prefersLargeTitles` ist eine Eigenschaft, an der UIKit die **Höhe** der
+    /// Leiste ausrichtet – und die wird nicht bei jedem Setzen neu gerechnet,
+    /// sondern beim nächsten Durchlauf der Ansichtshierarchie. Ohne den
+    /// erzwungenen Aufbau bleibt die flachere Leiste bis dahin auf ihrer
+    /// alten Höhe stehen: eingestellt ist die Einstellung, sichtbar ist sie noch
+    /// nicht.
     private func setzeGrosseTitel() {
         navigationController?.navigationBar.prefersLargeTitles = grosseTitel
+        navigationController?.view.setNeedsLayout()
+        navigationController?.view.layoutIfNeeded()
     }
 
     deinit {
