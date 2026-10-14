@@ -67,7 +67,7 @@ final class LessonInfoScreen: ListScreen {
     /// Flutter-Ansicht, die ihren Stand beim Bauen liest – und liest ihn nicht
     /// neu, nur weil sich irgendwo etwas geändert hat.
     private func speichern() {
-        neuLaden()
+        neuLaden(animiert: true)
         AppStore.didWrite()
     }
 }

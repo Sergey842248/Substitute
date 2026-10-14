@@ -55,7 +55,7 @@ final class PreviewScreen: ListScreen {
     /// Wert dort stehen, den man gerade eben umgestellt hat, ohne dass irgendwo
     /// ein Fehler erschiene.
     private func speichern() {
-        neuLaden()
+        neuLaden(animiert: true)
         AppStore.didWrite()
     }
 }

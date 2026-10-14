@@ -102,7 +102,7 @@ final class AppearanceScreen: ListScreen {
     /// Siehe [AppStore.didWrite]: Flutter liest aus einem Cache, und der kennt
     /// nur, was Dart selbst geschrieben hat.
     private func speichern() {
-        neuLaden()
+        neuLaden(animiert: true)
         AppStore.didWrite()
     }
 }

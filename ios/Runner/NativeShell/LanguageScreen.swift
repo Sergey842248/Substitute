@@ -49,7 +49,7 @@ final class LanguageScreen: ListScreen {
     /// geschrieben hat, und der Wert kam von der anderen Seite.
     private func wahl(_ choice: AppLanguageChoice) {
         AppStore.setLanguage(choice)
-        neuLaden()
+        neuLaden(animiert: true)
         AppStore.didWrite()
     }
 }

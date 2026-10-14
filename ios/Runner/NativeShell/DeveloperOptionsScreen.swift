@@ -85,7 +85,7 @@ final class DeveloperOptionsScreen: ListScreen {
             art: .datumUndUhrzeit)
         blatt.onSave = { [weak self] datum in
             AppStore.setOverriddenNow(datum)
-            self?.neuLaden()
+            self?.neuLaden(animiert: true)
             AppStore.didWrite()
         }
         present(UINavigationController(rootViewController: blatt), animated: true)
@@ -93,7 +93,7 @@ final class DeveloperOptionsScreen: ListScreen {
 
     private func ueberschreibungEntfernen() {
         AppStore.setOverriddenNow(nil)
-        neuLaden()
+        neuLaden(animiert: true)
         AppStore.didWrite()
     }
 
@@ -216,7 +216,7 @@ final class DeveloperOptionsScreen: ListScreen {
         alarm.addAction(
             UIAlertAction(title: L.clear, style: .destructive) { [weak self] _ in
                 AppStore.removeAll()
-                self?.neuLaden()
+                self?.neuLaden(animiert: true)
                 AppStore.didWrite()
                 // Auch der aktive Schulbereich ist dabei weggegangen. Die Leiste
                 // muss das erfahren, sonst zeigte sie weiter einen Bereich, für
@@ -230,7 +230,7 @@ final class DeveloperOptionsScreen: ListScreen {
 
     /// Nach jedem Schreiben: Liste neu aufbauen und beiden Seiten Bescheid sagen.
     private func speichern(_ hinweis: String) {
-        neuLaden()
+        neuLaden(animiert: true)
         AppStore.didWrite()
         melde(hinweis)
     }

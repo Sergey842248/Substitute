@@ -79,7 +79,7 @@ final class PlanModeScreen: ListScreen {
         // würde die Zeile jedes Mal hüpfen, obwohl sich nichts geändert hat.
         guard AppStore.planMode(key) != modus else { return }
         AppStore.setPlanMode(modus, for: key)
-        neuLaden()
+        neuLaden(animiert: true)
         AppStore.didWrite()
     }
 }

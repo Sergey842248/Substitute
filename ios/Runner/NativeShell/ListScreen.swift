@@ -289,10 +289,47 @@ class ListScreen: UIViewController {
     }
 
     /// Liest die Abschnitte neu und baut die Liste neu auf.
-    func neuLaden() {
+    ///
+    /// Einstellungen, die aus einer Auswahl oder einem Schalter folgen,
+    /// können den neuen Zustand überblenden. So bleibt die direkte iOS-
+    /// Rückmeldung des Bedienelements sichtbar, bevor sich Haken, Texte oder
+    /// ganze Abschnitte ändern.
+    func neuLaden(animiert: Bool = false) {
         sections = makeSections()
         guard isViewLoaded else { return }
-        tableView.reloadData()
+        guard animiert, !UIAccessibility.isReduceMotionEnabled else {
+            tableView.reloadData()
+            return
+        }
+
+        UIView.transition(
+            with: tableView,
+            duration: 0.22,
+            options: [.transitionCrossDissolve, .allowAnimatedContent]
+        ) {
+            self.tableView.reloadData()
+        }
+    }
+
+    /// Wartet die kurze, von UIKit gezeichnete Bewegung des Schalters ab,
+    /// bevor ein Einstellungsbildschirm seine Liste neu baut. Ohne die Pause
+    /// ersetzt `reloadData()` den Schalter, bevor sein Knopf zum neuen Wert
+    /// gleiten konnte.
+    private func nachSchalterAnimation(
+        _ schalter: UISwitch,
+        aktion: @escaping (Bool) -> Void
+    ) {
+        let neuerWert = schalter.isOn
+        guard !UIAccessibility.isReduceMotionEnabled else {
+            aktion(neuerWert)
+            return
+        }
+
+        schalter.isUserInteractionEnabled = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { [weak schalter] in
+            schalter?.isUserInteractionEnabled = true
+            aktion(neuerWert)
+        }
     }
 
     /// Dürfen die Zeilen dieser Liste verschoben werden?
@@ -906,9 +943,9 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
             // Aktion, die Aktion würde den Schalter halten – ein Kreis, der die
             // Zelle am Leben hält, obwohl sie längst aus der Liste ist.
             schalter.addAction(
-                UIAction { [weak schalter] _ in
-                    guard let schalter else { return }
-                    aktion(schalter.isOn)
+                UIAction { [weak self, weak schalter] _ in
+                    guard let self, let schalter else { return }
+                    self.nachSchalterAnimation(schalter, aktion: aktion)
                 },
                 for: .valueChanged)
             cell.setzeZubehoer(schalter)
