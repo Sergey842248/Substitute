@@ -630,15 +630,18 @@ final class SubtitleCell: UITableViewCell {
             // pro Zeile.
             //
             // Deshalb wird die Breite **zugesichert** und nicht nur gewünscht: Die
-            // Spalte bekommt mindestens 45 % der Zeile. Das reicht für mehrere
+            // Spalte bekommt mindestens 40 % der Zeile. Das reicht für mehrere
             // Worte nebeneinander und lässt dem Zubehör weiterhin seinen Platz.
             spalte.widthAnchor.constraint(
-                greaterThanOrEqualTo: zeile.widthAnchor, multiplier: 0.45),
+                greaterThanOrEqualTo: zeile.widthAnchor, multiplier: 0.4),
 
             // Dieselbe Grenze von der anderen Seite: Das Zubehör darf **nie** mehr
-            // als die Hälfte der Zeile beanspruchen – und wird dabei gekürzt.
+            // als 40 % der Zeile beanspruchen – und wird dabei gekürzt. Zusammen
+            // mit Symbol und Abständen bleiben die beiden Grenzen damit auch auf
+            // schmalen iPhones erfüllbar; die vorherigen 45 % + 50 % waren es
+            // nicht und führten zu zufällig gebrochenen Beschreibungen.
             zubehoerBehaelter.widthAnchor.constraint(
-                lessThanOrEqualTo: zeile.widthAnchor, multiplier: 0.5),
+                lessThanOrEqualTo: zeile.widthAnchor, multiplier: 0.4),
 
             zeile.topAnchor.constraint(
                 equalTo: contentView.topAnchor, constant: 11),
@@ -708,6 +711,13 @@ final class SubtitleCell: UITableViewCell {
         withHorizontalFittingPriority horizontalFittingPriority: UILayoutPriority,
         verticalFittingPriority: UILayoutPriority
     ) -> CGSize {
+        // Beim ersten Messen kennt der Stapel seine Breite sonst noch nicht.
+        // Das passiert besonders nach `reloadData()`, wenn ein Schalter oder
+        // Haken gerade ersetzt wurde. Erst den Ziel-Layoutdurchgang ausführen,
+        // dann die Umbruchbreite an die Labels geben.
+        contentView.setNeedsLayout()
+        contentView.layoutIfNeeded()
+        _ = breitenMelden()
         let hoehe = super.systemLayoutSizeFitting(
             targetSize,
             withHorizontalFittingPriority: horizontalFittingPriority,

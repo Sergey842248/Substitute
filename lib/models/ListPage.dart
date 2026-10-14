@@ -231,6 +231,41 @@ class _ListPageState extends State<ListPage> {
       backIcon = Icons.clear_rounded;
     }
 
+    // Ohne Kopfzeile: **kein Stapel**, sondern nur der Inhalt.
+    //
+    // Zwei Gründe, und beide sind Fehler, die man sonst nicht sieht:
+    //
+    // * **Die Größe.** Der Stapel unten braucht die Kopfzeile, um eine Größe zu
+    //   haben: In einem Stapel, dessen Kinder alle `Positioned` sind, wächst er
+    //   auf 0 und schneidet seinen Inhalt weg. Ohne Kopfzeile wäre die Seite
+    //   also leer gewesen – nicht hübsch, sondern leer.
+    // * **Die Fläche.** Der Rahmen, in dem die Seite liegt – auf Android und im
+    //   Web der Tab-Rahmal in `main.dart` – malt seinen Grund und seine runden
+    //   oberen Ecken selbst. Diese Ecken sind der Übergang von der Kopfzeile der
+    //   App in den Inhalt, und sie sind abgerundet, weil dort die Kopfzeile
+    //   durchscheinen soll. Malt die Seite zusätzlich eine eigene Fläche
+    //   darüber, ist genau das weg: An der Grenze zwischen Kopfzeile und Inhalt
+    //   steht dann ein Rechteck statt der Rundung. Das ist der gemeldete Fehler,
+    //   und die Tabs, die ihn nicht zeigen (Suche, Sync/Share, Pläne), malen
+    //   schlicht nichts.
+    //
+    // Was bleibt, ist der Inhalt und der Abstand zum unteren Rand – mehr
+    // braucht eine Tab-Seite nicht.
+    if (!widget.showHeader) {
+      return SafeArea(
+        // Tab-Inhalt liegt bereits unter der Appbar aus `main.dart`. Ein
+        // weiterer oberer Safe-Area-Inset reserviert dort nochmals die
+        // Statusleistenhöhe und erzeugt einen leeren Streifen über den ersten
+        // Einstellungen.
+        top: false,
+        bottom: !NativeShell.extendsToNativeBottom,
+        child: Padding(
+          padding: _innenabstand,
+          child: _buildContent(),
+        ),
+      );
+    }
+
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
       // In einem nativen iOS-Abschnitt darf der Inhalt bis unter die
@@ -492,33 +527,19 @@ class _ListPageState extends State<ListPage> {
               // Scrollbereich kurzzeitig unter dem Offset, woraufhin Flutter
               // diesen zurückklemmte und die Liste wieder nach oben sprang.
               Positioned(
-                // Ohne Kopfzeile steht der Inhalt oben: Die konkaven Ecken
-                // gehören zum Übergang von der Kopfzeile in den Inhalt – gibt es
-                // keine Kopfzeile, gibt es nichts, wofür man sie abrunden könnte.
-                top: widget.showHeader ? topHeight + cornerRadius : 0,
+                top: topHeight + cornerRadius,
                 left: 0,
                 right: 0,
                 bottom: 0,
                 child: Container(
                   decoration: BoxDecoration(
                     color: Theme.of(context).scaffoldBackgroundColor,
-                    borderRadius: widget.showHeader
-                        ? BorderRadius.vertical(
-                            top: Radius.circular(cornerRadius),
-                          )
-                        : null,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(cornerRadius),
+                    ),
                   ),
                   child: Padding(
-                    padding: widget.contentPadding ??
-                        const EdgeInsets.only(
-                          // Konstant, damit die Höhe des Inhalts nicht vom
-                          // Scroll-Zustand abhängt - davon hängt ab, wie weit die
-                          // Liste scrollbar bleibt.
-                          top: 15,
-                          left: 20,
-                          right: 20,
-                          bottom: 10,
-                        ),
+                    padding: _innenabstand,
                     child: _buildContent(),
                   ),
                 ),
@@ -529,6 +550,19 @@ class _ListPageState extends State<ListPage> {
       ),
     );
   }
+
+  /// Der Innenabstand des Inhaltsbereichs – für **beide** Wege derselbe.
+  ///
+  /// Konstant, damit die Höhe des Inhalts nicht vom Scroll-Zustand abhängt –
+  /// davon hängt ab, wie weit die Liste scrollbar bleibt.
+  EdgeInsets get _innenabstand =>
+      widget.contentPadding ??
+      const EdgeInsets.only(
+        top: 15,
+        left: 20,
+        right: 20,
+        bottom: 10,
+      );
 
   Widget _buildContent() {
     if (widget.fillHeight) return _buildFillingContent();

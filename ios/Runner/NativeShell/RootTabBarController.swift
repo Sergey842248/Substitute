@@ -56,7 +56,7 @@ final class RootTabBarController: UITabBarController {
     /// `Equatable` braucht es, weil [bauen] die alte Liste mit der gewünschten
     /// vergleicht, um zu erfahren, ob sich überhaupt etwas geändert hat – und
     /// einen **Schlüssel**, um den zuletzt gesehen Abschnitt wiederzufinden.
-    private enum Tab: Equatable {
+    private enum Tab: Hashable {
         case plan
         case search
         case sync
@@ -157,24 +157,17 @@ final class RootTabBarController: UITabBarController {
             aktuelleAuswahl >= 0 && aktuelleAuswahl < controllers.count
             ? controllers[aktuelleAuswahl] : nil
 
+        // Die Controller der weiterhin sichtbaren Tabs bleiben erhalten. Das
+        // ist nicht nur schneller: Der Einstellungen-Stack im „Mehr"-Tab darf
+        // nicht verschwinden, nur weil der Sync-Tab hinzugefügt oder entfernt
+        // wird.
+        let vorhandeneController = Dictionary(
+            uniqueKeysWithValues: zip(controllers, viewControllers ?? []))
         var neuer: [UIViewController] = []
         var neuListe: [Tab] = []
 
         for section in gewuenscht {
-            let controller: UIViewController
-            switch section {
-            case .plan, .search, .sync:
-                let flutterSection = PlanSectionController(engines: engines)
-                // Die Rolle **muss** hier gesetzt sein: Sie entscheidet, welcher
-                // Abschnitt in dieser Ansicht steht, und sie entscheidet es
-                // vor dem ersten Frame. Würde sie erst beim Aufbau gesetzt,
-                // stünde für einen Moment die falsche Seite.
-                flutterSection.einrichten(role: section.dartRole)
-                controller = flutterSection
-            case .more:
-                controller = MoreSectionController()
-            }
-            controller.tabBarItem = tabBarItem(for: section)
+            let controller = vorhandeneController[section] ?? neuerController(for: section)
             neuer.append(controller)
             neuListe.append(section)
         }
@@ -191,6 +184,22 @@ final class RootTabBarController: UITabBarController {
         } else {
             selectedIndex = 0
         }
+    }
+
+    /// Erzeugt nur Tabs, die vorher noch nicht Teil der Leiste waren.
+    private func neuerController(for section: Tab) -> UIViewController {
+        let controller: UIViewController
+        switch section {
+        case .plan, .search, .sync:
+            let flutterSection = PlanSectionController(engines: engines)
+            // Die Rolle muss vor dem ersten Flutter-Frame feststehen.
+            flutterSection.einrichten(role: section.dartRole)
+            controller = flutterSection
+        case .more:
+            controller = MoreSectionController()
+        }
+        controller.tabBarItem = tabBarItem(for: section)
+        return controller
     }
 
     /// Welche Abschnitte gerade stehen.

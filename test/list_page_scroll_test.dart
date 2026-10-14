@@ -204,6 +204,55 @@ void main() {
       expect(tester.getTopLeft(find.text('INHALT')).dy, lessThan(100));
     });
 
+    testWidgets('malt keine eigene Fläche über die runden Ecken',
+        (WidgetTester tester) async {
+      setUpView(tester);
+      await tester.pumpWidget(buildTabPage(400));
+      await tester.pumpAndSettle();
+
+      // Die Seite malt **nichts** auf sich selbst: weder eine Fläche noch eine
+      // Abrundung. Der Rahmen um sie malt seinen Grund und seine runden oberen
+      // Ecken selbst, und jede eigene Fläche – rechteckig oder abgerundet –
+      // schnappt genau diese Rundung zu. Das war der gemeldete Fehler im
+      // Einstellungs-Tab, den die anderen Tabs nicht hatten.
+      final Iterable<BoxDecoration> eigeneFlaechen = tester
+          .widgetList<Container>(
+            find.descendant(
+              of: find.byType(ListPage),
+              matching: find.byType(Container),
+            ),
+          )
+          .map((Container c) => c.decoration)
+          .whereType<BoxDecoration>()
+          .where((BoxDecoration d) =>
+              d.color != null || d.borderRadius != null || d.image != null);
+      expect(eigeneFlaechen, isEmpty,
+          reason: 'ohne Kopfzeile malt die Seite keine eigene Fläche');
+    });
+
+    testWidgets('füllt die Seite trotzdem – sie ist nicht auf 0 zerfallen',
+        (WidgetTester tester) async {
+      setUpView(tester);
+      await tester.pumpWidget(buildTabPage(400));
+      await tester.pumpAndSettle();
+
+      // Ohne Kopfzeile gibt es keinen Stapel mehr, in dem die Kopfzeile die
+      // Größe bestimmt hätte. Ein Stapel, dessen Kinder alle `Positioned` sind,
+      // wächst auf 0 und schneidet seinen Inhalt weg – die Seite wäre dann
+      // leer. Der Inhalt muss also die volle Höhe bekommen: 844 minus der
+      // SafeArea oben und unten (47 + 34) und dem Innenabstand (15 + 10).
+      final double hoehe = tester
+          .getSize(
+            find.descendant(
+              of: find.byType(ListPage),
+              matching: find.byType(ListView),
+            ),
+          )
+          .height;
+      expect(hoehe, greaterThan(700),
+          reason: 'der Inhalt ist zusammengefallen');
+    });
+
     testWidgets('scrollt ganz normal, ohne die Kopfzeile',
         (WidgetTester tester) async {
       setUpView(tester);
