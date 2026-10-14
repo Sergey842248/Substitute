@@ -22,7 +22,7 @@
   "appearanceNavBarSubtitle": "Welche Einträge unten stehen",
   "language": "Sprache",
   "languageSystem": "Systemsprache",
-  "languageSystemSubtitle": "Die Sprache deines Handys verwenden. Ist sie nicht Deutsch oder Englisch, wird Deutsch verwendet.",
+  "languageSystemSubtitle": "Die Sprache deines Handys verwenden. Ist sie eine andere, gilt Deutsch.",
   "languageGermanSubtitle": "Immer Deutsch, unabhängig vom Handy.",
   "languageEnglishSubtitle": "Immer Englisch, unabhängig vom Handy.",
   "languageSubtitle": "Sprache der App ändern",

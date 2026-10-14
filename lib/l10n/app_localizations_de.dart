@@ -83,7 +83,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get languageSystemSubtitle =>
-      'Die Sprache deines Handys verwenden. Ist sie nicht Deutsch oder Englisch, wird Deutsch verwendet.';
+      'Die Sprache deines Handys verwenden. Ist sie eine andere, gilt Deutsch.';
 
   @override
   String get languageGermanSubtitle => 'Immer Deutsch, unabhängig vom Handy.';

@@ -89,20 +89,20 @@ enum L {
 
     static var languageSystemSubtitle: String {
         pick(
-            "Die Sprache deines Handys verwenden. Ist sie nicht Deutsch oder Englisch, wird Deutsch verwendet.",
-            "Use your phone's language. If it is neither German nor English, German is used.")
+            "Die Sprache deines Handys verwenden. Ist sie eine andere, gilt Deutsch.",
+            "Use your phone's language. German is used for any other language.")
     }
 
     static var languageGermanSubtitle: String {
         pick(
             "Immer Deutsch, unabhängig vom Handy.",
-            "Always German, regardless of your phone.")
+            "Always German, whatever the phone says.")
     }
 
     static var languageEnglishSubtitle: String {
         pick(
             "Immer Englisch, unabhängig vom Handy.",
-            "Always English, regardless of your phone.")
+            "Always English, whatever the phone says.")
     }
 
     static var schools: String { pick("Schulen", "Schools") }
