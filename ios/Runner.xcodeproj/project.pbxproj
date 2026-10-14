@@ -20,6 +20,19 @@
 		AB01000000000000000000C8 /* NativeShellBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000B8 /* NativeShellBridge.swift */; };
 		AB01000000000000000000C9 /* RootTabBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000B9 /* RootTabBarController.swift */; };
 		AB01000000000000000000CA /* L.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01000000000000000000BA /* L.swift */; };
+		AB010000000000000000CB /* FormScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000BB /* FormScreen.swift */; };
+		AB010000000000000000CC /* PlanSettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000BC /* PlanSettingsScreen.swift */; };
+		AB010000000000000000CD /* LessonInfoScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000BD /* LessonInfoScreen.swift */; };
+		AB010000000000000000CE /* PreviewScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000BE /* PreviewScreen.swift */; };
+		AB010000000000000000CF /* PlanModeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000BF /* PlanModeScreen.swift */; };
+		AB010000000000000000D0 /* LessonsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000C0 /* LessonsScreen.swift */; };
+		AB010000000000000000D1 /* DeveloperOptionsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000C1 /* DeveloperOptionsScreen.swift */; };
+		AB010000000000000000D2 /* CredentialsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000C2 /* CredentialsScreen.swift */; };
+		AB010000000000000000D3 /* QRCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000C3 /* QRCode.swift */; };
+		AB010000000000000000D4 /* QRCodeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000C4 /* QRCodeScreen.swift */; };
+		AB010000000000000000D5 /* QRScannerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000C5 /* QRScannerController.swift */; };
+		AB010000000000000000D6 /* DateTimePickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000C6 /* DateTimePickerSheet.swift */; };
+		AB010000000000000000D7 /* Meldung.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000C7 /* Meldung.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
@@ -54,6 +67,19 @@
 		AB01000000000000000000B8 /* NativeShellBridge.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NativeShellBridge.swift; sourceTree = "<group>"; };
 		AB01000000000000000000B9 /* RootTabBarController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RootTabBarController.swift; sourceTree = "<group>"; };
 		AB01000000000000000000BA /* L.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = L.swift; sourceTree = "<group>"; };
+		AB010000000000000000BB /* FormScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FormScreen.swift; sourceTree = "<group>"; };
+		AB010000000000000000BC /* PlanSettingsScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PlanSettingsScreen.swift; sourceTree = "<group>"; };
+		AB010000000000000000BD /* LessonInfoScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LessonInfoScreen.swift; sourceTree = "<group>"; };
+		AB010000000000000000BE /* PreviewScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PreviewScreen.swift; sourceTree = "<group>"; };
+		AB010000000000000000BF /* PlanModeScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PlanModeScreen.swift; sourceTree = "<group>"; };
+		AB010000000000000000C0 /* LessonsScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LessonsScreen.swift; sourceTree = "<group>"; };
+		AB010000000000000000C1 /* DeveloperOptionsScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeveloperOptionsScreen.swift; sourceTree = "<group>"; };
+		AB010000000000000000C2 /* CredentialsScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CredentialsScreen.swift; sourceTree = "<group>"; };
+		AB010000000000000000C3 /* QRCode.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = QRCode.swift; sourceTree = "<group>"; };
+		AB010000000000000000C4 /* QRCodeScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = QRCodeScreen.swift; sourceTree = "<group>"; };
+		AB010000000000000000C5 /* QRScannerController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = QRScannerController.swift; sourceTree = "<group>"; };
+		AB010000000000000000C6 /* DateTimePickerSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DateTimePickerSheet.swift; sourceTree = "<group>"; };
+		AB010000000000000000C7 /* Meldung.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Meldung.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
@@ -132,6 +158,19 @@
 				AB01000000000000000000B8 /* NativeShellBridge.swift */,
 				AB01000000000000000000B9 /* RootTabBarController.swift */,
 				AB01000000000000000000BA /* L.swift */,
+				AB010000000000000000BB /* FormScreen.swift */,
+				AB010000000000000000BC /* PlanSettingsScreen.swift */,
+				AB010000000000000000BD /* LessonInfoScreen.swift */,
+				AB010000000000000000BE /* PreviewScreen.swift */,
+				AB010000000000000000BF /* PlanModeScreen.swift */,
+				AB010000000000000000C0 /* LessonsScreen.swift */,
+				AB010000000000000000C1 /* DeveloperOptionsScreen.swift */,
+				AB010000000000000000C2 /* CredentialsScreen.swift */,
+				AB010000000000000000C3 /* QRCode.swift */,
+				AB010000000000000000C4 /* QRCodeScreen.swift */,
+				AB010000000000000000C5 /* QRScannerController.swift */,
+				AB010000000000000000C6 /* DateTimePickerSheet.swift */,
+				AB010000000000000000C7 /* Meldung.swift */,
 			);
 			path = NativeShell;
 			sourceTree = "<group>";
@@ -254,6 +293,19 @@
 				AB01000000000000000000C8 /* NativeShellBridge.swift in Sources */,
 				AB01000000000000000000C9 /* RootTabBarController.swift in Sources */,
 				AB01000000000000000000CA /* L.swift in Sources */,
+				AB010000000000000000CB /* FormScreen.swift in Sources */,
+				AB010000000000000000CC /* PlanSettingsScreen.swift in Sources */,
+				AB010000000000000000CD /* LessonInfoScreen.swift in Sources */,
+				AB010000000000000000CE /* PreviewScreen.swift in Sources */,
+				AB010000000000000000CF /* PlanModeScreen.swift in Sources */,
+				AB010000000000000000D0 /* LessonsScreen.swift in Sources */,
+				AB010000000000000000D1 /* DeveloperOptionsScreen.swift in Sources */,
+				AB010000000000000000D2 /* CredentialsScreen.swift in Sources */,
+				AB010000000000000000D3 /* QRCode.swift in Sources */,
+				AB010000000000000000D4 /* QRCodeScreen.swift in Sources */,
+				AB010000000000000000D5 /* QRScannerController.swift in Sources */,
+				AB010000000000000000D6 /* DateTimePickerSheet.swift in Sources */,
+				AB010000000000000000D7 /* Meldung.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

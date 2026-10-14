@@ -122,6 +122,78 @@ enum AppStore {
         defaults.set(schoolId, forKey: prefix + activeSchoolKey)
     }
 
+    /// Entfernt einen Wert ganz – statt ihn auf einen Leerwert zu setzen.
+    ///
+    /// Nötig, weil „nicht gesetzt" und „leer" für `shared_preferences` zwei
+    /// verschiedene Dinge sind: `getBool` gibt bei einem gespeicherten `false`
+    /// `false` zurück, bei einem **fehlenden** Schlüssel `null`. Wer statt des
+    /// Entfernens `false` schriebe, könnte den Unterschied zwischen „nie
+    /// eingestellt" und „eingestellt und aus" nicht mehr unterscheiden – und
+    /// genau den unterscheidet die Dart-Seite bei mehreren Werten.
+    static func remove(_ name: String) {
+        defaults.removeObject(forKey: key(name))
+    }
+
+    // -------------------------------------------- Schlüssel **ohne** Bereich
+
+    /// Der Schlüssel eines Wertes, der **keinem** Schulbereich gehört.
+    ///
+    /// ## Warum es das überhaupt gibt
+    ///
+    /// Der weitaus größte Teil der Einstellungen gehört zur aktiven Schule –
+    /// zwei Schulen auf demselben Gerät haben verschiedene Stundenzeiten.
+    /// Einige Werte sind aber **gerätelokal** und für alle Bereiche gleich:
+    /// etwa „zusätzliche Sync-Anzeigen", das eine Frage dieser Bildschirme ist
+    /// und keine Eigenschaft der Kette.
+    ///
+    /// Diese Werte stehen in Dart **ohne** `scopedKey` – siehe
+    /// `SyncEngine.showDetailsStorageKey` und `DeveloperOptions.dart`. Würde man
+    /// sie hier über [key] schreiben, bekämen sie einen `schools.`-Vorspann,
+    /// den Dart nicht erwartet: Die native Seite zeigte den Wert, die
+    /// Flutter-Seite nicht, und beide hätten für sich recht.
+    ///
+    /// Sie stehen deshalb bewusst **getrennt** von [key] – damit man beim
+    /// Lesen sofort sieht, womit man es zu tun hat.
+    static func plainKey(_ name: String) -> String { prefix + name }
+
+    static func plainString(_ name: String) -> String? {
+        defaults.string(forKey: plainKey(name))
+    }
+
+    static func setPlainString(_ value: String, for name: String) {
+        defaults.set(value, forKey: plainKey(name))
+    }
+
+    static func plainBool(_ name: String) -> Bool? {
+        guard let value = defaults.object(forKey: plainKey(name)) as? NSNumber
+        else { return nil }
+        return value.boolValue
+    }
+
+    static func setPlainBool(_ value: Bool, for name: String) {
+        defaults.set(value, forKey: plainKey(name))
+    }
+
+    /// Entfernt **alle** Werte der App – wie `SharedPreferences.clear()` in Dart.
+    ///
+    /// Es werden nur die Schlüssel mit dem `flutter.`-Vorsatz entfernt:
+    /// `UserDefaults.standard` gehört der App, aber nicht **für** die App.
+    /// Andere Rahmen – die Flutter-Maschine, Hilfswerkzeuge von iOS – legen
+    /// dort eigene Werte ab, und die zu löschen wäre ein Fehler, der nichts mit
+    /// „alle Einstellungen zurücksetzen" zu tun hat.
+    static func removeAll() {
+        // `dictionaryRepresentation()` liefert eine **Kopie**. Zu löschen, während
+        // man ihre Schlüssel durchläuft, wäre deshalb gefahrlos – aber die
+        // Schlüssel werden hier bewusst erst eingesammelt: Das bleibt auch dann
+        // richtig, wenn sich das Verhalten von `UserDefaults` ändert.
+        let zuEntfernen = defaults.dictionaryRepresentation().keys.filter {
+            $0.hasPrefix(prefix)
+        }
+        for name in zuEntfernen {
+            defaults.removeObject(forKey: name)
+        }
+    }
+
     // -------------------------------------------------------- Benachrichtigungen
 
     /// Es hat sich eine **Darstellungs**-einstellung geändert.
@@ -325,6 +397,357 @@ enum AppStore {
         return !username.trimmingCharacters(in: .whitespacesAndNewlines)
             .isEmpty
     }
+
+    /// Die vier Felder der Anmeldung, wie sie gespeichert sind.
+    ///
+    /// Als ein Bündel und nicht als vier einzelne Zugriffe, weil sie immer
+    /// gemeinsam gelesen und immer gemeinsam geschrieben werden: Es gibt keine
+    /// Lage, in der nur drei davon gültig wären.
+    struct Credentials {
+        var schoolNumber = ""
+        var username = ""
+        var password = ""
+        var customUrl = ""
+
+        static func lesen() -> Credentials {
+            Credentials(
+                schoolNumber: string("vplanSchoolnumber") ?? "",
+                username: string("vplanUsername") ?? "",
+                password: string("vplanPassword") ?? "",
+                customUrl: string("customUrl") ?? "")
+        }
+
+        /// Schreibt alle vier und sagt beiden Seiten Bescheid.
+        ///
+        /// Der Hinweis ist hier **nicht** optional: An dieser Stelle entscheidet
+        /// sich, ob die Leiste überhaupt steht – sie erscheint mit dem ersten
+        /// Benutzernamen, und ohne die Meldung bliebe sie bis zum nächsten Start
+        /// weg. Siehe [hasCredentials].
+        func schreiben() {
+            setString(schoolNumber, for: "vplanSchoolnumber")
+            setString(username, for: "vplanUsername")
+            setString(password, for: "vplanPassword")
+            setString(customUrl, for: "customUrl")
+            didWrite()
+        }
+    }
+
+    // ------------------------------------------- Angaben, die der Plan zeigt
+
+    /// Steht unter einer Stunde keine Uhrzeit?
+    ///
+    /// `true`, solange nichts eingestellt ist – so sah der Plan aus, bevor es
+    /// diese Einstellung gab. Wer sie zum ersten Mal öffnet, bekommt deshalb
+    /// das gewohnte Bild und nicht ein anderes.
+    static var hidesLessonTimes: Bool { bool("hideLessonTimes") ?? true }
+    static func setHidesLessonTimes(_ value: Bool) {
+        setBool(value, for: "hideLessonTimes")
+    }
+
+    /// Steht unter einer Stunde kein Lehrername?
+    static var hidesTeacher: Bool { bool("hideTeacher") ?? false }
+    static func setHidesTeacher(_ value: Bool) {
+        setBool(value, for: "hideTeacher")
+    }
+
+    /// Ist der Personenbereich ausgeblendet?
+    static var hidesPersons: Bool { bool("hidePersons") ?? false }
+    static func setHidesPersons(_ value: Bool) {
+        setBool(value, for: "hidePersons")
+    }
+
+    /// Die einmalige Umstellung von „Personen ausblenden".
+    ///
+    /// Ältere Versionen hatten dort **aus** als Vorgabe. Einmal wird der alte
+    /// Wert entfernt, damit die neue Vorgabe gilt – sonst hätte ein Gerät, das
+    /// nie etwas eingestellt hat, auf ewig den alten Stand.
+    ///
+    /// Wird beim **Öffnen** der Seite gemacht und nicht beim Start der App: Es
+    /// ist eine einmalige Sache, und sie gehört zu dem Bildschirm, der sie
+    /// auslöst – nicht in den Start, der sie bei jedem Aufruf prüfen müsste.
+    static func hidePersonsMigrationspruefung() {
+        guard bool("hidePersonsMigrated") != true else { return }
+        remove("hidePersons")
+        setBool(true, for: "hidePersonsMigrated")
+    }
+
+    // ---------------------------------------------------- Die „Nächste Stunde"
+
+    /// Steht die „Nächste Stunde"-Vorschau unter den Klassen?
+    ///
+    /// Bei Klassen standardmäßig **an**: Sie gehört dort zum Bild, das man
+    /// vom Plan erwartet.
+    static var hidesPreviewClasses: Bool { bool("hidePreviewClasses") ?? false }
+    static func setHidesPreviewClasses(_ value: Bool) {
+        setBool(value, for: "hidePreviewClasses")
+    }
+
+    /// Steht die Vorschau unter den Personen?
+    ///
+    /// Standardmäßig **aus**, und der Grund ist derselbe wie in Dart: Eine
+    /// Person zeigt sonst sehr schnell nur noch die nächste Stunde des einen
+    /// Kurses, den sie gerade ausgewählt hat – und die Liste der Personen
+    /// verliert ihren eigentlichen Zweck.
+    static var hidesPreviewPersons: Bool { bool("hidePreviewPersons") ?? true }
+    static func setHidesPreviewPersons(_ value: Bool) {
+        setBool(value, for: "hidePreviewPersons")
+    }
+
+    // ---------------------------------------------------------- Planmodi
+
+    /// Der Standard-Planmodus – für **eine** der vier Gruppen.
+    ///
+    /// Der Name des Schlüssels steht hier, statt ihn an vier Aufrufstellen zu
+    /// wiederholen: Es sind vier Zeilen, die sonst viermal dieselbe Frage
+    /// beantworten müssten – und viermal unterschiedlich ausfallen könnten.
+    enum PlanModeKey {
+        case person
+        case klasse
+        case vorschauKlasse
+        case vorschauPerson
+
+        var name: String {
+            switch self {
+            case .person: return "defaultPlanModePerson"
+            case .klasse: return "defaultPlanModeClass"
+            case .vorschauKlasse: return "defaultPlanModePreviewClass"
+            case .vorschauPerson: return "defaultPlanModePreviewPerson"
+            }
+        }
+
+        /// Gilt für die beiden Vorschauen der alte gemeinsame Schlüssel?
+        ///
+        /// Vorher gab es nur einen Wert für beide. Wer ihn gesetzt hat, hat ihn
+        /// auch heute noch – und soll ihn nicht verlieren, nur weil es inzwischen
+        /// zwei getrennte gibt. Siehe `PlanModePreferences.read`.
+        var nutztAltenWert: Bool {
+            self == .vorschauKlasse || self == .vorschauPerson
+        }
+    }
+
+    /// Der gespeicherte Standard-Planmodus einer Gruppe.
+    static func planMode(_ key: PlanModeKey) -> PlanMode {
+        if let raw = string(key.name), let modus = PlanMode(rawValue: raw) {
+            return modus
+        }
+        if key.nutztAltenWert,
+            let raw = string("defaultPlanModePreview"),
+            let modus = PlanMode(rawValue: raw)
+        {
+            return modus
+        }
+        return .automatisch
+    }
+
+    static func setPlanMode(_ modus: PlanMode, for key: PlanModeKey) {
+        setString(modus.rawValue, for: key.name)
+    }
+
+    // ------------------------------------------------------- Stundenzeiten
+
+    /// Die festen Zeiten der einzelnen Unterrichtsstunden.
+    ///
+    /// Gespeichert wird derselbe JSON-Text, den `Lessons.dart` schreibt – sonst
+    /// hätte man zwei Listen, und die des Geräts wäre nach einem Wechsel zur
+    /// anderen Seite leer.
+    static var lessons: [LessonTime] {
+        guard let raw = string("lessontimes"),
+            let daten = raw.data(using: .utf8),
+            let eingelesen = try? JSONSerialization.jsonObject(
+                with: daten) as? [[String: Any]]
+        else { return [] }
+
+        // Die Nummern werden beim Lesen **neu vergeben** und nicht gelesen:
+        // Gespeichert ist zwar auch `count`, aber es ist eine Ableitung – sie
+        // ergibt sich aus der Position. Ein Gerät, auf dem eine Lücke entstanden
+        // ist (eine Stunde gelöscht), zeigte sonst zwei gleich nummerierte
+        // Zeilen, und der Plan käme durcheinander.
+        return eingelesen.enumerated().map { position, eintrag in
+            LessonTime(
+                count: position + 1,
+                start: (eintrag["start"] as? String) ?? "",
+                end: (eintrag["end"] as? String) ?? "")
+        }
+    }
+
+    static func setLessons(_ liste: [LessonTime]) {
+        let eingelesen = liste.enumerated().map { position, stunde in
+            [
+                "count": position + 1,
+                "start": stunde.start,
+                "end": stunde.end,
+            ] as [String: Any]
+        }
+        // `[]` statt des Weglassens: So steht im Speicher ausdrücklich „keine
+        // Zeiten" und nicht „noch nie eingestellt". Die Dart-Seite liest beides
+        // gleich, aber der Unterschied taucht beim Export wieder auf.
+        let text =
+            (try? String(
+                data: JSONSerialization.data(withJSONObject: eingelesen),
+                encoding: .utf8)) ?? "[]"
+        setString(text, for: "lessontimes")
+    }
+
+    // -------------------------------------------------------- Entwickler
+
+    /// Zeigt die Sync-Seite ihre zusätzlichen Angaben?
+    ///
+    /// **Gerätelokal** und nicht vom Schulbereich abhängig – es ist eine Frage
+    /// des Bildschirms auf **diesem** Gerät. Siehe [plainKey].
+    static var showsSyncDetails: Bool {
+        plainBool(AppDeviceKeys.showSyncDetails) ?? false
+    }
+
+    static func setShowsSyncDetails(_ value: Bool) {
+        setPlainBool(value, for: AppDeviceKeys.showSyncDetails)
+    }
+
+    /// Die leere Liste der offline gespeicherten Pläne.
+    static func removeOfflinePlans() {
+        defaults.set([String](), forKey: key("offlineVPData"))
+    }
+
+    static func removeTeacherShorts() {
+        setString("", for: "teacherShorts")
+    }
+
+    static func clearNewsFeeds() {
+        setPlainString("[]", for: AppDeviceKeys.newsFeeds)
+    }
+
+    static func markFirstTimeSeen() {
+        setPlainBool(true, for: AppDeviceKeys.firstTime)
+    }
+
+    static var materialYouEnabled: Bool {
+        plainBool(AppDeviceKeys.materialYou) ?? false
+    }
+
+    static func setMaterialYouEnabled(_ value: Bool) {
+        setPlainBool(value, for: AppDeviceKeys.materialYou)
+    }
+
+    /// Die überschriebene Uhrzeit – oder `nil`, wenn keine gesetzt ist.
+    ///
+    /// Gespeichert wird **derselbe Text**, den `AppClock.setOverriddenNow`
+    /// schreibt: `DateTime.toIso8601String()` ohne Zeitzone, in **lokaler**
+    /// Zeit. Ein `Date` in Swift ist dagegen immer ein Zeitpunkt mit Ort – wenn
+    /// man ihn mit `ISO8601DateFormatter` schriebe, stünde hinten ein `Z`, und
+    /// Dart würde daraus eine andere Stunde machen als gemeint.
+    ///
+    /// Siehe [AppStore.datumFormatter].
+    static var overriddenNow: Date? {
+        guard let raw = string("overriddenNow") else { return nil }
+        return datumFormatter.date(from: raw)
+    }
+
+    static func setOverriddenNow(_ wert: Date?) {
+        guard let wert else {
+            remove("overriddenNow")
+            return
+        }
+        setString(datumFormatter.string(from: wert), for: "overriddenNow")
+    }
+
+    /// Die Zeit, unter der die App gerade läuft.
+    ///
+    /// Dieselbe Frage wie `AppClock.now()`: Mit Überschreibung, sonst die
+    /// wirkliche Uhr. Ohne das würde eine neu angelegte Stunde in den
+    /// Entwickleroptionen eine echte anfangen statt der überschriebenen – und
+    /// man würde die Wirkung der Überschreibung an der Stelle suchen, an der
+    /// sie hingehört.
+    static var aktuelleZeit: Date { overriddenNow ?? Date() }
+
+    /// Das Format, in dem `overriddenNow` liegt.
+    ///
+    /// Feste Locale und **lokale** Zeit: `en_US_POSIX` verhindert, dass ein
+    /// Gerät mit anderer Locale Ziffern anders schreibt, und die Uhrzone wird
+    /// nicht mitgeschrieben – siehe [overriddenNow].
+    private static let datumFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+        return formatter
+    }()
+
+    // ------------------------------------------------------ Benachrichtigen
+
+    /// Sagt beiden Seiten, dass sich etwas geändert hat.
+    ///
+    /// ## Warum das nach **jedem** Schreiben aus der nativen Seite nötig ist
+    ///
+    /// Dart liest aus dem **Cache** von `SharedPreferences`, und der kennt nur,
+    /// was Dart **selbst** geschrieben hat. Ein Wert, den diese Seite setzt,
+    /// existiert für die Flutter-Seite erst dann, wenn der Cache neu gelesen
+    /// wird – und der tut das nur, wenn er darauf hingewiesen wird.
+    ///
+    /// Ohne diesen Aufruf bliebe der alte Wert stehen, **ohne** dass irgendwo ein
+    /// Fehler erschiene: Man hätte die Einstellung umgestellt, sie wäre aber
+    /// nirgends in Wirkung getreten.
+    ///
+    /// `AppearanceBridge` hängt [appearanceChanged] an dieselbe Meldung, und
+    /// darüber holt Dart seine Werte neu.
+    static func didWrite() {
+        AppearanceObserver.settingsDidChange()
+        NotificationCenter.default.post(name: settingsDidChange, object: nil)
+    }
+}
+
+/// Die drei festen Planmodi.
+///
+/// Dieselben drei Werte wie `PlanModePreferences` in Dart, und mit denselben
+/// Zeichenketten: Der gespeicherte Text **ist** der Wert, und ein umbenanntes
+/// `auto` hätte stille Fehler zur Folge – der Plan fiele auf seinen eigenen
+/// Standard zurück, ohne dass jemand sähe, warum.
+enum PlanMode: String {
+    /// Heute – ausser der Schultag ist vorbei.
+    ///
+    /// Der Name ist nicht `auto`, obwohl der **Wert** `auto` ist: Der Wert ist
+    /// das, was gespeichert wird und was Dart liest – der Name ist der, den
+    /// Swift benutzt. Die beiden dürfen auseinanderfallen, sonst müsste man
+    /// `PlanMode(rawValue: "automatisch")` schreiben, und Dart fände nichts.
+    case automatisch = "auto"
+    /// Immer den neuesten verfügbaren Plan.
+    case latest
+    /// Immer nur den heutigen.
+    case today
+}
+
+/// Eine festgelegte Unterrichtszeit.
+///
+/// Entspricht einem Eintrag in `lessons` in `Lessons.dart`: Nummer, Beginn und
+/// Ende. Die Nummer wird beim Schreiben neu vergeben – siehe [AppStore.lessons].
+struct LessonTime {
+    var count = 0
+    var start = ""
+    var end = ""
+
+    /// Die beiden Zeiten als Text, wie sie gespeichert werden: `HH:mm`.
+    ///
+    /// Auf englische Art zusammengesetzt und **nicht** mit `DateFormatter`:
+    /// Eine Formatierung nach der eingestellten Sprache ergäbe in manchen
+    /// Gebieten `08 Uhr 00`, und das wäre kein Wert mehr, den Dart lesen kann.
+    static func zeit(_Components components: DateComponents) -> String {
+        String(format: "%02d:%02d", components.hour ?? 0, components.minute ?? 0)
+    }
+
+    /// Die beiden Zeiten aus Text lesen.
+    ///
+    /// Ein Text, der nichts Brauchbares enthält, ergibt `0:00` und keine
+    /// Ausnahme: Der Wert steht in einer gespeicherten Liste, die ein Downgrade
+    /// oder ein Import mit einem anderen Format hinterlassen haben kann – und
+    /// eine leere Zeile ist ein Fehler, den man sieht. Eine Abstürzung wäre es
+    /// nicht.
+    static func components(aus text: String) -> DateComponents {
+        let teile = text.split(separator: ":", omittingEmptySubsequences: false)
+        let stunde = teile.count > 0 ? Int(teile[0].trimmingCharacters(in: .whitespaces)) : nil
+        let minute = teile.count > 1 ? Int(teile[1].trimmingCharacters(in: .whitespaces)) : nil
+        guard let stunde, let minute,
+            (0...23).contains(stunde), (0...59).contains(minute)
+        else { return DateComponents(hour: 0, minute: 0) }
+        return DateComponents(hour: stunde, minute: minute)
+    }
 }
 
 /// Ein angelegter Schulbereich.
@@ -351,4 +774,20 @@ enum AppAppearanceKeys {
 /// Die Schlüssel der Sprache – siehe [AppAppearanceKeys].
 enum AppLanguageKeys {
     static let code = "languageCode"
+}
+
+/// Die Schlüssel, die **keinem** Schulbereich gehören.
+///
+/// Aus demselben Grund wie [AppAppearanceKeys] hier ausgeschrieben: Swift
+/// kennt die Dart-Seite nicht, und ein Schlüssel, den es auf **beiden** Seiten
+/// gibt, steht in beiden ausgeschrieben – damit man ihn beim Ändern nur an
+/// **einer** Stelle suchen muss und nicht an zwei.
+///
+/// Zugriff läuft über [AppStore.plainKey] und nicht über [AppStore.key]:
+/// Letzterer hängt den Schulbereich an, und diese Werte haben keinen.
+enum AppDeviceKeys {
+    static let showSyncDetails = "sync.showDetails"
+    static let newsFeeds = "newsfeeds"
+    static let materialYou = "materialyou"
+    static let firstTime = "firstTime"
 }

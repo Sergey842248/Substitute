@@ -78,10 +78,11 @@ final class AppearanceScreen: ListScreen {
     }
 
     /// Nach jedem Schreiben: Bild neu aufbauen und beiden Seiten Bescheid sagen.
+    ///
+    /// Siehe [AppStore.didWrite]: Flutter liest aus einem Cache, und der kennt
+    /// nur, was Dart selbst geschrieben hat.
     private func speichern() {
         neuLaden()
-        AppearanceObserver.settingsDidChange()
-        NotificationCenter.default.post(
-            name: AppStore.settingsDidChange, object: nil)
+        AppStore.didWrite()
     }
 }

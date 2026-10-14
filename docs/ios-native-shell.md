@@ -24,19 +24,44 @@ und die Abschnitte der App liegen als echte Ansichtssteuerer darin.
 | └ Aussehen | nativ |
 | └ Sprache | nativ |
 | └ Schulen | nativ |
-| └ Anmeldedaten | Flutter |
-| └ Plan-Einstellungen | Flutter |
+| └ Anmeldedaten | nativ |
+| └ Plan-Einstellungen | nativ |
+| &nbsp;&nbsp;├ Stunden-Informationen | nativ |
+| &nbsp;&nbsp;├ Vorschau | nativ |
+| &nbsp;&nbsp;├ Standard-Planmodus | nativ |
+| &nbsp;&nbsp;└ Stundenzeiten | nativ |
+| └ Entwickleroptionen | nativ |
 | └ Lehrerkürzel | Flutter |
 | └ Sichern & Wiederherstellen | Flutter |
-| └ Entwickleroptionen | Flutter |
 | └ Krankheitstracker | Flutter |
 
-Die drei nativen Bildschirme sind **Einstellungen**: Sie lesen drei Werte und
-schreiben drei Werte. Dafür eine ganze Dart-Isolate hochzufahren wäre Aufwand
-ohne Gegenwert – und sie sehen dadurch aus wie die übrigen Apps auf dem Gerät.
+Fast alles im Werkzeugkasten ist damit **Einstellungen** in `UIKit`: Elf
+Bildschirme, die Speicherwerte lesen und schreiben. Dafür eine ganze
+Dart-Isolate hochzufahren wäre Aufwand ohne Gegenwert – und sie sehen dadurch
+aus wie die übrigen Apps auf dem Gerät.
 
 Die Abschnitte mit Plan, Suche und Sync bleiben Flutter, weil dort die Arbeit
 liegt: XML lesen, Pläne rechnen, synchronisieren, verschlüsseln.
+
+### Die drei Werkzeuge, die in Flutter bleiben
+
+Nicht aus Nachlässigkeit, sondern weil ihnen eine ganze fremde Fachwelt
+gegenübersteht:
+
+* **Lehrerkürzel** braucht den Vertretungsplan. Die Liste der Lehrenden steht im
+  Plan, den der VPlan liefert – samt Einloggen, Abruf und Fehlerbehandlung. Sie
+  hier nachzubauen hieße, all das ein zweites Mal zu schreiben, in einer
+  Sprache, in der es bisher nicht existiert.
+* **Sichern & Wiederherstellen** braucht `file_picker`, `share_plus` und die
+  Verschlüsselung aus `ConfigBackup`. Das sind drei Frameworks, die in Flutter
+  schon dastehen.
+* **Krankheitstracker** ist eine eigene Aufgabe – Unterschriften einsammeln –
+  und war nie eine Einstellung.
+
+Die ersten beiden öffnen eine Flutter-Ansicht **über** der nativen
+Bildschirmreihe ([FlutterRoute]): vollständige Bildschirme mit eigener Leiste
+und eigenem Zustand, nur ohne die Tab-Leiste darunter. Man ist gerade in einem
+Werkzeug, nicht auf einem anderen Reiter.
 
 ### Was sich am Aufbau ändert
 
@@ -45,8 +70,8 @@ Werkzeugkasten ersetzt. Damit wäre die alte Flutter-Einstellungsseite nicht meh
 zu erreichen gewesen – und mit ihr fünf Einträge (Plan-Einstellungen,
 Lehrerkürzel, Sicherung, Entwickleroptionen, Anmeldedaten).
 
-Deshalb stehen diese fünf jetzt im Werkzeugkasten und öffnen eine
-Flutter-Ansicht **über** der nativen Bildschirmreihe ([FlutterRoute]). Sie sind
+Deshalb stehen diese fünf jetzt im Werkzeugkasten. Drei davon sind inzwischen
+native Bildschirme; die beiden anderen öffnen eine Flutter-Ansicht. Sie sind
 damit nicht verschwunden, nur an einen anderen Ort.
 
 ## Die Speicherwerte sind dieselben
@@ -62,6 +87,23 @@ Es gibt nur eine Ablage.
 Wenn die eine Seite etwas schreibt, sagt sie der anderen nur **„ich habe etwas
 geschrieben"** – nicht, *was*. Die andere liest selbst nach. So kann es nicht
 zwei verschiedene Werte für dieselbe Sache geben.
+
+## Jeder Schriebvorgang sagt es beiden Seiten
+
+`AppStore.didWrite()` steht hinter **jedem** Speichern eines nativen
+Bildschirms. Es ist keine Kosmetik und keine Höflichkeit – ohne diesen einen
+Aufruf ist die Einstellung nachweislich wirkungslos:
+
+Dart liest aus dem **Cache** von `SharedPreferences`, und der Cache kennt nur,
+was Dart **selbst** geschrieben hat. Ein Wert, den die native Seite setzt,
+existiert für die Flutter-Seite erst, wenn der Cache neu gelesen wird. Tut er
+das nicht, steht oben der alte Wert, der Plan rechnet mit dem alten Wert, und
+nirgends erscheint ein Fehler. Man stellt etwas um und sieht keine Wirkung.
+
+`didWrite()` erledigt beides: Es sagt den nativen Zuhörern Bescheid
+(`settingsDidChange`) und hängt daran `appearanceChanged`, worüber Dart seine
+Werte neu holt. Wer einen neuen Bildschirm baut und dort `UserDefaults` schreibt,
+ruft es danach auf. Sonst ist der Bildschrm fertig gebaut und wirkungslos.
 
 ## Wie die Abschnitte ihre Rolle erfahren
 
@@ -91,7 +133,7 @@ der man ihn gedrückt hat.
 Der Startbildschirm bleibt derselbe, die Pläne bleiben dieselben, und die
 Einstellungen sind dieselben. Neu sind:
 
-* die Leiste und die drei Einstellungsbildschirme – sie folgen jetzt iOS statt
+* die Leiste und die elf Einstellungsbildschirme – sie folgen jetzt iOS statt
   Flutter,
 * der unterste Bildschirm heißt „Dashboard" und enthält Werkzeuge; Sync hat
   einen eigenen Reiter wie vorher,
@@ -138,6 +180,13 @@ geschrieben hat.
 Deshalb rufen `AppAppearance.reloadTheme` und `AppLanguage.reloadLanguage`
 vor dem Lesen `prefs.reload()` auf. Ohne das liest Dart den alten Wert weiter –
 und der Hell-Modus bleibt aus, während die Leiste hell wird.
+
+Dasselbe gilt für **alle** anderen Werte, die jetzt native Bildschirme
+schreiben – Stundenzeiten, Planmodi, Vorschau-Schalter, Anmeldedaten. Der Aufruf
+`reload()` kommt dabei nicht an jeder Stelle einzeln hin: Er hängt an
+`appearanceChanged`, und das kommt für **jedes** `didWrite()`. Die obige Zeile
+ist deshalb der Sonderfall der Sonderfälle – der Grund, warum sie einmal extra
+dasteht, obwohl der allgemeine Weg derselbe ist.
 
 ## Die Leiste zeigt nur Symbole
 
@@ -197,4 +246,25 @@ Fünf Dinge, die man leicht übersieht:
    Dart liest aus einem Cache, und der kennt nur Darts eigene Schreibvorgänge.
    Jede native Änderung an einer Einstellung, die Dart anzeigt, braucht deshalb
    ein `reload()` auf der Dart-Seite – sonst bleibt der alte Wert stehen, ohne
-   dass irgendwo ein Fehler erscheint.
+   dass irgendwo ein Fehler erscheint. Auf der nativen Seite heisst das: nach
+   jedem Schreiben `AppStore.didWrite()` aufrufen (siehe oben).
+
+6. **Eingabefelder werden nicht wiederverwendet.**
+   `UITableView` gibt Zeellen zum Wiederverwenden frei. Eine Zelle mit einem
+   Eingabefeld herauszugeben hiesse: Das Feld, in dem man tippt, gehört plötzlich
+   einer anderen Zeile, und der getippte Text verschwindet – ohne Fehler.
+   Deshalb baut `FormScreen` für jede Feldzeile eine **neue** Zelle, und der Text
+   liegt beim Bildschirm, nicht in der Zelle.
+
+7. **Eine `UITableViewDelegate`-Methode lässt sich nicht überschreiben.**
+   Die Delegate-Methoden stehen in einer Erweiterung auf `ListScreen`, und was
+   dort steht, kann eine Unterklasse nicht mit `override` ersetzen – der
+   Compiler sagt „does not override any method from its superclass", und die
+   Aktion fällt still weg. Deshalb gibt es für jede nötige Methode einen Haken
+   im Klassenrumpf (`swipeActions(at:)`, `zeileVerschoben(von:nach:)`,
+   `reihenfolgeMoeglich`), den die Liste nur abfragt.
+
+8. **Ein QR-Code gehört in ein weisses Feld.**
+   Ein Scanner rechnet mit dunkel auf hell. Ein heller Code auf dunklem Grund
+   liest sich bei vielen Kameras gar nicht. `QRCodeView` setzt den Code deshalb
+   immer in einen weissen Rahmen – auch im dunklen Erscheinungsbild.

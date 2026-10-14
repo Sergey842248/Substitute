@@ -8,20 +8,36 @@ import UIKit
 /// Schulbereich, der Krankheitstracker. Was man täglich braucht – den Plan,
 /// die Suche, den Abgleich mit anderen Geräten – steht in der Leiste.
 ///
-/// ## Drei Bildschirme sind jetzt nativ
+/// ## Fast alles hier ist jetzt nativ
 ///
-/// Aussehen, Sprache und Schulen sind hier in `UIKit` gebaut, nicht in Flutter.
-/// Nicht, weil Flutter das nicht könnte, sondern weil sie es nicht brauchen:
+/// Aussehen, Sprache, Schulen, Anmeldedaten, Plan-Einstellungen mit ihren vier
+/// Untermenüs und die Entwickleroptionen sind in `UIKit` gebaut, nicht in
+/// Flutter. Nicht, weil Flutter das nicht könnte, sondern weil sie es nicht
+/// brauchen:
 ///
-/// * Sie brauchen keine Dart-Isolate. Ein Bildschirm, der nur drei Werte liest
+/// * Sie brauchen keine Dart-Isolate. Ein Bildschirm, der ein paar Werte liest
 ///   und schreibt, wäre in Flutter eine ganze laufende Umgebung, die es am
 ///   Anfang hochfährt und danach den Platz belegt.
 /// * Sie sehen dadurch aus wie die übrigen Apps auf dem Gerät. Das ist der
-///   Punkt der Umstellung: großes Titel, Listen in Gruppen, Schalter wie von
+///   Punkt der Umstellung: grosses Titel, Listen in Gruppen, Schalter wie von
 ///   iOS.
 ///
-/// Die übrigen Werkzeuge reichen weiter an Flutter – dort steckt die Arbeit,
-///   und dort ist die Umstellung noch nicht dran.
+/// ## Drei bleiben in Flutter – und aus guten Gründen
+///
+/// * **Lehrerkürzel** braucht den Vertretungsplan: Die Liste der Lehrenden steht
+///   im Plan, den der VPlan liefert. Sie hier nachzubauen hieße, den ganzen
+///   Abruf, das Einloggen und die Fehlerbehandlung ein zweites Mal – in einer
+///   Sprache, in der sie bisher nicht existiert.
+/// * **Sichern & Wiederherstellen** braucht das Dateiwahl-Fenster, das
+///   Teilen-Menü und die Verschlüsselung. Das sind drei fremde Frameworks, die
+///   in Flutter schon dastehen.
+/// * **Krankheitstracker** bleibt, weil es eine eigene Aufgabe ist: Unterschriften
+///   einsammeln.
+///
+/// Die beiden ersten öffnen eine Flutter-Ansicht über der nativen Bildschirmreihe
+/// ([FlutterRoute]) – vollständige Bildschirme mit eigener Leiste und eigenem
+/// Zustand, nur ohne die Tab-Leiste darunter. Man ist gerade in einem Werkzeug,
+/// nicht auf einem anderen Reiter.
 final class MoreScreen: ListScreen {
     init() {
         super.init(title: L.dashboard)
@@ -37,26 +53,19 @@ final class MoreScreen: ListScreen {
                 title: L.appearance,
                 subtitle: L.appearanceSubtitle,
                 symbol: "paintpalette"
-            ) {
-                let controller = AppearanceScreen()
-                self.navigationController?.pushViewController(controller, animated: true)
-            },
+            ) { self.zeige(AppearanceScreen()) },
+
             .choice(
                 title: L.language,
                 subtitle: L.languageSubtitle,
                 symbol: "globe"
-            ) {
-                let controller = LanguageScreen()
-                self.navigationController?.pushViewController(controller, animated: true)
-            },
+            ) { self.zeige(LanguageScreen()) },
+
             .choice(
                 title: L.schools,
                 subtitle: L.schoolsSubtitle,
                 symbol: "building.2"
-            ) {
-                let controller = SchoolsScreen()
-                self.navigationController?.pushViewController(controller, animated: true)
-            },
+            ) { self.zeige(SchoolsScreen()) },
         ]
 
         // Die Zugangsdaten stehen **nur** da, wenn es welche gibt.
@@ -65,56 +74,46 @@ final class MoreScreen: ListScreen {
         // Versprechen, das noch nicht eingelöst ist – und sie führt genau dann
         // ins Nichts, wenn jemand sie zuerst braucht. Deshalb erscheint sie
         // erst mit dem ersten Benutzernamen.
+        //
+        // Das ist dasselbe Kriterium, nach dem die Tab-Leiste erscheint
+        // ([AppStore.hasCredentials]): Der Werkzeugkasten ohne Leiste ist genau
+        // die Lage, in der es auch ohne Zugangsdaten nichts zu tun gäbe.
         if AppStore.hasCredentials {
             einstellungen.append(
                 .choice(
                     title: L.credentials,
                     subtitle: L.credentialsSubtitle,
                     symbol: "lock"
-                ) {
-                    FlutterRoute.present(
-                        .vplanLogin, from: self.navigationController)
-                })
+                ) { self.zeige(CredentialsScreen()) })
         }
 
-        // Diese vier liegen in Flutter und standen vorher im Flutter-Dashboard.
-        //
-        // Das Dashboard gibt es als Reiter nicht mehr – es wurde durch diesen
-        // Werkzeugkasten ersetzt. Ohne diese Zeilen wären sie auf iOS weg
-        // gewesen, ohne dass es jemand gemerkt hätte, bis er die
-        // Sicherung braucht.
         einstellungen.append(
             .choice(
                 title: L.planSettings,
                 subtitle: L.planSettingsSubtitle,
                 symbol: "calendar.badge.clock"
-            ) {
-                FlutterRoute.present(.planSettings, from: self.navigationController)
-            })
+            ) { self.zeige(PlanSettingsScreen()) })
+
         einstellungen.append(
             .choice(
                 title: L.teacherShorts,
                 subtitle: L.teacherShortsSubtitle,
                 symbol: "person.text.rectangle"
-            ) {
-                FlutterRoute.present(.teacherShorts, from: self.navigationController)
-            })
+            ) { self.zeigeFlutter(.teacherShorts) })
+
         einstellungen.append(
             .choice(
                 title: L.backup,
                 subtitle: L.backupSubtitle,
                 symbol: "externaldrive.badge.timemachine"
-            ) {
-                FlutterRoute.present(.backup, from: self.navigationController)
-            })
+            ) { self.zeigeFlutter(.backup) })
+
         einstellungen.append(
             .choice(
                 title: L.developerOptions,
                 subtitle: L.developerOptionsSubtitle,
                 symbol: "hammer"
-            ) {
-                FlutterRoute.present(.developerOptions, from: self.navigationController)
-            })
+            ) { self.zeige(DeveloperOptionsScreen()) })
 
         return [
             Section(
@@ -128,11 +127,21 @@ final class MoreScreen: ListScreen {
                         title: L.sickTrack,
                         subtitle: L.sickTrackSubtitle,
                         symbol: "cross.case"
-                    ) {
-                        FlutterRoute.present(.sickTrack, from: self.navigationController)
-                    }
+                    ) { self.zeigeFlutter(.sickTrack) }
                 ]),
         ]
+    }
+
+    // --------------------------------------------------------------- Wege
+
+    /// Öffnet einen **nativen** Bildschirm.
+    private func zeige(_ screen: UIViewController) {
+        navigationController?.pushViewController(screen, animated: true)
+    }
+
+    /// Öffnet einen Bildschirm, der in Flutter liegt.
+    private func zeigeFlutter(_ route: FlutterRoute) {
+        FlutterRoute.present(route, from: navigationController)
     }
 }
 
@@ -140,8 +149,8 @@ final class MoreScreen: ListScreen {
 ///
 /// ## Warum sie über eine [FlutterRoute] gehen
 ///
-/// Sie brauchen den Plan, die Klassen, die Listen – also alles, was in Flutter
-/// liegt und dort auch bleiben soll. Sie werden deshalb **über** der
+/// Sie brauchen den Plan, die Klassen, das Dateiwahl-Fenster – also alles, was
+/// in Flutter liegt und dort auch bleiben soll. Sie werden deshalb **über** der
 /// nativen Bildschirmreihe geöffnet, als eigene Flutter-Ansicht.
 ///
 /// Sie sind damit keine „halben“ Bildschirme, sondern vollständige: Sie haben
@@ -149,34 +158,25 @@ final class MoreScreen: ListScreen {
 /// Was sie nicht haben, ist die Tab-Leiste – und das ist richtig so: Man ist
 /// gerade in einem Werkzeug, nicht auf einem anderen Reiter.
 enum FlutterRoute {
-    case vplanLogin
-    case sickTrack
-    case planSettings
     case teacherShorts
     case backup
-    case developerOptions
+    case sickTrack
 
     /// Die Dart-Route, zu der gehört.
     var dartRoute: String {
         switch self {
-        case .vplanLogin: return "/werkzeug/anmelden"
-        case .sickTrack: return "/werkzeug/krankheitstracker"
-        case .planSettings: return "/werkzeug/plan-einstellungen"
         case .teacherShorts: return "/werkzeug/lehrerkuerzel"
         case .backup: return "/werkzeug/sicherung"
-        case .developerOptions: return "/werkzeug/entwickleroptionen"
+        case .sickTrack: return "/werkzeug/krankheitstracker"
         }
     }
 
     /// Der Titel, solange die Ansicht noch keinen eigenen hat.
     var title: String {
         switch self {
-        case .vplanLogin: return L.credentials
-        case .sickTrack: return L.sickTrack
-        case .planSettings: return L.planSettings
         case .teacherShorts: return L.teacherShorts
         case .backup: return L.backup
-        case .developerOptions: return L.developerOptions
+        case .sickTrack: return L.sickTrack
         }
     }
 

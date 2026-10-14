@@ -166,6 +166,384 @@ enum L {
             "Track missed lessons and get signatures for them")
     }
 
+    // ------------------------------------------------- Plan-Einstellungen
+    //
+    // Vier Untermenüs, die früher in Flutter lagen. Die Texte sind wortgleich mit
+    // `app_localizations_de.dart` und `_en.dart` – siehe die Beschreibung dieser
+    // Datei oben.
+
+    static var lessonInfoSettings: String {
+        pick("Stunden-Informationen", "Lesson information")
+    }
+
+    static var lessonInfoSettingsSubtitle: String {
+        pick("Was im Vertretungsplan angezeigt wird", "What is shown in the substitution plan")
+    }
+
+    static var hideLessonTimes: String {
+        pick("Stundenzeiten ausblenden", "Hide lesson times")
+    }
+
+    static var hideLessonTimesSubtitle: String {
+        pick(
+            "Zeiten der einzelnen Stunden im Vertretungsplan ausblenden",
+            "Hide times for individual lessons in the plan")
+    }
+
+    static var hideTeacher: String { pick("Lehrer ausblenden", "Hide Teacher") }
+
+    static var hideTeacherSubtitle: String {
+        pick(
+            "Lehrernamen im Vertretungsplan ausblenden",
+            "Hide teacher names in the substitution plan")
+    }
+
+    static var hidePersons: String { pick("Personen ausblenden", "Hide Persons") }
+
+    static var hidePersonsSubtitle: String {
+        pick("Den Personenbereich ausblenden", "Hide the persons section")
+    }
+
+    static var previewSettings: String { pick("Vorschau", "Preview") }
+
+    static var previewSettingsSubtitle: String {
+        pick(
+            "Die „Nächste Stunde“-Vorschau ein- und ausblenden",
+            "Show or hide the next lesson preview")
+    }
+
+    static var hidePreviewClasses: String {
+        pick("Vorschau bei Klassen ausblenden", "Hide preview for classes")
+    }
+
+    static var hidePreviewClassesSubtitle: String {
+        pick(
+            "Die „Nächste Stunde“-Vorschau unterhalb der Klassen ausblenden",
+            "Hide the next lesson preview below the classes")
+    }
+
+    static var hidePreviewPersons: String {
+        pick("Vorschau bei Personen ausblenden", "Hide preview for persons")
+    }
+
+    static var hidePreviewPersonsSubtitle: String {
+        pick(
+            "Die „Nächste Stunde“-Vorschau unterhalb der Personen ausblenden",
+            "Hide the next lesson preview below the persons")
+    }
+
+    static var defaultPlanModeEntry: String {
+        pick("Standard-Planmodus", "Default plan mode")
+    }
+
+    static var defaultPlanModeEntrySubtitle: String {
+        pick(
+            "Getrennt für Personen, Klassen und deren Vorschauen",
+            "Separately for persons, classes and their previews")
+    }
+
+    static var modeAuto: String { pick("Automatisch", "Automatic") }
+    static var modeLatest: String { pick("Neueste", "Latest") }
+    static var modeToday: String { pick("Heute", "Today") }
+
+    /// Die Beschriftung eines Planmodus.
+    ///
+    /// Über eine Funktion und nicht über drei Felder, weil der Wert durch die
+    /// Bildschirme läuft und dort überall derselbe sein muss: `PlanMode.automatisch`
+    /// ohne passenden Namen ergäbe einen Bildschirm mit „nil" in der Zeile.
+    static func titel(for mode: PlanMode) -> String {
+        switch mode {
+        case .automatisch: return modeAuto
+        case .latest: return modeLatest
+        case .today: return modeToday
+        }
+    }
+
+    /// Die Überschrift der Gruppen „Personen" und „Klassen".
+    ///
+    /// Eigene Felder und nicht dieselben wie `defaultPlanModePerson` /
+    /// `defaultPlanModeClass` in Dart, weil sie dort zugleich **zwei** Dinge
+    /// meinen: die Überschrift der Gruppe **und** die Beschriftung einer
+    /// Option. Hier tragen die Zeilen ihre eigene Beschriftung aus
+    /// [titel(for:)], und deshalb kann die Überschrift hier stehen, wo sie
+    /// hingehört.
+    static var planModePerson: String { pick("Personen", "Persons") }
+    static var planModeClass: String { pick("Klassen", "Classes") }
+
+    /// Die Überschriften der beiden Vorschau-Gruppen.
+    static var defaultPlanModePreviewClass: String {
+        pick("Vorschau der Klassen", "Preview of classes")
+    }
+
+    static var defaultPlanModePreviewPerson: String {
+        pick("Vorschau der Personen", "Preview of persons")
+    }
+
+    /// Die drei Erklärtexte der Planmodi.
+    ///
+    /// Sie stehen hier **einmal** und nicht je Gruppe: In Dart sind es zwölf
+    /// fast gleiche Texte, die auseinanderlaufen können – und die Gruppen sollen
+    /// dasselbe meinen. Wer's nicht glaubt, soll in `PlanModeSettings.dart` nach
+    ///sehen: Dort ist derselbe Satz viermal hingeschrieben, weil man ihn dort
+    /// für jede Gruppe einzeln übersetzt hat.
+    static func modeSubtitle(for mode: PlanMode) -> String {
+        switch mode {
+        case .automatisch:
+            return pick(
+                "Zeige heute, außer der Schultag ist vorbei",
+                "Show today, unless the school day is over")
+        case .latest:
+            return pick(
+                "Immer den neuesten verfügbaren Plan anzeigen",
+                "Always show the latest available plan")
+        case .today:
+            return pick(
+                "Immer nur den heutigen Plan anzeigen",
+                "Always show only today's plan")
+        }
+    }
+
+    static var lessonTimes: String { pick("Stundenzeiten", "Lesson times") }
+
+    static var lessonTimesSubtitle: String {
+        pick(
+            "Zeiten der einzelnen Unterrichtsstunden manuell einstellen",
+            "Manually set the times for each lesson")
+    }
+
+    static var lessonCount: String { pick("Stunde", "Lesson") }
+
+    static var noLessonTimes: String {
+        pick("Noch keine Stundenzeiten", "No lesson times yet")
+    }
+
+    static var deleteLessonTitle: String {
+        pick("Unterrichtszeit löschen?", "Delete lesson time?")
+    }
+
+    /// Der Satz, der beim Löschen einer Unterrichtszeit erklärt, was passiert.
+    static func deleteLessonMessage(_ count: Int) -> String {
+        pick(
+            "Die \(count). Unterrichtszeit wird entfernt. Das kann nicht rückgängig gemacht werden.",
+            "The \(count). lesson time will be removed. This cannot be undone.")
+    }
+
+    static var edit: String { pick("Bearbeiten", "Edit") }
+
+    /// Die Bestätigung, wenn eine einzelne Unterrichtszeit gelöscht wurde.
+    ///
+    /// Bewusst in der Einzahl: Die Meldung erscheint genau dann, wenn **eine**
+    /// Stunde verschwunden ist. „Stundenzeiten gelöscht" (die Mehrzahl) wäre die
+    /// Aussage für die Entwickleroptionen, die wirklich alle löschen.
+    static func lessonDeleted(_ count: Int) -> String {
+        pick(
+            "\(count). Unterrichtszeit gelöscht", "\(count). lesson time deleted")
+    }
+
+    // ------------------------------------------------------- Anmeldedaten
+
+    static var settingsCredentials: String {
+        pick("Anmeldeinformationen", "Credentials")
+    }
+
+    static var schoolNumber: String { pick("Schulnummer", "School-number") }
+
+    static var username: String { pick("Benutzername", "Username") }
+
+    static var password: String { pick("Passwort", "Password") }
+
+    static var selfHost: String { pick("Eigene URL", "Your own URL") }
+
+    static var useOwnUrl: String {
+        pick("Eigene URL verwenden", "Use your own URL")
+    }
+
+    static var useOwnUrlSubtitle: String {
+        pick(
+            "Für stundenplan24 nicht nötig – nur bei einer selbst gehosteten Instanz",
+            "Not needed for stundenplan24 – only for a self-hosted instance")
+    }
+
+    /// Der Satz unter dem Knopf „Speichern".
+    static var credentialsFooter: String {
+        pick(
+            "Die Zugangsdaten werden auf diesem Gerät gespeichert und nirgends sonst.",
+            "The credentials are stored on this device and nowhere else.")
+    }
+
+    /// Der Hinweis, wenn ein gelesener Code keine Zugangsdaten enthält.
+    static var qrNotReadable: String {
+        pick(
+            "Der gelesene Code enthält keine Zugangsdaten dieser App.",
+            "The scanned code does not contain credentials of this app.")
+    }
+
+    static var useLogin: String {
+        pick("oder nutze den offiziellen Login", "or use official Login")
+    }
+
+    static var useSelfHost: String {
+        pick("oder nutze deine eigene URL", "or use your own URL")
+    }
+
+    static var credsSaved: String {
+        pick("Zugangsdaten gespeichert!", "Credentials saved!")
+    }
+
+    static var shareCreds: String {
+        pick("Zugangsdaten teilen", "Share credentials")
+    }
+
+    static var shareCredsSubtitle: String {
+        pick(
+            "Zugangsdaten als QR-Code weitergeben",
+            "Pass the credentials on as a QR code")
+    }
+
+    static var scanCreds: String { pick("QR-Code scannen", "Scan QR code") }
+
+    static var scanCredsSubtitle: String {
+        pick(
+            "Zugangsdaten eines anderen Geräts übernehmen",
+            "Take over the credentials of another device")
+    }
+
+    static var share: String { pick("Teilen", "Share") }
+
+    /// Der Satz über dem QR-Code der Zugangsdaten.
+    static var credsQrHint: String {
+        pick(
+            "Mit einem zweiten Gerät scannen, um die Zugangsdaten zu übernehmen.",
+            "Scan with a second device to take over these credentials.")
+    }
+
+    static var cameraUnavailable: String {
+        pick("Die Kamera ist nicht verfügbar.", "The camera is not available.")
+    }
+
+    static var cameraDenied: String {
+        pick(
+            "Für das Scannen wird der Zugriff auf die Kamera benötigt. Er lässt sich in den Einstellungen erteilen.",
+            "Scanning needs access to the camera. It can be granted in Settings.")
+    }
+
+    static var openSettings: String {
+        pick("Einstellungen öffnen", "Open Settings")
+    }
+
+    // -------------------------------------------------- Entwickleroptionen
+
+    static var customDate: String {
+        pick("Eigenes Datum & Uhrzeit", "Custom date & time")
+    }
+
+    static var noOverride: String { pick("Keine Überschreibung", "No override") }
+
+    static var clearOverride: String {
+        pick("Überschreibung entfernen", "Remove override")
+    }
+
+    static var clearOverrideSubtitle: String {
+        pick(
+            "Die App rechnet wieder mit der wirklichen Uhrzeit",
+            "The app goes back to using the real time")
+    }
+
+    static var showSyncDetails: String {
+        pick(
+            "Zusätzliche Sync-Angaben zeigen",
+            "Show additional sync options and information")
+    }
+
+    static var showSyncDetailsSubtitle: String {
+        pick(
+            "Zeigt der Sync-Seite Serverstatus, automatischen Abgleich und die Zahl der übertragenen Einträge",
+            "Adds server status, automatic sync and the number of transferred entries to the sync page")
+    }
+
+    static var deleteOfflinePlans: String {
+        pick("Offline gespeicherte Pläne löschen", "Delete offline substitution plan")
+    }
+
+    static var clearAllSettings: String {
+        pick("Alle gespeicherten Einstellungen löschen", "Clear all SharedPreferences")
+    }
+
+    static var clearAllSettingsMessage: String {
+        pick(
+            "Damit werden alle gespeicherten Werte der App entfernt – Zugangsdaten, Einstellungen, Schulbereiche und Pläne. Das kann nicht rückgängig gemacht werden.",
+            "This removes every stored value of the app – credentials, settings, school areas and plans. This cannot be undone.")
+    }
+
+    static var clearAllSettingsTitle: String {
+        pick("Alle Einstellungen löschen?", "Clear all settings?")
+    }
+
+    static var removeTeacherShorts: String {
+        pick("Lehrerkürzel entfernen", "Remove Teacher abbreviations")
+    }
+
+    static var clearNewsFeeds: String { pick("Neuigkeiten-Feeds leeren", "Clear news feeds") }
+
+    static var materialYou: String { pick("Material You", "Material You") }
+
+    /// Der Zustand von „Material You" – als Erklärung unter der Zeile.
+    ///
+    /// Über eine Funktion statt über zwei Felder, weil der Zustand an **einer**
+    /// Stelle entschieden wird. Zwei Felder müssten an zwei Stellen gepflegt
+    /// werden, und irgendwann stünde da „an", während die Einstellung aus war.
+    static func materialYouSubtitle(_ an: Bool) -> String {
+        an
+            ? pick(
+                "An – die Farben folgen dem System",
+                "On – colours follow the system")
+            : pick(
+                "Aus – die Farben sind fest",
+                "Off – colours are fixed")
+    }
+
+    static var developerData: String { pick("Daten", "Data") }
+
+    static var developerDataSubtitle: String {
+        pick(
+            "Diese Handgriffe nehmen gespeicherte Werte weg. Sie lassen sich hier nicht rückgängig machen.",
+            "These actions remove stored values. They cannot be undone from here.")
+    }
+
+    static var developerFlags: String { pick("Schalter", "Flags") }
+
+    static var deleteLessonTimes: String {
+        pick("Stundenzeiten löschen", "Delete lesson times")
+    }
+
+    static var markFirstTime: String {
+        pick("Als „erster Start“ merken", "Set \"first time\" to true")
+    }
+
+    static var offlinePlansDeleted: String {
+        pick("Offline gespeicherte Pläne gelöscht", "Offline substitution plans deleted")
+    }
+
+    static var allSettingsCleared: String {
+        pick("Alle gespeicherten Werte gelöscht", "All stored values cleared")
+    }
+
+    static var teacherShortsRemoved: String {
+        pick("Lehrerkürzel entfernt", "Teacher abbreviations removed")
+    }
+
+    static var newsFeedsCleared: String {
+        pick("Neuigkeiten-Feeds geleert", "News feeds cleared")
+    }
+
+    static var lessonTimesDeleted: String {
+        pick("Stundenzeiten gelöscht", "Lesson times deleted")
+    }
+
+    static var firstTimeSet: String {
+        pick("Als „erster Start“ gemerkt", "Marked as first start")
+    }
+
     // --------------------------------------------------------------- Werkzeuge
 
     static var addSchool: String { pick("Schule hinzufügen", "Add School") }
@@ -185,6 +563,21 @@ enum L {
     static var done: String { pick("Fertig", "Done") }
 
     static var delete: String { pick("Löschen", "Delete") }
+
+    /// „Alles leeren" – eigens, weil es etwas anderes ist als [delete].
+    ///
+    /// Ein Knopf „Löschen" neben der Zeile „Alle gespeicherten Einstellungen"
+    /// liest sich wie „diese eine Einstellung löschen". Gemeint ist aber, dass
+    /// **alle** weggehen – und das steht so auch im Knopf.
+    static var clear: String { pick("Leeren", "Clear") }
+
+    /// „Löschen" in einem Dialog, in dem es **eine** Sache zu löschen gibt.
+    ///
+    /// Eigenes Feld und nicht [delete]: Der Knopf beim Löschen einer Schule ist
+    /// ein reiner Aktionstext, der an einer Zeile hängt; der hier steht in einem
+    /// Dialog, in dem **nichts** passiert, wenn man ihn verlässt. Dieselbe
+    /// Beschriftung für beides liest sich, als wäre beides dasselbe.
+    static var deleteAction: String { pick("Löschen", "Delete") }
 
     /// Der Satz, der beim Löschen einer Schule erklärt, was passiert.
     ///

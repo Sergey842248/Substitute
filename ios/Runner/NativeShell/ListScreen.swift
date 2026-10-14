@@ -130,6 +130,22 @@ extension Row {
             accessory: .none, destructive: true, action: action)
     }
 
+    /// Eine Zeile, die etwas unwiederbringlich wegnimmt – **mit** Erklärung.
+    ///
+    /// Ohne `subtitle` bewusst ohne Vorgabewert: Eine Vorgabe machte beide
+    /// Aufrufe gleich gut passend, und Swift könnte beim Aufruf mit drei
+    /// Argumenten nicht mehr sagen, welche der beiden gemeint war.
+    static func destructive(
+        title: String,
+        subtitle: String,
+        symbol: String,
+        action: @escaping () -> Void
+    ) -> Row {
+        .choice(
+            title: title, subtitle: subtitle, symbol: symbol,
+            accessory: .none, destructive: true, action: action)
+    }
+
     /// Eine Zeile mit Schalter und Erklärung.
     static func toggle(
         title: String,
@@ -257,6 +273,77 @@ class ListScreen: UIViewController {
         sections = makeSections()
         guard isViewLoaded else { return }
         tableView.reloadData()
+    }
+
+    /// Dürfen die Zeilen dieser Liste verschoben werden?
+    ///
+    /// ## Warum das eine **Frage** ist und kein Kennzeichen
+    ///
+    /// `UITableView` fragt bei **jeder** Zeile, ob sie sich verschieben lässt.
+    /// Eine Liste, in der nichts zu verschieben ist, würde es sonst nur an einer
+    /// Stelle sagen – am Bildschirm –, und die Liste selbst wüsste nichts davon.
+    ///
+    /// Voreingestellt ist `false`, weil fast alle Listen hier aus Zeilen bestehen,
+    /// deren Reihenfolge **irrelevant** ist: Sprache, Schulen, Schalter.
+    /// Verschieben ergibt dort nichts, und ein sichtbarer Ziehpfeil an einer
+    /// Zeile, deren Platz beliebig ist, wäre eine Einladung zu etwas, das keinen
+    /// Unterschied macht.
+    var reihenfolgeMoeglich: Bool { false }
+
+    /// Aufgerufen, wenn eine Zeile an eine neue Stelle gezogen wurde.
+    ///
+    /// ## Warum hier **nicht** die `UITableViewDataSource`-Methode überschrieben
+    /// wird
+    ///
+    /// Siehe die ausführliche Begründung bei [swipeActions(at:)]: Die
+    /// Delegate-Methoden stehen in einer Erweiterung, und was dort steht, kann
+    /// eine Unterklasse nicht überschreiben.
+    func zeileVerschoben(von quelle: IndexPath, nach ziel: IndexPath) {}
+
+    /// Schaltet den Bearbeitungsmodus um und hält den Knopf daneben aktuell.
+    ///
+    /// Der Knopf ist deshalb hier und nicht in jeder Liste: Er ist immer
+    /// derselbe, und der Begleittext („Bearbeiten"/„Fertig") ändert sich mit dem
+    /// Zustand. Zwei Stellen, an denen die Beschriftung festgeschrieben wird,
+    /// wären zwei Stellen, an denen sie auseinanderlaufen könnten.
+    func setzeBearbeitungsmodus(_ an: Bool) {
+        bearbeitet = an
+        liste.setEditing(an, animated: true)
+        bearbeitungsknopfAktualisieren()
+    }
+
+    private var bearbeitet = false
+
+    private var bearbeitungsknopf: UIBarButtonItem?
+
+    /// Legt den Bearbeitungsknopf rechts oben an.
+    ///
+    /// Ein Bildschirm, der dort schon etwas hat – etwa „Hinzufügen" bei den
+    /// Schulen –, verliert es dadurch nicht: Bestehende Knöpfe bleiben stehen,
+    /// der neue kommt dazu. Ohne diese Trennung müsste sich jeder Bildschirm
+    /// selbst entscheiden, welcher von beiden wichtiger ist, und diese
+    /// Entscheidung fiele überall anders aus.
+    func zeigeBearbeitungsknopf() {
+        let knopf = UIBarButtonItem(
+            title: bearbeitet ? L.done : L.edit,
+            style: .plain,
+            target: self,
+            action: #selector(bearbeitungsumschalten))
+        bearbeitungsknopf = knopf
+
+        var vorhanden = navigationItem.rightBarButtonItems ?? []
+        // Ein zweiter Aufruf soll den Knopf nicht verdoppeln.
+        vorhanden.removeAll { $0 === bearbeitungsknopf }
+        vorhanden.append(knopf)
+        navigationItem.rightBarButtonItems = vorhanden
+    }
+
+    @objc private func bearbeitungsumschalten() {
+        setzeBearbeitungsmodus(!bearbeitet)
+    }
+
+    private func bearbeitungsknopfAktualisieren() {
+        bearbeitungsknopf?.title = bearbeitet ? L.done : L.edit
     }
 
     // --------------------------------------------------------------- Aufbau
@@ -752,6 +839,48 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
         // tippen zu lassen wäre eine zweite, schlechtere Stelle dafür.
         case .toggleRow, .segmentRow, .textRow, .warning: break
         }
+    }
+
+    /// Dürfen die Zeilen verschoben werden?
+    ///
+    /// Siehe [reihenfolgeMoeglich]: Die Frage steht am Bildschirm, die Liste
+    /// fragt sie hier nur ab.
+    func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
+        reihenfolgeMoeglich
+    }
+
+    /// Eine Zeile wurde verschoben.
+    ///
+    /// Der Bildschirm baut daraufhin seine eigene Liste neu auf – siehe
+    /// [zeileVerschoben(von:nach:)].
+    func tableView(
+        _ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath,
+        to destinationIndexPath: IndexPath
+    ) {
+        zeileVerschoben(von: sourceIndexPath, nach: destinationIndexPath)
+    }
+
+    /// Lässt eine Zeile beim Ziehen ganz nach oben oder nach unten.
+    ///
+    /// Ohne das bleiben die erste und die letzte Zeile an ihrem Platz und lassen
+    /// sich mit keiner der beiden Gruppen tauschen – man könnte sie also nicht
+    /// an den Anfang oder ans Ende der Liste stellen, was bei den Stundenzeiten
+    /// genau das ist, was man tun will.
+    func tableView(
+        _ tableView: UITableView,
+        targetIndexPathForMoveFromRowAt sourceIndexPath: IndexPath,
+        toProposedIndexPath proposedDestinationIndexPath: IndexPath
+    ) -> IndexPath {
+        let anzahl = sections[sourceIndexPath.section].rows.count
+        guard anzahl > 0 else { return proposedDestinationIndexPath }
+
+        let letzteZeile = IndexPath(
+            row: anzahl - 1, section: proposedDestinationIndexPath.section)
+        if proposedDestinationIndexPath.row >= anzahl { return letzteZeile }
+        if proposedDestinationIndexPath.row < 0 {
+            return IndexPath(row: 0, section: proposedDestinationIndexPath.section)
+        }
+        return proposedDestinationIndexPath
     }
 
     func tableView(

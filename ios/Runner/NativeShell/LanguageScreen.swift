@@ -50,8 +50,10 @@ final class LanguageScreen: ListScreen {
     private func wahl(_ choice: AppLanguageChoice) {
         AppStore.setLanguage(choice)
         neuLaden()
-        AppearanceObserver.settingsDidChange()
-        NotificationCenter.default.post(
-            name: AppStore.settingsDidChange, object: nil)
+        //// Siehe [AppStore.didWrite]didWrite] –– und aus demselben Grund wie in
+        // [AppearanceScreen.speichern].
+        AppStore.didWrite(und aus demselben Grund wie in
+        // [AppearanceScreen.speichern].
+        AppStore.didWrite()
     }
 }
