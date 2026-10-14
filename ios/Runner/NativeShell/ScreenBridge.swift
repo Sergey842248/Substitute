@@ -91,9 +91,16 @@ enum ScreenBridge {
 
     /// Wer ein Bildschirm neu zeichnen soll, wenn neue Werte ankommen.
     ///
-    /// Schwach, und deshalb über Token abgemeldet: Ein Bildschirm, der den
-    /// Bildschirm hält, der ihn hält, wird nie freigegeben.
-    private static var zeichner: [Screen: UUID: () -> Void] = [:]
+    /// Der Token ist das, worüber abgemeldet wird – nicht der Bildschirm selbst.
+    /// Schwach wäre er zu kurz: Ein Wurf, der den Bildschirm hält, wird von der
+    /// Liste gehalten, die der Bildschirm hält, und ohne das Abmelden bliebe ein
+    /// Weg zu einem Bildschirm offen, den es nicht mehr gibt.
+    ///
+    /// Die Klammern um `[UUID: () -> Void]` sind **nicht** Kosmetik. Ohne sie
+    /// liest Swift `[Screen: UUID` als den **inneren** Teil eines Wörterbuchs und
+    /// stolpert über den zweiten Doppelpunkt. Mit ihnen ist es ein Wörterbuch,
+    /// dessen Werte selbst Wörterbücher sind – was genau das ist.
+    private static var zeichner: [Screen: [UUID: () -> Void]] = [:]
 
     /// Registriert den Kanal einer Ansicht.
     ///
@@ -183,14 +190,24 @@ enum ScreenBridge {
         _ screen: Screen, _ aktion: String, args: [String: Any] = [:]
     ) {
         guard let kanal = kanal(screen) else { return }
-        kanal.invokeMethod(
-            "action",
-            arguments: [
-                "screen": screen.rawValue,
-                "action": aktion,
-                "args": args,
-            ]
-        )
+
+        // Der Typ **ausdrücklich** genannt, und nicht dem Compiler überlassen.
+        //
+        // `invokeMethod` nimmt `Any?`, das Wörterbuch hat also keinen Kontext, in
+        // dem es gelesen werden könnte. Ohne die Angabe müsste der Compiler drei
+        // verschiedene Werttypen zu einem gemeinsamen bringen – und was er
+        // dafür wählt, hängt von der Reihenfolge ab, nicht von der Absicht.
+        //
+        // Und was der Compiler stattdessen wählt, kommt in Dart als `Map` ohne
+        // festen Typ an – wo `argument['screen']` nicht passt. Die Aktion käme
+        // nie an, und nichts würde darauf hinweisen, warum: Der Bildschirm
+        // würde sich todtschweigen.
+        let nachricht: [String: Any] = [
+            "screen": screen.rawValue,
+            "action": aktion,
+            "args": args,
+        ]
+        kanal.invokeMethod("action", arguments: nachricht)
     }
 
     // -------------------------------------------------------------- Zeichen
