@@ -129,12 +129,21 @@ class FormScreen: UIViewController {
             return
         }
 
-        UIView.transition(
-            with: tableView,
-            duration: 0.22,
-            options: [.transitionCrossDissolve, .allowAnimatedContent]
-        ) {
+        // Die Überblendung darf die gruppierte Tabelle nicht als neue Ansicht
+        // einsetzen: Das würde den oberen Abschnitt unter dem grossen Titel
+        // neu vermessen und den sichtbaren Abstand beim Umschalten ändern.
+        // Eine Ebenen-Transition erhält die Geometrie der vorhandenen Liste.
+        let position = tableView.contentOffset
+        let ueberblendung = CATransition()
+        ueberblendung.type = .fade
+        ueberblendung.duration = 0.22
+        ueberblendung.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        tableView.layer.add(ueberblendung, forKey: "settingsReload")
+
+        UIView.performWithoutAnimation {
             self.tableView.reloadData()
+            self.tableView.layoutIfNeeded()
+            self.tableView.setContentOffset(position, animated: false)
         }
     }
 

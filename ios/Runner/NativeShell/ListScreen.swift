@@ -302,12 +302,23 @@ class ListScreen: UIViewController {
             return
         }
 
-        UIView.transition(
-            with: tableView,
-            duration: 0.22,
-            options: [.transitionCrossDissolve, .allowAnimatedContent]
-        ) {
+        // `UIView.transition` um ein `reloadData()` herum lässt eine
+        // gruppierte Tabelle ihren oberen Abschnitt neu vermessen. Direkt
+        // unter einem grossen Navigationstitel springt der Inhalt dabei um den
+        // Abstand des ersten Abschnitts nach oben. Die Überblendung kommt
+        // deshalb auf die Ebene der schon sichtbaren Liste; ihre Geometrie
+        // bleibt während des Neuladens unverändert.
+        let position = tableView.contentOffset
+        let ueberblendung = CATransition()
+        ueberblendung.type = .fade
+        ueberblendung.duration = 0.22
+        ueberblendung.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        tableView.layer.add(ueberblendung, forKey: "settingsReload")
+
+        UIView.performWithoutAnimation {
             self.tableView.reloadData()
+            self.tableView.layoutIfNeeded()
+            self.tableView.setContentOffset(position, animated: false)
         }
     }
 
