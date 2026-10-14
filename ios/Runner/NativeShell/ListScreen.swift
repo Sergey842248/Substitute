@@ -683,6 +683,70 @@ final class SubtitleCell: UITableViewCell {
         zeile.invalidateIntrinsicContentSize()
     }
 
+    /// Misst die Zeile – und ein **zweites** Mal, wenn es sein muss.
+    ///
+    /// ## Der gemeldete Fehler
+    ///
+    /// „Sync-Menü" und „Stundenzeiten ausblenden" zeigten ihre Erklärung beim
+    /// ersten Öffnen **nicht vollständig**: Die letzte Zeile fehlte. Nach einem
+    /// Umschalten des Schalters stand sie da, und die Zeile war plötzlich eine
+    /// Zeile höher. Die Erklärung war also von Anfang an so lang – nur die Zeile
+    /// war zu niedrig, und nach dem Umschalten endlich die richtige Höhe.
+    ///
+    /// ## Warum gerade beim ersten Aufbau
+    ///
+    /// Eine mehrzeilige `UILabel` weiss ihre Höhe erst, wenn sie weiss, wie breit
+    /// sie wird. Diese Breite hängt hier vom **Zubehör** ab und steht beim ersten
+    /// Durchgang noch nicht fest: Die Liste misst, solange der Schalter noch
+    /// nicht eingetragen ist, gegen eine unendliche Breite – und bekommt die
+    /// Höhe **einer** Zeile zurück.
+    ///
+    /// Beim zweiten Mal ist die Breite bekannt, das Feld misst gegen sie, und die
+    /// Höhe stimmt. Genau das macht diese Methode.
+    override func systemLayoutSizeFitting(
+        _ targetSize: CGSize,
+        withHorizontalFittingPriority horizontalFittingPriority: UILayoutPriority,
+        verticalFittingPriority: UILayoutPriority
+    ) -> CGSize {
+        let hoehe = super.systemLayoutSizeFitting(
+            targetSize,
+            withHorizontalFittingPriority: horizontalFittingPriority,
+            verticalFittingPriority: verticalFittingPriority)
+        // Nur wenn sich die Breite tatsächlich geändert hat – sonst würde jede
+        // Messung zwei Durchgänge kosten.
+        guard breitenMelden() else { return hoehe }
+        return super.systemLayoutSizeFitting(
+            targetSize,
+            withHorizontalFittingPriority: horizontalFittingPriority,
+            verticalFittingPriority: verticalFittingPriority)
+    }
+
+    /// Trägt die Breite der Spalte in die Beschriftungen ein.
+    ///
+    /// `preferredMaxLayoutWidth` **ist** die Breite, an der der Text umbricht.
+    /// Ohne diese Angabe misst das Feld gegen eine unendliche Breite und meldet
+    /// die Höhe einer einzigen Zeile – auch wenn der Text drei Zeilen braucht.
+    ///
+    /// Gibt zurück, ob sich etwas geändert hat. Das ist die einzige Information,
+    /// die [systemLayoutSizeFitting(_:withHorizontalFittingPriority:verticalFittingPriority:)]
+    /// für den zweiten Durchgang braucht.
+    @discardableResult
+    private func breitenMelden() -> Bool {
+        let breite = spalte.bounds.width
+        guard breite > 0 else { return false }
+        // Nur bei einer echten Änderung: Sonst würde das Setzen selbst – und mit
+        // ihm ein weiterer Messdurchgang – bei **jeder** Messung auslösen.
+        guard abs(beschriftung.preferredMaxLayoutWidth - breite) > 0.5
+            || abs(erklaerung.preferredMaxLayoutWidth - breite) > 0.5
+        else { return false }
+        beschriftung.preferredMaxLayoutWidth = breite
+        erklaerung.preferredMaxLayoutWidth = breite
+        // Das Setzen allein meldet die neue Höhe nicht – erst das Invalidieren
+        // tut das. Siehe [neuMessen()].
+        neuMessen()
+        return true
+    }
+
     /// Trägt Text und Symbol ein, wie die gerade geltende Helligkeit es will.
     func setzeInhalt(
         titel: String,

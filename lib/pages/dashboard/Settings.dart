@@ -117,6 +117,15 @@ class _SettingsState extends State<Settings> {
     ];
     return ListPage(
       title: AppLocalizations.of(context)!.settings,
+      // **Keine eigene Kopfzeile.** Das hier ist ein Tab – er liegt bereits unter
+      // der Leiste mit dem App-Namen, und die bringt der Tab-Rahmen mit. Ohne
+      // dieses `false` stünden zwei Kopfzeilen übereinander: die der App und
+      // diese hier mit dem Text „Einstellungen", dazu ein Zurück-Pfeil, der in
+      // einem Tab nirgendwohinführt.
+      //
+      // Siehe `ListPage.showHeader`. Dieselbe Regel gilt für [SyncShareHub] und
+      // [SearchMenu].
+      showHeader: false,
       children: [
         ...settingPages
             .map(

@@ -86,8 +86,8 @@ void main() {
     // Der Inhalt wandert exakt mit dem Scrollen mit (die Kopfzeile bleibt
     // offen, weil sie mehr Platz wegnehmen würde, als die Liste scrollbar ist).
     final double offset = position(tester).pixels;
-    expect(before - tester.getTopLeft(find.text('INHALT')).dy,
-        closeTo(offset, 2),
+    expect(
+        before - tester.getTopLeft(find.text('INHALT')).dy, closeTo(offset, 2),
         reason: 'Inhalt ist nicht 1:1 mitgescrollt.');
   });
 
@@ -122,8 +122,8 @@ void main() {
 
     // Nach dem Loslassen kommt die Liste am Ende an und der Offset geht nicht
     // verloren: Der unterste Inhalt steht am unteren Bildschirmrand.
-    expect(position(tester).pixels,
-        closeTo(position(tester).maxScrollExtent, 1));
+    expect(
+        position(tester).pixels, closeTo(position(tester).maxScrollExtent, 1));
     expect(tester.getBottomLeft(find.byKey(const ValueKey('last'))).dy,
         lessThanOrEqualTo(844 - 34 + 0.5),
         reason: 'Der letzte Inhalt ist nicht mehr sichtbar.');
@@ -158,5 +158,65 @@ void main() {
     expect(position(tester).pixels, lessThanOrEqualTo(0));
     // Der sichtbare Bereich darf nicht gewachsen sein.
     expect(tester.getTopLeft(find.text('INHALT')).dy, greaterThan(150));
+  });
+
+  group('Ohne eigene Kopfzeile (Tab-Seiten)', () {
+    /// Wie `buildPage`, aber mit `showHeader: false` – der Fall einer Seite, die
+    /// als Tab bereits unter der Leiste der App liegt.
+    Widget buildTabPage(double contentHeight) {
+      return MaterialApp(
+        home: Scaffold(
+          body: ListPage(
+            title: 'Test',
+            showHeader: false,
+            children: [
+              SizedBox(height: contentHeight, child: const Text('INHALT')),
+            ],
+          ),
+        ),
+      );
+    }
+
+    testWidgets('bringt keine Kopfzeile mit – sonst stehen zwei übereinander',
+        (WidgetTester tester) async {
+      setUpView(tester);
+      await tester.pumpWidget(buildTabPage(400));
+      await tester.pumpAndSettle();
+
+      // Das ist der gemeldete Fehler, als Zusicherung festgehalten: Der
+      // Einstellungs-Tab brachte eine eigene Kopfzeile mit und lag damit unter
+      // der Leiste, die der Tab-Rahmen ohnehin zeichnet.
+      expect(find.byKey(const ValueKey('listpage_header')), findsNothing);
+      // Auch der eingeklappte Titel nicht – sonst stuende „Test" oben im Inhalt.
+      expect(find.text('Test'), findsNothing);
+    });
+
+    testWidgets(
+        'reserviert keinen Platz fuer eine Kopfzeile, die es nicht gibt',
+        (WidgetTester tester) async {
+      setUpView(tester);
+      await tester.pumpWidget(buildTabPage(400));
+      await tester.pumpAndSettle();
+
+      // Der Inhalt beginnt am oberen Rand (plus das kleine Padding der Seite).
+      // Vorher stand er um 10 % der Bildschirmhoehe + 30 Pixel tiefer, ein leerer
+      // Streifen in der Farbe der Leiste darueber.
+      expect(tester.getTopLeft(find.text('INHALT')).dy, lessThan(100));
+    });
+
+    testWidgets('scrollt ganz normal, ohne die Kopfzeile',
+        (WidgetTester tester) async {
+      setUpView(tester);
+      await tester.pumpWidget(buildTabPage(900));
+      await tester.pumpAndSettle();
+
+      expect(position(tester).maxScrollExtent, greaterThan(0));
+      await tester.drag(find.text('INHALT'), const Offset(0, -100));
+      await tester.pumpAndSettle();
+
+      // Der sichtbare Bereich waechst beim Scrollen nicht: Es gibt nichts, was
+      // einklappen koennte, und der Offset wird deshalb auch nicht zurueckgesetzt.
+      expect(position(tester).pixels, greaterThan(50));
+    });
   });
 }
