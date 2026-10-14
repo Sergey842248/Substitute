@@ -56,7 +56,8 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
       _theme = AppAppearance.themeOf(prefs);
       _showSyncTab = AppAppearance.showSyncShareTab(prefs);
       _showWeekView =
-          prefs.getBool(SchoolStorage.scopedKey(prefs, 'showWeekView')) ?? false;
+          prefs.getBool(SchoolStorage.scopedKey(prefs, 'showWeekView')) ??
+              false;
     });
   }
 
@@ -114,7 +115,11 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
                   ),
                   subtitle: Text(
                     l10n.appearanceThemeSubtitle,
-                    style: const TextStyle(fontSize: 15),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w100,
+                      color: Colors.grey,
+                    ),
                   ),
                 ),
                 Padding(
@@ -189,7 +194,9 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
             children: <Widget>[
               Icon(
                 icon,
-                color: gewaehlt ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).focusColor,
+                color: gewaehlt
+                    ? Theme.of(context).colorScheme.onPrimary
+                    : Theme.of(context).focusColor,
               ),
               const SizedBox(width: 8),
               Text(
@@ -197,7 +204,9 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: gewaehlt ? FontWeight.bold : FontWeight.normal,
-                  color: gewaehlt ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).focusColor,
+                  color: gewaehlt
+                      ? Theme.of(context).colorScheme.onPrimary
+                      : Theme.of(context).focusColor,
                 ),
               ),
             ],
