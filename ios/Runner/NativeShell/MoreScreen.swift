@@ -4,9 +4,14 @@ import UIKit
 ///
 /// ## Was hier steht und was nicht
 ///
-/// Hier stehen die Dinge, die man **seltener** braucht: die Einstellungen, der
-/// Schulbereich, der Krankheitstracker. Was man täglich braucht – den Plan,
-/// die Suche, den Abgleich mit anderen Geräten – steht in der Leiste.
+/// Hier stehen die Dinge, die man **nicht** jeden Tag braucht – und die drei
+/// Bildschirme, die auf iOS jetzt **nativ** sind. Sie stehen deshalb hier und
+/// nicht in Flutter: Sie sind reine Einstellungen, sie brauchen keine
+/// Dart-Isolate, und sie sehen dadurch aus wie die übrigen Apps auf dem Gerät.
+///
+/// Der Krankheitstracker ist von hier in die **Suche** gewandert. Er sucht
+/// genauso wie die beiden anderen dort – nach der Klasse, der Stunden gefehlt
+/// haben –, und die Suche ist auch auf iOS ein Reiter.
 ///
 /// ## Fast alles hier ist jetzt nativ
 ///
@@ -22,7 +27,7 @@ import UIKit
 ///   Punkt der Umstellung: grosses Titel, Listen in Gruppen, Schalter wie von
 ///   iOS.
 ///
-/// ## Drei bleiben in Flutter – und aus guten Gründen
+/// ## Zwei bleiben in Flutter – und aus guten Gründen
 ///
 /// * **Lehrerkürzel** braucht den Vertretungsplan: Die Liste der Lehrenden steht
 ///   im Plan, den der VPlan liefert. Sie hier nachzubauen hieße, den ganzen
@@ -31,10 +36,8 @@ import UIKit
 /// * **Sichern & Wiederherstellen** braucht das Dateiwahl-Fenster, das
 ///   Teilen-Menü und die Verschlüsselung. Das sind drei fremde Frameworks, die
 ///   in Flutter schon dastehen.
-/// * **Krankheitstracker** bleibt, weil es eine eigene Aufgabe ist: Unterschriften
-///   einsammeln.
 ///
-/// Die beiden ersten öffnen eine Flutter-Ansicht über der nativen Bildschirmreihe
+/// Beide öffnen eine Flutter-Ansicht über der nativen Bildschirmreihe
 /// ([FlutterRoute]) – vollständige Bildschirme mit eigener Leiste und eigenem
 /// Zustand, nur ohne die Tab-Leiste darunter. Man ist gerade in einem Werkzeug,
 /// nicht auf einem anderen Reiter.
@@ -43,22 +46,33 @@ final class MoreScreen: ListScreen {
     ///
     /// ## Warum
     ///
-    /// „Dashboard" stand hier als grosser Titel über der Liste – und die Liste
-    /// sagt bereits alles: Das sind Werkzeuge. Ein Titel, der nichts hinzufügt,
-    /// nimmt dem oberen Drittel des Bildschirms nur Platz weg und schiebt die
-    /// erste Zeile aus dem Blick, sobald man gerade weit unten in der Liste war.
+    /// „Einstellungen“ steht hier als grosser Titel über der Liste – und die
+    /// Liste sagt bereits alles: Das sind Einstellungen. Ein Titel, der nichts
+    /// hinzufügt, nimmt dem oberen Drittel des Bildschirms nur Platz weg und
+    /// schiebt die erste Zeile aus dem Blick, sobald man gerade weit unten in
+    /// der Liste war.
     ///
     /// ## Warum kein leerer Titel, sondern wirklich keiner
     ///
     /// `[ListScreen]` bekommt einen Titel für die **Sprache**, nicht für die
-    /// Anzeige. Ohne grossen Titel bleibt aber ein kleiner in der Leiste stehen –
-    /// und der hiesse dann immer noch „Dashboard". Deshalb wird hier beides
+    /// Anzeige. Ohne grossen Titel bleibt aber ein kleiner in der Leiste stehen
+    /// – und der hiesse dann immer noch „Einstellungen“ über einer Liste, die
+    /// sich schon als Einstellungen zu erkennen gibt. Deshalb wird hier beides
     /// abgestellt: kein grosser Titel und kein Wort in der Leiste.
     ///
-    /// Der Name des Werkzeugkastens lebt trotzdem weiter: als
-    /// `accessibilityLabel` des Reiters in der Leiste
-    /// ([RootTabBarController]), denn für VoiceOver muss die Leiste beschriftet
-    /// sein, auch wenn sie unter den Symbolen keinen Text zeigt.
+    /// Der Name lebt trotzdem weiter: als `accessibilityLabel` des Reiters in der
+    /// Leiste ([RootTabBarController]), denn für VoiceOver muss die Leiste
+    /// beschriftet sein, auch wenn sie unter den Symbolen keinen Text zeigt.
+    ///
+    /// ## Warum das hier mehr ist als ein abgestellter Titel
+    ///
+    /// `largeTitleDisplayMode = .never` allein lässt den **Platz** stehen: Die
+    /// Bildschirmreihe hat ihre Leiste auf grosse Titel gestellt (siehe
+    /// [RootTabBarController]), und die reserviert deren Höhe, bis man
+    /// scrollt – mit leerem Titel und ohne jeden Zweck. Deshalb schaltet
+    /// `ListScreen` die grossen Titel beim Erscheinen **ab** (siehe
+    /// [ListScreen.viewWillAppear]) und wieder ein, sobald ein Bildschirm mit
+    /// Titel aufgeschoben wird.
     init() {
         super.init(title: "", largeTitle: false)
     }
@@ -67,6 +81,21 @@ final class MoreScreen: ListScreen {
     ///
     /// Neu gelesen, weil eine Zeile von den Zugangsdaten abhängt, die es erst
     /// seit dem letzten Besuch geben kann.
+    ///
+    /// ## Die Reihenfolge ist auf beiden Plattformen **gleich**
+    ///
+    /// Dieselbe Liste steht in `Settings.dart`. Zwei Reihenfolgen an zwei
+    /// Stellen laufen auseinander, sobald eine Zeile verschoben wird – und auf
+    /// iOS merkt es niemand, weil dort nur eine der beiden Listen zu sehen ist.
+    ///
+    /// Von oben: was man beim ersten Öffnen sucht (Aussehen), was den Alltag
+    /// betrifft (Plan, Sprache, Lehrerkürzel), was man ab und zu braucht
+    /// (Zugangsdaten, Schulen) – und ganz unten die Dinge, die man nur anfasst,
+    /// wenn etwas nicht stimmt (Sicherung, Entwickleroptionen).
+    ///
+    /// **Zugangsdaten und Schulen stehen unmittelbar untereinander:** Beide sagen,
+    /// woher die Daten kommen. Wer den Schulbereich wechselt, fasst danach die
+    /// Schulen an – sie gehören deshalb nicht an zwei getrennte Stellen der App.
     override func makeSections() -> [Section] {
         var einstellungen: [Row] = [
             .choice(
@@ -76,16 +105,22 @@ final class MoreScreen: ListScreen {
             ) { self.zeige(AppearanceScreen()) },
 
             .choice(
+                title: L.planSettings,
+                subtitle: L.planSettingsSubtitle,
+                symbol: "calendar.badge.clock"
+            ) { self.zeige(PlanSettingsScreen()) },
+
+            .choice(
                 title: L.language,
                 subtitle: L.languageSubtitle,
                 symbol: "globe"
             ) { self.zeige(LanguageScreen()) },
 
             .choice(
-                title: L.schools,
-                subtitle: L.schoolsSubtitle,
-                symbol: "building.2"
-            ) { self.zeige(SchoolsScreen()) },
+                title: L.teacherShorts,
+                subtitle: L.teacherShortsSubtitle,
+                symbol: "person.text.rectangle"
+            ) { self.zeigeFlutter(.teacherShorts) },
         ]
 
         // Die Zugangsdaten stehen **nur** da, wenn es welche gibt.
@@ -98,6 +133,9 @@ final class MoreScreen: ListScreen {
         // Das ist dasselbe Kriterium, nach dem die Tab-Leiste erscheint
         // ([AppStore.hasCredentials]): Der Werkzeugkasten ohne Leiste ist genau
         // die Lage, in der es auch ohne Zugangsdaten nichts zu tun gäbe.
+        //
+        // Die Schulen folgen ihm unmittelbar – siehe die Beschreibung von
+        // [MoreScreen.makeSections].
         if AppStore.hasCredentials {
             einstellungen.append(
                 .choice(
@@ -109,17 +147,10 @@ final class MoreScreen: ListScreen {
 
         einstellungen.append(
             .choice(
-                title: L.planSettings,
-                subtitle: L.planSettingsSubtitle,
-                symbol: "calendar.badge.clock"
-            ) { self.zeige(PlanSettingsScreen()) })
-
-        einstellungen.append(
-            .choice(
-                title: L.teacherShorts,
-                subtitle: L.teacherShortsSubtitle,
-                symbol: "person.text.rectangle"
-            ) { self.zeigeFlutter(.teacherShorts) })
+                title: L.schools,
+                subtitle: L.schoolsSubtitle,
+                symbol: "building.2"
+            ) { self.zeige(SchoolsScreen()) })
 
         einstellungen.append(
             .choice(
@@ -140,15 +171,6 @@ final class MoreScreen: ListScreen {
                 header: L.settings,
                 footer: L.settingsSubtitle,
                 rows: einstellungen),
-            Section(
-                header: nil,
-                rows: [
-                    .choice(
-                        title: L.sickTrack,
-                        subtitle: L.sickTrackSubtitle,
-                        symbol: "cross.case"
-                    ) { self.zeigeFlutter(.sickTrack) }
-                ]),
         ]
     }
 
@@ -180,14 +202,12 @@ final class MoreScreen: ListScreen {
 enum FlutterRoute {
     case teacherShorts
     case backup
-    case sickTrack
 
     /// Die Dart-Route, zu der gehört.
     var dartRoute: String {
         switch self {
         case .teacherShorts: return "/werkzeug/lehrerkuerzel"
         case .backup: return "/werkzeug/sicherung"
-        case .sickTrack: return "/werkzeug/krankheitstracker"
         }
     }
 
@@ -196,7 +216,6 @@ enum FlutterRoute {
         switch self {
         case .teacherShorts: return L.teacherShorts
         case .backup: return L.backup
-        case .sickTrack: return L.sickTrack
         }
     }
 

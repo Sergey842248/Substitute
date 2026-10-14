@@ -248,8 +248,11 @@ final class RootTabBarController: UITabBarController {
             titel = L.syncShare
             symbol = "arrow.triangle.2.circlepath"
         case .more:
-            titel = L.dashboard
-            symbol = "ellipsis.circle"
+            // „Einstellungen“, nicht „Dashboard“: Der Reiter **ist** die Seite
+            // mit den Einstellungen (siehe [MoreScreen]), und der Name im
+            // Werkzeugkasten sagte nichts über das, was dort zu sehen ist.
+            titel = L.settings
+            symbol = "gearshape"
         }
 
         // `title: nil` – **nicht** `title: ""`. Ein leerer Titel würde in manchen
@@ -555,6 +558,12 @@ class MoreSectionController: UIViewController {
         navigation = UINavigationController(rootViewController: liste)
         // Grosse Titel: Sie sind der Grund, warum die Leiste in iOS wie in iOS
         // aussieht.
+        //
+        // Der Startwert gilt nur für die Bildschirme, die einen wollen. Jeder
+        // Bildschirm stellt die Leiste beim Erscheinen selbst um – siehe
+        // [ListScreen.setzeGrosseTitel]. Der Werkzeugkasten selbst hat keinen
+        // Titel, und ohne diese Umstellung stünde unter der leeren Fläche genau
+        // der Platz, den sein Titel einmal eingenommen hat.
         navigation.navigationBar.prefersLargeTitles = true
         navigation.navigationBar.tintColor = Appearance.accent
 

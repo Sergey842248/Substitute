@@ -35,17 +35,12 @@ enum L {
 
     static var syncShare: String { pick("Sync & Share", "Sync & Share") }
 
-    /// Der Name des Werkzeugkastens.
-    ///
-    /// **Gross** in beiden Sprachen: Im Deutschen wie im Englischen ist es ein
-    /// Substantiv, und ein klein geschriebenes „dashboard" sieht aus wie ein
-    /// Platzhalter, den jemand vergessen hat. Grossschreibung gilt für die
-    /// Ansage; für die **Leiste** wird der Wert ohnehin nicht benutzt, weil dort
-    /// nur Symbole stehen (siehe [RootTabBarController]).
-    static var dashboard: String { pick("Dashboard", "Dashboard") }
-
     // ------------------------------------------------------------ Bildschirme
 
+    /// Der Name des rechsten Reiters – und der Bildschirmes dahinter.
+    ///
+    /// Vorher stand hier „Dashboard“: ein Wort, das nichts ueber den Inhalt
+    /// sagt. Der Reiter zeigt die Einstellungen, also heisst er jetzt auch so.
     static var settings: String { pick("Einstellungen", "Settings") }
 
     static var settingsSubtitle: String {
@@ -126,10 +121,13 @@ enum L {
 
     // ------------------------------------------------------------ Werkzeuge
     //
-    // Diese vier stehen weiterhin in Flutter, werden aber **hier** aufgeführt –
-    // siehe [FlutterRoute]. Vorher waren sie über das Flutter-Dashboard zu
+    // Diese beiden stehen weiterhin in Flutter, werden aber **hier** aufgeführt
+    // – siehe [FlutterRoute]. Vorher waren sie über das Flutter-Dashboard zu
     // erreichen, und das gibt es als Reiter nicht mehr. Ohne diese Zeilen wären
     // sie auf iOS spurlos verschwunden.
+    //
+    // Der Krankheitstracker steht hier **nicht** mehr: Er ist in die Suche
+    // gewandert (`SearchMenu.dart`), und die Suche ist auch auf iOS ein Reiter.
 
     static var planSettings: String { pick("Plan-Einstellungen", "Plan Settings") }
 
@@ -163,14 +161,6 @@ enum L {
 
     static var schoolsSubtitle: String {
         pick("Schulbereiche und Zugangsdaten wechseln", "Switch school areas and credentials")
-    }
-
-    static var sickTrack: String { pick("Krankheitstracker", "Sick-Track") }
-
-    static var sickTrackSubtitle: String {
-        pick(
-            "Verpasste Stunden verfolgen und Unterschriften holen",
-            "Track missed lessons and get signatures for them")
     }
 
     // ------------------------------------------------- Plan-Einstellungen
