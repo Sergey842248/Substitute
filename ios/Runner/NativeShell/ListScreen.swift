@@ -424,12 +424,13 @@ class ListScreen: UIViewController {
         // Zwischen den Zeilen einer Gruppe läuft in iOS **keine** Linie; die
         // Gruppen selbst sind es, die den Abschnitt teilen.
         tableView.separatorStyle = .none
-        // Die Zeilenhöhe folgt dem Text – siehe [heightForRowAt].
-        //
-        // Der Schätzwert ist nicht Kosmetik: Er ist der Wert, mit dem die Liste
-        // beim Scrollen rechnet. Ohne ihn wüsste sie nicht, wo die nächste
-        // Zeile steht, und würde beim Scrollen springen.
-        tableView.estimatedRowHeight = 72
+        // Die Zeilenhöhe folgt dem Text – siehe [heightForRowAt]. Die
+        // Einstellungslisten sind kurz; eine geschätzte Höhe würde hier mehr
+        // schaden als helfen: Bis die tatsächliche Breite von Titel und
+        // Erklärung bekannt ist, kann UIKit die Schätzung als Leerraum
+        // zwischen beiden sichtbar lassen. Ohne Schätzung misst jede Zelle vor
+        // dem ersten Zeichnen ihre endgültige Höhe.
+        tableView.estimatedRowHeight = 0
         tableView.rowHeight = UITableView.automaticDimension
         tableView.dataSource = self
         tableView.delegate = self

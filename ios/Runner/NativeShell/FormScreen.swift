@@ -179,9 +179,11 @@ class FormScreen: UIViewController {
 
         tableView.backgroundColor = .clear
         tableView.separatorStyle = .none
-        // Die Zeilenhöhe folgt dem Text – siehe
-        // `tableView(_:heightForRowAt:)`.
-        tableView.estimatedRowHeight = 64
+        // Formulare enthalten nur wenige, unterschiedlich hohe Felder. Eine
+        // Höhenschätzung wird hier bis zum nächsten Layoutdurchgang als
+        // sichtbarer Zwischenraum zwischen Titel und Erklärung gezeichnet.
+        // Deshalb jede Zeile sofort in ihrer endgültigen Höhe messen lassen.
+        tableView.estimatedRowHeight = 0
         tableView.rowHeight = UITableView.automaticDimension
         // Beim Scrollen muss die Tastatur weg: Sie bleibt sonst über den unteren
         // Zeilen stehen, und die sind genau die, die man beim Tippen auslöst.
