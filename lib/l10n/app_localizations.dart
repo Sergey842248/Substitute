@@ -446,12 +446,6 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settingsTitle;
 
-  /// No description provided for @settingsSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'More Settings to personalize your experience'**
-  String get settingsSubtitle;
-
   /// No description provided for @addNewClass.
   ///
   /// In en, this message translates to:
@@ -581,7 +575,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchTeachers.
   ///
   /// In en, this message translates to:
-  /// **'Search Teachers'**
+  /// **'Teacher search'**
   String get searchTeachers;
 
   /// No description provided for @searchTeachersSubtitle.

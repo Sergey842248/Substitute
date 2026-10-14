@@ -34,7 +34,24 @@ class SearchMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Als [List] und nicht als [Map]: Eine [Map] garantiert die Reihenfolge
+    // nicht, und hier ist sie ausdrücklich gewollt.
+    //
+    // Der Krankheitstracker steht **oben**: Nach einer verpassten Stunde ist er
+    // das Erste, was jemand nachschlägt – und er ist der einzige der drei
+    // Wege, bei dem es um etwas geht, das man *schon* weiß („welche Stunden
+    // habe ich verpasst?“). Die beiden anderen beantworten erst die Frage
+    // *wonach*.
     List<dynamic> elements = [
+      {
+        'icon': Icon(
+          Icons.sick_rounded,
+          color: Theme.of(context).focusColor,
+        ),
+        'title': AppLocalizations.of(context)!.sickTrack,
+        'subtitle': AppLocalizations.of(context)!.sickTrackSubtitle,
+        'link': const SickTrack(),
+      },
       {
         'icon': Icon(
           Icons.person_search_rounded,
@@ -52,15 +69,6 @@ class SearchMenu extends StatelessWidget {
         'title': AppLocalizations.of(context)!.roomPlan,
         'subtitle': AppLocalizations.of(context)!.roomPlanSubtitle,
         'link': const FindRoom(),
-      },
-      {
-        'icon': Icon(
-          Icons.sick_rounded,
-          color: Theme.of(context).focusColor,
-        ),
-        'title': AppLocalizations.of(context)!.sickTrack,
-        'subtitle': AppLocalizations.of(context)!.sickTrackSubtitle,
-        'link': const SickTrack(),
       },
     ];
     return Container(

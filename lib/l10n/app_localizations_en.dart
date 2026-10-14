@@ -199,9 +199,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTitle => 'Settings';
 
   @override
-  String get settingsSubtitle => 'More Settings to personalize your experience';
-
-  @override
   String get addNewClass => 'Add a new class';
 
   @override
@@ -269,7 +266,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get search => 'Search';
 
   @override
-  String get searchTeachers => 'Search Teachers';
+  String get searchTeachers => 'Teacher search';
 
   @override
   String get searchTeachersSubtitle =>
