@@ -91,6 +91,26 @@ class WeekPlanGrid extends StatelessWidget {
   /// und man sähe nicht, dass es weitergeht. Der halbe Rest ist der Hinweis.
   static const double scrollPeekRows = 0.5;
 
+  /// Zeilenhöhe **jeder** Angabe im Raster, als Vielfaches der Schriftgröße.
+  ///
+  /// ## Warum nicht kleiner – und warum überhaupt eine Zahl
+  ///
+  /// `TextStyle.height` ist kein „Abstand zwischen den Zeilen", sondern die
+  /// **gesamte** Zeilenhöhe. Sie muss mindestens so groß sein wie der Zeilenabstand,
+  /// den die Schrift von sich aus hat – bei den Systemschriften sind das rund
+  /// **1.15 bis 1.2** Schriftgrößen (Oberlänge + Unterlänge plus etwas Luft).
+  ///
+  /// Mit dem Wert 1.02, den die Zellen früher hatten, war die Zeilenhöhe **kleiner**
+  /// als der Buchstabe selbst: Ober- und Unterlänge der einen Zeile ragten in die
+  /// nächste hinein, und im Raster – wo fünf solcher Zeilen untereinanderstehen –
+  /// liefen Fach und Raum, Raum und Lehrer ineinander. Das war keine Rundung,
+  /// das war eine um rund zwei Pixel zu kleine Zeilenhöhe je Zeile.
+  ///
+  /// [BoxFit.scaleDown] verkleinert den ganzen Block dabei gleichmäßig, also auch
+  /// diesen Abstand: Eine größere Zeilenhöhe macht die Schrift nicht größer, sie
+  /// verhindert nur das Überlappen.
+  static const double zeilenHoehe = 1.18;
+
   /// Die Zeilen des Rasters: so viele, wie der Tag mit den meisten Stunden hat.
   ///
   /// Die Stunden werden **einfach untereinander** gereiht und nicht nach
@@ -292,7 +312,7 @@ class WeekPlanGrid extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 17,
-                  height: 1.05,
+                  height: zeilenHoehe,
                   fontWeight: FontWeight.bold,
                   color: color,
                 ),
@@ -307,7 +327,7 @@ class WeekPlanGrid extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 15,
-                  height: 1.05,
+                  height: zeilenHoehe,
                   color: color.withValues(alpha: 0.9),
                 ),
               ),
@@ -420,6 +440,12 @@ class WeekPlanGrid extends StatelessWidget {
     //   4. Uhrzeit  – die nachgeordnete Angabe, deshalb ganz unten und am
     //                 kleinsten (nur wenn nicht ausgeblendet)
     //
+    // Alle vier bekommen **dieselbe** Zeilenhöhe ([zeilenHoehe]), nicht eine
+    // eigene, engere: Eine engere Zeilenhöhe sieht bei einer einzelnen Zeile
+    // kompakter aus, lässt aber Ober- und Unterlänge ineinanderragen – und hier
+    // stehen vier solcher Zeilen direkt untereinander. Siehe dort, warum 1.02 zu
+    // wenig war.
+    //
     // Eine Änderung an Raum oder Lehrer wird **ausschließlich über die Farbe**
     // angezeigt (rot, `aktionston`). Bewusst kein Fettdruck und kein
     // zusätzliches Symbol: In der schmalen Zelle konkurrieren diese Angaben
@@ -442,7 +468,8 @@ class WeekPlanGrid extends StatelessWidget {
                 '${lesson['count'] ?? ''}',
                 // Punkt 4: die Stundennummer war zu klein.
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
+                  height: zeilenHoehe,
                   fontWeight: FontWeight.bold,
                   color: baseColor.withValues(alpha: 0.55),
                 ),
@@ -464,6 +491,7 @@ class WeekPlanGrid extends StatelessWidget {
                   '${day.missedCourses[course]?['count']}',
                   style: TextStyle(
                     fontSize: 9,
+                    height: zeilenHoehe,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).primaryColor,
                   ),
@@ -477,9 +505,9 @@ class WeekPlanGrid extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 17,
               fontWeight: FontWeight.bold,
-              height: 1.02,
+              height: zeilenHoehe,
               color: baseColor,
             ),
           ),
@@ -489,8 +517,8 @@ class WeekPlanGrid extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 15,
-              height: 1.05,
+              fontSize: 13.5,
+              height: zeilenHoehe,
               fontWeight: FontWeight.w600,
               color: placeChanged
                   ? raumAenderungsFarbe
@@ -504,8 +532,8 @@ class WeekPlanGrid extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 13,
-                height: 1.05,
+                fontSize: 12,
+                height: zeilenHoehe,
                 fontWeight: FontWeight.w500,
                 color: teacherChanged
                     ? raumAenderungsFarbe
@@ -521,8 +549,8 @@ class WeekPlanGrid extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 10.5,
-                  height: 1.05,
+                  fontSize: 10,
+                  height: zeilenHoehe,
                   color: baseColor.withValues(alpha: 0.6),
                 ),
               ),

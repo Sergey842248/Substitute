@@ -548,8 +548,15 @@ final class SubtitleCell: UITableViewCell {
         erklaerung.numberOfLines = 0
         // Die Erklärung wird eher gestaucht als der Titel – der Titel ist das,
         // woran man den Eintrag überhaupt erkennt.
+        //
+        // **Aber nur bis zu einem Punkt**, und das ist der ganze Unterschied zu
+        // vorher: Die Erklärung ist das, was die Zeile überhaupt erklärt. Wird sie
+        // ohne untere Grenze gestaucht, bleibt von ihr nur das längste Wort
+        // übrig – die Beschreibung steht dann ein Wort pro Zeile. Dafür sorgt
+        // einmal die **Mindestbreite** der Spalte (unten); diese Priorität ist
+        // die zweite Verteidigungslinie für den Fall, dass die nicht ausreicht.
         erklaerung.setContentCompressionResistancePriority(
-            .defaultLow, for: .horizontal)
+            .defaultHigh, for: .horizontal)
 
         symbolView.contentMode = .scaleAspectFit
         symbolView.setContentHuggingPriority(
@@ -561,11 +568,24 @@ final class SubtitleCell: UITableViewCell {
         zubehoerBehaelter.alignment = .center
         zubehoerBehaelter.spacing = 6
         zubehoerBehaelter.translatesAutoresizingMaskIntoConstraints = false
+        // Das Zubehör weicht **dem Text**, nicht umgekehrt. Wer ihm `.required`
+        // gibt, erklärt es zur harten Breite: Ein langer Wert verdrängt dann den
+        // Text, bis nichts mehr übrig ist – und der Rest des Stapels weicht ihm
+        // aus. Der Wert wird also zuerst gestaucht, der Text zuletzt.
+        zubehoerBehaelter.setContentHuggingPriority(
+            .defaultHigh, for: .horizontal)
+        zubehoerBehaelter.setContentCompressionResistancePriority(
+            .defaultLow, for: .horizontal)
 
         zeile.axis = .horizontal
         zeile.alignment = .center
         zeile.spacing = 12
         zeile.translatesAutoresizingMaskIntoConstraints = false
+        // Der Stapel bestimmt die Höhe der Zeile und wird nicht über seine eigene
+        // hinaus gedehnt – sonst stünde der Inhalt in einer zu hohen Zelle.
+        zeile.setContentHuggingPriority(.required, for: .vertical)
+        zeile.setContentCompressionResistancePriority(
+            .required, for: .vertical)
 
         spalte.axis = .vertical
         spalte.alignment = .fill
@@ -576,8 +596,11 @@ final class SubtitleCell: UITableViewCell {
         // Menü-Knopf aus der Zeile. Wer hier nachgibt, bestimmt die Breite der
         // ganzen Zeile.
         spalte.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        // … und im Gegenzug hält der Stapel dagegen: Er hat die höhere Priorität
+        // als das Zubehör und weicht erst dann, wenn auch dieses nichts mehr
+        // hergeben kann.
         spalte.setContentCompressionResistancePriority(
-            .defaultLow, for: .horizontal)
+            .defaultHigh, for: .horizontal)
 
         zeile.addArrangedSubview(symbolView)
         spalte.addArrangedSubview(beschriftung)
@@ -597,6 +620,26 @@ final class SubtitleCell: UITableViewCell {
             // nicht mehr: Die iOS-Vorgabe ist 20, was hier zu viel Luft lässt.
             symbolView.widthAnchor.constraint(equalToConstant: 22),
 
+            // Die **Mindestbreite des Textes** – die harte Grenze, an der eine
+            // Beschreibung aufhört, ein Text zu sein.
+            //
+            // Prioritäten allein genügen nicht: Sie sind ein Vorschlag ans Layout,
+            // und bei genügend Zubehör (Menü-Knopf mit langem Wert) gewinnt am
+            // Ende doch der, dem mehr daran liegt. Dann schrumpft die Spalte auf
+            // die Breite des längsten Wortes und die Beschreibung steht ein Wort
+            // pro Zeile.
+            //
+            // Deshalb wird die Breite **zugesichert** und nicht nur gewünscht: Die
+            // Spalte bekommt mindestens 45 % der Zeile. Das reicht für mehrere
+            // Worte nebeneinander und lässt dem Zubehör weiterhin seinen Platz.
+            spalte.widthAnchor.constraint(
+                greaterThanOrEqualTo: zeile.widthAnchor, multiplier: 0.45),
+
+            // Dieselbe Grenze von der anderen Seite: Das Zubehör darf **nie** mehr
+            // als die Hälfte der Zeile beanspruchen – und wird dabei gekürzt.
+            zubehoerBehaelter.widthAnchor.constraint(
+                lessThanOrEqualTo: zeile.widthAnchor, multiplier: 0.5),
+
             zeile.topAnchor.constraint(
                 equalTo: contentView.topAnchor, constant: 11),
             zeile.leadingAnchor.constraint(
@@ -606,6 +649,38 @@ final class SubtitleCell: UITableViewCell {
             zeile.bottomAnchor.constraint(
                 equalTo: contentView.bottomAnchor, constant: -11),
         ])
+    }
+
+    /// Leert die Zelle, bevor sie für eine andere Zeile benutzt wird.
+    ///
+    /// `setzeInhalt` trägt bei jedem Aufbau alles neu ein, auch den Text. Trotzdem
+    /// bleiben hier zwei Dinge zurück, die das Layout verfälschen: die **gemessene
+    /// Höhe** der Felder und das **Zubehör** einer Zeile, die keines hat.
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        setzeInhalt(titel: "", untertitel: nil, symbol: "")
+        setzeZubehoer(nil)
+        neuMessen()
+    }
+
+    /// Sagt dem Layout, dass es die Beschriftungen neu messen soll.
+    ///
+    /// `UILabel` merkt sich seine Höhe für die **zuletzt gesehene** Breite. Die
+    /// Breite der Spalte hängt aber davon ab, was rechts daneben steht – und das
+    /// ändert sich von Zeile zu Zeile (Schalter, Haken, Menü-Knopf oder nichts).
+    ///
+    /// Ohne diese Ansage rechnet die Liste mit der alten Höhe: Das ist bei einer
+    /// breiteren Spalte eine zu kleine Zeile und der Text wird abgeschnitten, bei
+    /// einer schmaleren eine zu grosse, und die Erklärung wirkt eine Zeile länger,
+    /// als sie ist. Beides ist genau der Springer, den ein Schalter in den
+    /// Einstellungen macht.
+    private func neuMessen() {
+        beschriftung.invalidateIntrinsicContentSize()
+        erklaerung.invalidateIntrinsicContentSize()
+        // Auch Spalte und Stapel: Ihre Höhe ist nichts als die Summe der beiden
+        // Felder, sie müssen den neuen Wert also weiterreichen.
+        spalte.invalidateIntrinsicContentSize()
+        zeile.invalidateIntrinsicContentSize()
     }
 
     /// Trägt Text und Symbol ein, wie die gerade geltende Helligkeit es will.
@@ -631,6 +706,13 @@ final class SubtitleCell: UITableViewCell {
                 pointSize: 16, weight: .regular))
         symbolView.tintColor = istGefaehrlich ? .systemRed : .secondaryLabel
 
+        // Neuer Text, alte Höhe: Ohne diese Ansage behält die Zelle die Höhe, die
+        // zu ihrem **vorherigen** Text gehörte – eine Zeile zu hoch, sobald der
+        // neue Text kürzer ist. Genau das war die „eine Zeile längere
+        // Beschreibung", wenn eine Zelle von einer Schalter- auf eine Menüzeile
+        // (oder umgekehrt) wiederverwendet wurde.
+        neuMessen()
+
         // Die ganze Zeile sagt VoiceOver, was sie zeigt.
         accessibilityLabel = [titel, untertitel].compactMap { $0 }.joined(separator: ", ")
     }
@@ -646,8 +728,23 @@ final class SubtitleCell: UITableViewCell {
             $0.removeFromSuperview()
         }
         if let neu {
+            // Auch hier weicht der **Wert** dem Text, nicht umgekehrt: Ein langer
+            // Menü-Wert darf gekürzt werden, aber nicht so weit, dass die
+            // Beschreibung daneben auf die Breite eines Wortes zusammengeht.
+            if let knopf = neu as? UIButton {
+                knopf.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+                knopf.setContentCompressionResistancePriority(
+                    .defaultLow, for: .horizontal)
+            }
             zubehoerBehaelter.addArrangedSubview(neu)
         }
+        // Das Zubehör ändert die Breite, die der Text zur Verfügung hat – und
+        // damit die Zahl seiner Zeilen. Ohne diese Ansage behält die Zeile die
+        // Höhe, die zu einem **anderen** Zubehör gehört: eine Zeile zu hoch beim
+        // breiteren Text, eine zu niedrige und damit abgeschnitten beim
+        // schmaleren. Genau das war die springende Beschreibung – und damit auch
+        // der zurück-springende Schalter, der in dieser Zeile sitzt.
+        neuMessen()
     }
 
     /// Der Haken eines gewählten Wertes oder der Pfeil, der weiterführt.
@@ -810,12 +907,17 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
         knopf.showsMenuAsPrimaryAction = true
         knopf.contentHorizontalAlignment = .trailing
         // Der Wert wird eher gestaucht als die Beschriftung links – sonst stünde
-        // am Ende ein abgeschnittener Wert neben einem vollständigen Titel.
-        knopf.setContentHuggingPriority(.required, for: .horizontal)
+        // entweder ein abgeschnittener Wert neben einem vollständigen Titel, oder
+        // die Beschriftung schrumpfte, bis nur noch ein Wort pro Zeile übrig ist.
+        knopf.setContentHuggingPriority(.defaultHigh, for: .horizontal)
         knopf.setContentCompressionResistancePriority(
-            .required, for: .horizontal)
+            .defaultLow, for: .horizontal)
 
         knopf.configuration?.title = gewählt?.title
+        // Und damit ein wirklich langer Wert nicht doch alles an sich reißt,
+        // bricht **er** um: Bei einem Knopf mit `configuration` entscheidet nur
+        // dessen `titleLineBreakMode` – am Knopf selbst gesetzt wirkte es nicht.
+        knopf.configuration?.titleLineBreakMode = .byTruncatingTail
         // Der Doppelpfeil ist das Einzige, was ein Aufklappmenü von einem
         // gewöhnlichen Knopf unterscheidet. Ohne ihn sieht die Zeile aus wie ein
         // Schalter, der sich nicht bewegen laesst.
