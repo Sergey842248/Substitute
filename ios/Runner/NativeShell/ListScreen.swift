@@ -858,12 +858,14 @@ final class SubtitleCell: UITableViewCell {
         // Nur eine Zeile, die gerade wirklich steht: Eine Zelle, die gerade
         // wiederverwendet oder aus der Liste geschoben wird, hat keine Höhe, die
         // man neu messen lassen könnte – und würde dabei nur die Liste wachrütteln.
-        guard window != nil, let tabelle = tabelle() else { return }
+        // Die Liste heisst hier `liste` und nicht `tabelle`: Sonst hiesse die
+        // Konstante genauso wie die Methode, aus der sie kommt.
+        guard window != nil, let liste = tabelle() else { return }
         guard noetigeHoehe() > bounds.height + 0.5 else { return }
         nachmessungen += 1
         // Ohne Inhalt: Es soll sich nichts ändern, nur diese Zeile neu gemessen
         // werden. Genau das macht ein leerer Stapel.
-        tabelle.performBatchUpdates(nil)
+        liste.performBatchUpdates(nil)
     }
 
     /// Die Höhe, die der Text bei der Breite braucht, die er jetzt wirklich hat.
@@ -875,7 +877,10 @@ final class SubtitleCell: UITableViewCell {
         let breite = spalte.bounds.width
         guard breite > 0 else { return 0 }
         let grenzen = CGSize(width: breite, height: .greatestFiniteMagnitude)
-        let hoehe = beschriftung.sizeThatFits(grenzen).height
+        // Das ausdrückliche `return` ist hier Pflicht, nicht Geschmack: Die
+        // Methode hat mehr als einen Ausdruck, und Swift lässt die
+        // Rückgabe von selbst nur zu, wenn **eine** Anweisung zurückkommt.
+        return beschriftung.sizeThatFits(grenzen).height
             + erklaerung.sizeThatFits(grenzen).height
             + spalte.spacing
             // Der Abstand, den die Zeile oben und unten lässt – siehe [aufbauen()].
