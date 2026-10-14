@@ -1,6 +1,6 @@
 import UIKit
 
-/// Der Werkzeugkasten – der Abschnitt „Mehr“.
+/// Die Einstellungen – der Abschnitt „Mehr“.
 ///
 /// ## Was hier steht und was nicht
 ///
@@ -8,6 +8,8 @@ import UIKit
 /// Bildschirme, die auf iOS jetzt **nativ** sind. Sie stehen deshalb hier und
 /// nicht in Flutter: Sie sind reine Einstellungen, sie brauchen keine
 /// Dart-Isolate, und sie sehen dadurch aus wie die übrigen Apps auf dem Gerät.
+/// Die Zeilen, die es über die Leiste gibt, sind dieselben wie auf Android –
+/// siehe [MoreScreen.makeSections].
 ///
 /// Der Krankheitstracker ist von hier in die **Suche** gewandert. Er sucht
 /// genauso wie die beiden anderen dort – nach der Klasse, der Stunden gefehlt
@@ -24,7 +26,7 @@ import UIKit
 ///   und schreibt, wäre in Flutter eine ganze laufende Umgebung, die es am
 ///   Anfang hochfährt und danach den Platz belegt.
 /// * Sie sehen dadurch aus wie die übrigen Apps auf dem Gerät. Das ist der
-///   Punkt der Umstellung: grosses Titel, Listen in Gruppen, Schalter wie von
+///   Punkt der Umstellung: grosse Titel, Listen in Gruppen, Schalter wie von
 ///   iOS.
 ///
 /// ## Zwei bleiben in Flutter – und aus guten Gründen
@@ -42,39 +44,29 @@ import UIKit
 /// Zustand, nur ohne die Tab-Leiste darunter. Man ist gerade in einem Werkzeug,
 /// nicht auf einem anderen Reiter.
 final class MoreScreen: ListScreen {
-    /// Bewusst **ohne** Überschrift.
+    /// „Einstellungen“ als **Titel der Seite** – und nirgends sonst.
     ///
-    /// ## Warum
+    /// ## Warum es derselbe Wortlaut ist wie früher die Zeile über der Liste
     ///
-    /// „Einstellungen“ steht hier als grosser Titel über der Liste – und die
-    /// Liste sagt bereits alles: Das sind Einstellungen. Ein Titel, der nichts
-    /// hinzufügt, nimmt dem oberen Drittel des Bildschirms nur Platz weg und
-    /// schiebt die erste Zeile aus dem Blick, sobald man gerade weit unten in
-    /// der Liste war.
+    /// Das Wort stand als Überschrift **innerhalb** der Liste („Settings“ über
+    /// den Zeilen). Dort ist es am falschen Ort: Es steht *zwischen* der Leiste
+    /// und dem ersten Eintrag, ist also weder eine Kopfzeile der Seite noch ein
+    /// Name für etwas darin – und beim Scrollen läuft es weg, während der
+    /// Bildschirm namenlos zurückbleibt.
     ///
-    /// ## Warum kein leerer Titel, sondern wirklich keiner
+    /// Als Titel der Seite sagt es dasselbe und zusätzlich, **was man geöffnet
+    /// hat**: Es bleibt beim Scrollen als kleiner Titel in der Leiste stehen und
+    /// klappt erst mit ihr zusammen, ganz so wie auf jeder anderen Seite dieser
+    /// Bildschirmreihe.
     ///
-    /// `[ListScreen]` bekommt einen Titel für die **Sprache**, nicht für die
-    /// Anzeige. Ohne grossen Titel bleibt aber ein kleiner in der Leiste stehen
-    /// – und der hiesse dann immer noch „Einstellungen“ über einer Liste, die
-    /// sich schon als Einstellungen zu erkennen gibt. Deshalb wird hier beides
-    /// abgestellt: kein grosser Titel und kein Wort in der Leiste.
+    /// ## Warum das auch den leeren Platz vom letzten Mal behebt
     ///
-    /// Der Name lebt trotzdem weiter: als `accessibilityLabel` des Reiters in der
-    /// Leiste ([RootTabBarController]), denn für VoiceOver muss die Leiste
-    /// beschriftet sein, auch wenn sie unter den Symbolen keinen Text zeigt.
-    ///
-    /// ## Warum das hier mehr ist als ein abgestellter Titel
-    ///
-    /// `largeTitleDisplayMode = .never` allein lässt den **Platz** stehen: Die
-    /// Bildschirmreihe hat ihre Leiste auf grosse Titel gestellt (siehe
-    /// [RootTabBarController]), und die reserviert deren Höhe, bis man
-    /// scrollt – mit leerem Titel und ohne jeden Zweck. Deshalb schaltet
-    /// `ListScreen` die grossen Titel beim Erscheinen **ab** (siehe
-    /// [ListScreen.viewWillAppear]) und wieder ein, sobald ein Bildschirm mit
-    /// Titel aufgeschoben wird.
+    /// Damals wurde die Überschrift entfernt – und der Platz, den sie
+    /// eingenommen hatte, blieb als leere Fläche unter der Leiste stehen (die
+    /// Leiste reserviert die Höhe eines grossen Titels, auch wenn keiner da
+    /// ist). Der Platz ist jetzt wieder **besetzt**: von genau diesem Titel.
     init() {
-        super.init(title: "", largeTitle: false)
+        super.init(title: L.settings)
     }
 
     /// Baut die Abschnitte aus dem aktuellen Stand.
@@ -166,12 +158,11 @@ final class MoreScreen: ListScreen {
                 symbol: "hammer"
             ) { self.zeige(DeveloperOptionsScreen()) })
 
-        return [
-            Section(
-                header: L.settings,
-                footer: L.settingsSubtitle,
-                rows: einstellungen),
-        ]
+        // **Ohne** `header` und **ohne** `footer`: Beide waren ein zweiter
+        // Wortlaut fuer dieselbe Sache. Der Titel der Seite sagt „Einstellungen“
+        // – eine Ueberschrift ueber der Liste und eine Fussnote darunter
+        // wiederholten es nur und nahmen Platz weg, den die Zeilen brauchen.
+        return [Section(rows: einstellungen)]
     }
 
     // --------------------------------------------------------------- Wege
@@ -244,11 +235,6 @@ enum FlutterRoute {
         let controller = FlutterViewController(
             engine: engine, nibName: nil, bundle: nil)
         controller.title = route.title
-
-        // Grosse Titel wieder an: Der Werkzeugkasten hat keinen und hat sie
-        // deshalb abgestellt (siehe [MoreSectionController]), dieses Werkzeug
-        // schon – es ist ein Bildschirm wie jeder andere in der Reihe.
-        navigation?.navigationBar.prefersLargeTitles = true
 
         navigation?.pushViewController(controller, animated: true)
     }

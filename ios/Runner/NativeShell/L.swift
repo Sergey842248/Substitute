@@ -43,12 +43,6 @@ enum L {
     /// sagt. Der Reiter zeigt die Einstellungen, also heisst er jetzt auch so.
     static var settings: String { pick("Einstellungen", "Settings") }
 
-    static var settingsSubtitle: String {
-        pick(
-            "Weitere Einstellungen zur Personalisierung Ihrer Erfahrung",
-            "More Settings to personalize your experience")
-    }
-
     static var appearance: String { pick("Aussehen", "Appearance") }
 
     static var appearanceSubtitle: String {
