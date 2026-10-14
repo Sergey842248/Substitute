@@ -30,12 +30,7 @@ import '../teacherVPlan/TeacherVPlan.dart';
 class SearchMenu extends StatelessWidget {
   SearchMenu({Key? key}) : super(key: key);
 
-  /// Der Luft zwischen den drei Teilen eines Eintrags.
-  ///
-  /// 5 statt 8: Mit der flacheren Kopfleiste (siehe `kKopfzeileHoehe`) ist
-  /// der Inhalthoehe genug Platz fuer beide, ohne dass eine Liste von drei
-  /// Eintraegen ueber zwei Bildschirmhaetten reicht.
-  final double margin = 5;
+  final double margin = 8;
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +85,7 @@ class SearchMenu extends StatelessWidget {
             ...elements.map(
               (e) => Center(
                 child: ListItem(
-                  padding: 16,
+                  padding: 20,
                   leading: e['icon'],
                   title: Container(
                     margin: EdgeInsets.only(top: margin, bottom: margin),

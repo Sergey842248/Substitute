@@ -288,26 +288,45 @@ Color darken(Color c, [int percent = 10]) {
 /// Tippen auf das Logo nicht unterschiedlich gross aussehen.
 const double kLogoGroesse = 28;
 
-/// Die Hoehe der Kopfzeile **ohne** den sicheren Bereich des Geraets.
+/// Die Hoehe der **Zeile** in der Kopfzeile – ohne den sicheren Bereich des
+/// Geraets und ohne die Rundung des Inhalts.
+///
+/// Das ist das, was die Kopfzeile an Inhalt wirklich braucht: das Wort (26),
+/// das Logo ([kLogoGroesse]) und der Knopf (48) bekommen hier Platz, sonst
+/// nichts. 56 ist die uebliche Hoehe einer Kopfleiste.
 ///
 /// ## Warum eine feste Zahl und nicht ein Anteil der Bildschirmhoehe
 ///
-/// Vorher stand hier `size.height * 0.2` – ein Fuenftel des Bildschirms fuer
-/// eine Zeile mit einem Wort, einem Symbol und einem Knopf. Auf einem 800
-/// Punkte hohen Telefon sind das 160 Punkte, fuer die Zeile selbst 45. Der Rest
-/// war Leerraum, und zwar sichtbarer: Der Inhalt fing bei `size.height * 0.14`
-/// an und uebermalte von dort aus den Rest der Kopfzeile. Sichtbar blieben rund
-/// 50 Punkte Luft ueber einer Zeile, die kaum 40 davon braucht.
+/// Vorher stand die Zeile in einem Kasten von `size.height * 0.2` – ein
+/// Fuenftel des Bildschirms fuer ein Wort, ein Symbol und einen Knopf. Auf einem
+/// 800 Punkte hohen Telefon sind das 160 Punkte fuer 45. Der Rest war
+/// Leerraum – und weil der Inhalt erst bei `size.height * 0.14` anfing, stand
+/// darunter noch ein Streifen Kopfzeile, den niemand gebraucht hat.
 ///
-/// Das war nicht nur verschenkter Platz, es kostete an anderer Stelle: Weil die
-/// Kopfzeile so hoch war und die Schrift zusaetzlich auf neun Zehntel
-/// heruntergerechnet wurde (siehe [MyApp.build]), mussten Karten, Symbole und
-/// Texte kleiner ausfallen, damit sie ueberhaupt neben ihr Platz fanden.
-///
-/// Eine feste Zahl nennt genau das, was die Leiste wirklich verbraucht, und
-/// laesst den Rest dem Inhalt. 56 ist die uebliche Hoehe einer Kopfleiste und
-/// fasst das Wort (26), das Logo ([kLogoGroesse]) und den Knopf (48) bequem.
+/// Eine feste Zahl nennt genau das, was gebraucht wird, und laesst den Rest dem
+/// Inhalt.
 const double kKopfzeileHoehe = 56;
+
+/// Der Luft zwischen der Kopfzeile und der **Rundung** des Inhalts.
+///
+/// ## Warum es überhaupt Luft geben muss
+///
+/// Der Inhalt ist eine Fläche mit **abgerundeten oberen Ecken**, die über den
+/// unteren Rand der Kopfzeile hinweg in sie hineinragt. Das ist der Übergang,
+/// der die Kopfzeile trägt – ohne ihn stünde der Inhalt als Rechteck unter
+/// einem Rechteck.
+///
+/// Der Wert ist bewusst klein: Er sagt, wie weit die Rundung **an den Inhalt**
+/// der Kopfzeile herankommt. Je kleiner er ist, desto weniger Luft steht
+/// zwischen dem Knopf und der Rundung – und desto schmaler wird die Kopfzeile,
+/// denn sichtbar ist genau der Teil bis zum oberen Rand des Inhalts.
+const double kKopfzeileLuft = 10;
+
+/// Der Radius der oberen Ecken des Inhalts.
+///
+/// 30 wie die Leiste unten und die Kopfzeilen der Inhalte: Bei 45 standen drei
+/// verschiedene Radien in derselben App nebeneinander.
+const double kInhaltRadius = 30;
 
 class MyApp extends StatefulWidget {
   const MyApp({
@@ -1186,7 +1205,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     // ihren Platz daraus und **doppelt** ihn nicht: Er steckt schon in
     // [kKopfzeileHoehe].
     final double sicherOben = MediaQuery.paddingOf(context).top;
-    final double kopfzeilenHoehe = sicherOben + kKopfzeileHoehe;
+
+    // Wo der Inhalt anfängt. Genau hier ist die Kopfzeile zu Ende: Alles
+    // darunter ist der Inhalt, der mit seinen runden Ecken in die Kopfzeile
+    // hineinragt.
+    final double inhaltOben = sicherOben + kKopfzeileHoehe + kKopfzeileLuft;
+
+    // Wie weit die Kopfzeile hinter den Inhalt reicht – genau so weit, wie der
+    // Radius der oberen Ecken. Mehr wäre unsichtbar (der Inhalt liegt darauf),
+    // weniger und die Rundung stünde gegen den Bildschirmgrund statt gegen die
+    // Kopfzeile.
+    final double kopfzeilenHoehe = inhaltOben + kInhaltRadius;
     return Scaffold(
       body: SizedBox(
         height: MediaQuery.of(context).size.height,
@@ -1199,11 +1228,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               children: [
                 // APPBAR
                 //
-                // Nur so hoch, wie sie wirklich braucht: der sichere Bereich
-                // oben plus [kKopfzeileHoehe]. Vorher stand hier
-                // `size.height * 0.2`, waehrend der Inhalt erst bei
-                // `size.height * 0.14` anfing – die Kopfzeile reichte also
-                // unter den Inhalt hinein und was als Streifen sichtbar.
+                // Der Kasten reicht [kInhaltRadius] unter den Inhalt hinein –
+                // damit die runden Ecken des Inhalts gegen **die Kopfzeile**
+                // stehen und nicht gegen den Bildschirmgrund.
+                //
+                // Sichtbar ist davon nur der Teil bis [inhaltOben]: Vorher war
+                // das `size.height * 0.2` gegen `size.height * 0.14`, also gut
+                // 50 Punkte Luft unter einer Zeile, die kaum 40 braucht.
                 Container(
                   alignment: Alignment.topCenter,
                   color: Theme.of(context).colorScheme.surface,
@@ -1383,10 +1414,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
                 // CONTENT
                 Container(
-                  // Genau unter der Kopfzeile. Der Abstand ist damit
-                  // weggeraeumt, den der Unterschied zwischen `0.2` und `0.14`
-                  // uber der Kopfzeile liegen liess.
-                  margin: EdgeInsets.only(top: kopfzeilenHoehe),
+                  // [kKopfzeileLuft] unterhalb der Zeile der Kopfzeile – und
+                  // damit **innerhalb** der Kopfzeile, deren Kasten bis
+                  // [kopfzeilenHoehe] reicht. Die runden Ecken stehen so gegen
+                  // die Kopfzeile, statt den Bildschirm in zwei Rechtecke zu teilen.
+                  margin: EdgeInsets.only(top: inhaltOben),
                   padding: EdgeInsets.only(
                     left: 10,
                     right: 10,
@@ -1402,12 +1434,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             MediaQuery.paddingOf(context).bottom,
                   ),
                   decoration: BoxDecoration(
-                    // 30 wie die Leiste unten und wie die Kopfzeilen der
-                    // Inhalte: Bei 45 standen drei verschiedene Radien in
-                    // derselben App nebeneinander.
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
+                      topLeft: Radius.circular(kInhaltRadius),
+                      topRight: Radius.circular(kInhaltRadius),
                     ),
                     color: Theme.of(context).scaffoldBackgroundColor,
                   ),
