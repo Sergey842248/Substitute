@@ -239,6 +239,27 @@ final class FeldCell: UITableViewCell {
         beschriftung.font = .preferredFont(forTextStyle: .caption1)
         beschriftung.adjustsFontForContentSizeCategory = true
         beschriftung.textColor = .secondaryLabel
+        beschriftung.lineBreakMode = .byWordWrapping
+        beschriftung.numberOfLines = 0
+
+        // ## Ohne diese eine Zeile passiert hier das Schlimmste
+        //
+        // `beschriftung` ist das **einzige** Feld dieser Zelle, das nicht im
+        // Stapel steckt – es hängt direkt am `contentView`. Und ein
+        // programmatisch erzeugtes `UILabel` hat `translatesAutoresizingMaskInto-
+        // Constraints = true`: Es wird **nicht** über Auto Layout gelegt.
+        //
+        // Merkt man sich das nicht, passiert Folgendes: Die Vorgaben für oben
+        // und unten werden ignoriert, die Zelle bekommt von der Beschriftung
+        // keine Höhe mehr – und die Zeile fällt auf die Höhe ihres Inhalts
+        // zusammen. Bei vier Feldern heisst das: alle vier übereinander, und
+        // das erste, was man antippt, ist keines von ihnen.
+        //
+        // Der Stapel (`zeile`) nimmt `symbolView` und `eingabe` auf, und für
+        // beide hebt `addArrangedSubview` den Rahmen-Automatismus von selbst
+        // auf. Die Beschriftung kommt **nicht** in den Stapel, deshalb ist die
+        // eine Zeile hier ihre Pflicht.
+        beschriftung.translatesAutoresizingMaskIntoConstraints = false
 
         symbolView.contentMode = .scaleAspectFit
         symbolView.tintColor = .secondaryLabel

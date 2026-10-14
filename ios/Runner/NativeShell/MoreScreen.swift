@@ -39,8 +39,28 @@ import UIKit
 /// Zustand, nur ohne die Tab-Leiste darunter. Man ist gerade in einem Werkzeug,
 /// nicht auf einem anderen Reiter.
 final class MoreScreen: ListScreen {
+    /// Bewusst **ohne** Überschrift.
+    ///
+    /// ## Warum
+    ///
+    /// „Dashboard" stand hier als grosser Titel über der Liste – und die Liste
+    /// sagt bereits alles: Das sind Werkzeuge. Ein Titel, der nichts hinzufügt,
+    /// nimmt dem oberen Drittel des Bildschirms nur Platz weg und schiebt die
+    /// erste Zeile aus dem Blick, sobald man gerade weit unten in der Liste war.
+    ///
+    /// ## Warum kein leerer Titel, sondern wirklich keiner
+    ///
+    /// `[ListScreen]` bekommt einen Titel für die **Sprache**, nicht für die
+    /// Anzeige. Ohne grossen Titel bleibt aber ein kleiner in der Leiste stehen –
+    /// und der hiesse dann immer noch „Dashboard". Deshalb wird hier beides
+    /// abgestellt: kein grosser Titel und kein Wort in der Leiste.
+    ///
+    /// Der Name des Werkzeugkastens lebt trotzdem weiter: als
+    /// `accessibilityLabel` des Reiters in der Leiste
+    /// ([RootTabBarController]), denn für VoiceOver muss die Leiste beschriftet
+    /// sein, auch wenn sie unter den Symbolen keinen Text zeigt.
     init() {
-        super.init(title: L.dashboard)
+        super.init(title: "", largeTitle: false)
     }
 
     /// Baut die Abschnitte aus dem aktuellen Stand.

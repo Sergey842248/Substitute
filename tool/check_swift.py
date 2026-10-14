@@ -120,6 +120,51 @@ def befunde(text):
             if muster.search(roh):
                 gefunden.add((nummer, "Muster '%s'" % name))
 
+    gefunden |= addsubview_befunde(text)
+    return gefunden
+
+
+def addsubview_befunde(text):
+    """Views, die per `addSubview` ohne Auto Layout eingesetzt werden.
+
+    ## Warum das ein Fehler ist
+
+    Ein programmatisch erzeugtes `UIView` hat von sich aus
+    `translatesAutoresizingMaskIntoConstraints = true`. Dann legt es der Rahmen
+    fest, und die Vorgaben zwischen ihm und seinen Geschwistern werden ignoriert.
+
+    Der Schaden sieht nicht nach einer falschen Groesse aus, sondern nach gar
+    keinem Layout: Die Zeile bekommt ihre Hoehe von niemandem mehr, faellt auf den
+    Inhalt zusammen - und mehrere solche Zeilen liegen **uebereinander**.
+
+    ## Warum Stapel ausgenommen sind
+
+    `addArrangedSubview` schaltet die Vorgabe selbst ab - dort ist nichts zu tun.
+    Wer eine Ansicht **zuerst** in den Stapel und **danach** per `addSubview`
+    einhaengt, wird nicht gemeldet; dafuer gibt es zu viele Wege, und ein
+    Fehlalarm waere schlimmer als eine verschwundene Warnung.
+    """
+    gefunden = set()
+    zeilen = text.split("\n")
+
+    im_stapel = set()
+    for roh in zeilen:
+        for name in re.findall(r"addArrangedSubview\(\s*([A-Za-z_]\w*)", roh):
+            im_stapel.add(name)
+
+    muster = re.compile(r"\.addSubview\(\s*([A-Za-z_]\w*)\s*\)")
+    for nummer, roh in enumerate(zeilen, 1):
+        for name in muster.findall(roh):
+            if name in im_stapel:
+                continue
+            if re.search(
+                    re.escape(name) + r"\.translatesAutoresizingMaskIntoConstraints",
+                    text):
+                continue
+            gefunden.add(
+                (nummer,
+                 "'%s' per addSubview ohne translatesAutoresizingMaskIntoConstraints"
+                 % name))
     return gefunden
 
 

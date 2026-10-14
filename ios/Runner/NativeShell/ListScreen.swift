@@ -45,17 +45,28 @@ enum Row {
         value: Bool,
         action: (Bool) -> Void)
 
-    /// Ein Wechsel **zwischen** Werten, wie bei hell und dunkel.
+    /// Eine Wahl aus mehreren Werten – als **Aufklappmenü**.
     ///
-    /// Als nebeneinanderliegende Auswahlflächen gebaut und nicht als Schalter:
-    /// Es sind gleichwertige Möglichkeiten, und ein Schalter müsste durch
-    /// seinen Zustand sagen, was beim Umstellen passiert. Die Flächen zeigen
-    /// beide, und die gewählte ist gefüllt.
-    case segmentRow(
+    /// ## Warum ein Menü und keine Kacheln nebeneinander
+    ///
+    /// Beides ist „wähle eins von mehreren". Der Unterschied ist, was man
+    /// **vorher** sieht:
+    ///
+    /// * Kacheln nebeneinander zeigen **alle** Möglichkeiten auf einen Blick.
+    ///   Das ist gut bei zwei kurzen Werten – und schlecht, sobald eine dritte
+    ///   Möglichkeit dazukommt: Sie passt nicht mehr daneben, sie rutscht in
+    ///   die nächste Zeile und macht aus einer Zeile zwei.
+    /// * Ein Menü zeigt **nur** das Gewählte, rechts daneben, mit einem kleinen
+    ///   Doppelpfeil. Der Platz reicht immer, und die Zeile bleibt eine Zeile –
+    ///   egal ob zwei oder fünf Möglichkeiten dahinterstecken.
+    ///
+    /// Der Wert steht **rechts** in der Zeile, nicht in der Erklärung darunter:
+    /// Er ist das, woran man merkt, was gerade gilt.
+    case menuRow(
         title: String,
         subtitle: String?,
         symbol: String,
-        options: [SegmentOption])
+        options: [MenuOption])
 
     /// Eine Zeile, die nichts tut, sondern nur einen Text zeigt.
     case textRow(title: String, subtitle: String?, symbol: String)
@@ -159,14 +170,19 @@ extension Row {
             value: value, action: action)
     }
 
-    /// Eine Auswahl zwischen zwei oder mehr Möglichkeiten.
-    static func segment(
+    /// Eine Auswahl aus zwei oder mehr Möglichkeiten – als Aufklappmenü.
+    ///
+    /// Die Zeile selbst zeigt den **gewählten** Wert rechts; sie braucht deshalb
+    /// keine Erklärung darüber, was gerade gilt. Wer trotzdem einen Hinweis
+    /// möchte, gibt ihn als `subtitle` mit – der steht dann **unter** dem Titel,
+    /// wie bei jeder anderen Zeile.
+    static func menu(
         title: String,
         subtitle: String? = nil,
         symbol: String,
-        options: [SegmentOption]
+        options: [MenuOption]
     ) -> Row {
-        .segmentRow(
+        .menuRow(
             title: title, subtitle: subtitle, symbol: symbol,
             options: options)
     }
@@ -179,8 +195,12 @@ extension Row {
     }
 }
 
-/// Ein Angebot in einer [Row.segment]-Zeile.
-struct SegmentOption {
+/// Ein Angebot in einer [Row.menuRow]-Zeile.
+///
+/// `isSelected` wird bei jedem Aufbau neu gesetzt – die Zelle merkt sich
+/// nichts, sondern zeigt das, was der Bildschirm ihr gerade gegeben hat. So
+/// kann die Zeile gar nichts anderes anzeigen, als gespeichert ist.
+struct MenuOption {
     let title: String
     let symbol: String
     let isSelected: Bool
@@ -366,7 +386,6 @@ class ListScreen: UIViewController {
         tableView.dataSource = self
         tableView.delegate = self
         tableView.register(SubtitleCell.self, forCellReuseIdentifier: SubtitleCell.reuseId)
-        tableView.register(SegmentCell.self, forCellReuseIdentifier: SegmentCell.reuseId)
         tableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tableView)
 
@@ -636,90 +655,6 @@ final class SubtitleCell: UITableViewCell {
     }
 }
 
-/// Die Zelle für [Row.segment] – eine Wahl zwischen zwei oder mehr Kacheln.
-final class SegmentCell: UITableViewCell {
-    static let reuseId = "SegmentCell"
-
-    private var stapel: UIStackView?
-
-    /// Ruft der Bildschirm **auf**, wenn eine Kachel gedrückt wurde.
-    ///
-    /// Nötig, damit die Markierung mitwandert: Die Kachel meldet nur, dass sie
-    /// gedrückt wurde, und erst der Bildschirm weiß, was jetzt gespeichert
-    /// ist – und dass er seine Zeilen neu bauen muss.
-    var onTap: (() -> Void)?
-
-    func configure(options: [SegmentOption], accent: UIColor) {
-        backgroundColor = Appearance.surface
-        selectionStyle = .none
-
-        // Der alte Aufbau muss weg: Die Zelle wird über die Wiederverwendung
-        // mehrfach benutzt, und ohne das Entfernen stünden die Kacheln beim
-        // Scrollen ineinander.
-        stapel?.removeFromSuperview()
-        stapel = nil
-
-        let stack = UIStackView()
-        stack.axis = .horizontal
-        stack.distribution = .fillEqually
-        stack.spacing = 8
-        stack.translatesAutoresizingMaskIntoConstraints = false
-
-        for option in options {
-            let button = UIButton(type: .system)
-            button.configuration = option.isSelected ? .filled() : .gray()
-            button.configuration?.cornerStyle = .medium
-            button.configuration?.baseBackgroundColor = option.isSelected
-                ? accent
-                : Appearance.surface
-            button.configuration?.baseForegroundColor = option.isSelected
-                ? .white
-                : .label
-            button.configuration?.title = option.title
-            button.configuration?.image = UIImage(
-                systemName: option.symbol,
-                withConfiguration: UIImage.SymbolConfiguration(
-                    pointSize: 13, weight: .medium))
-            button.configuration?.imagePadding = 6
-            // Bei grosser Systemschrift passt „Wochenansicht" nicht mehr in
-            // eine Kachel. Ohne das bricht der Text **mitten im Wort** ab und
-            // läuft über den Nachbarn; damit wird er am Ende abgeschnitten und
-            // die Kachel bleibt lesbar.
-            button.configuration?.titleLineBreakMode = .byTruncatingTail
-            // Der Knopf muss sich anpassen, statt den Text zu quetschen.
-            button.configuration?.titleAlignment = .center
-
-            // Der Klick geht an den Aufrufer, nicht hier hin: Er muss den Wert
-            // **speichern**, und das Wissen darum liegt dort.
-            button.addAction(
-                UIAction { [weak self] _ in option.action(); self?.onTap?() },
-                for: .touchUpInside)
-
-            stack.addArrangedSubview(button)
-        }
-
-        contentView.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(
-                equalTo: contentView.topAnchor, constant: 10),
-            stack.leadingAnchor.constraint(
-                equalTo: contentView.leadingAnchor, constant: 16),
-            stack.trailingAnchor.constraint(
-                equalTo: contentView.trailingAnchor, constant: -16),
-            stack.bottomAnchor.constraint(
-                equalTo: contentView.bottomAnchor, constant: -10),
-        ])
-        stapel = stack
-    }
-
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        stapel?.removeFromSuperview()
-        stapel = nil
-        onTap = nil
-    }
-}
-
 // MARK: - Die Liste
 
 extension ListScreen: UITableViewDataSource, UITableViewDelegate {
@@ -749,10 +684,17 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
         let row = sections[indexPath.section].rows[indexPath.row]
 
         switch row {
-        case let .segmentRow(_, _, _, options):
-            let cell = tableView.dequeueReusableCell(
-                withIdentifier: SegmentCell.reuseId, for: indexPath) as! SegmentCell
-            cell.configure(options: options, accent: Appearance.accent)
+        case let .menuRow(titel, untertitel, symbol, optionen):
+            let cell = dequeue(indexPath)
+            cell.setzeInhalt(
+                titel: titel, untertitel: untertitel, symbol: symbol)
+            // Die ganze Zeile wird nicht mehr zur Schaltflaeche: Das Menue
+            // haengt am Knopf rechts, und zwei Ziele auf einer Zeile wuerden
+            // bedeuten, dass die Zeile auf die Rander reagiert und der Knopf in
+            // der Mitte – iOS hat beides nicht, und wer es trotzdem baut, merkt
+            // es erst, wenn beim Tippen daneben sich nichts tut.
+            cell.selectionStyle = .none
+            cell.setzeZubehoer(menueKnopf(titel: titel, optionen: optionen))
             return cell
 
         case let .toggleRow(titel, untertitel, symbol, wert, aktion):
@@ -817,6 +759,75 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
     /// gibt es nur hier. Mit `UITableViewCell` als Typ müsste jeder Aufrufer
     /// erst fragen, ob es zufällig doch eine `SubtitleCell` ist – und ein
     /// stillschweigendes „nein" ergäbe eine leere Zeile statt eines Fehlers.
+    /// Der Knopf für ein Aufklappmenü, fertig eingerichtet.
+    ///
+    /// ## Warum das kein `UIAction`-Knopf ist
+    ///
+    /// Ein gewöhnlicher Knopf schickt bei jedem Druck dieselbe Meldung. Ein Knopf
+    /// mit `showsMenuAsPrimaryAction` öffnet bei jedem Druck **das Menü** – das
+    /// ist der ganze Unterschied, und ohne die Zeile passiert beim Antippen
+    /// schlicht nichts.
+    ///
+    /// ## Warum das Menü bei jedem Aufbau neu entsteht
+    ///
+    /// Es merkt sich den gewählten Eintrag nicht. Das ist Absicht: Der Haken
+    /// steht dort, wo der Bildschirm – und damit [AppStore] – gerade sagt, was
+    /// gespeichert ist. Ein Menü, das sich den alten Stand gemerkt hätte, zeigte
+    /// nach dem Umstellen einen Haken an zwei Einträgen.
+    ///
+    /// Der Knopf kommt als **Zubehör** in [SubtitleCell.zubehoerBehaelter]:
+    /// Titel und Erklärung stehen links, der Wert rechts, und der Knopf bekommt
+    /// dort den Platz, den ein Schalter auch bekäme.
+    private func menueKnopf(
+        titel: String, optionen: [MenuOption]
+    ) -> UIButton {
+        let gewählt = optionen.first { $0.isSelected } ?? optionen.first
+
+        let knopf = UIButton(type: .system)
+        knopf.configuration = .plain()
+        knopf.showsMenuAsPrimaryAction = true
+        knopf.contentHorizontalAlignment = .trailing
+        // Der Wert wird eher gestaucht als die Beschriftung links – sonst stünde
+        // am Ende ein abgeschnittener Wert neben einem vollständigen Titel.
+        knopf.setContentHuggingPriority(.required, for: .horizontal)
+        knopf.setContentCompressionResistancePriority(
+            .required, for: .horizontal)
+
+        knopf.configuration?.title = gewählt?.title
+        // Der Doppelpfeil ist das Einzige, was ein Aufklappmenü von einem
+        // gewöhnlichen Knopf unterscheidet. Ohne ihn sieht die Zeile aus wie ein
+        // Schalter, der sich nicht bewegen laesst.
+        knopf.configuration?.image = UIImage(
+            systemName: "chevron.up.chevron.down",
+            withConfiguration: UIImage.SymbolConfiguration(
+                pointSize: 12, weight: .semibold))
+        knopf.configuration?.imagePlacement = .trailing
+        knopf.configuration?.imagePadding = 6
+        knopf.configuration?.baseForegroundColor = Appearance.accent
+        knopf.configuration?.contentInsets = NSDirectionalEdgeInsets(
+            top: 4, leading: 8, bottom: 4, trailing: 0)
+
+        // Der Haken sitzt am **gewählten** Eintrag – so wie in jedem Menü von
+        // iOS.
+        let aktionen = optionen.map { option -> UIAction in
+            UIAction(
+                title: option.title,
+                image: UIImage(systemName: option.symbol),
+                state: option.isSelected ? .on : .off) { _ in
+                    // Der Wert wird **gespeichert** – das Wissen darum liegt beim
+                    // Aufrufer, nicht hier.
+                    option.action()
+                }
+        }
+        knopf.menu = UIMenu(title: "", children: aktionen)
+
+        // Für VoiceOver: Der sichtbare Titel sagt nicht, was gewählt ist.
+        knopf.accessibilityLabel = [titel, gewählt?.title]
+            .compactMap { $0 }
+            .joined(separator: ", ")
+        return knopf
+    }
+
     private func dequeue(_ indexPath: IndexPath) -> SubtitleCell {
         let cell = liste.dequeueReusableCell(
             withIdentifier: SubtitleCell.reuseId, for: indexPath) as! SubtitleCell
@@ -837,7 +848,7 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
         case let .choice(_, _, _, _, _, aktion): aktion()
         // Beim Schalter erledigt die Kachel das selbst – die ganze Zeile
         // tippen zu lassen wäre eine zweite, schlechtere Stelle dafür.
-        case .toggleRow, .segmentRow, .textRow, .warning: break
+        case .toggleRow, .menuRow, .textRow, .warning: break
         }
     }
 
@@ -912,7 +923,7 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
     /// dann wären alle anderen Zeilen auf einem iPhone wie riesige Leerflächen.
     ///
     /// Deshalb misst **jede** Zeile sich selbst: [UITableView.automaticDimension]
-    /// lässt die Liste den Inhalt fragen. Auch die Kachelzeile [Row.segmentRow]
+    /// lässt die Liste den Inhalt fragen. Auch die Menüzeile [Row.menuRow]
     /// misst sich – dort sind es zwei Knöpfe, und deren Höhe folgt dem Text in
     /// ihnen, nicht einer Zahl im Quelltext.
     ///
@@ -923,7 +934,7 @@ extension ListScreen: UITableViewDataSource, UITableViewDelegate {
         _ tableView: UITableView, heightForRowAt indexPath: IndexPath
     ) -> CGFloat {
         switch sections[indexPath.section].rows[indexPath.row] {
-        case .segmentRow, .toggleRow, .choice, .textRow, .warning:
+        case .menuRow, .toggleRow, .choice, .textRow, .warning:
             // Alle Zeilen messen sich selbst – siehe die Beschreibung oben.
             // Eine eigene Höhe je Art gibt es hier bewusst nicht mehr: Jede
             // feste Zahl ist für **irgendeine** Sprache oder Schriftgrösse zu

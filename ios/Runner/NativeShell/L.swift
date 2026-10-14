@@ -35,7 +35,14 @@ enum L {
 
     static var syncShare: String { pick("Sync & Share", "Sync & Share") }
 
-    static var dashboard: String { pick("Dashboard", "dashboard") }
+    /// Der Name des Werkzeugkastens.
+    ///
+    /// **Gross** in beiden Sprachen: Im Deutschen wie im Englischen ist es ein
+    /// Substantiv, und ein klein geschriebenes „dashboard" sieht aus wie ein
+    /// Platzhalter, den jemand vergessen hat. Grossschreibung gilt für die
+    /// Ansage; für die **Leiste** wird der Wert ohnehin nicht benutzt, weil dort
+    /// nur Symbole stehen (siehe [RootTabBarController]).
+    static var dashboard: String { pick("Dashboard", "Dashboard") }
 
     // ------------------------------------------------------------ Bildschirme
 

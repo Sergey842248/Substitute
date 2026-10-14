@@ -14,6 +14,17 @@ import UIKit
 /// sind: Das Theme baut die Flutter-Seite, die Leiste steht hier. Ohne eine
 /// gemeinsame Quelle wüsste beim Zurückkehren niemand, dass sich etwas
 /// geändert hat.
+///
+/// ## Warum das Erscheinungsbild ein **Menü** ist und keine zwei Kacheln
+///
+/// Es war einmal eine Auswahl aus zwei Kacheln – „Dunkel" und „Hell" nebeneinander.
+/// Zwei kurze Worte passen darin, aber das Aussehen hat mehr Werte bekommen
+/// (etwa „wie das Gerät"), und dann passt die dritte Kachel nicht mehr daneben:
+/// Sie rutscht in die nächste Zeile und macht aus einer Zeile zwei.
+///
+/// Das Menü hat das nicht: Es zeigt nur das Gewählte, rechts daneben, mit einem
+/// Doppelpfeil. Eine dritte Möglichkeit kostet nichts, und die Zeile bleibt
+/// eine Zeile.
 final class AppearanceScreen: ListScreen {
     init() {
         super.init(title: L.appearance)
@@ -25,27 +36,10 @@ final class AppearanceScreen: ListScreen {
                 header: L.appearanceTheme,
                 footer: L.appearanceThemeSubtitle,
                 rows: [
-                    .segment(
+                    .menu(
                         title: L.appearanceTheme,
                         symbol: "paintpalette",
-                        options: [
-                            SegmentOption(
-                                title: L.dark,
-                                symbol: "moon.fill",
-                                isSelected: AppStore.theme == .dark
-                            ) {
-                                AppStore.setTheme(.dark)
-                                self.speichern()
-                            },
-                            SegmentOption(
-                                title: L.light,
-                                symbol: "sun.max.fill",
-                                isSelected: AppStore.theme == .light
-                            ) {
-                                AppStore.setTheme(.light)
-                                self.speichern()
-                            },
-                        ])
+                        options: themaMoeglichkeiten())
                 ]),
             Section(
                 rows: [
@@ -54,9 +48,9 @@ final class AppearanceScreen: ListScreen {
                         subtitle: L.showSyncTabSubtitle,
                         symbol: "arrow.triangle.2.circlepath",
                         value: AppStore.showsSyncShareTab
-                    ) { neu in
+                    ) { [weak self] neu in
                         AppStore.setShowsSyncShareTab(neu)
-                        self.speichern()
+                        self?.speichern()
                         // Die Leiste ist längst gebaut. Sie erfährt von der
                         // Änderung erst dadurch, dass hier etwas gesagt wird –
                         // sonst behielte sie den alten Eintrag, bis die App neu
@@ -69,11 +63,37 @@ final class AppearanceScreen: ListScreen {
                         subtitle: L.showWeekViewSubtitle,
                         symbol: "calendar",
                         value: AppStore.showsWeekView
-                    ) { neu in
+                    ) { [weak self] neu in
                         AppStore.setShowsWeekView(neu)
-                        self.speichern()
+                        self?.speichern()
                     },
                 ]),
+        ]
+    }
+
+    /// Die Möglichkeiten für das Erscheinungsbild, mit der gewählten markiert.
+    ///
+    /// Bei **jedem** Aufbau neu gebaut: Das Menü merkt sich den Stand nicht, und
+    /// der Haken muss wandern, sobald jemand einen anderen Wert wählt.
+    private func themaMoeglichkeiten() -> [MenuOption] {
+        let gewählt = AppStore.theme
+        return [
+            MenuOption(
+                title: L.dark,
+                symbol: "moon.fill",
+                isSelected: gewählt == .dark
+            ) { [weak self] in
+                AppStore.setTheme(.dark)
+                self?.speichern()
+            },
+            MenuOption(
+                title: L.light,
+                symbol: "sun.max.fill",
+                isSelected: gewählt == .light
+            ) { [weak self] in
+                AppStore.setTheme(.light)
+                self?.speichern()
+            },
         ]
     }
 
