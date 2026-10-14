@@ -424,13 +424,24 @@ class ListScreen: UIViewController {
         // Zwischen den Zeilen einer Gruppe läuft in iOS **keine** Linie; die
         // Gruppen selbst sind es, die den Abschnitt teilen.
         tableView.separatorStyle = .none
-        // Die Zeilenhöhe folgt dem Text – siehe [heightForRowAt]. Die
-        // Einstellungslisten sind kurz; eine geschätzte Höhe würde hier mehr
-        // schaden als helfen: Bis die tatsächliche Breite von Titel und
-        // Erklärung bekannt ist, kann UIKit die Schätzung als Leerraum
-        // zwischen beiden sichtbar lassen. Ohne Schätzung misst jede Zelle vor
-        // dem ersten Zeichnen ihre endgültige Höhe.
-        tableView.estimatedRowHeight = 0
+        // Die Zeilenhöhe folgt dem Text – siehe [heightForRowAt].
+        //
+        // Der **Schätzwert** ist dabei nicht Kosmetik, sondern die Voraussetzung
+        // dafür, dass die Zeile überhaupt genug Platz bekommt: `UITableView`
+        // setzt die Zeilen nach den Schätzwerten und holt die echten Höhen erst
+        // danach. Eine Liste **ohne** Schätzwert (`0`) legt die Zeilen an, bevor
+        // sie sie gemessen hat – der Inhalt einer Zeile, die noch nicht
+        // gemessen ist, steht dann in einem zu niedrigen Rahmen, und weil die
+        // Zelle ihren Inhalt abschneidet, fehlt genau der Text, der am weitesten
+        // unten steht. Das ist der gemeldete Fehler: Je nach Zeile war nur die
+        // obere Hälfte der Beschreibung zu sehen oder nur ihr mittlerer Teil.
+        //
+        // `UITableView.automaticDimension` ist hier der Vorgabewert seit iOS 11
+        // und bedeutet: Die Liste schätzt aus dem Inhalt der Zellen selbst, die
+        // sie kennt. Das ist die einzige Schätzung, die bei Textzeilen stimmt –
+        // jede feste Zahl ist für **irgendeine** Sprache oder Schriftgrösse zu
+        // klein, und das ist wieder der abgeschnittene Text.
+        tableView.estimatedRowHeight = UITableView.automaticDimension
         tableView.rowHeight = UITableView.automaticDimension
         tableView.dataSource = self
         tableView.delegate = self
@@ -499,6 +510,13 @@ class ListScreen: UIViewController {
 /// [aufbauen()].
 final class SubtitleCell: UITableViewCell {
     static let reuseId = "SubtitleCell"
+
+    /// Der Abstand, den die Zeile über und unter ihrem Stapel lässt.
+    ///
+    /// Als Zahl und nicht als Literal an zwei Stellen: [noetigeHoehe()] rechnet
+    /// ihn für die Nachmessung zusammen, und eine Zahl, die nur einmal im
+    /// Quelltext steht, kann dort nicht veralten.
+    private static let randAbstand: CGFloat = 11
 
     /// Der Text links neben dem Symbol.
     private let beschriftung = UILabel()
@@ -693,13 +711,15 @@ final class SubtitleCell: UITableViewCell {
                 lessThanOrEqualTo: zeile.widthAnchor, multiplier: 0.4),
 
             zeile.topAnchor.constraint(
-                equalTo: contentView.topAnchor, constant: 11),
+                equalTo: contentView.topAnchor,
+                constant: SubtitleCell.randAbstand),
             zeile.leadingAnchor.constraint(
                 equalTo: contentView.layoutMarginsGuide.leadingAnchor),
             zeile.trailingAnchor.constraint(
                 equalTo: contentView.layoutMarginsGuide.trailingAnchor),
             zeile.bottomAnchor.constraint(
-                equalTo: contentView.bottomAnchor, constant: -11),
+                equalTo: contentView.bottomAnchor,
+                constant: -SubtitleCell.randAbstand),
         ])
     }
 
@@ -735,49 +755,153 @@ final class SubtitleCell: UITableViewCell {
         zeile.invalidateIntrinsicContentSize()
     }
 
-    /// Misst die Zeile – und ein **zweites** Mal, wenn es sein muss.
+    /// Misst die Zeile – und so oft, bis die Breite, gegen die gemessen wird,
+    /// auch die ist, die der Stapel wirklich bekommen hat.
     ///
     /// ## Der gemeldete Fehler
     ///
-    /// „Sync-Menü" und „Stundenzeiten ausblenden" zeigten ihre Erklärung beim
-    /// ersten Öffnen **nicht vollständig**: Die letzte Zeile fehlte. Nach einem
-    /// Umschalten des Schalters stand sie da, und die Zeile war plötzlich eine
-    /// Zeile höher. Die Erklärung war also von Anfang an so lang – nur die Zeile
-    /// war zu niedrig, und nach dem Umschalten endlich die richtige Höhe.
+    /// „Der Text der Beschreibung der Optionen ist überall abgeschnitten – je
+    /// nach Zeile sieht man nur die obere Hälfte oder nur den mittleren Teil."
+    /// Kein Text also, der zu Ende kommt, sondern ein Text, dem ein Stück fehlt.
     ///
-    /// ## Warum gerade beim ersten Aufbau
+    /// ## Warum es genau so aussieht
     ///
-    /// Eine mehrzeilige `UILabel` weiss ihre Höhe erst, wenn sie weiss, wie breit
-    /// sie wird. Diese Breite hängt hier vom **Zubehör** ab und steht beim ersten
-    /// Durchgang noch nicht fest: Die Liste misst, solange der Schalter noch
-    /// nicht eingetragen ist, gegen eine unendliche Breite – und bekommt die
-    /// Höhe **einer** Zeile zurück.
+    /// Eine mehrzeilige `UILabel` weiss ihre Höhe erst, wenn sie weiss, **wie
+    /// breit** sie wird – und diese Breite ist die der Spalte. Die Spalte hängt
+    /// vom Zubehör ab (Schalter, Haken, Menü-Knopf oder nichts) und von dem,
+    /// was der Stapel bisher gerechnet hat.
     ///
-    /// Beim zweiten Mal ist die Breite bekannt, das Feld misst gegen sie, und die
-    /// Höhe stimmt. Genau das macht diese Methode.
+    /// Misst man gegen eine zu **grosse** Breite, bricht der Text an dieser
+    /// falschen Stelle um und meldet **weniger** Zeilen – die Zeile wird zu
+    /// niedrig. Zu niedrig heisst: Der Stapel ist höher als die Zelle, in der er
+    /// stehen soll. Die Vorgaben oben und unten sind beide `required`, Auto
+    /// Layout kann also keine davon erfüllen und bricht eine. Weil der Stapel
+    /// zentriert in der Zeile steht, wandert der Überhang mal ganz nach unten
+    /// (sichtbar: die obere Hälfte des Textes) und mal auf beide Seiten
+    /// (sichtbar: der mittlere Teil). Genau diese beiden Bilder sind der gemeldete
+    /// Fehler.
+    ///
+    /// ## Warum ein zweiter Durchgang nicht reichte
+    ///
+    /// Der zweite Durchgang mass gegen die Breite, die der Stapel **vor** dem
+    /// Messen hatte – nicht gegen die, die er danach bekommt. Nach `reloadData()`
+    /// ist das die Breite der **vorigen** Zeile: mit Schalter, mit Haken, ohne
+    /// Zubehör, im Extrem gar keine. Deshalb wird hier gemessen, bis die Breite
+    /// steht – und die Breite wird auch **nach** dem Messen abgefragt, denn erst
+    /// dann hat der Stapel seine endgültige durchgerechnet.
+    ///
+    /// Drei Durchgänge sind dabei eine Bremse, keine Rechnung: Eine Schleife, die
+    /// nie endet, wäre schlimmer als eine Zeile, die einen Durchgang zu niedrig
+    /// ist – dafür steht [hoehePruefen()] da, das die Höhe nachträglich einfordert.
     override func systemLayoutSizeFitting(
         _ targetSize: CGSize,
         withHorizontalFittingPriority horizontalFittingPriority: UILayoutPriority,
         verticalFittingPriority: UILayoutPriority
     ) -> CGSize {
-        // Beim ersten Messen kennt der Stapel seine Breite sonst noch nicht.
-        // Das passiert besonders nach `reloadData()`, wenn ein Schalter oder
-        // Haken gerade ersetzt wurde. Erst den Ziel-Layoutdurchgang ausführen,
-        // dann die Umbruchbreite an die Labels geben.
+        // Der Stapel muss sein Layout durchgerechnet haben, bevor seine Breite
+        // abfragbar ist – sonst misst man gegen die Breite des letzten Durchgangs.
         contentView.setNeedsLayout()
         contentView.layoutIfNeeded()
-        _ = breitenMelden()
-        let hoehe = super.systemLayoutSizeFitting(
-            targetSize,
-            withHorizontalFittingPriority: horizontalFittingPriority,
-            verticalFittingPriority: verticalFittingPriority)
-        // Nur wenn sich die Breite tatsächlich geändert hat – sonst würde jede
-        // Messung zwei Durchgänge kosten.
-        guard breitenMelden() else { return hoehe }
-        return super.systemLayoutSizeFitting(
-            targetSize,
-            withHorizontalFittingPriority: horizontalFittingPriority,
-            verticalFittingPriority: verticalFittingPriority)
+
+        var hoehe = CGSize.zero
+        for _ in 0..<3 {
+            _ = breitenMelden()
+            hoehe = super.systemLayoutSizeFitting(
+                targetSize,
+                withHorizontalFittingPriority: horizontalFittingPriority,
+                verticalFittingPriority: verticalFittingPriority)
+            contentView.layoutIfNeeded()
+            // Nur bei einer echten Änderung weiter: Sonst würde jede Messung
+            // drei Durchgänge kosten.
+            if !breitenMelden() { break }
+        }
+        return hoehe
+    }
+
+    /// Achtet darauf, dass die Zeile am Ende auch so hoch ist, wie der Text sie
+    /// braucht.
+    ///
+    /// Die Liste misst eine Zeile **einmal** und behält ihre Höhe. Ändert sich die
+    /// Breite danach – beim Drehen, bei grösserer Systemschrift, wenn neben dem
+    /// Text ein anderer Knopf steht als vorher –, bricht der Text an der neuen
+    /// Breite um und braucht mehr Zeilen, als die Zeile hoch ist: wieder ein
+    /// abgeschnittener Text, diesmal ohne dass die Liste neu misst.
+    ///
+    /// Deshalb wird die Breite auch während des **Zeichnens** gemeldet und die
+    /// Höhe geprüft.
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        // Ohne echte Breitenänderung gibt es hier nichts zu tun – der Fall, um den
+        // es geht, ist genau die Änderung.
+        guard breitenMelden() else { return }
+        // Die Höhe einer Zeile kann nur die Liste ändern, und das darf nicht
+        // mitten im Layouten geschehen: `performBatchUpdates` löst eine ganze
+        // Kette von Aufrufen aus. Darum erst im nächsten Durchlauf.
+        DispatchQueue.main.async { [weak self] in self?.hoehePruefen() }
+    }
+
+    /// Lässt die Liste diese Zeile neu messen, falls der Text nicht hineinpasst.
+    ///
+    /// ## Warum die Bremse [nachmessungen] nicht weggelassen werden darf
+    ///
+    /// Der Aufruf löst einen weiteren Layoutdurchgang aus, und der wiederum
+    /// `layoutSubviews` – und damit diesen Aufruf. Passt die Zeile, endet die
+    /// Kette nach einem Durchgang. Passt sie **nicht** und lässt sich nicht
+    /// strecken – etwa weil eine Vorgabe im Stapel nicht lösbar ist –, würde sie
+    /// nie enden: Die Liste misst, die Zeile fordert, die Liste misst …
+    ///
+    /// Deshalb wird für **dieselbe** Breite höchstens zweimal nachgemessen.
+    /// Zählt [breitenMelden()] eine neue Breite, fängt die Bremse wieder bei null
+    /// an – für eine neue Breite ist eine neue Messung genau das richtige.
+    private func hoehePruefen() {
+        guard nachmessungen < 2 else { return }
+        // Nur eine Zeile, die gerade wirklich steht: Eine Zelle, die gerade
+        // wiederverwendet oder aus der Liste geschoben wird, hat keine Höhe, die
+        // man neu messen lassen könnte – und würde dabei nur die Liste wachrütteln.
+        guard window != nil, let tabelle = tabelle() else { return }
+        guard noetigeHoehe() > bounds.height + 0.5 else { return }
+        nachmessungen += 1
+        // Ohne Inhalt: Es soll sich nichts ändern, nur diese Zeile neu gemessen
+        // werden. Genau das macht ein leerer Stapel.
+        tabelle.performBatchUpdates(nil)
+    }
+
+    /// Die Höhe, die der Text bei der Breite braucht, die er jetzt wirklich hat.
+    ///
+    /// Gemessen wird gegen dieselbe Breite, gegen die auch umbrochen wird – siehe
+    /// [breitenMelden()]. Genau deshalb kann das Ergebnis stimmen, obwohl es nicht
+    /// aus dem Layout herausgerechnet ist: Es sind dieselben Zahlen.
+    private func noetigeHoehe() -> CGFloat {
+        let breite = spalte.bounds.width
+        guard breite > 0 else { return 0 }
+        let grenzen = CGSize(width: breite, height: .greatestFiniteMagnitude)
+        let hoehe = beschriftung.sizeThatFits(grenzen).height
+            + erklaerung.sizeThatFits(grenzen).height
+            + spalte.spacing
+            // Der Abstand, den die Zeile oben und unten lässt – siehe [aufbauen()].
+            + SubtitleCell.randAbstand * 2
+    }
+
+    /// Wie oft für **dieselbe** Breite schon nachgemessen wurde.
+    ///
+    /// Siehe [hoehePruefen()] – ohne diese Bremse wäre eine Zeile, die auch
+    /// danach noch nicht passt, eine Endlosschleife von Messungen und
+    /// Layoutdurchläufen.
+    private var nachmessungen = 0
+
+    /// Die Liste, in der diese Zelle steht.
+    ///
+    /// Die Zelle kennt ihre Liste nicht – sie wird ja gerade erst gebaut und
+    /// danach wiederverwendet. Der Weg nach oben ist der einzige, den es dafür
+    /// gibt: Die Zelle hängt in einer Container-View der Liste, und erst deren
+    /// Eltern ist die `UITableView`.
+    private func tabelle() -> UITableView? {
+        var lauf: UIView? = superview
+        while let view = lauf {
+            if let tabelle = view as? UITableView { return tabelle }
+            lauf = view.superview
+        }
+        return nil
     }
 
     /// Trägt die Breite der Spalte in die Beschriftungen ein.
@@ -800,6 +924,9 @@ final class SubtitleCell: UITableViewCell {
         else { return false }
         beschriftung.preferredMaxLayoutWidth = breite
         erklaerung.preferredMaxLayoutWidth = breite
+        // Eine neue Breite ist ein neuer Fall: Für sie darf wieder gemessen
+        // werden. Siehe [hoehePruefen()].
+        nachmessungen = 0
         // Das Setzen allein meldet die neue Höhe nicht – erst das Invalidieren
         // tut das. Siehe [neuMessen()].
         neuMessen()

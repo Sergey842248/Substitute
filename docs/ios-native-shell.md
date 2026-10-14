@@ -235,12 +235,41 @@ Fünf Dinge, die man leicht übersieht:
    Leere und blieb auf „loading...". Prüfbar über
    `test/native_shell_route_test.dart`.
 
-4. **Zeilenhöhen in nativen Listen nicht fest vorgeben.**
+4. **Zeilenhöhen in nativen Listen nicht fest vorgeben – und die Liste messen
+   lassen, *wann* sie will.**
    Feste Werte sind für irgend eine Sprache zu klein, und was nicht passt, wird
    nicht abgeschnitten, sondern **überlagert**. Die Listen lassen ihre Höhe
    deshalb selbst messen (`UITableView.automaticDimension`) – und nehmen auch
    das Zubehör in den eigenen Stapel auf, weil `accessoryView` vom System über
    den Inhalt gelegt wird und den Platz für den Text nicht abzieht.
+
+   Dazu drei Dinge, ohne die derselbe Fehler in anderer Gestalt wiederkommt –
+   der gemeldete Fehler war: *Die Beschreibung der Optionen ist abgeschnitten,
+   je nach Zeile sieht man nur die obere Hälfte oder nur den mittleren Teil.*
+
+   * **`estimatedRowHeight` nicht auf `0` setzen.** `UITableView` setzt die
+     Zeilen nach den Schätzwerten und holt die echten Höhen erst danach. Ohne
+     Schätzwert legt die Liste Zeilen an, die noch gar nicht gemessen sind, und
+     weil die Zelle ihren Inhalt abschneidet, fehlt der Text, der am weitesten
+     unten steht. Richtig ist `UITableView.automaticDimension`: die Liste
+     schätzt aus dem Inhalt der Zellen, die sie kennt.
+   * **Die Umbruchbreite ist die Breite, gegen die gemessen wird.**
+     `preferredMaxLayoutWidth` sagt einer mehrzeiligen `UILabel`, **wo** sie
+     umbricht; ohne sie misst das Feld gegen eine unendliche Breite und meldet
+     eine einzige Zeile. Diese Breite ist aber die der Spalte, und die hängt
+     vom Zubehör ab (Schalter, Haken, Menü-Knopf, nichts). `SubtitleCell` fragt
+     sie deshalb **im** `systemLayoutSizeFitting` ab – und zwar nach dem Messen
+     noch einmal, weil erst danach der Stapel seine endgültige Breite
+     durchgerechnet hat. Ein zweiter Durchgang allein reichte nicht: Er mass
+     gegen die Breite **vor** dem Messen, also die der vorigen Zeile.
+   * **Eine Zeile wird einmal gemessen und behält ihre Höhe.** Ändert sich die
+     Breite danach – Drehen, grössere Systemschrift, anderer Knopf daneben –,
+     passt der Text nicht mehr. `SubtitleCell.layoutSubviews` meldet die Breite
+     deshalb auch während des Zeichnens und fordert über `performBatchUpdates`
+     eine neue Messung an, wenn `sizeThatFits` mehr Höhe verlangt, als die Zeile
+     hat. Die Bremse `nachmessungen` ist dabei Pflicht: Ohne sie wäre eine
+     Zeile, die auch danach nicht passt, eine Endlosschleife aus Messen und
+     Layouten.
 
 5. **Wer von `UserDefaults` schreibt, muss `SharedPreferences.reload()` sagen.**
    Dart liest aus einem Cache, und der kennt nur Darts eigene Schreibvorgänge.

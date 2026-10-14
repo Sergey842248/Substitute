@@ -179,11 +179,13 @@ class FormScreen: UIViewController {
 
         tableView.backgroundColor = .clear
         tableView.separatorStyle = .none
-        // Formulare enthalten nur wenige, unterschiedlich hohe Felder. Eine
-        // Höhenschätzung wird hier bis zum nächsten Layoutdurchgang als
-        // sichtbarer Zwischenraum zwischen Titel und Erklärung gezeichnet.
-        // Deshalb jede Zeile sofort in ihrer endgültigen Höhe messen lassen.
-        tableView.estimatedRowHeight = 0
+        // Wie in [ListScreen]: Die Liste braucht einen Schätzwert, sonst legt
+        // sie die Zeilen an, bevor sie sie gemessen hat – und was nicht hineinpasst,
+        // schneidet die Zelle ab. Der Leerraum zwischen Titel und Erklärung, der
+        // hier früher gemeldet wurde, kam nicht von der Schätzung, sondern davon,
+        // dass gegen eine falsche Breite gemessen wurde; dafür sorgt jetzt
+        // [SubtitleCell].
+        tableView.estimatedRowHeight = UITableView.automaticDimension
         tableView.rowHeight = UITableView.automaticDimension
         // Beim Scrollen muss die Tastatur weg: Sie bleibt sonst über den unteren
         // Zeilen stehen, und die sind genau die, die man beim Tippen auslöst.
