@@ -83,7 +83,12 @@ final class SyncHubScreen: ListScreen {
         return .choice(
             title: titel, subtitle: untertitel, symbol: symbol,
             action: {
-                guard let weg = wegZu(id) else { return }
+                // Beides mit `self`: Der Wurf **umgeht** den Bildschirm – er ist
+                // von der Liste gehalten, die der Bildschirm hält – und Swift
+                // verlangt in einem solchen Wurf ausdrücklich `self`. Es entsteht
+                // dadurch kein Kreis: Die Liste hält den Bildschirm, und der
+                // Bildschirm hält die Liste nur bis zum nächsten Neuaufbau.
+                guard let weg = self.wegZu(id) else { return }
                 SyncRoute.present(weg, from: self.navigationController)
             }
         )

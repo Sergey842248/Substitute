@@ -187,27 +187,37 @@ final class RootTabBarController: UITabBarController {
 
         for section in gewuenscht {
             let controller: UIViewController
+            //
+            // Vier Fälle, **kein** verschachtelter Wurf: Vorher stand hier ein
+            // `case .plan, .search, .sync` mit einem zweiten Wurf darin. Das ist
+            // an einer Stelle falsch gegangen – der äussere Fall vergass `.search`
+            // – und ein zweiter Wurf inside ist an einer Stelle falsch zu
+            // pflegen, an der man beim Lesen nicht damit rechnet.
+            //
+            // Ausserdem sagt dieser Wurf jetzt an **einer** Stelle, welche
+            // Reiter nativ sind und welche nicht. Das ist die eigentliche
+            // Entscheidung, und sie gehört an eine Stelle.
             switch section {
-            case .plan, .sync:
-                // Beide sind **native** Reiter: eine Bildschirmreihe aus
-                // `UIKit`, deren Liste aus Dart-Werten gebaut wird. Siehe
-                // [PlanSectionHost] und [SyncSectionHost].
-                //
+            case .plan:
+                // Nativ: eine Bildschirmreihe aus `UIKit`, deren Liste aus
+                // Dart-Werten gebaut wird – siehe [PlanSectionHost].
+                controller = PlanSectionHost()
+
+            case .sync:
+                // Nativ aus demselben Grund – siehe [SyncSectionHost].
+                controller = SyncSectionHost()
+
+            case .search:
                 // Die Suche ist der einzige Reiter, der noch eine Flutter-Ansicht
-                // als Inhalt hat – dort entsteht das Ergebnis beim Tippen.
-                switch section {
-                case .plan: controller = PlanSectionHost()
-                case .sync: controller = SyncSectionHost()
-                case .search:
-                    let flutterSection = PlanSectionController(engines: engines)
-                    // Die Rolle **muss** hier gesetzt sein: Sie entscheidet,
-                    // welcher Abschnitt in dieser Ansicht steht, und sie
-                    // entscheidet es vor dem ersten Frame. Würde sie erst beim
-                    // Aufbau gesetzt, stünde für einen Moment die falsche Seite.
-                    flutterSection.einrichten(role: section.dartRole)
-                    controller = flutterSection
-                case .more: break
-                }
+                // **als Inhalt** hat – dort entsteht das Ergebnis beim Tippen.
+                let flutterSection = PlanSectionController(engines: engines)
+                // Die Rolle **muss** hier gesetzt sein: Sie entscheidet, welcher
+                // Abschnitt in dieser Ansicht steht, und sie entscheidet es vor dem
+                // ersten Frame. Würde sie erst beim Aufbau gesetzt, stünde für einen
+                // Moment die falsche Seite.
+                flutterSection.einrichten(role: section.dartRole)
+                controller = flutterSection
+
             case .more:
                 controller = MoreSectionController()
             }

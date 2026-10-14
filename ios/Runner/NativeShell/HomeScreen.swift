@@ -239,17 +239,70 @@ enum AppInfoBarButton {
 /// vorher ein Blatt war und jetzt eine Seite ist.
 enum LogoBarButton {
     static func make(target: Any?, action: Selector) -> UIBarButtonItem {
+        // Das Bild **unverändert** übernehmen, nicht mit einer Konfiguration
+        // umgeben.
+        //
+        // `UIImage.SymbolConfiguration` ist für **SF Symbols** da, und
+        // `withSymbolConfiguration(_:)` ebenso – beides setzt eine Konfiguration
+        // nur auf ein Symbol. Das Logo hier ist eine Bilddatei, und für sie gibt
+        // es diese Wege nicht. Es gab hier einmal
+        // `UIImage(image: bild, withConfiguration: …)`, und das ist keine
+        // Initialisierung von `UIImage` – der Compiler suchte stattdessen nach
+        // `systemName:` und fand keins.
         let bild = UIImage(named: "AppLogo") ?? UIImage(systemName: "app.dashed")
+
         let knopf = UIBarButtonItem(
-            image: UIImage(
-                image: bild,
-                withConfiguration: UIImage.SymbolConfiguration(scale: .medium)),
-            style: .plain, target: target, action: action)
-        // Der Knopf ist 24 Punkte breit – so breit wie die Symbole der Leiste
-        // sind 28. Er ist ein Erkennungszeichen, kein Gegenstand der Anzeige;
-        // größer geklebt klebt er am Rand und zieht die Aufmerksamkeit vom Titel
+            image: bild, style: .plain, target: target, action: action)
+
+        // Das Bild auf 24 Punkte bringen – so breit, wie die Symbole der Leiste
+        // sind 28. Es ist ein Erkennungszeichen, kein Gegenstand der Anzeige;
+        // größer geklebt klebt es am Rand und zieht die Aufmerksamkeit vom Titel
         // weg.
+        //
+        // **Neu gezeichnet**, und nicht über `imageInsets`: Die verschieben das
+        // Bild nur, sie verkleinern es nicht – und ein 100-Punkte-Bild bliebe
+        // 100 Punkte gross, lediglich an anderer Stelle. Der Weg ist deshalb
+        // [gekuerzt(_:auf:)], der aus demselben Bild eine kleinere Kopie macht.
+        knopf.image = Self.gekuerzt(bild, auf: 24)
+
         knopf.accessibilityLabel = L.home
         return knopf
+    }
+
+    /// Macht aus einem Bild eine kleinere Kopie.
+    ///
+    /// ## Warum **zeichnen** und nicht schrumpfen
+    ///
+    /// `UIEdgeInsets` um ein Bild zu legen verschiebt es, verkleinert es aber
+    /// nicht. Ein verkleinertes Bild bekommt man nur, indem man es neu zeichnet –
+    /// ein `UIImage` hat keine Länge, die man umstellen könnte.
+    ///
+    /// Das Verhältnis wird **beibehalten**: Das Logo ist 608 zu 564 Pixeln, also
+    /// nicht quadratisch. Ein erzwungenes Quadrat würde es auf die Breite
+    /// stauchen und die Buchst darin schmaler machen, als sie sind.
+    ///
+    /// Bilder, die schon klein genug sind, werden **unverändert** zurückgegeben.
+    /// Sie durchzuzeichnen, nur weil sie die richtige Grösse haben, wäre Arbeit
+    /// ohne Ergebnis – und ein Bild, das zweimal gezeichnet wurde, ist unscharfer
+    /// als eines, das einmal gezeichnet wurde.
+    private static func gekuerzt(_ bild: UIImage?, auf breite: CGFloat)
+        -> UIImage?
+    {
+        guard let bild, bild.size.width > breite, bild.size.height > 0 else {
+            return bild
+        }
+
+        let hoehe = breite * bild.size.height / bild.size.width
+        let ziel = CGSize(width: breite, height: hoehe)
+        let format = UIGraphicsImageRendererFormat.default()
+        // Ohne das hätte das Bild den **Schirm** als Massstab und bekäme dessen
+        // Punkte statt seiner eigenen – auf einem iPad also ein ganz anderes Bild
+        // als auf einem iPhone.
+        format.scale = bild.scale
+
+        let neu = UIGraphicsImageRenderer(size: ziel, format: format).image { _ in
+            bild.draw(in: CGRect(origin: .zero, size: ziel))
+        }
+        return neu
     }
 }

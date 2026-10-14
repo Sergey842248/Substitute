@@ -214,22 +214,16 @@ extension Row {
         .textRow(title: title, subtitle: subtitle, symbol: symbol)
     }
 
-    /// Eine Zeile für eine Sache aus den Daten – siehe [Row.thing].
-    ///
-    /// Der Bequemlichkeitsweg, damit die Bildschirme, die ihre Zeilen aus Dart
-    /// bekommen, nicht jedes Mal die Fallunterscheidung ausschreiben müssen.
-    static func thing(
-        title: String,
-        subtitle: String? = nil,
-        symbol: String,
-        kennung: String,
-        art: ThingArt,
-        action: @escaping () -> Void
-    ) -> Row {
-        .thing(
-            title: title, subtitle: subtitle, symbol: symbol,
-            kennung: kennung, art: art, action: action)
-    }
+    // **Kein** `static func thing` – im Gegensatz zu `choice` und `text`.
+    //
+    // Der Fall [.thing] hat keine Vorgabewerte, also braucht es auch keinen Weg
+    // drumherum: `.thing(title: …, art: …)` geht ohnehin nur über den Fall, und
+    // eine gleichnamige Funktion daneben ist in Swift genau dieselbe Unterschrift
+    // – der Compiler meldet „invalid redeclaration".
+    //
+    // `choice` und `text` dürfen das, weil ihre Fälle `choiceRow` und `textRow`
+    // heissen und der gleichnamige Wurf nur eine Kurzform davon ist. Bei `thing`
+    // gäbe es diese Kurzform nicht.
 }
 
 /// Ein Angebot in einer [Row.segment]-Zeile.
