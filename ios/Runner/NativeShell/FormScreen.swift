@@ -89,7 +89,8 @@ struct FormSection {
 /// Text nicht in der Zelle, sondern im Bildschirm: Er wird bei jedem Tastendruck
 /// dorthin gemeldet, und der Bildschirm liefert ihn beim nächsten Aufbau zurück.
 /// Was gespeichert wird, entscheidet der Bildschirm – nicht die Zelle.
-final class FormScreen: UIViewController {
+/// Nicht `final`: [CredentialsScreen] erweitert sie um die vier Felder.
+class FormScreen: UIViewController {
     private(set) var abschnitte: [FormSection] = []
 
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)

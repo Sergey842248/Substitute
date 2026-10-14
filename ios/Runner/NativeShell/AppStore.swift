@@ -287,10 +287,26 @@ enum AppStore {
         setBool(value, for: AppAppearanceKeys.showWeekView)
     }
 
-    /// Wird die ganze Woche gezeigt? – als Zahl, für den gleichnamigen Wert in
-    /// den Flutter-Bildschirmen.
+    /// Steht unter einer Stunde keine Uhrzeit?
+    ///
+    /// ## Warum hier `true` und nicht `false`
+    ///
+    /// So sah der Plan aus, **bevor** es diese Einstellung gab: Die Zeiten
+    /// waren ausgeblendet. Wer sie zum ersten Mal öffnet, bekommt deshalb das
+    /// gewohnte Bild und nicht ein anderes.
+    ///
+    /// Es stand hier früher `false` und trug eine Beschreibung, die zu
+    /// [showsWeekView] gehörte – beides zusammen hiess: derselbe Wert, aber je
+    /// nach Seite ein anderer Vorgabewert. Dart liest `true` (`LessonInfoSettings`),
+    /// und der Speicher hat nur **eine** Vorgabe; die native Seite nähme sich
+    /// sonst die andere, und dieselbe Einstellung stünde auf demselben Gerät
+    /// einmal hell und einmal dunkel.
     static var hidesLessonTimes: Bool {
-        bool(AppAppearanceKeys.hideLessonTimes) ?? false
+        bool(AppAppearanceKeys.hideLessonTimes) ?? true
+    }
+
+    static func setHidesLessonTimes(_ value: Bool) {
+        setBool(value, for: AppAppearanceKeys.hideLessonTimes)
     }
 
     // -------------------------------------------------------------- Sprache
@@ -433,16 +449,6 @@ enum AppStore {
     }
 
     // ------------------------------------------- Angaben, die der Plan zeigt
-
-    /// Steht unter einer Stunde keine Uhrzeit?
-    ///
-    /// `true`, solange nichts eingestellt ist – so sah der Plan aus, bevor es
-    /// diese Einstellung gab. Wer sie zum ersten Mal öffnet, bekommt deshalb
-    /// das gewohnte Bild und nicht ein anderes.
-    static var hidesLessonTimes: Bool { bool("hideLessonTimes") ?? true }
-    static func setHidesLessonTimes(_ value: Bool) {
-        setBool(value, for: "hideLessonTimes")
-    }
 
     /// Steht unter einer Stunde kein Lehrername?
     static var hidesTeacher: Bool { bool("hideTeacher") ?? false }
@@ -728,7 +734,7 @@ struct LessonTime {
     /// Auf englische Art zusammengesetzt und **nicht** mit `DateFormatter`:
     /// Eine Formatierung nach der eingestellten Sprache ergäbe in manchen
     /// Gebieten `08 Uhr 00`, und das wäre kein Wert mehr, den Dart lesen kann.
-    static func zeit(_Components components: DateComponents) -> String {
+    static func zeit(_ components: DateComponents) -> String {
         String(format: "%02d:%02d", components.hour ?? 0, components.minute ?? 0)
     }
 

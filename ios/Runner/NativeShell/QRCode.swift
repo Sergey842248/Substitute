@@ -89,11 +89,16 @@ final class QRCodeView: UIView {
         bildView.image = bild
         rahmenView.isHidden = bild == nil
         // Ohne das läge der Code unscharf auf dem Retina-Bildschirm: Ein
-        // `UIImageView` skaliert ein Bild mit interpolated, und genau an den
-        // Kanten eines QR-Codes entstehen dadurch graue Ränder, die den ganzen
-        // Block unlesbar machen.
-        bildView.layer.magnificationFilter = .none
-        bildView.layer.minificationFilter = .none
+        // `UIImageView` skaliert ein Bild sonst mit weicher Interpolation, und
+        // genau an den Kanten eines QR-Codes entstehen dadurch graue Ränder,
+        // die den ganzen Block unlesbar machen.
+        //
+        // `nearest` und **nicht** `none`: Letzteres gibt es bei
+        // `CALayerContentsFilter` gar nicht. Die beiden Filter heissen
+        // `nearest` und `linear`, und `nearest` ist hier das gesuchte „kein
+        // Glätten, sondern jeden Punkt für sich nehmen".
+        bildView.layer.magnificationFilter = .nearest
+        bildView.layer.minificationFilter = .nearest
     }
 
     override init(frame: CGRect) {
@@ -122,18 +127,19 @@ final class QRCodeView: UIView {
             // Der Rahmen **füllt** diese Ansicht – er bestimmt nicht ihre Höhe.
             //
             // Die Höhe kommt von aussen (in [QRCodeScreen]: quadratisch, aber
-            // höchstens ein Teil des Bildschirms). Wäre der Rahmen hier leading
-            // und trailing eingespannt, hinge die Höhe an der Breite und die
-            // Breite an der Höhe: ein Kreis, aus dem nur die Priorität von
-            // außen herauskommt. So ist es eindeutig: Die Breite ist „so breit
-            // wie der Rahmen", und der Rahmen so breit wie diese Ansicht.
+            // höchstens ein Teil des Bildschirms). Wäre der Rahmen hier nur über
+            // oben, unten und Mitte bestimmt, hinge seine Breite an der Höhe
+            // und umgekehrt – ein Kreis, aus dem nur die Priorität von aussen
+            // herauskommt. So ist es eindeutig: Der Rahmen füllt diese Ansicht.
             rahmenView.topAnchor.constraint(equalTo: topAnchor),
             rahmenView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            rahmenView.leadingAnchorleadingAnchor.constraint(equalTo: leadingAnchorleadingAnchor),
-            rahmenView.trailingAnchortrailingAnchor.constraint(equalTo: trailingAnchortrailingAnchor),
+            rahmenView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            rahmenView.trailingAnchor.constraint(equalTo: trailingAnchor),
 
-
-
+            // Der Code selbst bekommt Innenabstand: Direkt an der Kante
+            // abgeschnittene Module sehen nach einem Fehler im Code aus – und
+            // genau das ist der erste Verdacht, wenn jemand einen Scanner
+            // ausrichtet und nichts passiert.
             bildView.topAnchor.constraint(equalTo: rahmenView.topAnchor, constant: 16),
             bildView.bottomAnchor.constraint(
                 equalTo: rahmenView.bottomAnchor, constant: -16),

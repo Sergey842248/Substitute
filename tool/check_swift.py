@@ -28,8 +28,11 @@ SCHADEN = [
     ("[weak self] im Rumpf einer Funktion",
      re.compile(r"\{\s*\[weak self\]\s+(let|var|return|guard|if|for|while|self\.)")),
     ("Backtick nach Zuweisung", re.compile(r"=\s{2,}`")),
-    ("dreifacher Punkt", re.compile(r"\.\s*\.\s*\.")),
+    # Mit Leerzeichen dazwischen: `0...23` ist ein Bereich und kein Schaden.
+    ("dreifacher Punkt", re.compile(r"\.\s+\.\s+\.")),
     ("Kommentar mitten im Ausdruck", re.compile(r"\{\s*//")),
+    ("Wort doppelt mit Grossbuchstaben", re.compile(r"\b([a-z]+[A-Z][a-zA-Z]*)\1\b")),
+    ("Argument-Beschriftung mit Unterstrich", re.compile(r"\(\s*_[A-Z]\w*\s+\w+\s*:")),
 ]
 
 
