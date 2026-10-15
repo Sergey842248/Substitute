@@ -194,6 +194,63 @@ enum AppStore {
         }
     }
 
+    // ---------------------------------------------------------- Rohwerte
+    //
+    // Alles, was **ohne** Namen des Schulbereichs gebraucht wird: der
+    // Sicherungs-Bildschirm liest und schreibt die ganze Ablage auf einmal,
+    // und weiss dabei nicht im Voraus, welche Schlüssel darin liegen.
+
+    /// Die Schlüssel, unter denen **alle** Werte der App liegen.
+    ///
+    /// ## Warum die Namen hier schon fertig sind
+    ///
+    /// Diese Methode hängt den Schulbereich **nicht** an – anders als [key].
+    /// Sie liefert die Schlüssel so, wie sie in der Datei stehen, also mit dem
+    /// `flutter.`-Vorsatz und **mit** dem `schools.<id>.`-Teil, falls es einen
+    /// gibt.
+    ///
+    /// Genau das braucht die Sicherung: Sie nimmt **jeden** Wert der App mit,
+    /// aus **jedem** Schulbereich. Wer hier [key] aufriefe, bekäme nur den
+    /// gerade aktiven Bereich – und eine Sicherung, die den Namen einer
+    /// anderen Schule mitnimmt, wäre wertlos.
+    static func alleSchluessel() -> [String] {
+        defaults.dictionaryRepresentation().keys
+            .filter { $0.hasPrefix(prefix) }
+            .sorted()
+    }
+
+    /// Alle Werte der App, mit ihren Schlüsseln.
+    static func alleWerte() -> [String: Any] {
+        var ergebnis: [String: Any] = [:]
+        for name in alleSchluessel() {
+            if let wert = defaults.object(forKey: name) { ergebnis[name] = wert }
+        }
+        return ergebnis
+    }
+
+    /// Schreibt einen Wert unter einem Schlüssel, der **schon fertig** ist.
+    ///
+    /// Das Gegenstück zu [alleSchluessel], nicht zu [setString]: Auch hier wird
+    /// nichts ergänzt, weil der Aufrufer den Schlüssel aus einer Datei oder aus
+    /// [alleSchluessel] hat und nicht weiß, zu welchem Bereich er gehört.
+    static func setzeRoh(_ wert: Any, fuer name: String) {
+        defaults.set(wert, forKey: name)
+    }
+
+    /// Entfernt einen Wert, dessen Schlüssel **schon fertig** ist.
+    static func entferneRoh(_ name: String) {
+        defaults.removeObject(forKey: name)
+    }
+
+    /// Das Datum als Text – so, wie Dart es schreibt.
+    ///
+    /// Siehe [datumFormatter]: Ohne Zeitzone und in lokaler Zeit, weil ein `Date`
+    /// in Swift immer ein Zeitpunkt **mit** Ort ist und Dart einen solchen Wert
+    /// nicht lesen könnte.
+    static func isoText(_ datum: Date) -> String {
+        datumFormatter.string(from: datum)
+    }
+
     // -------------------------------------------------------- Benachrichtigungen
 
     /// Es hat sich eine **Darstellungs**-einstellung geändert.

@@ -115,10 +115,10 @@ enum L {
 
     // ------------------------------------------------------------ Werkzeuge
     //
-    // Diese beiden stehen weiterhin in Flutter, werden aber **hier** aufgeführt
-    // – siehe [FlutterRoute]. Vorher waren sie über das Flutter-Dashboard zu
-    // erreichen, und das gibt es als Reiter nicht mehr. Ohne diese Zeilen wären
-    // sie auf iOS spurlos verschwunden.
+    // DieDie WerkzeugeWerkzeuge, die derder WerkzeugkastenWerkzeugkasten zeigt – und diezeigt – und die in `MoreScreen`
+    // stehen. Vorher waren zweizwei davondavon inin Flutter und deshalbdeshalb hierhier nurnur soso
+    // verlinkt, dass sie nichtnicht spurlos verschwanden; jetzt sind alle **nativ**
+    // (siehe `TeacherShortsScreen` und `BackupScreen`).
     //
     // Der Krankheitstracker steht hier **nicht** mehr: Er ist in die Suche
     // gewandert (`SearchMenu.dart`), und die Suche ist auch auf iOS ein Reiter.

@@ -4,12 +4,11 @@ import UIKit
 ///
 /// ## Was hier steht und was nicht
 ///
-/// Hier stehen die Dinge, die man **nicht** jeden Tag braucht – und die drei
-/// Bildschirme, die auf iOS jetzt **nativ** sind. Sie stehen deshalb hier und
-/// nicht in Flutter: Sie sind reine Einstellungen, sie brauchen keine
-/// Dart-Isolate, und sie sehen dadurch aus wie die übrigen Apps auf dem Gerät.
-/// Die Zeilen, die es über die Leiste gibt, sind dieselben wie auf Android –
-/// siehe [MoreScreen.makeSections].
+/// Hier stehen die Dinge, die man **nicht** jeden Tag braucht – und alleallealle
+/// Bildschirme, die auf iOS **nativ** sind. Sie stehen deshalb hier und nicht in
+/// Flutter: Sie brauchen keine Dart-Isolate, und sie sehen dadurch aus wie die
+/// übrigen Apps auf dem Gerät. Die Zeilen, die es über die Leiste gibt, sind
+/// dieselben wie auf Android – siehe [MoreScreen.makeSections].
 ///
 /// Der Krankheitstracker ist von hier in die **Suche** gewandert. Er sucht
 /// genauso wie die beiden anderen dort – nach der Klasse, der Stunden gefehlt
@@ -18,9 +17,9 @@ import UIKit
 /// ## Fast alles hier ist jetzt nativ
 ///
 /// Aussehen, Sprache, Schulen, Anmeldedaten, Plan-Einstellungen mit ihren vier
-/// Untermenüs und die Entwickleroptionen sind in `UIKit` gebaut, nicht in
-/// Flutter. Nicht, weil Flutter das nicht könnte, sondern weil sie es nicht
-/// brauchen:
+/// Untermenüs,,, die Entwickleroptionen, **Lehrerkürzel** und **Sichern &
+/// Wiederherstellen** sind in `UIKit` gebaut, nicht in Flutter. Nicht, weil
+/// Flutter das nicht könnte, sondern weil sie es nicht brauchen:
 ///
 /// * Sie brauchen keine Dart-Isolate. Ein Bildschirm, der ein paar Werte liest
 ///   und schreibt, wäre in Flutter eine ganze laufende Umgebung, die es am
@@ -29,20 +28,25 @@ import UIKit
 ///   Punkt der Umstellung: grosse Titel, Listen in Gruppen, Schalter wie von
 ///   iOS.
 ///
-/// ## Zwei bleiben in Flutter – und aus guten Gründen
+/// ## WasWasWas dasdasdas fürfürfür diediedie beidenbeidenbeiden letztenletztenletzten gekostetgekostetgekostet hathathat
 ///
-/// * **Lehrerkürzel** braucht den Vertretungsplan: Die Liste der Lehrenden steht
-///   im Plan, den der VPlan liefert. Sie hier nachzubauen hieße, den ganzen
-///   Abruf, das Einloggen und die Fehlerbehandlung ein zweites Mal – in einer
-///   Sprache, in der sie bisher nicht existiert.
-/// * **Sichern & Wiederherstellen** braucht das Dateiwahl-Fenster, das
-///   Teilen-Menü und die Verschlüsselung. Das sind drei fremde Frameworks, die
-///   in Flutter schon dastehen.
+/// BeideBeideBeide brauchtenbrauchtenbrauchten anfangsanfangsanfangs fremde Frameworks, und genau das war ihr Grund, in
+/// Flutter zuzuzu bleiben:
 ///
-/// Beide öffnen eine Flutter-Ansicht über der nativen Bildschirmreihe
-/// ([FlutterRoute]) – vollständige Bildschirme mit eigener Leiste und eigenem
-/// Zustand, nur ohne die Tab-Leiste darunter. Man ist gerade in einem Werkzeug,
-/// nicht auf einem anderen Reiter.
+/// * **Lehrerkürzel** brauchte den Vertretungsplan. Jetzt holt
+///   [TeacherShortsStore] die Kürzel selbst – mit `URLSession` und einem
+///   `XMLParser`. Das ist **nicht** derselbe Umfang wie `VPlanAPI` und soll auch
+///   keiner werden: Plankonvertierung, Cache und Plandatei liegen weiterhin in
+///   Flutter, und sie werden hier nicht ein zweites Mal gebaut.
+/// * **Sichern & Wiederherstellen** brauchte `file_picker`, `share_plus` und
+///   `ConfigBackup`. Die ersten beiden sind dünne Hüllen um
+///   [UIDocumentPickerViewController] und [UIActivityViewController]; das dritte
+///   ist dieselbe Schlüsselliste, um die es in [AppStore] geht. Die Rechenarbeit
+///   steht jetzt in [ConfigBackupStore].
+///
+/// Das Dateiformat ist auf **beiden** Plattformen dasselbe. Das ist keine
+/// Nebensache, sondern die Bedingung dafür, dass eine Datei vom Handy auf dem
+/// iPhone etwas wiederherstellt – und umgekehrt.
 final class MoreScreen: ListScreen {
     /// „Einstellungen“ als **Titel der Seite** – und nirgends sonst.
     ///
@@ -112,7 +116,7 @@ final class MoreScreen: ListScreen {
                 title: L.teacherShorts,
                 subtitle: L.teacherShortsSubtitle,
                 symbol: "person.text.rectangle"
-            ) { self.zeigeFlutter(.teacherShorts) },
+            ) { self.zeigezeigezeige(TeacherShortsScreen()) },
         ]
 
         // Die Zugangsdaten stehen **nur** da, wenn es welche gibt.
@@ -149,7 +153,7 @@ final class MoreScreen: ListScreen {
                 title: L.backup,
                 subtitle: L.backupSubtitle,
                 symbol: "externaldrive.badge.timemachine"
-            ) { self.zeigeFlutter(.backup) })
+            ) { self.zeigezeigezeige(BackupScreen()) })
 
         einstellungen.append(
             .choice(
@@ -167,75 +171,18 @@ final class MoreScreen: ListScreen {
 
     // --------------------------------------------------------------- Wege
 
-    /// Öffnet einen **nativen** Bildschirm.
+    /// Öffnet den nächsten Bildschirm.
+    ///
+    /// Es gibt nur **einen** Weg, und das ist Absicht. Als die beiden letzten
+    /// Bildschirme noch in Flutter lagen, gab es zwei: `zeige` für die nativen
+    /// und `zeigeFlutter` für die über einer eigenen Flutter-Maschine geöffneten.
+    ///
+    /// Der zweite ist mit ihnen weggefallen. Ein Weg, der nichts mehr öffnet, ist
+    /// kein Feature, sondern eine zweite Art, sich zu irren: Ein neu hinzugefügter
+    /// Bildschirm landet in der einen Hälfte der App und nicht in der anderen –
+    /// und auf iOS merkt es niemand, weil dort nur eine der beiden Hälften zu
+    /// sehen ist.
     private func zeige(_ screen: UIViewController) {
         navigationController?.pushViewController(screen, animated: true)
-    }
-
-    /// Öffnet einen Bildschirm, der in Flutter liegt.
-    private func zeigeFlutter(_ route: FlutterRoute) {
-        FlutterRoute.present(route, from: navigationController)
-    }
-}
-
-/// Die Werkzeuge, die noch in Flutter stehen.
-///
-/// ## Warum sie über eine [FlutterRoute] gehen
-///
-/// Sie brauchen den Plan, die Klassen, das Dateiwahl-Fenster – also alles, was
-/// in Flutter liegt und dort auch bleiben soll. Sie werden deshalb **über** der
-/// nativen Bildschirmreihe geöffnet, als eigene Flutter-Ansicht.
-///
-/// Sie sind damit keine „halben“ Bildschirme, sondern vollständige: Sie haben
-/// ihre eigene Leiste oben, ihren eigenen Bildschirm und ihren eigenen Zustand.
-/// Was sie nicht haben, ist die Tab-Leiste – und das ist richtig so: Man ist
-/// gerade in einem Werkzeug, nicht auf einem anderen Reiter.
-enum FlutterRoute {
-    case teacherShorts
-    case backup
-
-    /// Die Dart-Route, zu der gehört.
-    var dartRoute: String {
-        switch self {
-        case .teacherShorts: return "/werkzeug/lehrerkuerzel"
-        case .backup: return "/werkzeug/sicherung"
-        }
-    }
-
-    /// Der Titel, solange die Ansicht noch keinen eigenen hat.
-    var title: String {
-        switch self {
-        case .teacherShorts: return L.teacherShorts
-        case .backup: return L.backup
-        }
-    }
-
-    /// Öffnet die Ansicht über der nativen Reihe.
-    static func present(
-        _ route: FlutterRoute, from navigation: UINavigationController?
-    ) {
-        let options = FlutterEngineGroupOptions()
-        options.entrypoint = "main"
-        // Werkzeuge sind keine Reiter, aber sie stehen in der nativen Hülle.
-        // Die Rolle verhindert, dass Flutter ihren weiterhin gemeldeten
-        // unteren Safe-Area-Bereich als dauerhafte leere Schicht zeichnet.
-        // Sie bleibt bewusst von den Reiter-Rollen getrennt: Die Tab-Leiste
-        // wird für ein Werkzeug weiterhin ausgeblendet.
-        options.entrypointArgs = ["--substitute-role=tool"]
-        options.initialRoute = route.dartRoute
-
-        // Eine eigene Maschine: Das Werkzeug soll die Abschnitte nicht
-        // zurücksetzen, in die man vorher gegangen ist.
-        let group = FlutterEngineGroup(name: "substitute-werkzeug", project: nil)
-        let engine = group.makeEngine(with: options)
-        // Siehe [FlutterEngines.registerPlugins]: Ohne das hätte diese
-        // Maschine kein Programm und damit auch keinen Speicher.
-        FlutterEngines.registerPlugins(on: engine)
-
-        let controller = FlutterViewController(
-            engine: engine, nibName: nil, bundle: nil)
-        controller.title = route.title
-
-        navigation?.pushViewController(controller, animated: true)
     }
 }

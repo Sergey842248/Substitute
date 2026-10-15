@@ -738,6 +738,12 @@ class _MyAppState extends State<MyApp> {
   ///   eigenem Zustand; die Leiste verschwindet dabei, denn man ist in einem
   ///   Werkzeug und nicht auf einem anderen Reiter.
   ///
+  ///   Die **Lehrerkürzel** und die **Sicherung** waren früher hier: Beide sind
+  ///   jetzt native Bildschirme (`TeacherShortsScreen`, `BackupScreen`), und die
+  ///   Werkzeugkasten-Zeilen rufen sie direkt auf. Die Fälle bleiben hier, weil
+  ///   dieselben Widgets auf Android weiterhin benutzt werden – nicht, weil auf
+  ///   iOS jemand diese Route aufriefe.
+  ///
   /// * Fehlen die Zugangsdaten, hat [MyApp.initialPage] Vorrang vor allem.
   ///   Wer sich nicht anmelden kann, darf nicht in den Plan kommen, und das
   ///   ist wichtiger als der Name der Route.

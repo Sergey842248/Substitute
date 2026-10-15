@@ -31,11 +31,11 @@ und die Abschnitte der App liegen als echte Ansichtssteuerer darin.
 | &nbsp;&nbsp;├ Standard-Planmodus | nativ |
 | &nbsp;&nbsp;└ Stundenzeiten | nativ |
 | └ Entwickleroptionen | nativ |
-| └ Lehrerkürzel | Flutter |
-| └ Sichern & Wiederherstellen | Flutter |
+| └ Lehrerkürzel | nativnativ |
+| └ Sichern & Wiederherstellen | nativnativ |
 | └ Krankheitstracker | Flutter |
 
-Fast alles im Werkzeugkasten ist damit **Einstellungen** in `UIKit`: Elf
+Fast alles im Werkzeugkasten ist damit **Einstellungen** in `UIKit`: DreizehnDreizehn
 Bildschirme, die Speicherwerte lesen und schreiben. Dafür eine ganze
 Dart-Isolate hochzufahren wäre Aufwand ohne Gegenwert – und sie sehen dadurch
 aus wie die übrigen Apps auf dem Gerät.
@@ -43,25 +43,65 @@ aus wie die übrigen Apps auf dem Gerät.
 Die Abschnitte mit Plan, Suche und Sync bleiben Flutter, weil dort die Arbeit
 liegt: XML lesen, Pläne rechnen, synchronisieren, verschlüsseln.
 
-### Die drei Werkzeuge, die in Flutter bleiben
+### WasWas dasdas fürfür LehrerkürzelLehrerkürzel undund SicherungSicherung gekostet hatgekostet hat
 
-Nicht aus Nachlässigkeit, sondern weil ihnen eine ganze fremde Fachwelt
-gegenübersteht:
+BeideBeide sindsind erst nativ gewordenerst nativ geworden, nachdemnachdem klarklar war,war, **was****was** siesie wirklichwirklich brauchen.brauchen.
+Das ist bei beiden nicht das, was der Name vermuten lässtDas ist bei beiden nicht das, was der Name vermuten lässt:
 
-* **Lehrerkürzel** braucht den Vertretungsplan. Die Liste der Lehrenden steht im
-  Plan, den der VPlan liefert – samt Einloggen, Abruf und Fehlerbehandlung. Sie
-  hier nachzubauen hieße, all das ein zweites Mal zu schreiben, in einer
-  Sprache, in der es bisher nicht existiert.
-* **Sichern & Wiederherstellen** braucht `file_picker`, `share_plus` und die
-  Verschlüsselung aus `ConfigBackup`. Das sind drei Frameworks, die in Flutter
-  schon dastehen.
-* **Krankheitstracker** ist eine eigene Aufgabe – Unterschriften einsammeln –
-  und war nie eine Einstellung.
+* **Lehrerkürzel** braucht tatsächlich den Vertretungsplan – aber nicht den
+  ganzen. `TeacherShortsStore` holt `Klassen.xml` mit `URLSession` und liest
+  daraus die `KKz`-Elemente. Es macht **nicht** das, was `VPlanAPI` macht:
+  keine Plankonvertierung, kein Cache, kein Schreiben in den Planspeicher.
+  Genau das wäre auch schädlich – der Plan-Reiter holt denselben Plan zur
+  selben Zeit, und zwei gleichzeitige Schreibvorgänge in dieselbe Ablage sind
+  genau die doppelte Arbeit, die diese Schale vermeiden soll.
+* **Sichern & Wiederherstellen** braucht `file_picker` und `share_plus` – und
+  die sind dünne Hüllen um `UIDocumentPickerViewController` und
+  `UIActivityViewController`. Das Dateiformat selbst steht jetzt in
+  `ConfigBackupStore` und ist **zeichengleich** mit `ConfigBackup.dart`.
+* **Lehrerkürzel** braucht tatsächlich den Vertretungsplan – aber nicht den
+  ganzen. `TeacherShortsStore` holt `Klassen.xml` mit `URLSession` und liest
+  daraus die `KKz`-Elemente. Es macht **nicht** das, was `VPlanAPI` macht:
+  keine Plankonvertierung, kein Cache, kein Schreiben in den Planspeicher.
+  Genau das wäre auch schädlich – der Plan-Reiter holt denselben Plan zur
+  selben Zeit, und zwei gleichzeitige Schreibvorgänge in dieselbe Ablage sind
+  genau die doppelte Arbeit, die diese Schale vermeiden soll.
+* **Sichern & Wiederherstellen** braucht `file_picker` und `share_plus` – und
+  die sind dünne Hüllen um `UIDocumentPickerViewController` und
+  `UIActivityViewController`. Das Dateiformat selbst steht jetzt in
+  `ConfigBackupStore` und ist **zeichengleich** mit `ConfigBackup.dart`.
 
-Die ersten beiden öffnen eine Flutter-Ansicht **über** der nativen
-Bildschirmreihe ([FlutterRoute]): vollständige Bildschirme mit eigener Leiste
-und eigenem Zustand, nur ohne die Tab-Leiste darunter. Man ist gerade in einem
-Werkzeug, nicht auf einem anderen Reiter.
+Der Krankheitstracker ist keine Einstellung, sondern eine eigene Aufgabe
+(Unterschriften einsammeln); er steht in der Suche.
+
+### Dieselbe Datei auf beiden Plattformen
+
+Der Grund, warum das Dateiformat in **zwei** Sprachen existiert: Eine Datei, die
+auf dem Handy erzeugt wurde, muss auf dem iPhone etwas wiederherstellen – und
+umgekehrt. Deshalb ist die Regel (welche Schlüssel gesichert werden, wie
+Zugangsdaten beim Ersetzen behandelt werden, wie Dateinamen aussehen) an **einer**
+Stelle je Plattform festgeschrieben und nicht über eine Bildschirmdatei verteilt.
+
+Ein Schlüssel, der in `ConfigBackupStore` ergänzt wird, muss in
+`ConfigBackup.dart` ergänzt werden. Sonst landet er in einer Hälfte der
+Sicherungen und in der anderen nicht – und das merkt niemand, bis jemand auf
+einem Gerät einmal das eine und einmal das andere benutzt hat.
+
+Der Krankheitstracker ist keine Einstellung, sondern eine eigene Aufgabe
+(Unterschriften einsammeln); er steht in der Suche.
+
+### Dieselbe Datei auf beiden Plattformen
+
+Der Grund, warum das Dateiformat in **zwei** Sprachen existiert: Eine Datei, die
+auf dem Handy erzeugt wurde, muss auf dem iPhone etwas wiederherstellen – und
+umgekehrt. Deshalb ist die Regel (welche Schlüssel gesichert werden, wie
+Zugangsdaten beim Ersetzen behandelt werden, wie Dateinamen aussehen) an **einer**
+Stelle je Plattform festgeschrieben und nicht über eine Bildschirmdatei verteilt.
+
+Ein Schlüssel, der in `ConfigBackupStore` ergänzt wird, muss in
+`ConfigBackup.dart` ergänzt werden. Sonst landet er in einer Hälfte der
+Sicherungen und in der anderen nicht – und das merkt niemand, bis jemand auf
+einem Gerät einmal das eine und einmal das andere benutzt hat.
 
 ### Was sich am Aufbau ändert
 
@@ -70,9 +110,11 @@ Werkzeugkasten ersetzt. Damit wäre die alte Flutter-Einstellungsseite nicht meh
 zu erreichen gewesen – und mit ihr fünf Einträge (Plan-Einstellungen,
 Lehrerkürzel, Sicherung, Entwickleroptionen, Anmeldedaten).
 
-Deshalb stehen diese fünf jetzt im Werkzeugkasten. Drei davon sind inzwischen
-native Bildschirme; die beiden anderen öffnen eine Flutter-Ansicht. Sie sind
-damit nicht verschwunden, nur an einen anderen Ort.
+Deshalb stehen diese fünf jetzt im Werkzeugkasten,, undund inzwischeninzwischen sind **alle**alle
+fünf** native Bildschirme. Sie sind  damit nicht verschwunden, nur an einen
+
+anderen Ort – und aus einer Liste mit fünf gemischten Einträgen ist eine
+geworden, in der jede Zeile dasselbe kann: tippen.
 
 ## Die Speicherwerte sind dieselben
 
@@ -133,8 +175,8 @@ der man ihn gedrückt hat.
 Der Startbildschirm bleibt derselbe, die Pläne bleiben dieselben, und die
 Einstellungen sind dieselben. Neu sind:
 
-* die Leiste und die elf Einstellungsbildschirme – sie folgen jetzt iOS statt
-  Flutter,
+* die Leiste und die dreizehndreizehn Einstellungsbildschirme – sie folgen jetzt iOS
+  statt Flutter,
 * der unterste Bildschirm heißt „Dashboard" und enthält Werkzeuge; Sync hat
   einen eigenen Reiter wie vorher,
 * **iOS 15** ist die Mindestversion (vorher 13). Grund sind `UIButton.Configuration`

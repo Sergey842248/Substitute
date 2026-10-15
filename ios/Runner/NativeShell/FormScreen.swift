@@ -371,6 +371,15 @@ final class FeldCell: UITableViewCell {
             systemName: symbol,
             withConfiguration: UIImage.SymbolConfiguration(
                 pointSize: 16, weight: .regular))
+        // **Kein** Symbol bei einem leeren Namen: Vor fünfzig Zeilen – etwa den
+        // Lehrerkürzeln – wäre ein Symbol in jeder davon eine Lärmkulisse, und
+        // das Feld rückte um seinen Platz nach rechts, ohne einen Grund zu haben.
+        //
+        // `isHidden` genügt dafür: `addArrangedSubview` hat den Stapel gelehrt,
+        // und ein ausgeblendetes angeordnetes Feld nimmt an ihm **überhaupt**
+        // keinen Teil – auch nicht über die Breite von 22 Punkten und den
+        // Abstand daneben. Beides bliebe sonst als leerer Raum stehen.
+        symbolView.isHidden = symbol.isEmpty
         backgroundColor = Appearance.surface
         selectionStyle = .none
         accessibilityLabel = titel
