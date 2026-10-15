@@ -1,0 +1,134 @@
+name: Build iOS Simulator Debug App
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-simulator-debug-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-simulator-debug:
+    name: Build and package iOS Simulator Debug app
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Select Xcode 26.6 and verify Apple tools
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo xcode-select --switch /Applications/Xcode_26.6.app
+          xcodebuild -version
+          xcrun simctl list devices available >/dev/null
+
+      - name: Set up Flutter stable
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          pub-cache: true
+
+      - name: Validate Flutter project and read app version
+        id: app-version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! -f pubspec.yaml || \
+                ! -d ios/Runner.xcodeproj || \
+                ! -f ios/Runner.xcworkspace/contents.xcworkspacedata ]]; then
+            echo "::error::Expected a Flutter project at repository root with ios/Runner.xcodeproj and ios/Runner.xcworkspace."
+            exit 1
+          fi
+
+          VERSION_FIELD="$(python3 - <<'PYTHON'
+          from pathlib import Path
+          import re
+
+          text = Path("pubspec.yaml").read_text(encoding="utf-8")
+          match = re.search(
+              r"^version:\s*['\"]?([^\s'\"]+)['\"]?\s*(?:#.*)?$",
+              text,
+              re.MULTILINE,
+          )
+
+          if not match:
+              raise SystemExit("Could not read the version field from pubspec.yaml")
+
+          print(match.group(1))
+          PYTHON
+          )"
+
+          if [[ ! "${VERSION_FIELD}" =~ ^([0-9]+\.[0-9]+\.[0-9]+)\+([0-9]+)$ ]]; then
+            echo "::error::pubspec.yaml must contain version: MAJOR.MINOR.PATCH+BUILD, for example version: 3.9.8+3908. Found: ${VERSION_FIELD}"
+            exit 1
+          fi
+
+          APP_VERSION="${BASH_REMATCH[1]}"
+          BUILD_NUMBER="${BASH_REMATCH[2]}"
+
+          echo "App version: ${APP_VERSION} (${BUILD_NUMBER})"
+          echo "app_version=${APP_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "build_number=${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Install Flutter dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter --version
+          flutter pub get
+
+      - name: Build iOS Simulator Debug app
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          flutter build ios \
+            --simulator \
+            --debug \
+            --no-codesign \
+            --build-name "${{ steps.app-version.outputs.app_version }}" \
+            --build-number "${{ steps.app-version.outputs.build_number }}"
+
+      - name: Package simulator app for Appetize
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          APP_PATH="build/ios/iphonesimulator/Runner.app"
+          ZIP_PATH="${GITHUB_WORKSPACE}/Runner.app.zip"
+
+          if [[ ! -d "$APP_PATH" ]]; then
+            echo "::error::Simulator app was not found at ${APP_PATH}"
+            echo "Contents of build/ios:"
+            find build/ios -maxdepth 4 -print || true
+            exit 1
+          fi
+
+          # Include the .app bundle itself at the root of the archive.
+          cd "$(dirname "$APP_PATH")"
+          /usr/bin/zip -qry "$ZIP_PATH" "$(basename "$APP_PATH")"
+
+          if [[ ! -s "$ZIP_PATH" ]]; then
+            echo "::error::The simulator archive was not created."
+            exit 1
+          fi
+
+          echo "Created simulator package: ${ZIP_PATH}"
+          echo "Package size: $(du -h "$ZIP_PATH" | cut -f1)"
+
+      - name: Upload simulator build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-debug-app
+          path: Runner.app.zip
+          if-no-files-found: error
+          retention-days: 7

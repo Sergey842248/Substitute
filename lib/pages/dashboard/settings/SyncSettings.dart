@@ -4,6 +4,7 @@ import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:substitute/services/SchoolStorage.dart';
+import 'package:substitute/services/SyncShareEnabled.dart';
 import 'package:substitute/services/sync/SyncApiClient.dart';
 import 'package:substitute/services/sync/SyncCoordinator.dart';
 import 'package:substitute/services/sync/SyncEngine.dart';
@@ -55,6 +56,15 @@ class _SyncSettingsState extends State<SyncSettings> {
   bool _checkedServer = false;
   bool _showDetails = false;
 
+  /// Ob Sync und Teilen ausgeschaltet sind.
+  ///
+  /// Das ist genau dann der Fall, wenn der Eintrag in der Navigationsleiste
+  /// ausgeblendet ist – diese Seite ist dann gewöhnlich gar nicht erreichbar.
+  /// Wer sie sich trotzdem öffnet (der Eintrag war vorher da, oder er ist über
+  /// einen Share dorthin gekommen), soll aber nicht an einem Knopf scheitern,
+  /// der ins Leere läuft: Das Nachricht-Feld sagt dann, warum.
+  bool _disabled = false;
+
   @override
   void initState() {
     super.initState();
@@ -78,6 +88,7 @@ class _SyncSettingsState extends State<SyncSettings> {
       _prefs = prefs;
       _state = state;
       _client = client;
+      _disabled = !SyncShareEnabled.isEnabled(prefs);
       // Der Entwicklerschalter wird bei jedem [_load] neu gelesen, nicht nur
       // beim Öffnen der Seite: Er wird in den Entwickleroptionen umgelegt, und
       // wer danach hierher zurückkehrt, soll die Kacheln sehen – ohne die App
@@ -236,6 +247,15 @@ class _SyncSettingsState extends State<SyncSettings> {
   Future<void> _runSync() async {
     if (_prefs == null || _state == null) return;
     final AppLocalizations l10n = AppLocalizations.of(context)!;
+
+    // Abgeschaltet: Der Koordinator würde ohnehin nichts tun, und die Seite
+    // meldete danach „alles aktuell" – also so, als wäre synchronisiert
+    // worden. Stattdessen steht hier der Grund.
+    if (_disabled) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.syncShareDisabledNote)));
+      return;
+    }
 
     setState(() => _busy = true);
     // Bewusst über den Koordinator und nicht direkt über die Engine: Ein Lauf
@@ -571,8 +591,14 @@ class _SyncSettingsState extends State<SyncSettings> {
         child: ListPage(
           title: l10n.syncTitle,
           onRefresh: state == null ? null : _runSync,
+          // Wie im Suchmenü: Beim Herunterziehen zeigten der Kreis des
+          // `RefreshIndicator` und die drei springenden Punkte nebeneinander.
+          // Die Punkte in der Liste sagen dasselbe und bleiben auch dann
+          // sichtbar, wenn der Vorgang gar nicht am Ziehen hängt.
+          noSpinnerRefreshIndicator: true,
           children: <Widget>[
             if (_busy) const Center(child: LoadingIndicator()),
+            if (_disabled) _disabledNote(l10n),
             // Die Server-Kachel ist Werbung für den Server und für niemanden
             // sonst: Im Alltag ist sie eine Zeile, die man nicht liest. Sie
             // erscheint deshalb nur, wenn die Entwickleroption
@@ -792,6 +818,28 @@ class _SyncSettingsState extends State<SyncSettings> {
               ),
             ),
           ),
+        ),
+      );
+
+  /// Der Hinweis, wenn Sync und Teilen ausgeschaltet sind.
+  Widget _disabledNote(AppLocalizations l10n) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Icon(Icons.cloud_off_rounded, size: 20, color: Colors.grey),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                l10n.syncShareDisabledNote,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w100,
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+          ],
         ),
       );
 

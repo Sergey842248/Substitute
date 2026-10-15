@@ -209,6 +209,7 @@
   "ok": "OK",
   "processCanTakeSeconds": "This process can take a few seconds!",
   "loading": "loading...",
+  "updating": "updating...",
   "classesFromTeacher": "Classes from {teacherName} - {displayDate}",
   "@classesFromTeacher": {
     "placeholders": {
@@ -493,6 +494,7 @@
   "shareEdit": "Edit share",
   "shareEditSubmit": "Save changes",
   "shareEmpty": "No shares yet. Create one to give other teachers your classes and persons.",
+  "syncShareDisabledNote": "Sync and sharing are switched off. Your existing syncs and shares are kept – switch them back on under Settings → Appearance.",
   "shareUsername": "My username",
   "shareUsernameSubtitle": "Ten words that colleagues enter to open your shares",
   "shareUsernameRegenerate": "New username",
@@ -509,7 +511,7 @@
   "sharePasswordSubtitle": "Protects the share – even against people who have the school credentials",
   "sharePasswordGenerate": "Generate password",
   "sharePasswordOwn": "Your own password",
-  "sharePasswordHint": "Ten words, e.g. red moon water nine",
+  "sharePasswordHint": "Your password",
   "sharePasswordRequired": "This share has a password. Enter it to open.",
   "shareSelectWhat": "What should be shared?",
   "shareSelectClasses": "Classes",
@@ -567,6 +569,7 @@
   "shareErrorNothingSelected": "Please select what should be shared",
   "shareErrorTooManyShares": "You already have {count} shares. Delete one to create a new one.",
   "shareErrorWrongCredentials": "This share could not be opened – wrong code or wrong school number?",
+  "shareErrorPasswordWrong": "This share could not be opened – the password is probably wrong.",
   "shareErrorUnreadable": "These data could not be read",
   "shareDemoNoShares": "Nobody has shared anything yet",
   "shareDelete": "Delete share"

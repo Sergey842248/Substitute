@@ -3,6 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:substitute/services/AppAppearance.dart';
 import 'package:substitute/services/SchoolStorage.dart';
+import 'package:substitute/services/sync/ShareManager.dart';
+import 'package:substitute/services/sync/SyncApiClient.dart';
+import 'package:substitute/services/sync/SyncEngine.dart';
 
 import '../../../models/ListPage.dart';
 import '../../../models/SettingsSwitchTile.dart';
@@ -16,8 +19,11 @@ import '../../../models/SettingsSwitchTile.dart';
 ///   ausschließlich so aussah. Wer zum ersten Mal hier öffnet, bekommt das
 ///   gewohnte Bild.
 /// * **Der Sync-Eintrag in der Leiste.** Die Leiste ist knapp, und nicht jeder
-///   braucht die drei Funktionen. Ausgeschaltet verschwindet der Eintrag; die
-///   Funktionen selbst bleiben erreichbar, sonst wären sie weg.
+///   braucht die drei Funktionen. Ausgeschaltet verschwindet der Eintrag **und
+///   die Funktionen schlafen ein**: Es wird nichts synchronisiert, nichts
+///   geteilt und nichts von fremden Shares geholt. Nichts wird dabei gelöscht –
+///   wer den Eintrag wieder einblendet, hat sofort wieder seinen Sync und seine
+///   Shares, genau wie vorher.
 /// * **Die Wochenansicht.** Ob ein Klick auf eine Klasse den Plan für einen
 ///   Tag oder für die ganze Woche zeigt, ist eine Frage der Darstellung –
 ///   welche Informationen man sieht, nicht was der Plan enthält.
@@ -28,7 +34,9 @@ import '../../../models/SettingsSwitchTile.dart';
 /// Theme wird von der App-Wurzel gebaut, die Leiste vom Startbildschirm. Ohne
 /// gemeinsame Quelle (`AppAppearance`) wüsste beim Zurückkehren niemand, dass
 /// sich etwas geändert hat, und man käme auf den alten Bildschirm zurück,
-/// ohne dass sich etwas bewegt hätte.
+/// ohne dass sich etwas bewegt hätte. Dasselbe gilt für den Sync-Eintrag: Er
+/// entscheidet nicht nur, was in der Leiste steht, sondern ob Sync und Teilen
+/// überhaupt laufen (siehe `SyncShareEnabled`).
 class AppearanceSettings extends StatefulWidget {
   const AppearanceSettings({Key? key}) : super(key: key);
 
@@ -70,7 +78,36 @@ class _AppearanceSettingsState extends State<AppearanceSettings> {
   Future<void> _setShowSyncTab(bool wert) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() => _showSyncTab = wert);
+    // Aus- und Anschalten derselbe Wert: Der Eintrag ist **zugleich** die
+    // Freigabe für Sync und Teilen. Ein zweiter Schalter – „alles abschalten" –
+    // wäre eine Stufe zu viel und am Ende eine, die jemand vergisst: Solange
+    // er vergessen ist, läuft etwas weiter, das niemand mehr sehen kann. Es
+    // wird nichts gelöscht, deshalb ist das Zurückschalten folgenlos.
     await AppAppearance.setShowSyncShareTab(prefs, wert);
+    await _gleicheSuchverzeichnisAb();
+  }
+
+  /// Nimmt die eigenen Shares aus dem Suchverzeichnis – oder stellt sie hinein.
+  ///
+  /// Wer den Eintrag ausblendet, will nicht in der Liste der Kolleginnen
+  /// stehen. Das Verzeichnis liegt aber auf dem **Server**, also muss der
+  /// Share dorthin geschrieben werden; ein Schalter auf dem Gerät genügt nicht.
+  ///
+  /// Bewusst ohne Ladeanzeige und ohne Meldung: Das Umstellen eines Eintrags in
+  /// den Einstellungen soll nicht auf die Leitung warten, und ein Fehler ist
+  /// hier kein Drama – der Koordinator holt ihn beim nächsten Lauf nach. Wer es
+  /// genau wissen will, sieht es an der Liste der Kolleginnen.
+  Future<void> _gleicheSuchverzeichnisAb() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await ShareManager.gleicheSuchverzeichnis(
+        client: SyncApiClient(baseUrl: SyncEngine.serverUrl(prefs)),
+        prefs: prefs,
+      );
+    } on SyncException {
+      // Ohne Netz geht es jetzt nicht. Der Share bleibt unverändert im
+      // Verzeichnis, und der nächste Versuch holt es nach.
+    }
   }
 
   /// Die Wochenansicht liegt absichtlich hier und nicht in den

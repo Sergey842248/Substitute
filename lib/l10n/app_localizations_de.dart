@@ -415,6 +415,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get loading => 'lade...';
 
   @override
+  String get updating => 'aktualisiere...';
+
+  @override
   String classesFromTeacher(String teacherName, String displayDate) {
     return 'Klassen von $teacherName - $displayDate';
   }
@@ -1222,6 +1225,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Noch keine Shares. Lege einen an, um anderen deine Klassen und Personen zu geben.';
 
   @override
+  String get syncShareDisabledNote =>
+      'Sync und Teilen sind ausgeschaltet. Deine vorhandenen Syncs und Shares bleiben erhalten – schalte es unter Einstellungen → Aussehen wieder ein.';
+
+  @override
   String get shareUsername => 'Mein Nutzername';
 
   @override
@@ -1275,7 +1282,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sharePasswordOwn => 'Dein eigenes Passwort';
 
   @override
-  String get sharePasswordHint => 'Zehn Wörter, z.B. red moon water nine';
+  String get sharePasswordHint => 'Dein Passwort';
 
   @override
   String get sharePasswordRequired =>
@@ -1483,6 +1490,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get shareErrorWrongCredentials =>
       'Dieser Share ließ sich nicht öffnen – falscher Code oder falsche Schulnummer?';
+
+  @override
+  String get shareErrorPasswordWrong =>
+      'Dieser Share ließ sich nicht öffnen – das Passwort ist vermutlich falsch.';
 
   @override
   String get shareErrorUnreadable => 'Diese Daten konnten nicht gelesen werden';

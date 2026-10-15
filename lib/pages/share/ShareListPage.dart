@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:substitute/services/SchoolStorage.dart';
 import 'package:substitute/services/sync/NameGuard.dart';
+import 'package:substitute/services/SyncShareEnabled.dart';
 import 'package:substitute/services/sync/ShareManager.dart';
 import 'package:substitute/services/sync/SyncApiClient.dart';
 import 'package:substitute/services/sync/SyncKeys.dart';
@@ -40,6 +41,13 @@ class _ShareListPageState extends State<ShareListPage> {
   String _displayName = '';
   bool _busy = false;
 
+  /// Ob Sync und Teilen ausgeschaltet sind.
+  ///
+  /// Die Shares stehen trotzdem weiter in der Liste – sie werden nur nicht mehr
+  /// veröffentlicht. Wer sie abschaltet, will sie nicht verlieren, und wer sie
+  /// wieder einschaltet, soll genau dieselben wieder vorfinden.
+  bool _disabled = false;
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +70,7 @@ class _ShareListPageState extends State<ShareListPage> {
       _shares = ShareManager.readShares(prefs);
       _username = ShareManager.readUsername(prefs) ?? '';
       _displayName = ShareManager.readDisplayName(prefs) ?? '';
+      _disabled = !SyncShareEnabled.isEnabled(prefs);
     });
   }
 
@@ -228,6 +237,7 @@ class _ShareListPageState extends State<ShareListPage> {
             if (_busy || _prefs == null)
               const Center(child: LoadingIndicator()),
             if (_prefs != null) ...<Widget>[
+              if (_disabled) _disabledNote(l10n),
               _usernameTile(l10n),
               _displayNameTile(l10n),
               for (final LocalShare share in _shares) _shareTile(l10n, share),
@@ -239,10 +249,14 @@ class _ShareListPageState extends State<ShareListPage> {
                     style: const TextStyle(color: Colors.grey, fontSize: 15),
                   ),
                 ),
-              Button(
-                text: l10n.shareCreate,
-                onPressed: _busy ? null : () => _openEdit(),
-              ),
+              // Der Knopf fehlt ganz, statt nur grau zu sein: Er führt zu
+              // nichts, was man tun dürfte. Wer ihn sieht und ankommt, hat
+              // einen Bildschirm vor sich, der nur erklärt, dass es nicht geht.
+              if (!_disabled)
+                Button(
+                  text: l10n.shareCreate,
+                  onPressed: _busy ? null : () => _openEdit(),
+                ),
               const SizedBox(height: 30),
             ],
           ],
@@ -250,6 +264,31 @@ class _ShareListPageState extends State<ShareListPage> {
       ),
     );
   }
+
+  /// Der Hinweis oben, wenn Sync und Teilen ausgeschaltet sind.
+  ///
+  /// Er steht **über** der Liste und nicht als Meldung daneben: Die Liste selbst
+  /// ist die Antwort auf die Frage, ob die Shares noch da sind – sie sind es.
+  /// Nur veröffentlicht wird nichts mehr, und das steht hier.
+  Widget _disabledNote(AppLocalizations l10n) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Icon(Icons.cloud_off_rounded, size: 20, color: Colors.grey),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                l10n.syncShareDisabledNote,
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w100,
+                    color: Colors.grey),
+              ),
+            ),
+          ],
+        ),
+      );
 
   Widget _usernameTile(AppLocalizations l10n) => Container(
         margin: const EdgeInsets.fromLTRB(20, 10, 20, 0),
@@ -333,7 +372,11 @@ class _ShareListPageState extends State<ShareListPage> {
           margin: const EdgeInsets.all(10),
           child: Center(
             child: ListTile(
-              onTap: () => _openEdit(share: share),
+              // Abgeschaltet lässt sich ein Share nicht bearbeiten – das
+              // Bearbeiten veröffentlicht ihn wieder. Die Zeile bleibt
+              /// sichtbar und löschbar: Nichts wird entfernt, es wird nur nichts
+              // mehr hochgeschickt.
+              onTap: _disabled ? null : () => _openEdit(share: share),
               leading: Container(
                 margin: const EdgeInsets.all(4),
                 padding: const EdgeInsets.all(8),
@@ -464,6 +507,10 @@ String shareErrorMessage(AppLocalizations l10n, String code) => switch (code) {
       'tooManyShares' => l10n.shareErrorTooManyShares(ShareManager.maxShares),
       'wrongCredentials' => l10n.shareErrorWrongCredentials,
       'unreadable' => l10n.shareErrorUnreadable,
+      // Sync und Teilen sind ausgeschaltet. Auch das ist kein Fehler im
+      // Share, sondern eine Entscheidung in den Einstellungen – und die Meldung
+      // sagt deshalb, wo sie zurückzunehmen ist.
+      'syncShareDisabled' => l10n.syncShareDisabledNote,
       _ => syncErrorMessage(l10n, code),
     };
 

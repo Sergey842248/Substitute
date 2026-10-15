@@ -41,12 +41,29 @@ class _ShareEditPageState extends State<ShareEditPage> {
   late TextEditingController _labelController;
   late TextEditingController _passwordController;
 
+  /// Der Fokus des Passwortfeldes.
+  ///
+  /// Das Einschalten des Passwortschalters legt das Feld frei – und der Cursor
+  /// soll dann auch darin stehen. Wer den Share absichern will, tippt sofort;
+  /// er soll nicht erst noch einmal auf das Feld tippen müssen.
+  final FocusNode _passwordFocus = FocusNode();
+
   late List<String> _classes;
   late List<({String id, String name})> _persons;
 
   bool _searchable = true;
   bool _busy = false;
   String? _error;
+
+  /// Ob das Passwortfeld offen steht.
+  ///
+  /// Getrennt vom Inhalt des Feldes: Der Schalter zeigt an, ob ein Passwort
+  /// **gesetzt** ist – das ist der Text im Feld. Das Feld kann offen sein, ohne
+  /// dass schon etwas drinsteht (direkt nach dem Einschalten), und es kann
+  /// gefüllt sein, ohne dass jemand den Schalter umgelegt hat (etwa wenn ein
+  /// vorhandenes Passwort aus dem Speicher kommt). Ein einziges Feld für
+  /// beides würde eines der beiden verschlucken.
+  bool _passwordOpen = false;
 
   /// Ob die erweiterten Optionen aufgeklappt sind. Sie sind die Ausnahme –
   /// der Normalfall ist ein Share für die eigene Schule, sichtbar in der
@@ -78,6 +95,8 @@ class _ShareEditPageState extends State<ShareEditPage> {
           ? ''
           : (ShareManager.readSharePassword(widget.prefs) ?? ''),
     );
+    // Bei einem Share mit Passwort steht das Feld offen – es ist ja gefüllt.
+    _passwordOpen = _passwordController.text.trim().isNotEmpty;
     _searchable = share?.searchable ?? true;
   }
 
@@ -95,6 +114,7 @@ class _ShareEditPageState extends State<ShareEditPage> {
   @override
   void dispose() {
     _labelController.dispose();
+    _passwordFocus.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -210,6 +230,21 @@ class _ShareEditPageState extends State<ShareEditPage> {
     }
   }
 
+  /// Der Schalter „Dein eigenes Passwort".
+  ///
+  /// Einschalten legt das Feld frei und **leert** es – siehe die Kachel. Der
+  /// Schalter selbst steht anschließend noch auf aus, weil im Feld noch nichts
+  /// steht: Das ist die Wahrheit, und beim Speichern wird genau das gespeichert.
+  /// Ein Schalter, der etwas behauptet, das nicht gespeichert wird, wäre schlimmer
+  /// als einer, der einen Tick später nachkommt.
+  void _togglePassword(bool value) {
+    setState(() {
+      _passwordController.clear();
+      _passwordOpen = value;
+    });
+    if (value) _passwordFocus.requestFocus();
+  }
+
   void _toggleClass(String short, bool selected) {
     setState(() {
       _selection = selected
@@ -251,7 +286,12 @@ class _ShareEditPageState extends State<ShareEditPage> {
         // passieren.
         child: BusyOverlay(
           busy: _busy,
-          label: l10n.loading,
+          // Beim Bearbeiten wird nichts neu **angelegt**, sondern der
+          // vorhandene Share mit neuem Inhalt überschrieben. Das sind zwei
+          // verschiedene Vorgänge, und die Anzeige unterschied sie vorher nicht:
+          // Über „Änderungen speichern" stand „lade…" – also eine Meldung über
+          // etwas, das gar nicht geladen wurde.
+          label: editing ? l10n.updating : l10n.loading,
           child: ListPage(
             title: editing ? l10n.shareEdit : l10n.shareCreate,
             children: <Widget>[
@@ -319,23 +359,26 @@ class _ShareEditPageState extends State<ShareEditPage> {
                 l10n.sharePasswordOwn,
                 l10n.sharePasswordSubtitle,
                 _passwordController.text.trim().isNotEmpty,
-                (bool value) => setState(() {
-                  if (value) {
-                    _passwordController.text =
-                        ShareManager.generateSharePassword();
-                  } else {
-                    _passwordController.clear();
-                  }
-                }),
+                _togglePassword,
               ),
-              if (_passwordController.text.trim().isNotEmpty)
+              // Das Feld erscheint, sobald der Schalter eingeschaltet wird –
+              // und bleibt **leer**. Vorher stand hier ungefragt eine Wortphrase
+              // drin („red moon water nine …"), die niemand notiert hatte: ein
+              // Passwort, das beim nächsten Bearbeiten unbemerkt wieder im Feld
+              // stand und von dem niemand wusste, ob es noch gilt. Wer einen
+              // Share absichert, hat meistens ein eigenes Passwort; es soll
+              // getippt werden können. Wer keins hat, tippt auf „Passwort
+              // erzeugen".
+              if (_passwordOpen)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Column(
                     children: <Widget>[
                       InputField(
                         controller: _passwordController,
+                        focusNode: _passwordFocus,
                         labelText: l10n.sharePasswordHint,
+                        onChanged: (_) => setState(() {}),
                       ),
                       Align(
                         alignment: Alignment.centerRight,

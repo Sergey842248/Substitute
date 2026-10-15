@@ -393,7 +393,10 @@ void main() {
       expect(find.text('Aussehen'), findsWidgets);
       expect(find.text('Dunkel'), findsOneWidget);
       expect(find.text('Hell'), findsOneWidget);
-      expect(find.text('Sync-Menü in der Leiste zeigen'), findsOneWidget);
+      // Der Name des Schalters hat sich mit der Zeit geändert („Sync-Menü" →
+      // „Synchronisations-Menü"); der Test hing am alten Wortlaut und meldete
+      // einen Fehler, den es nicht gab.
+      expect(find.text('Synchronisations-Menü'), findsOneWidget);
     });
 
     testWidgets('markiert das aktive Theme', (WidgetTester tester) async {

@@ -824,6 +824,12 @@ abstract class AppLocalizations {
   /// **'loading...'**
   String get loading;
 
+  /// No description provided for @updating.
+  ///
+  /// In en, this message translates to:
+  /// **'updating...'**
+  String get updating;
+
   /// No description provided for @classesFromTeacher.
   ///
   /// In en, this message translates to:
@@ -2246,6 +2252,12 @@ abstract class AppLocalizations {
   /// **'No shares yet. Create one to give other teachers your classes and persons.'**
   String get shareEmpty;
 
+  /// No description provided for @syncShareDisabledNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync and sharing are switched off. Your existing syncs and shares are kept – switch them back on under Settings → Appearance.'**
+  String get syncShareDisabledNote;
+
   /// No description provided for @shareUsername.
   ///
   /// In en, this message translates to:
@@ -2345,7 +2357,7 @@ abstract class AppLocalizations {
   /// No description provided for @sharePasswordHint.
   ///
   /// In en, this message translates to:
-  /// **'Ten words, e.g. red moon water nine'**
+  /// **'Your password'**
   String get sharePasswordHint;
 
   /// No description provided for @sharePasswordRequired.
@@ -2690,6 +2702,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This share could not be opened – wrong code or wrong school number?'**
   String get shareErrorWrongCredentials;
+
+  /// No description provided for @shareErrorPasswordWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'This share could not be opened – the password is probably wrong.'**
+  String get shareErrorPasswordWrong;
 
   /// No description provided for @shareErrorUnreadable.
   ///

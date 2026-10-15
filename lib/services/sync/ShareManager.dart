@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../crypto/Hashing.dart';
 import '../crypto/PayloadCrypto.dart';
 import '../crypto/Passphrase.dart';
 import '../SchoolStorage.dart';
+import '../SyncShareEnabled.dart';
 import 'NameGuard.dart';
 import 'SyncApiClient.dart';
 import 'SyncKeys.dart';
@@ -166,6 +168,7 @@ class LocalShare {
     required this.updatedAt,
     this.hasPassword = false,
     this.selection = const ShareSelection(),
+    this.sucheVeroeffentlicht,
   });
 
   final String id;
@@ -191,6 +194,24 @@ class LocalShare {
   /// Was in diesen Share hineingegangen ist.
   final ShareSelection selection;
 
+  /// Ob der Share zuletzt **im Suchverzeichnis der Schule** stand.
+  ///
+  /// [searchable] ist der **Wunsch** des Nutzers, dieses hier der Stand, den
+  /// der Server tatsächlich bekommen hat. Beides ist nicht dasselbe: Solange
+  /// Sync und Teilen ausgeschaltet sind, gehört der Share nicht ins
+  /// Verzeichnis – der Wunsch bleibt aber gespeichert und gilt wieder, sobald
+  /// der Eintrag wieder da ist (siehe [ShareManager.gleicheSuchverzeichnis]).
+  ///
+  /// `null` heißt: unbekannt, etwa weil der Share aus einer früheren
+  /// App-Version stammt. Dann wird beim nächsten Abgleich nachgeholt.
+  final bool? sucheVeroeffentlicht;
+
+  /// Was der Server aus diesem Share machen soll.
+  ///
+  /// Der eigene Wunsch, aber nur, wenn Sync und Teilen laufen.
+  bool sucheSoll(SharedPreferences prefs) =>
+      searchable && SyncShareEnabled.isEnabled(prefs);
+
   /// Wie der Share in der eigenen Liste beschriftet wird.
   String get displayLabel => label.trim().isEmpty ? 'Share' : label.trim();
 
@@ -201,6 +222,7 @@ class LocalShare {
     String? displayName,
     bool? hasPassword,
     ShareSelection? selection,
+    bool? sucheVeroeffentlicht,
   }) =>
       LocalShare(
         id: id,
@@ -212,6 +234,7 @@ class LocalShare {
         updatedAt: updatedAt ?? this.updatedAt,
         hasPassword: hasPassword ?? this.hasPassword,
         selection: selection ?? this.selection,
+        sucheVeroeffentlicht: sucheVeroeffentlicht ?? this.sucheVeroeffentlicht,
       );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -224,6 +247,8 @@ class LocalShare {
         'updatedAt': updatedAt.toUtc().toIso8601String(),
         'hasPassword': hasPassword,
         'selection': selection.toJson(),
+        if (sucheVeroeffentlicht != null)
+          'sucheVeroeffentlicht': sucheVeroeffentlicht,
       };
 
   static LocalShare fromJson(Map<String, dynamic> json) => LocalShare(
@@ -241,6 +266,9 @@ class LocalShare {
             ? ShareSelection.fromJson(
                 (json['selection'] as Map<String, dynamic>))
             : const ShareSelection(),
+        sucheVeroeffentlicht: json['sucheVeroeffentlicht'] is bool
+            ? json['sucheVeroeffentlicht'] == true
+            : null,
       );
 }
 
@@ -340,10 +368,66 @@ class ShareManager {
   static String generateUsername() =>
       Passphrase.generate(maxLength: maxUsernameLength);
 
-  /// Erzeugt ein Share-Passwort – ebenfalls zehn Wörter, aber nie identisch
-  /// mit der Sync-Passphrase, weil der Schlüssel aus beiden gemeinsam
-  /// abgeleitet wird.
-  static String generateSharePassword() => Passphrase.generate();
+  /// Länge eines erzeugten Share-Passworts.
+  ///
+  /// Zwölf Zeichen aus vier Zeichenarten sind rund 70 Bit – für ein Passwort,
+  /// das nur eine Kollegin kennen muss, mehr als genug. Der Nutzername eines
+  /// Shares bleibt eine Wortphrase: Er muss vorgelesen und über einen Raum
+  /// hinweg weitergegeben werden können, und genau dafür sind Wörter gut.
+  static const int sharePasswordLength = 12;
+
+  /// Die Zeichenarten, aus denen [generateSharePassword] zieht.
+  ///
+  /// Ohne `l`, `I`, `1`, `0` und `O`: Sie unterscheiden sich in manchen
+  /// Schriften kaum, und ein Passwort wird abgetippt. Ohne Leerzeichen,
+  /// Anführungszeichen und Backslash: Es wird über die Zwischenablage
+  /// weitergegeben, und keines der drei überlebt das zuverlässig.
+  static const String sharePasswordDigits = '23456789';
+  static const String sharePasswordLower = 'abcdefghijkmnopqrstuvwxyz';
+  static const String sharePasswordUpper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  static const String sharePasswordSymbols = r'!#$%&()*+-.:;=?@[]^_';
+
+  /// Erzeugt ein zufälliges Share-Passwort: [sharePasswordLength] Zeichen **ohne
+  /// Leerzeichen**, mit mindestens einer Ziffer, einem Kleinbuchstaben, einem
+  /// Großbuchstaben und einem Sonderzeichen.
+  ///
+  /// Früher stand hier eine Wortphrase wie der Sync-Code – „red moon water
+  /// nine …". Zwei Gründe dagegen: Erstens ist eine Phrase **laut** und ein
+  /// Passwort soll leise sein; wer den Share absichert, möchte nicht, dass das
+  /// Passwort durch den Raum geht. Zweitens lag die Phrase vorher ungefragt im
+  /// Feld, ohne dass jemand sie notiert hätte – beim nächsten Bearbeiten stand
+  /// sie wieder da und man wusste nicht mehr, ob sie noch gilt.
+  ///
+  /// Die vier Zeichenarten werden **zugesichert**, nicht nur erwartet: Ein
+  /// zufälliges Passwort ganz ohne Großbuchstaben ist keineswegs selten, und die
+  /// Beschreibung oben wäre dann unwahr.
+  static String generateSharePassword() {
+    final List<String> zeichen = <String>[
+      _shareChar(sharePasswordLower),
+      _shareChar(sharePasswordUpper),
+      _shareChar(sharePasswordDigits),
+      _shareChar(sharePasswordSymbols),
+    ];
+    final String alle = sharePasswordDigits +
+        sharePasswordLower +
+        sharePasswordUpper +
+        sharePasswordSymbols;
+    while (zeichen.length < sharePasswordLength) {
+      zeichen.add(_shareChar(alle));
+    }
+    // Mischen – sonst stünde die zugesicherte kleine Majuskel jedes Mal an
+    // derselben Stelle, und die vier Zeichenarten wären an den Positionen 1 bis
+    // 4 ablesbar.
+    for (int i = zeichen.length - 1; i > 0; i--) {
+      final int j = Hashing.randomBelow(i + 1);
+      final String tmp = zeichen[i];
+      zeichen[i] = zeichen[j];
+      zeichen[j] = tmp;
+    }
+    return zeichen.join();
+  }
+
+  static String _shareChar(String aus) => aus[Hashing.randomBelow(aus.length)];
 
   /// Die ID eines Shares.
   ///
@@ -657,6 +741,13 @@ class ShareManager {
   }) async {
     final String username = readUsername(prefs) ?? '';
     if (username.isEmpty) throw const ShareException('noUsername');
+    // Sync und Teilen sind ausgeschaltet. Der Schalter **verbietet** nur das
+    // Veröffentlichen – die eigenen Shares bleiben in der Liste und auf dem
+    // Server, und nichts wird gelöscht. Wer ihn wieder zurstellt, kann wie
+    // vorher bearbeiten und neu anlegen.
+    if (!SyncShareEnabled.isEnabled(prefs)) {
+      throw const ShareException('syncShareDisabled');
+    }
     // Zu langer Nutzername: Der Server würde das mit derselben Meldung
     // ablehnen wie einen verbotenen Namen ("invalidShare"), und niemand
     // käme darauf, dass es an der Länge liegt. Deshalb wird es hier erkannt
@@ -714,6 +805,9 @@ class ShareManager {
       updatedAt: now,
       hasPassword: protected,
       selection: selection,
+      // Der Server hat es gerade bekommen – deshalb steht es hier, und nicht
+      // erst beim nächsten Abgleich ermittelt.
+      sucheVeroeffentlicht: searchable,
     );
 
     await _replaceShare(prefs, share);
@@ -793,6 +887,84 @@ class ShareManager {
     await _writeShares(prefs, remaining);
   }
 
+  /// Gleicht das Suchverzeichnis mit dem ab, was gerade gilt.
+  ///
+  /// Solange Sync und Teilen ausgeschaltet sind, gehören die eigenen Shares
+  /// **nicht** in die Liste der Kolleginnen: Wer den Eintrag in der Leiste
+  /// ausblendet, will nicht auftauchen. Ein Share, der im Verzeichnis bliebe,
+  /// wäre weiterhin erreichbar – die Funktion wäre also nicht abgeschaltet,
+  /// sondern nur ihre Tür zugemauert.
+  ///
+  /// **Gelöscht wird nichts.** Der Share bleibt auf dem Server, er ist nur nicht
+  /// mehr zu sehen, und über den Nutzernamen weiterhin erreichbar, wenn
+  /// jemand ihn kennt. Der **Wunsch** des Nutzers ([LocalShare.searchable])
+  /// bleibt gespeichert: Wird der Eintrag wieder eingeblendet, kommt der Share
+  /// so zurück, wie er war.
+  ///
+  /// Gebraucht wird das an zwei Stellen: sofort beim Umstellen in den
+  /// Einstellungen und später noch einmal im Hintergrund – wer die App vorher
+  /// schloss oder gar kein Netz hatte, würde sonst weiter im Verzeichnis
+  /// stehen.
+  ///
+  /// Gibt die Zahl der Shares zurück, die tatsächlich umgestellt wurden.
+  static Future<int> gleicheSuchverzeichnis({
+    required SyncApiClient client,
+    required SharedPreferences prefs,
+  }) async {
+    final List<LocalShare> shares = readShares(prefs);
+    if (shares.isEmpty) return 0;
+    int geaendert = 0;
+    final List<LocalShare> aktualisiert = <LocalShare>[];
+    for (final LocalShare share in shares) {
+      final bool soll = share.sucheSoll(prefs);
+      // Der Serverzustand steht in [LocalShare.sucheVeroeffentlicht]. Ist er
+      // bekannt und stimmt schon, wird nichts angefasst – sonst läge bei jedem
+      // Zeitgeberlauf eine Anfrage je Share auf der Leitung.
+      if (share.sucheVeroeffentlicht == soll) {
+        aktualisiert.add(share);
+        continue;
+      }
+      try {
+        final ShareRecord record = await client.fetchShare(share.id);
+        await client.publishShare(
+          shareId: record.id,
+          username:
+              record.username.isEmpty ? share.username : record.username,
+          // Die Schulnummer steht in der Antwort des Shares; fehlt sie dort
+          // (etwa weil der Server sie nicht mitschickt), kommt die eigene der
+          // aktiven Schule. Ohne sie würde der Server den Share ablehnen –
+          // und eine Ablehnung, die an einem fehlenden Feld hängt, sieht
+          // aus wie ein kaputter Server.
+          schoolNumber: record.schoolNumber.isNotEmpty
+              ? record.schoolNumber
+              : (prefs.getString(
+                      SchoolStorage.scopedKey(prefs, 'vplanSchoolnumber')) ??
+                  ''),
+          displayName: record.displayName.isEmpty
+              ? share.displayName
+              : record.displayName,
+          label: record.label,
+          // Die Hüllen kommen unverändert zurück: Es ändert sich nur, ob der
+          // Share im Verzeichnis auftaucht. Der Inhalt bleibt, wie er ist.
+          envelopes: record.envelopes,
+          searchable: soll,
+          updatedAt: record.updatedAt,
+        );
+        aktualisiert.add(share.copyWith(sucheVeroeffentlicht: soll));
+        geaendert++;
+      } on SyncException {
+        // Ohne Netz geht das jetzt nicht. Der Share bleibt wie er ist, und der
+        // nächste Versuch holt es nach – das Merkmal wird deshalb erst nach
+        // dem erfolgreichen Schreiben gesetzt.
+        aktualisiert.add(share);
+      }
+    }
+    if (geaendert > 0) {
+      await _writeShares(prefs, aktualisiert);
+    }
+    return geaendert;
+  }
+
   // ------------------------------------------------------------------ Import
 
   /// Welche Hüllen dieses Share anbietet – für die Oberfläche, damit sie
@@ -827,10 +999,20 @@ class ShareManager {
         <({String slot, String secret})>[];
 
     if (sharePassword != null && sharePassword.trim().isNotEmpty) {
-      candidates.add((
-        slot: ShareSlot.byPassword.id,
-        secret: Passphrase.normalize(sharePassword),
-      ));
+      // Das Passwort geht **unverändert** in den Schlüssel. Es ist ein getipptes
+      // Passwort und keine Wortphrase: `Passphrase.normalize` würde es
+      // kleinschreiben, auf Wörter zerlegen, diese sortieren und alle Ziffern
+      // sowie Sonderzeichen wegwerfen – aus `aB3!x` würde `ab x`. Zwei
+      // verschiedene Passwörter könnten dann denselben Schlüssel ergeben.
+      candidates.add((slot: ShareSlot.byPassword.id, secret: sharePassword));
+      // Ältere Shares wurden mit der normalisierten Wortphrase abgeleitet.
+      // Damit die Kolleginnen, die so ein Passwort schon kennen, ihren Share
+      // weiterhin öffnen können, wird die alte Form zusätzlich versucht – erst
+      // danach ist die Hülle verloren.
+      final String alt = Passphrase.normalize(sharePassword);
+      if (alt.isNotEmpty && alt != sharePassword) {
+        candidates.add((slot: ShareSlot.byPassword.id, secret: alt));
+      }
     }
     if (record.envelopes.containsKey(ShareSlot.byUsername.id)) {
       candidates.add((slot: ShareSlot.byUsername.id, secret: ''));
@@ -985,6 +1167,14 @@ class ShareManager {
   }) async {
     final SyncPayload data = _readPayload(payload);
     final String scope = scopeSuffix(prefs);
+
+    // Das Gegenstück zu [publish]: Ist Sync und Teilen ausgeschaltet, wird auch
+    // nichts **übernommen**. Der Schalter gilt für das ganze Sync-Menü, nicht
+    // nur für das eigene Teilen – sonst hinge die halbe Funktion weiter in der
+    // Luft, während die andere Hälfte geschlossen ist.
+    if (!SyncShareEnabled.isEnabled(prefs)) {
+      throw const ShareException('syncShareDisabled');
+    }
 
     // Eine leere Auswahl ist kein Fehlklick, sondern eine Absicht – aber sie
     // darf auch nicht stillschweigend "alles" bedeuten. Sonst würde ein
@@ -1215,7 +1405,21 @@ class ShareManager {
         ...SyncDataReader.readLines(prefs, '${scope}persons'),
       ];
       merged.addAll(newPersons.map(jsonEncode));
-      await prefs.setStringList('${scope}persons', merged);
+      // Und **in derselben Form** wieder abgelegt: als JSON-Zeichenkette, nicht
+      // als Liste. Genau hier stand vorher `setStringList` – und das war der
+      // Grund, warum nach dem Import **nichts** zu sehen war und die App
+      // neu gestartet werden musste: `VPlanAPI.getPersons` liest mit
+      // `getString`, und das wirft bei einer Liste einen TypeError, statt
+      // `null` zu liefern. Die App zeigte also keine einzige der importierten
+      // Personen. Beim nächsten Start reparierte `StorageHealer` den Eintrag
+      // stillschweigend in die richtige Form – deshalb wirkte ein Neustart wie
+      // die Lösung, obwohl er nur die Ursache weggeräumt hat.
+      //
+      // `encodeJsonArray` statt `jsonEncode`: Es legt ein Array von
+      // **Objekten** ab, nicht von JSON-Zeichenketten. Beides sieht gleich aus,
+      // ergibt beim Lesen aber `List<String>` statt `List<Map>` – und die
+      // zweite Form kann die App nicht verwenden.
+      await prefs.setString('${scope}persons', encodeJsonArray(merged));
     }
     if (newPlans.isNotEmpty) {
       final List<String> merged = <String>[
@@ -1418,11 +1622,11 @@ Map<String, dynamic> _sealShare(
   final Map<String, dynamic> envelopes = <String, dynamic>{};
   final String? sharePassword = request.sharePassword;
   if (sharePassword != null && sharePassword.trim().isNotEmpty) {
+    // Unverändert, aus demselben Grund wie beim Öffnen (siehe
+    // [ShareManager.unlock]): Das Passwort ist ein getipptes Passwort, keine
+    // Wortphrase.
     envelopes[ShareSlot.byPassword.id] = PayloadCrypto.encryptJson(
-      ShareManager._keyFor(
-        request.username,
-        Passphrase.normalize(sharePassword),
-      ),
+      ShareManager._keyFor(request.username, sharePassword),
       request.payload,
       salt: ShareManager.keyDomain,
     );

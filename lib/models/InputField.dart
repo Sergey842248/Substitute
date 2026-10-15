@@ -25,6 +25,7 @@ class InputField extends StatelessWidget {
     this.textInputAction,
     this.onSubmitted,
     this.autofocus = false,
+    this.focusNode,
   }) : super(key: key);
 
   final TextEditingController controller;
@@ -43,6 +44,14 @@ class InputField extends StatelessWidget {
 
   final bool autofocus;
 
+  /// Wohin die Tastatur springen soll, wenn das Feld den Fokus bekommt.
+  ///
+  /// Nötig, sobald ein Feld **auf Befehl** den Fokus bekommen soll – etwa wenn
+  /// ein Schalter eingeschaltet wird und das dadurch sichtbar gewordene Feld
+  /// ausfüllt werden soll. `autofocus` allein hilft dort nicht: Es gilt nur für
+  /// das erste Feld der Seite.
+  final FocusNode? focusNode;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -57,6 +66,7 @@ class InputField extends StatelessWidget {
       child: TextFormField(
         autocorrect: false,
         autofocus: autofocus,
+        focusNode: focusNode,
         controller: controller,
         keyboardType: keaboardType,
         onChanged: onChanged,

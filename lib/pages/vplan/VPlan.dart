@@ -40,7 +40,17 @@ class _VPlanState extends State<VPlan> with RouteAware {
   List<String> classes = [];
   List<Map<String, dynamic>> persons = [];
   bool hidePersons = false;
-  final listKey = GlobalKey<AnimatedListState>();
+
+  /// Der Schlüssel der Klassenliste.
+  ///
+  /// Bewusst **nicht** `final`: Wenn Klassen von außen dazukommen – etwa durch
+  /// den Import eines fremden Shares –, wird die Liste neu aufgebaut und
+  /// bekommt dafür einen neuen Schlüssel. Eine `AnimatedList` kennt ihre
+  /// Einträge nur über `insertItem`/`removeItem` und kann sich nicht einfach neu
+  /// machen lassen; sie liest ihre Zahl erst beim Bauen. Mit einem neuen
+  /// Schlüssel baut sie sich mit dem aktuellen Stand von selbst auf – auch dann,
+  /// wenn zugleich eine Klasse verschwunden ist.
+  GlobalKey<AnimatedListState> listKey = GlobalKey<AnimatedListState>();
 
   @override
   void initState() {
@@ -54,6 +64,26 @@ class _VPlanState extends State<VPlan> with RouteAware {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) notifyVPlanBackgroundRefresh();
     });
+
+    // Klassen und Personen können sich auch ändern, während dieser Bildschirm
+    // gar nicht im Vordergrund ist: beim Import eines fremden Shares, beim
+    // Wiederherstellen einer Sicherung, bei einem Sync von einem anderen
+    // Gerät. Die Übersicht las ihre beiden Listen nur **einmal** – neue Klassen
+    // und Personen blieben deshalb unsichtbar, bis die App neu gestartet
+    // wurde. Genau das war der gemeldete Fehler.
+    vplanBackgroundRefresh.addListener(_onDataRefresh);
+  }
+
+  /// Reagiert auf neue Daten im Speicher und liest beide Listen neu an.
+  ///
+  /// Bewusst über [notifyVPlanBackgroundRefresh] und nicht über eine eigene
+  /// Meldung: Diese Meldung kommt aus allen Wegen, aus denen neue Klassen und
+  /// Personen hereinkommen – dem Share-Import, der Sicherung und dem
+  /// Hintergrund-Refresh – und es gibt keine zweite Liste von
+  /// „etwas hat sich geändert"-Ereignissen, die man pflegen müsste.
+  void _onDataRefresh() {
+    _reloadClasses();
+    _reloadPersons();
   }
 
   @override
@@ -89,6 +119,34 @@ class _VPlanState extends State<VPlan> with RouteAware {
     });
   }
 
+  /// Liest die Klassenliste neu ein.
+  ///
+  /// Nur, wenn sie sich wirklich geändert hat: [vplanBackgroundRefresh] feuert
+  /// bei jedem Hintergrund-Refresh, also mehrfach in der Minute. Ohne den
+  /// Vergleich würde die Liste dabei jedes Mal neu aufgebaut – und mit ihr jede
+  /// Karte, jede Vorschau und jedes laufende Nachladen darin.
+  Future<void> _reloadClasses() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final List<String> gespeichert =
+        prefs.getStringList(SchoolStorage.scopedKey(prefs, 'classes')) ??
+            <String>[];
+    if (gespeichert.length == classes.length) {
+      bool gleich = true;
+      for (int i = 0; i < gespeichert.length; i++) {
+        if (gespeichert[i] != classes[i]) {
+          gleich = false;
+          break;
+        }
+      }
+      if (gleich) return;
+    }
+    if (!mounted) return;
+    setState(() {
+      classes = gespeichert;
+      listKey = GlobalKey<AnimatedListState>();
+    });
+  }
+
   @override
   void didPush() {
     // Erstes Erscheinen (ggf. App-Start): Vorschauen frisch laden.
@@ -98,6 +156,7 @@ class _VPlanState extends State<VPlan> with RouteAware {
 
   @override
   void dispose() {
+    vplanBackgroundRefresh.removeListener(_onDataRefresh);
     routeObserver.unsubscribe(this);
     super.dispose();
   }

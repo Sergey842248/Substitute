@@ -30,6 +30,11 @@ import 'NativeShell.dart';
 /// zu den wenigen gehören, für die man die App braucht. Wer sie nicht braucht,
 /// schaltet sie ab – dann ist die Leiste wieder die von früher, mit drei
 /// Einträgen.
+///
+/// Der Eintrag ist dabei mehr als ein Eintrag: **Ausgeblendet heißt auch, dass
+/// die drei Funktionen nicht laufen.** Es wird nichts synchronisiert, nichts
+/// geteilt und nichts von fremden Shares geholt – gelöscht wird nichts, und wer
+/// den Eintrag zurückholt, hat alles wieder. Siehe `SyncShareEnabled`.
 class AppAppearance {
   const AppAppearance._();
 
@@ -59,7 +64,8 @@ class AppAppearance {
   static String themeOf(SharedPreferences prefs) =>
       prefs.getString(_themeKey) ?? dark;
 
-  /// true, wenn der Sync-Eintrag in der Navigationsleiste stehen soll.
+  /// true, wenn der Sync-Eintrag in der Navigationsleiste stehen soll – und
+  /// damit auch, ob Sync und Teilen laufen (siehe `SyncShareEnabled`).
   static bool showSyncShareTab(SharedPreferences prefs) =>
       prefs.getBool(_showSyncKey) ?? true;
 
@@ -78,7 +84,11 @@ class AppAppearance {
     NativeShell.notifySettingsChanged();
   }
 
-  /// Schaltet den Sync-Eintrag ein oder aus.
+  /// Schaltet den Sync-Eintrag ein oder aus – und damit Sync und Teilen mit.
+  ///
+  /// Ein Schalter für eine Frage: Wer den Eintrag versteckt, will die drei
+  /// Funktionen nicht. Ein zweiter daneben („alles abschalten") wäre eine Stufe
+  /// zu viel und würde am Ende einer sein, den jemand vergisst.
   static Future<void> setShowSyncShareTab(
     SharedPreferences prefs,
     bool wert,

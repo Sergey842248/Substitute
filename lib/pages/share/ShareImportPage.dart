@@ -162,7 +162,17 @@ class _ShareImportPageState extends State<ShareImportPage> {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = shareErrorMessage(AppLocalizations.of(context)!, failure.code);
+        // Die Meldung richtet sich danach, **wo** es nicht geklappt hat. Ein
+        // Share mit Passwort ist fast immer am falschen Passwort gescheitert –
+        // zu behaupten, der Nutzername oder die Schulnummer seien falsch,
+        // lenkt vom einzigen Grund weg, den man selbst beheben kann. Bei einem
+        // Share **ohne** Passwort gibt es diese Erklärung nicht, und die
+        // allgemeine Meldung ist die richtige.
+        _error = record != null &&
+                ShareManager.canUnlockWithPassword(record) &&
+                failure.code == 'wrongCredentials'
+            ? AppLocalizations.of(context)!.shareErrorPasswordWrong
+            : shareErrorMessage(AppLocalizations.of(context)!, failure.code);
         _selectedShareId = null;
       });
     }

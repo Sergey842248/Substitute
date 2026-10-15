@@ -209,6 +209,7 @@
   "ok": "OK",
   "processCanTakeSeconds": "Dieser Vorgang kann einige Sekunden dauern!",
   "loading": "lade...",
+  "updating": "aktualisiere...",
   "classesFromTeacher": "Klassen von {teacherName} - {displayDate}",
   "@classesFromTeacher": {
     "placeholders": {
@@ -493,6 +494,7 @@
   "shareEdit": "Share bearbeiten",
   "shareEditSubmit": "Änderungen speichern",
   "shareEmpty": "Noch keine Shares. Lege einen an, um anderen deine Klassen und Personen zu geben.",
+  "syncShareDisabledNote": "Sync und Teilen sind ausgeschaltet. Deine vorhandenen Syncs und Shares bleiben erhalten – schalte es unter Einstellungen → Aussehen wieder ein.",
   "shareUsername": "Mein Nutzername",
   "shareUsernameSubtitle": "Zehn Wörter, die Kolleginnen und Kollegen eingeben, um deine Shares zu öffnen",
   "shareUsernameRegenerate": "Neuer Nutzername",
@@ -509,7 +511,7 @@
   "sharePasswordSubtitle": "Schützt den Share – auch vor Menschen mit den Schulzugangsdaten",
   "sharePasswordGenerate": "Passwort erzeugen",
   "sharePasswordOwn": "Dein eigenes Passwort",
-  "sharePasswordHint": "Zehn Wörter, z.B. red moon water nine",
+  "sharePasswordHint": "Dein Passwort",
   "sharePasswordRequired": "Dieser Share hat ein Passwort. Gib es ein, um ihn zu öffnen.",
   "shareSelectWhat": "Was soll geteilt werden?",
   "shareSelectClasses": "Klassen",
@@ -567,6 +569,7 @@
   "shareErrorNothingSelected": "Bitte auswählen, was geteilt werden soll",
   "shareErrorTooManyShares": "Du hast bereits {count} Shares. Lösche eines, um ein neues anzulegen.",
   "shareErrorWrongCredentials": "Dieser Share ließ sich nicht öffnen – falscher Code oder falsche Schulnummer?",
+  "shareErrorPasswordWrong": "Dieser Share ließ sich nicht öffnen – das Passwort ist vermutlich falsch.",
   "shareErrorUnreadable": "Diese Daten konnten nicht gelesen werden",
   "shareDemoNoShares": "Es hat noch niemand etwas geteilt",
   "shareDelete": "Share löschen"

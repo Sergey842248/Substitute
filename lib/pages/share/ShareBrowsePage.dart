@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/l10n/app_localizations.dart';
 import 'package:substitute/pages/vplan/VPlanAPI.dart';
 import 'package:substitute/services/SchoolStorage.dart';
+import 'package:substitute/services/SyncShareEnabled.dart';
 import 'package:substitute/services/crypto/Passphrase.dart';
 import 'package:substitute/services/sync/NameGuard.dart';
 import 'package:substitute/services/sync/ShareManager.dart';
@@ -47,6 +48,15 @@ class _ShareBrowsePageState extends State<ShareBrowsePage> {
   bool _isDemo = false;
   String? _error;
 
+  /// Ob Sync und Teilen ausgeschaltet sind.
+  ///
+  /// Dann wird gar nicht erst zum Server gefragt: Das Suchmenü **ist** eine der
+  /// drei Funktionen, die der Schalter abschaltet. Die Suche liefert zwar nichts
+  /// von fremden Daten zurück, sie gäbe aber zu erkennen, wer hier gerade etwas
+  /// anbietet – und der Schalter soll heißen „gar nichts", nicht „nur nicht
+  /// holen".
+  bool _disabled = false;
+
   /// Läuft gerade die Suche nach einem eingegebenen Nutzernamen.
   bool _resolving = false;
 
@@ -88,13 +98,15 @@ class _ShareBrowsePageState extends State<ShareBrowsePage> {
     final bool isDemo = VPlanAPI.isDemoAccount(prefs);
 
     final bool signedIn = await SchoolStorage.hasCredentials(prefs);
-    if (!signedIn || isDemo) {
+    final bool disabled = !SyncShareEnabled.isEnabled(prefs);
+    if (!signedIn || isDemo || disabled) {
       if (!mounted) return;
       setState(() {
         _prefs = prefs;
         _client = client;
         _isDemo = isDemo;
         _signedIn = signedIn;
+        _disabled = disabled;
         _people = const <ShareOwner>[];
         _loading = false;
       });
@@ -107,6 +119,7 @@ class _ShareBrowsePageState extends State<ShareBrowsePage> {
       _client = client;
       _signedIn = true;
       _isDemo = isDemo;
+      _disabled = false;
     });
 
     await _refresh();
@@ -185,9 +198,18 @@ class _ShareBrowsePageState extends State<ShareBrowsePage> {
             await client.fetchShare(ShareManager.shareIdFor(username, index));
         shares.add(ShareSummary(
           id: record.id,
-          username: username,
-          displayName: username,
-          label: '',
+          // Der Server nennt den Besitzer mit. Früher stand hier stattdessen der
+          // Nutzername – und im Share-Namen `''`, woraus in der Liste das
+          // allgemeine „Share" wurde: Bei zwei Shares einer Person stand
+          // zweimal dasselbe Wort, und man konnte nicht unterscheiden, welchen
+          // man öffnen wollte. Name und Beschriftung des Shares stehen im
+          // Klartext in der Antwort (das Suchverzeichnis braucht sie), stehen
+          // also schon hier bereit – auch **vor** dem Entsperren.
+          username: record.username.isEmpty ? username : record.username,
+          displayName: record.displayName.trim().isEmpty
+              ? username
+              : record.displayName.trim(),
+          label: record.label,
           hasPassword: record.hasPassword,
           updatedAt: record.updatedAt,
         ));
@@ -203,9 +225,14 @@ class _ShareBrowsePageState extends State<ShareBrowsePage> {
           SnackBar(content: Text(l10n.shareErrorWrongCredentials)));
       return;
     }
+    // Der Anzeigename aus dem Server, wenn es einen gibt: Er ist der Name,
+    // unter dem die Person ihre Kolleginnen kennen – die zehn Wörter sind nur
+    // der Schlüssel.
     await _openShares(ShareOwner(
       username: username,
-      displayName: username,
+      displayName: shares.first.displayName.trim().isEmpty
+          ? username
+          : shares.first.displayName.trim(),
       shares: shares,
     ));
   }
@@ -224,6 +251,20 @@ class _ShareBrowsePageState extends State<ShareBrowsePage> {
       ),
     );
     if (imported == null || !mounted) return;
+
+    // Der Import hat Klassen, Personen und Pläne geschrieben – die App liest
+    // sie aber aus zwei Ebenen: von der Platte und aus einem Speicher im
+    // Speicher. Ohne dieses Aufräumen bliebe der Speicher auf dem Stand von
+    // vor dem Import, und die Startseite zeigte weiterhin die alten Klassen und
+    // keine der neuen Personen. Genau das war der gemeldete Fehler: Nach dem
+    // Import musste die App neu gestartet werden, damit überhaupt etwas
+    // auftauchte.
+    await loadDisplayCache(prefs);
+    // Und die Startseite holt sich ihre Listen neu. Sie hört auf diesen
+    // Zähler – dieselbe Meldung, über die auch die Vorschauen der Klassen
+    // neu geladen werden.
+    notifyVPlanBackgroundRefresh();
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -249,7 +290,14 @@ class _ShareBrowsePageState extends State<ShareBrowsePage> {
         bottom: false,
         child: ListPage(
           title: l10n.shareBrowse,
-          onRefresh: _signedIn && !_isDemo ? _refresh : null,
+          onRefresh: _signedIn && !_isDemo && !_disabled ? _refresh : null,
+          // **Ohne** den Material-Kreis: Beim Herunterziehen zeigten zwei
+          // Ladeanzeigen gleichzeitig dasselbe – der Kreis des
+          // `RefreshIndicator` oben und die drei springenden Punkte in der
+          // Liste. Zwei Anzeigen für einen Vorgang sehen nach zwei Vorgängen
+          // aus. Die Punkte bleiben: Sie stehen auch dann da, wenn gar nicht
+          // gezogen wurde (beim ersten Laden und beim Öffnen eines Shares).
+          noSpinnerRefreshIndicator: true,
           children: <Widget>[
             if (_loading) const Center(child: LoadingIndicator()),
             if (_isDemo)
@@ -258,7 +306,10 @@ class _ShareBrowsePageState extends State<ShareBrowsePage> {
             if (!_isDemo && !_signedIn)
               _emptyState(l10n.shareBrowseLoginRequired,
                   l10n.shareBrowseLoginRequiredSubtitle),
-            if (_signedIn && !_isDemo) ...<Widget>[
+            // Abgeschaltet: kein Suchfeld, keine Liste, kein Server. Stattdessen
+            // der eine Satz, der sagt, warum – und wo es wieder auf geht.
+            if (_disabled) _disabledNote(l10n),
+            if (_signedIn && !_isDemo && !_disabled) ...<Widget>[
               // Die Suchzeile steht über allem: Sie ist der einzige Weg in
               // diese Liste – sowohl für einen Namen als auch für die zehn
               // Wörter einer Person.
@@ -305,6 +356,22 @@ class _ShareBrowsePageState extends State<ShareBrowsePage> {
       ),
     );
   }
+
+  /// Der Hinweis, wenn Sync und Teilen ausgeschaltet sind.
+  Widget _disabledNote(AppLocalizations l10n) => Padding(
+        padding: const EdgeInsets.fromLTRB(30, 40, 30, 20),
+        child: Column(
+          children: <Widget>[
+            const Icon(Icons.cloud_off_rounded, size: 48, color: Colors.grey),
+            const SizedBox(height: 12),
+            Text(
+              l10n.syncShareDisabledNote,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
 
   Widget _emptyState(String title, String subtitle) => Padding(
         padding: const EdgeInsets.fromLTRB(30, 40, 30, 20),

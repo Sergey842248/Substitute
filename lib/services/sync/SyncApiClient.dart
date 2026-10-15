@@ -23,7 +23,8 @@ class SyncException implements Exception {
       code == 'network' || code == 'timeout' || code == 'tooManyRequests';
 
   /// Die Meldung, die ohne Übersetzungsschlüssel angezeigt werden kann.
-  String get message => defaultMessages[code] ?? 'The sync server reported an error ($code).';
+  String get message =>
+      defaultMessages[code] ?? 'The sync server reported an error ($code).';
 
   static const Map<String, String> defaultMessages = <String, String>{
     'network': 'The sync server could not be reached.',
@@ -133,6 +134,11 @@ class ShareRecord {
     required this.envelopes,
     required this.hasPassword,
     required this.updatedAt,
+    this.username = '',
+    this.displayName = '',
+    this.schoolNumber = '',
+    this.label = '',
+    this.searchable,
   });
 
   final String id;
@@ -143,6 +149,38 @@ class ShareRecord {
 
   final bool hasPassword;
   final DateTime updatedAt;
+
+  /// Der Nutzername der Person, die den Share angelegt hat.
+  final String username;
+
+  /// Der Anzeigename derselben Person.
+  final String displayName;
+
+  /// Die Schulnummer der Person.
+  ///
+  /// Sie geht in **keinen** Schlüssel ein und sperrt niemanden aus – sie steht
+  /// nur mit am Share, weil das Suchverzeichnis danach filtert. Wer einen Share
+  /// umschreibt, muss sie deshalb mit schicken.
+  final String schoolNumber;
+
+  /// Der Name des Shares selbst.
+  ///
+  /// Beide stehen **im Klartext** in der Antwort des Servers – sie sind die
+  /// Angaben, nach denen das Suchverzeichnis sortiert und filtert. Sie zu
+  /// verschlüsseln hieße, das Verzeichnis aufzugeben.
+  ///
+  /// Deshalb sind sie auch **vor** dem Öffnen des Shares bekannt: Wer einen
+  /// Share über den Nutzernamen findet, sieht deshalb sofort, wie er heißt –
+  /// und nicht erst „Share", was bei mehreren Shares nicht zu unterscheiden
+  /// wäre.
+  final String label;
+
+  /// Ob der Share im Suchverzeichnis der Schule auftaucht.
+  ///
+  /// `null`, wenn der Server den Wert nicht mitschickt: Er ist nur für die
+  /// Anzeige gedacht, und ein Share lässt sich auch ohne diese Angabe
+  /// beschreiben. Wer den Wert braucht, muss ihn also nicht auf null raten.
+  final bool? searchable;
 
   /// Die Hülle, die mit [derivedKey] verschlüsselt wurde – oder null, wenn
   /// [derivedKey] zu keiner Hülle passt. Genau das ist der Test: Passt der
@@ -299,11 +337,10 @@ class SyncApiClient {
   /// antwortet der Server hier mit einem schlichten `status`-Feld.
   Future<bool> isServerRunning() async {
     try {
-      final http.Response response = await _client
-          .get(_healthUri(), headers: <String, String>{
-            if (sendsApiKey) 'apikey': SyncCredentials.publishableKey,
-          })
-          .timeout(const Duration(seconds: 8));
+      final http.Response response =
+          await _client.get(_healthUri(), headers: <String, String>{
+        if (sendsApiKey) 'apikey': SyncCredentials.publishableKey,
+      }).timeout(const Duration(seconds: 8));
       if (response.statusCode != 200) return false;
       final Object? decoded = jsonDecode(response.body);
       return decoded is Map && decoded['status'] == 'running';
@@ -319,9 +356,9 @@ class SyncApiClient {
     String chainId, {
     String? deviceId,
   }) async {
-    final Map<String, dynamic> body =
-        await _send('GET', _chainPath(chainId));
-    final List<dynamic> raw = body['snapshots'] as List<dynamic>? ?? <dynamic>[];
+    final Map<String, dynamic> body = await _send('GET', _chainPath(chainId));
+    final List<dynamic> raw =
+        body['snapshots'] as List<dynamic>? ?? <dynamic>[];
     final List<SyncDevice> devices = <SyncDevice>[];
     final List<ChainSnapshot> snapshots = <ChainSnapshot>[];
 
@@ -347,8 +384,8 @@ class SyncApiClient {
 
   /// Listet die Geräte einer Kette (ohne die Daten).
   Future<List<SyncDevice>> fetchDevices(String chainId) async {
-    final Map<String, dynamic> body =
-        await _send('GET', _chainPath(chainId, query: <String, String>{'devices': '1'}));
+    final Map<String, dynamic> body = await _send(
+        'GET', _chainPath(chainId, query: <String, String>{'devices': '1'}));
     return (body['devices'] as List<dynamic>? ?? <dynamic>[])
         .whereType<Map<String, dynamic>>()
         .map(SyncDevice.fromJson)
@@ -380,8 +417,9 @@ class SyncApiClient {
 
   /// Nimmt ein Gerät aus der Kette. Die Daten auf dem Gerät bleiben erhalten –
   /// der Server löscht nur den Snapshot.
-  Future<void> leaveChain(String chainId, String deviceId) =>
-      _send('DELETE', _chainPath(chainId, query: <String, String>{
+  Future<void> leaveChain(String chainId, String deviceId) => _send(
+      'DELETE',
+      _chainPath(chainId, query: <String, String>{
         'device_id': deviceId,
       }));
 
@@ -424,14 +462,27 @@ class SyncApiClient {
   /// Holt einen Share samt seiner verschlüsselten Hüllen.
   Future<ShareRecord> fetchShare(String shareId) async {
     final Map<String, dynamic> body = await _send('GET', _sharePath(shareId));
+    // Der Besitzer steckt in einem eigenen Feld und nicht flach in der Antwort –
+    // `owner.display_name` heißt es beim Schreiben, und was der Server
+    // zurückgibt, folgt derselben Form.
+    final Map<String, dynamic> owner =
+        (body['owner'] as Map<String, dynamic>?) ?? <String, dynamic>{};
     return ShareRecord(
       id: body['id']?.toString() ?? shareId,
-      envelopes: (body['envelopes'] as Map<String, dynamic>? ??
-          <String, dynamic>{}),
+      envelopes:
+          (body['envelopes'] as Map<String, dynamic>? ?? <String, dynamic>{}),
       hasPassword: body['hasPassword'] == true,
       updatedAt:
           DateTime.tryParse(body['updatedAt']?.toString() ?? '')?.toLocal() ??
               DateTime.fromMillisecondsSinceEpoch(0),
+      username: (owner['username'] ?? body['username'])?.toString() ?? '',
+      displayName:
+          (owner['displayName'] ?? owner['display_name'])?.toString() ?? '',
+      schoolNumber:
+          (owner['schoolNumber'] ?? owner['school_number'])?.toString() ?? '',
+      label: body['label']?.toString() ?? '',
+      searchable:
+          body['searchable'] == null ? null : body['searchable'] == true,
     );
   }
 
@@ -486,8 +537,7 @@ class SyncApiClient {
         // in der Datenbank.
         if (sendsApiKey) 'apikey': SyncCredentials.publishableKey,
       };
-      final String? payload =
-          body == null ? null : jsonEncode(_sanitize(body));
+      final String? payload = body == null ? null : jsonEncode(_sanitize(body));
       response = await switch (method) {
         'GET' => _client.get(uri, headers: headers),
         'DELETE' => _client.delete(uri, headers: headers),
@@ -515,7 +565,8 @@ class SyncApiClient {
       return decoded;
     }
 
-    final String code = decoded['error']?.toString() ?? _codeForStatus(response.statusCode);
+    final String code =
+        decoded['error']?.toString() ?? _codeForStatus(response.statusCode);
     throw SyncException(code, status: response.statusCode);
   }
 

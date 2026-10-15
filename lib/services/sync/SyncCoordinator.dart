@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:substitute/pages/vplan/VPlanAPI.dart';
 import 'package:substitute/services/SchoolStorage.dart';
+import 'package:substitute/services/SyncShareEnabled.dart';
 
 import 'SyncApiClient.dart';
 import 'SyncEngine.dart';
@@ -38,6 +39,9 @@ import 'SyncEngine.dart';
 ///   ([backoffBase] … [backoffMax]). Sonst versucht die App alle paar Sekunden
 ///   dasselbe und macht die Leitung nur langsamer.
 /// * **Demo-Account.** Dort gibt es nichts zu übertragen.
+/// * **Sync und Teilen abgeschaltet.** Wer die Funktionen in den Einstellungen
+///   ausgeschaltet hat, bekommt keinen Lauf – auch keinen vom Zeitgeber. Der
+///   gespeicherte Zustand bleibt dabei unangetastet.
 ///
 /// ## Sichtbarkeit
 ///
@@ -50,8 +54,7 @@ class SyncCoordinator with WidgetsBindingObserver {
   static SyncCoordinator? _instance;
 
   /// Die einzige Instanz der App.
-  static SyncCoordinator get instance =>
-      _instance ??= SyncCoordinator._();
+  static SyncCoordinator get instance => _instance ??= SyncCoordinator._();
 
   /// Nur für Tests: baut eine frische Instanz.
   @visibleForTesting
@@ -105,12 +108,23 @@ class SyncCoordinator with WidgetsBindingObserver {
   DateTime? _lastSuccess;
   int _consecutiveFailures = 0;
 
+  /// Wurde Sync und Teilen ausgeschaltet?
+  ///
+  /// Der Wert wird bei jedem Lauf neu gelesen – dort, wo die Einstellungen ohne
+  ///hin geöffnet sind. Vor dem ersten Lauf steht er auf `false`, damit eine
+  /// frische App nicht behauptet, sie sei abgeschaltet.
+  bool _disabled = false;
+
   /// Wird der Koordinator gerade gelassen?
   ///
   /// Für die Anzeige in den Einstellungen – dort steht bisher nur das Feld
   /// "letzter Sync", und das beantwortet die Frage nicht, ob überhaupt
   /// automatisch synchronisiert wird.
-  bool get isAutomatic => _attached;
+  ///
+  /// Ein abgeschalteter Sync zählt nicht als "automatisch": Die Zeitgeber stehen
+  /// zwar, sie holen aber nichts und schieben nichts hoch. Die Kachel soll das
+  /// sagen, statt einen Sync zu behaupten, der nicht stattfindet.
+  bool get isAutomatic => _attached && !_disabled;
 
   /// Anzahl der Fehlschläge hintereinander – für die Diagnoseanzeige.
   int get consecutiveFailures => _consecutiveFailures;
@@ -179,7 +193,8 @@ class SyncCoordinator with WidgetsBindingObserver {
   ///
   /// Gibt das Ergebnis zurück, oder null, wenn kein Lauf stattfand. null heißt
   /// ausdrücklich **nicht** Fehler: Es kann sein, dass gar nichts ansteht.
-  Future<SyncOutcome?> syncNow({String reason = 'manual', bool force = false}) async {
+  Future<SyncOutcome?> syncNow(
+      {String reason = 'manual', bool force = false}) async {
     if (_running) return null;
     if (!force && !_dueByTime()) return null;
 
@@ -188,6 +203,15 @@ class SyncCoordinator with WidgetsBindingObserver {
     SyncApiClient? client;
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
+      // Der Schalter aus den Einstellungen. Er wird hier gelesen und nicht beim
+      // Anhängen, weil er sich auch **während** einer Sitzung umstellen lässt –
+      // ein Zeitgeber, der den alten Stand behielte, liefe munter weiter.
+      //
+      // Nichts wird gelöscht: Der gespeicherte Zustand bleibt stehen, und mit
+      // ihm der Sync. Wer den Schalter wieder zurstellt, ist genau dort, wo er
+      // vorher war.
+      _disabled = SyncShareEnabled.isDisabled(prefs);
+      if (_disabled) return null;
       final SyncState? state = await SyncEngine.loadState(prefs);
       if (state == null) return null;
       // Der Demo-Account hat nichts zu übertragen. Das wird hier geprüft und
@@ -200,8 +224,7 @@ class SyncCoordinator with WidgetsBindingObserver {
       await SchoolStorage.ensureInitialized(prefs);
 
       final Uri base = SyncEngine.serverUrl(prefs);
-      client = clientFactory?.call(base) ??
-          SyncApiClient(baseUrl: base);
+      client = clientFactory?.call(base) ?? SyncApiClient(baseUrl: base);
       final SyncOutcome outcome = await SyncEngine(client: client).run(
         prefs,
         state,

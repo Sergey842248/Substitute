@@ -66,11 +66,24 @@ class ShareServer {
 }
 
 /// Liest die Namen der übertragenen Personen.
+///
+/// Über [SyncDataReader.readLines] und **nicht** über `getStringList`: Die App
+/// legt `persons` als JSON-Zeichenkette ab (`VPlanAPI.savePersons`), weil es
+/// Objekte enthält. Ein `getStringList` darauf wirft einen TypeError – und der
+/// Import schrieb früher genau diese falsche Form. Wer sie hier abfragt, prüft
+/// einen Fehler, den es nicht (mehr) gibt, und übersieht den echten: die
+/// importierten Personen waren für die App unsichtbar, bis sie beim nächsten
+/// Start von `StorageHealer` stillschweigend umgeschrieben wurden.
 List<String> namesOf(SharedPreferences prefs, [String key = 'persons']) {
-  return (prefs.getStringList(key) ?? const <String>[])
+  return SyncDataReader.readLines(prefs, key)
       .map((String raw) => (jsonDecode(raw) as Map)['name'].toString())
       .toList();
 }
+
+/// Die Zeilen der übertragenen Personen – dieselbe Form, in der die App sie
+/// ablegt.
+List<String> personLinesOf(SharedPreferences prefs) =>
+    SyncDataReader.readLines(prefs, 'persons');
 
 /// Die Klassen – schlichte Namen, wie die App sie ablegt.
 ///
@@ -696,7 +709,7 @@ void main() {
       // "Original": man sieht sie so, wie die Person sie angelegt hat.
       expect(classesOf(prefs), <String>['7c']);
       // Und die Kurse bleiben an der Person.
-      final String personRaw = (prefs.getStringList('persons') ?? <String>[]).single;
+      final String personRaw = personLinesOf(prefs).single;
       expect(
         (jsonDecode(personRaw) as Map)['courses'],
         containsAll(<String>['Deutsch', 'Mathe']),
@@ -820,7 +833,7 @@ void main() {
         mode: ShareImportMode.original,
         displayName: 'Frau Müller',
       );
-      final List<String> ids = (prefs.getStringList('persons') ?? <String>[])
+      final List<String> ids = personLinesOf(prefs)
           .map((String raw) => (jsonDecode(raw) as Map)['id'].toString())
           .toList();
       expect(ids, hasLength(1));
