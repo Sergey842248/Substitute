@@ -24,9 +24,28 @@
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>Substitute</string>
+					<key>UISceneDelegateClassName</key>
+					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
 	<!-- `UIMainStoryboardFile` ist absicht **weg**. -->
 	<!-- -->
-	<!-- Das Fenster wird in `AppDelegate` erzeugt, und seine Wurzel ist der -->
+	<!-- Das Fenster wird in `SceneDelegate` erzeugt, und seine Wurzel ist der -->
 	<!-- native `RootTabBarController`. Stünde hier noch eine Geschichte, gäbe -->
 	<!-- es zwei Stellen, die das Fenster liefern wollen – und welche gewinnt, -->
 	<!-- hängt davon ab, wer zuletzt geladen wurde. Das ist genau die Art von -->

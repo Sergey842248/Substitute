@@ -40,6 +40,10 @@ import UIKit
 /// Hintergrund-Sync und den Hintergrund-Abruf – sonst liefe beides dreimal.
 /// Siehe `NativeShell.runsBackgroundWork` auf der Dart-Seite.
 final class RootTabBarController: UITabBarController {
+    /// Meldet die von dieser nativen Schale erzeugten Engines beim zugehörigen
+    /// UIScene-Lifecycle an. Ohne dies erreichen Plugins keine Szenenereignisse
+    /// wie das Öffnen einer URL oder den Wechsel in den Hintergrund.
+    private let registerSceneLifecycle: (FlutterEngine) -> Void
     /// Die untere iPad-Leiste ist nicht die vom `UITabBarController`
     /// verwaltete Leiste. Ihr Delegate darf daher nicht der Controller selbst
     /// sein: UIKit verwendet dessen eigene Delegate-Implementierung intern
@@ -70,6 +74,14 @@ final class RootTabBarController: UITabBarController {
     /// Beim Abbrechen der Anmeldung wird sie wiederhergestellt.
     private var schoolBeforeLogin: String?
     private var lastActiveSchoolId = AppStore.activeSchoolId
+
+    init(registerSceneLifecycle: @escaping (FlutterEngine) -> Void = { _ in }) {
+        self.registerSceneLifecycle = registerSceneLifecycle
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) fehlt") }
 
     /// Die Abschnitte der Leiste, in der Reihenfolge, in der sie stehen.
     ///
@@ -257,7 +269,9 @@ final class RootTabBarController: UITabBarController {
         let controller: UIViewController
         switch section {
         case .plan, .search, .sync:
-            let flutterSection = PlanSectionController(engines: engines)
+            let flutterSection = PlanSectionController(
+                engines: engines,
+                registerSceneLifecycle: registerSceneLifecycle)
             // Die Rolle muss vor dem ersten Flutter-Frame feststehen.
             flutterSection.einrichten(role: section.dartRole)
             controller = flutterSection
@@ -740,6 +754,7 @@ extension RootTabBarController: UITabBarControllerDelegate {
 /// Zeit für **alle drei** Abschnitte länger.
 class PlanSectionController: UIViewController, UIGestureRecognizerDelegate {
     private let engines: FlutterEngineGroup
+    private let registerSceneLifecycle: (FlutterEngine) -> Void
     private var flutterViewController: FlutterViewController?
     private var role = "plan"
     private lazy var schoolLoginBackGesture: UIScreenEdgePanGestureRecognizer = {
@@ -750,8 +765,12 @@ class PlanSectionController: UIViewController, UIGestureRecognizerDelegate {
         return gesture
     }()
 
-    init(engines: FlutterEngineGroup) {
+    init(
+        engines: FlutterEngineGroup,
+        registerSceneLifecycle: @escaping (FlutterEngine) -> Void
+    ) {
         self.engines = engines
+        self.registerSceneLifecycle = registerSceneLifecycle
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -776,6 +795,7 @@ class PlanSectionController: UIViewController, UIGestureRecognizerDelegate {
 
         let engine = engines.makeEngine(with: options)
         FlutterEngines.registerPlugins(on: engine)
+        registerSceneLifecycle(engine)
 
         let controller = FlutterViewController(
             engine: engine, nibName: nil, bundle: nil)
