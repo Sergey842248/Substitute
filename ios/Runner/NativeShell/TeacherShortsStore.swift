@@ -251,25 +251,50 @@ enum TeacherShortsStore {
             // `customUrl` kommt aus einem Eingabefeld; ein Text, der kein gültiger
             // Speicherort ist, ist beim Speichern der Anmeldung aufgefallen. Die
             // zweite Datei oben in diesem Bildschirm fängt den Rest ab.
-            return URL(
-                string: daten.customUrl + "mobdaten/Klassen.xml",
-                encodingInvalidCharacters: true)!
+            return urlAusText(daten.customUrl + "mobdaten/Klassen.xml")
         }
-        // `encodingInvalidCharacters: true` ist hier **nicht** Kosmetik: Die
-        // Schulnummer kommt aus einem Eingabefeld, und `URL(string:)` gibt `nil`
-        // zurück, sobald ein Zeichen vorkommt, das in einer Adresse nichts zu
-        // suchen hat. Bei Schulnummern sind das Bindestriche und Schrägstriche
-        // – ausdrücklich erlaubt, siehe [CredentialsScreen].
-        //
-        // Der Schalter heisst `encodingInvalidCharacters` und nicht etwa
-        // `interpolationAllowed`: Letzteren gibt es nicht, und der Compiler sagt
-        // bei einem erfundenen Namen nicht „das meinst du wohl", sondern
-        // „expected 'string:encodingInvalidCharacters:'" - und damit immerhin
-        // den richtigen.
+        // Das Kodieren ist hier **nicht** Kosmetik: Die Schulnummer kommt aus einem
+        // Eingabefeld, und `URL(string:)` gibt `nil` zurück, sobald ein Zeichen
+        // vorkommt, das in einer Adresse nichts zu suchen hat. Bei Schulnummern
+        // sind das Bindestriche und Schrägstriche – ausdrücklich erlaubt, siehe
+        // [CredentialsScreen].
+        return urlAusText(
+            "https://www.stundenplan24.de/\(daten.schoolNumber)"
+                + "/mobil/mobdaten/Klassen.xml")
+    }
+
+    /// Macht aus einem Text eine Adresse – und kodiert vorher das, was `URL(string:)`
+    /// sonst ablehnen würde.
+    ///
+    /// Der naheliegende Einzeiler dafür wäre
+    /// `URL(string:encodingInvalidCharacters: true)`, den gibt es aber erst ab
+    /// iOS 17 – dieses Projekt baut bis iOS 15, deshalb diese Streichung von Hand.
+    ///
+    /// Zuerst der Versuch ohne Kodierung: Eine bereits saubere Adresse bleibt
+    /// unangetastet, und ein schon kodiertes `%` wird nicht zu `%25`. Erst wenn
+    /// `URL(string:)` `nil` liefert, wird wirklich ein unzulässiges Zeichen im
+    /// Text stecken und kodiert. Erlaubt bleiben die Zeichen, die in einer Adresse
+    /// Bedeutung haben (`/`, `:`, `@`, `?`, `&`, `=` usw.); Leerzeichen, Umlaute
+    /// und alles Übrige werden prozentkodiert.
+    ///
+    /// Bleibt auch das ohne Ergebnis, wird die Adresse der Demo-Schule verwendet:
+    /// Die Anmeldedaten sind vorher geprüft worden, ein Absturz an dieser Stelle
+    /// wäre für niemanden hilfreich.
+    private static func urlAusText(_ text: String) -> URL {
+        if let direkt = URL(string: text) {
+            return direkt
+        }
+        let erlaubt = CharacterSet(
+            charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                + "abcdefghijklmnopqrstuvwxyz0123456789"
+                + "-._~:/?#[]@!$&'()*+,;=%")
+        if let kodiert = text.addingPercentEncoding(withAllowedCharacters: erlaubt),
+            let url = URL(string: kodiert)
+        {
+            return url
+        }
         return URL(
-            string: "https://www.stundenplan24.de/\(daten.schoolNumber)"
-                + "/mobil/mobdaten/Klassen.xml",
-            encodingInvalidCharacters: true)!
+            string: "https://www.stundenplan24.de/mobil/mobdaten/Klassen.xml")!
     }
 
     /// Der Kopf mit Benutzername und Passwort – dieselbe Anmeldung wie in Dart.
