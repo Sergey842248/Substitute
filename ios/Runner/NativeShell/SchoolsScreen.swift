@@ -62,15 +62,25 @@ final class SchoolsScreen: ListScreen {
 
     // --------------------------------------------------------------- Handgriffe
 
+    /// Öffnet eine Schule.
+    ///
+    /// ## Zwei Schritte, und sie sind nicht gleich
+    ///
+    /// * **Auswählen** – nur wenn es eine andere Schule ist. Sonst würde die
+    ///   Zeile jedes Mal hüpfen, ohne dass sich der Bereich geändert hat, und
+    ///   die Markierung stünde an zwei Stellen.
+    /// * **Öffnen** – **immer**, auch bei der schon aktiven Schule. Sonst gäbe
+    ///   es keinen Weg zurück in eine Schule: Man kommt aus dem Plan (oder von
+    ///   der Anmeldung) hierher, und das Tippen auf die eigene Schule müsste
+    ///   einen Weg zurück öffnen, nicht nichts tun.
     private func waehle(_ profil: SchoolProfile) {
-        // Tippt man schon auf den aktiven Bereich, passiert nichts. Sonst würde
-        // die Zeile jedes Mal hüpfen, ohne dass sich der Bereich geändert hat –
-        // und die Markierung stünde an zwei Stellen.
-        guard profil.id != AppStore.activeSchoolId else { return }
-        AppStore.setActiveSchool(profil.id)
-        neuLaden()
-        NotificationCenter.default.post(
-            name: AppStore.activeSchoolDidChange, object: nil)
+        if profil.id != AppStore.activeSchoolId {
+            AppStore.setActiveSchool(profil.id)
+            neuLaden()
+            NotificationCenter.default.post(
+                name: AppStore.activeSchoolDidChange, object: nil)
+        }
+        AppStore.openSchool()
     }
 
     @objc private func addSchool() {
@@ -81,6 +91,10 @@ final class SchoolsScreen: ListScreen {
             self.neuLaden()
             NotificationCenter.default.post(
                 name: AppStore.activeSchoolDidChange, object: nil)
+            // Direkt öffnen – wie beim Tippen auf eine Zeile. Auf Android ist es
+            // genauso: Nach dem Anlegen einer Schule öffnet sich sofort die
+            // Anmeldung, nicht erst die Schulen-Übersicht.
+            AppStore.openSchool()
         }
     }
 

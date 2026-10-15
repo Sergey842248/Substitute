@@ -133,6 +133,27 @@ enum AppStore {
         didWrite()
     }
 
+    /// Öffnet den gerade aktiven Schulbereich – den Plan, oder die Anmeldung,
+    /// falls der Bereich noch keine Zugangsdaten hat.
+    ///
+    /// ## Warum das eine **Aufforderung** ist und kein Bildschirm
+    ///
+    /// Der Bereich wird von zweierlei Art Bildschirmen geöffnet: der
+    /// Schulen-Übersicht (einem nativen Bildschirm in der Leiste) und der
+    /// Plan-Ansicht in Flutter. Beide wollen dasselbe, aber keiner von beiden
+    /// kann den anderen **aufrufen**: Sie liegen in verschiedenen Stapeln
+    /// derselben Leiste.
+    ///
+    /// Deshalb wird hier nichts geöffnet, sondern nur gemeldet – wer das
+    /// Zeichen empfängt, ist die Leiste, und die entscheidet dann, welcher
+    /// Abschnitt sichtbar sein soll. Sie ist die einzige Stelle, die das weiß.
+    static func openSchoolRequested = Notification.Name(
+        "AppStore.openSchoolRequested")
+
+    static func openSchool() {
+        NotificationCenter.default.post(name: openSchoolRequested, object: nil)
+    }
+
     /// Entfernt einen Wert ganz – statt ihn auf einen Leerwert zu setzen.
     ///
     /// Nötig, weil „nicht gesetzt" und „leer" für `shared_preferences` zwei

@@ -29,7 +29,27 @@ class VPlanLogin extends StatefulWidget {
   /// bleibt das Zurückgehen dagegen möglich.
   final bool blockBack;
 
-  const VPlanLogin({Key? key, this.blockBack = false}) : super(key: key);
+  /// Was der Zurück-Pfeil (und die iOS-Back-Geste) tun, wenn [blockBack] nicht
+  /// gilt und `Navigator.pop` nichts zurückgeben würde.
+  ///
+  /// ## Warum das nicht `Navigator.pop` sein kann
+  ///
+  /// Diese Seite steht auf iOS **innerhalb** eines Abschnitts der nativen
+  /// Schale – dort ist sie der ganze Bildschirm, und es gibt keine Route, zu
+  /// der man zurückkehren könnte. Die Schulen-Übersicht, von der aus man hier
+  ///hergekommen ist, liegt in der nativen Bildschirmreihe des Abschnitts
+  /// „Mehr“ – von hier aus nur über die native Seite erreichbar.
+  ///
+  /// Deshalb wird der Weg **dorthin** aufgerufen und nicht einer von hier
+  /// erfunden. `null` (Android, Web, normales Ändern der Zugangsdaten) lässt
+  /// es beim [Navigator].
+  final VoidCallback? onBack;
+
+  const VPlanLogin({
+    Key? key,
+    this.blockBack = false,
+    this.onBack,
+  }) : super(key: key);
 
   @override
   State<VPlanLogin> createState() => _VPlanLoginState();
@@ -106,9 +126,16 @@ class _VPlanLoginState extends State<VPlanLogin> {
     // Sind mit der Sicherung Zugangsdaten gekommen, ist die Anmeldung erledigt
     // und die App kann direkt geöffnet werden.
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final bool isDefaultSchool = SchoolStorage.activeSchoolId(prefs) ==
-        SchoolStorage.defaultSchoolId;
-    if (await SchoolStorage.hasCredentials() && isDefaultSchool) {
+    final bool isDefaultSchool =
+        SchoolStorage.activeSchoolId(prefs) == SchoolStorage.defaultSchoolId;
+    // `onBack != null` steht für: Dies ist eine neu angelegte Schule, die aus
+    // der Schulen-Übersicht heraus geöffnet wurde. Dort gibt es keine Route
+    // zurück, also bleibt man nach dem Wiederherstellen auf der Anmeldeseite
+    // stehen – und die zeigt jetzt, dass die Anmeldung erledigt ist, ohne
+    // aufzuzeigen, was man damit erreicht hat. Deshalb wird hier wie auf der
+    // ersten Schule die Hauptansicht aufgesetzt.
+    if (await SchoolStorage.hasCredentials() &&
+        (isDefaultSchool || widget.onBack != null)) {
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => HomePageWithVPlanTab()),
@@ -154,8 +181,7 @@ class _VPlanLoginState extends State<VPlanLogin> {
   /// wechseln (wichtig, solange die Seite als Pflicht-Anmeldung beim ersten
   /// App-Start angezeigt wird).
   void _showLanguageSheet() {
-    final String currentLanguage =
-        Localizations.localeOf(context).languageCode;
+    final String currentLanguage = Localizations.localeOf(context).languageCode;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -167,8 +193,7 @@ class _VPlanLoginState extends State<VPlanLogin> {
           ),
           color: Theme.of(context).colorScheme.surface,
         ),
-        padding:
-            EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -194,9 +219,8 @@ class _VPlanLoginState extends State<VPlanLogin> {
             ListTile(
               leading: Icon(Icons.language_rounded),
               title: Text('English'),
-              trailing: currentLanguage == 'en'
-                  ? Icon(Icons.check_rounded)
-                  : null,
+              trailing:
+                  currentLanguage == 'en' ? Icon(Icons.check_rounded) : null,
               onTap: () {
                 _setLanguage('en');
                 Navigator.pop(context);
@@ -205,9 +229,8 @@ class _VPlanLoginState extends State<VPlanLogin> {
             ListTile(
               leading: Icon(Icons.location_on_rounded),
               title: Text('Deutsch'),
-              trailing: currentLanguage == 'de'
-                  ? Icon(Icons.check_rounded)
-                  : null,
+              trailing:
+                  currentLanguage == 'de' ? Icon(Icons.check_rounded) : null,
               onTap: () {
                 _setLanguage('de');
                 Navigator.pop(context);
@@ -254,6 +277,20 @@ class _VPlanLoginState extends State<VPlanLogin> {
     NativeShell.notifySettingsChanged();
   }
 
+  /// Der eine Weg zurück: [VPlanLogin.onBack], sonst der [Navigator].
+  ///
+  /// Beides an **einer** Stelle, weil Zurück-Pfeil und iOS-Geste dasselbe
+  /// meinen: Wer sie zweimal getrennt behandelt, bekommt einen Pfeil, der
+  /// zurückgeht, und eine Geste, die ins Leere läuft.
+  void _zurueck() {
+    final VoidCallback? onBack = widget.onBack;
+    if (onBack != null) {
+      onBack();
+      return;
+    }
+    if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     List<dynamic> inputs = [
@@ -293,288 +330,324 @@ class _VPlanLoginState extends State<VPlanLogin> {
     }
 
     return PopScope(
-      canPop: !widget.blockBack,
+      // Mit [onBack] gibt es zwar einen Weg zurück, aber keinen *innerhalb* von
+      // Flutter – deshalb wird auch die iOS-Geste abgefangen und dem Weg
+      // übergeben, statt sie als „nichts zu tun" zu schlucken.
+      canPop: !widget.blockBack && widget.onBack == null,
+      onPopInvokedWithResult: (bool didPop, Object? _) {
+        if (didPop) return;
+        _zurueck();
+      },
       child: Scaffold(
-      body: ListPage(
-        title: AppLocalizations.of(context)!.settingsCredentials,
-        showBackButton: !widget.blockBack,
-        actions: [
-          IconButton(
-            onPressed: () async {
-              SharedPreferences prefs = await SharedPreferences.getInstance();
-              String schoolnumber = prefs.getString(
-                      SchoolStorage.scopedKey(prefs, "vplanSchoolnumber")) ??
-                  '';
-              String vplanUsername = prefs.getString(
-                      SchoolStorage.scopedKey(prefs, "vplanUsername")) ??
-                  '';
-              String vplanPassword = prefs.getString(
-                      SchoolStorage.scopedKey(prefs, "vplanPassword")) ??
-                  '';
+        body: ListPage(
+          title: AppLocalizations.of(context)!.settingsCredentials,
+          showBackButton: !widget.blockBack,
+          onPop: _zurueck,
+          actions: [
+            IconButton(
+              onPressed: () async {
+                SharedPreferences prefs = await SharedPreferences.getInstance();
+                String schoolnumber = prefs.getString(
+                        SchoolStorage.scopedKey(prefs, "vplanSchoolnumber")) ??
+                    '';
+                String vplanUsername = prefs.getString(
+                        SchoolStorage.scopedKey(prefs, "vplanUsername")) ??
+                    '';
+                String vplanPassword = prefs.getString(
+                        SchoolStorage.scopedKey(prefs, "vplanPassword")) ??
+                    '';
 
-              String customUrl = prefs
-                      .getString(SchoolStorage.scopedKey(prefs, "customUrl")) ??
-                  '';
+                String customUrl = prefs.getString(
+                        SchoolStorage.scopedKey(prefs, "customUrl")) ??
+                    '';
 
-              dynamic data = {
-                'schoolnumber': schoolnumber,
-                'username': vplanUsername,
-                'password': vplanPassword,
-                'customUrl': customUrl,
-              };
+                dynamic data = {
+                  'schoolnumber': schoolnumber,
+                  'username': vplanUsername,
+                  'password': vplanPassword,
+                  'customUrl': customUrl,
+                };
 
-              showModalBottomSheet(
-                context: context,
-                backgroundColor: Colors.transparent,
-                enableDrag: true,
-                builder: (context) => Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(40),
-                      topRight: Radius.circular(40),
+                showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  enableDrag: true,
+                  builder: (context) => Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(40),
+                        topRight: Radius.circular(40),
+                      ),
+                      color: Theme.of(context).colorScheme.surface,
                     ),
-                    color: Theme.of(context).colorScheme.surface,
-                  ),
-                  child: Container(
-                    width: double.infinity,
-                    child: Stack(
-                      children: [
-                        Container(
-                          alignment: Alignment.topCenter,
-                          width: double.infinity,
-                          child: Container(
-                            margin: const EdgeInsets.all(10),
-                            width: 100,
-                            height: 5,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(100),
-                              color: Theme.of(context).indicatorColor,
+                    child: Container(
+                      width: double.infinity,
+                      child: Stack(
+                        children: [
+                          Container(
+                            alignment: Alignment.topCenter,
+                            width: double.infinity,
+                            child: Container(
+                              margin: const EdgeInsets.all(10),
+                              width: 100,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(100),
+                                color: Theme.of(context).indicatorColor,
+                              ),
                             ),
                           ),
-                        ),
-                        Container(
-                          alignment: Alignment.center,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                AppLocalizations.of(context)!.shareCreds,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 20,
-                                ),
-                              ),
-                              SizedBox(height: 25),
-                              Container(
-                                color: Colors.white,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: PrettyQr(
-                                    size: 250,
-                                    data: jsonEncode(data),
-                                    elementColor: Colors.black,
-                                    errorCorrectLevel: QrErrorCorrectLevel.H,
-                                    typeNumber: 10,
-                                    roundEdges: false,
-                                    image: AssetImage('assets/img/logo.png'),
+                          Container(
+                            alignment: Alignment.center,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  AppLocalizations.of(context)!.shareCreds,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
                                   ),
                                 ),
-                              ),
-                              SizedBox(height: 25),
-                              InkWell(
-                                onTap: () => Navigator.pop(context),
-                                child: Container(
-                                  width: 200,
-                                  padding: EdgeInsets.all(15),
-                                  decoration: BoxDecoration(
-                                    borderRadius: const BorderRadius.all(
-                                      Radius.circular(10),
+                                SizedBox(height: 25),
+                                Container(
+                                  color: Colors.white,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: PrettyQr(
+                                      size: 250,
+                                      data: jsonEncode(data),
+                                      elementColor: Colors.black,
+                                      errorCorrectLevel: QrErrorCorrectLevel.H,
+                                      typeNumber: 10,
+                                      roundEdges: false,
+                                      image: AssetImage('assets/img/logo.png'),
                                     ),
-                                    color: Theme.of(context).indicatorColor,
                                   ),
-                                  child: Center(
-                                    child: Text(
-                                      AppLocalizations.of(context)!.save,
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w600,
+                                ),
+                                SizedBox(height: 25),
+                                InkWell(
+                                  onTap: () => Navigator.pop(context),
+                                  child: Container(
+                                    width: 200,
+                                    padding: EdgeInsets.all(15),
+                                    decoration: BoxDecoration(
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(10),
+                                      ),
+                                      color: Theme.of(context).indicatorColor,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        AppLocalizations.of(context)!.save,
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-            icon: Icon(
-              Icons.share_rounded,
-            ),
-          ),
-          IconButton(
-            onPressed: () => Navigator.push(
-              context,
-              SwipePageTransition(
-                type: PageTransitionType.rightToLeft,
-                child: QRScanner(setData: setData),
-              ),
-            ),
-            icon: Icon(Icons.qr_code_scanner_rounded),
-          ),
-          IconButton(
-            onPressed: _showLanguageSheet,
-            icon: Icon(Icons.language_rounded),
-          ),
-        ],
-        children: [
-          Container(
-            margin: const EdgeInsets.only(left: 20, right: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  transitionBuilder: (child, animation) => SizeTransition(
-                    sizeFactor: animation,
-                    child: child,
-                  ),
-                  child: _inputs,
-                ),
-
-                // CUSTOM URL
-                Container(
-                  margin: const EdgeInsets.only(top: 10, bottom: 10),
-                  child: InkWell(
-                    onTap: () =>
-                        setState(() => customUrlField = !customUrlField),
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: Container(
-                              height: 1.4,
-                              color: Theme.of(context)
-                                  .focusColor
-                                  .withValues(alpha: 0.3),
-                            ),
-                          ),
-                          Flexible(
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
-                              child: Text(
-                                customUrlField
-                                    ? AppLocalizations.of(context)!.useLogin
-                                    : AppLocalizations.of(context)!.useSelfHost,
-                                textAlign: TextAlign.center,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Theme.of(context)
-                                      .focusColor
-                                      .withValues(alpha: 0.85),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Container(
-                              height: 1.4,
-                              color: Theme.of(context)
-                                  .focusColor
-                                  .withValues(alpha: 0.3),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
+                );
+              },
+              icon: Icon(
+                Icons.share_rounded,
+              ),
+            ),
+            IconButton(
+              onPressed: () => Navigator.push(
+                context,
+                SwipePageTransition(
+                  type: PageTransitionType.rightToLeft,
+                  child: QRScanner(setData: setData),
                 ),
-                // CUSTOM URL
+              ),
+              icon: Icon(Icons.qr_code_scanner_rounded),
+            ),
+            IconButton(
+              onPressed: _showLanguageSheet,
+              icon: Icon(Icons.language_rounded),
+            ),
+          ],
+          children: [
+            Container(
+              margin: const EdgeInsets.only(left: 20, right: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    transitionBuilder: (child, animation) => SizeTransition(
+                      sizeFactor: animation,
+                      child: child,
+                    ),
+                    child: _inputs,
+                  ),
 
-                Button(
-                  text: AppLocalizations.of(context)!.save,
-                  onPressed: () async {
-                    SharedPreferences prefs =
-                        await SharedPreferences.getInstance();
-
-                    prefs.setString(
-                      SchoolStorage.scopedKey(prefs, 'vplanSchoolnumber'),
-                      schoolnumberController.text.toString(),
-                    );
-                    prefs.setString(
-                      SchoolStorage.scopedKey(prefs, 'vplanUsername'),
-                      usernameController.text.toString(),
-                    );
-                    prefs.setString(
-                      SchoolStorage.scopedKey(prefs, 'vplanPassword'),
-                      passwordController.text.toString(),
-                    );
-                    if (!customUrlField) {
-                      prefs.setString(
-                          SchoolStorage.scopedKey(prefs, "customUrl"), '');
-                    } else {
-                      prefs.setString(
-                        SchoolStorage.scopedKey(prefs, "customUrl"),
-                        customUrlController.text.toString(),
-                      );
-                    }
-                    Fluttertoast.showToast(
-                        msg: AppLocalizations.of(context)!.credsSaved);
-                    // Ohne diese Meldung blieb die Navigationsleiste weg, bis
-                    // die App neu gestartet wurde – siehe
-                    // [_meldeAnDieNativeSeite].
-                    _meldeAnDieNativeSeite();
-                    // Bei der Default-Schule (Pflicht-Anmeldung) ohne Zurück zur
-                    // Hauptansicht navigieren. Bei einer separaten Schule dagegen
-                    // zur vorherigen Ansicht (z.B. Schulen-Liste) zurückkehren,
-                    // damit man nicht in einer Sackgasse ohne Zurück-Möglichkeit
-                    // landet.
-                    final bool isDefaultSchool =
-                        SchoolStorage.activeSchoolId(prefs) ==
-                            SchoolStorage.defaultSchoolId;
-                    if (isDefaultSchool) {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (context) => HomePageWithVPlanTab(),
+                  // CUSTOM URL
+                  Container(
+                    margin: const EdgeInsets.only(top: 10, bottom: 10),
+                    child: InkWell(
+                      onTap: () =>
+                          setState(() => customUrlField = !customUrlField),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Container(
+                                height: 1.4,
+                                color: Theme.of(context)
+                                    .focusColor
+                                    .withValues(alpha: 0.3),
+                              ),
+                            ),
+                            Flexible(
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 12),
+                                child: Text(
+                                  customUrlField
+                                      ? AppLocalizations.of(context)!.useLogin
+                                      : AppLocalizations.of(context)!
+                                          .useSelfHost,
+                                  textAlign: TextAlign.center,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .focusColor
+                                        .withValues(alpha: 0.85),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Container(
+                                height: 1.4,
+                                color: Theme.of(context)
+                                    .focusColor
+                                    .withValues(alpha: 0.3),
+                              ),
+                            ),
+                          ],
                         ),
-                        (Route<dynamic> route) => false,
-                      );
-                    } else {
-                      Navigator.of(context).pop();
-                    }
-                  },
-                ),
-
-                // Konfiguration importieren – praktisch vor allem beim ersten
-                // Start, um die App aus einer Sicherung wiederherzustellen.
-                Container(
-                  margin: const EdgeInsets.only(top: 14),
-                  child: TextButton.icon(
-                    key: const ValueKey<String>('importConfigOnLogin'),
-                    onPressed: _importConfig,
-                    icon: const Icon(Icons.file_download_rounded, size: 18),
-                    label: Text(
-                      AppLocalizations.of(context)!.backupImportRestore,
-                      style: const TextStyle(fontSize: 15),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  // CUSTOM URL
+
+                  Button(
+                    text: AppLocalizations.of(context)!.save,
+                    onPressed: () async {
+                      SharedPreferences prefs =
+                          await SharedPreferences.getInstance();
+
+                      prefs.setString(
+                        SchoolStorage.scopedKey(prefs, 'vplanSchoolnumber'),
+                        schoolnumberController.text.toString(),
+                      );
+                      prefs.setString(
+                        SchoolStorage.scopedKey(prefs, 'vplanUsername'),
+                        usernameController.text.toString(),
+                      );
+                      prefs.setString(
+                        SchoolStorage.scopedKey(prefs, 'vplanPassword'),
+                        passwordController.text.toString(),
+                      );
+                      if (!customUrlField) {
+                        prefs.setString(
+                            SchoolStorage.scopedKey(prefs, "customUrl"), '');
+                      } else {
+                        prefs.setString(
+                          SchoolStorage.scopedKey(prefs, "customUrl"),
+                          customUrlController.text.toString(),
+                        );
+                      }
+                      Fluttertoast.showToast(
+                          msg: AppLocalizations.of(context)!.credsSaved);
+                      // Ohne diese Meldung blieb die Navigationsleiste weg, bis
+                      // die App neu gestartet wurde – siehe
+                      // [_meldeAnDieNativeSeite].
+                      _meldeAnDieNativeSeite();
+                      // Wohin es danach geht, hängt davon ab, **woher** man
+                      // hierhergekommen ist:
+                      //
+                      // * Die erste Schule ist eine Pflicht-Anmeldung: Es gibt
+                      //   nichts, wohin man zurück könnte, also wird die
+                      //   Hauptansicht **aufgesetzt** – so wie beim allerersten
+                      //   Start.
+                      // * Eine neu angelegte Schule aus der Schulen-Übersicht
+                      //   ebenso: Auf iOS steht diese Seite in einem Abschnitt
+                      //   der nativen Schale, in dem es keine Route zum
+                      //   Zurückgeben gibt. Sie zu verlassen hieße, wieder bei
+                      //   den Schulen zu landen – also wird die Hauptansicht
+                      //   aufgesetzt, und die native Seite bleibt, wo sie ist.
+                      // * Auf Android geht es zurück zur Schulen-Übersicht, von
+                      //   der aus man die Schule geöffnet hat. Das ist der
+                      //   Normalfall für eine getrennte Schule.
+                      // Wohin es danach geht, hängt davon ab, **woher** man
+                      // hierhergekommen ist:
+                      //
+                      // * Die erste Schule ist eine Pflicht-Anmeldung: Es gibt
+                      //   nichts, wohin man zurück könnte, also wird die
+                      //   Hauptansicht **aufgesetzt** – so wie beim allerersten
+                      //   Start.
+                      // * Eine neu angelegte Schule aus der Schulen-Übersicht
+                      //   ebenso: Auf iOS steht diese Seite in einem Abschnitt
+                      //   der nativen Schale, in dem es keine Route zum
+                      //   Zurückgeben gibt. Sie zu verlassen hieße, wieder bei
+                      //   den Schulen zu landen – also wird die Hauptansicht
+                      //   aufgesetzt, und die native Seite bleibt, wo sie ist.
+                      // * Auf Android geht es zurück zur Schulen-Übersicht, von
+                      //   der aus man die Schule geöffnet hat. Das ist der
+                      //   Normalfall für eine getrennte Schule.
+                      final bool isDefaultSchool =
+                          SchoolStorage.activeSchoolId(prefs) ==
+                              SchoolStorage.defaultSchoolId;
+                      if (isDefaultSchool || widget.onBack != null) {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (context) => HomePageWithVPlanTab(),
+                          ),
+                          (Route<dynamic> route) => false,
+                        );
+                      } else {
+                        _zurueck();
+                      }
+                    },
+                  ),
+
+                  // Konfiguration importieren – praktisch vor allem beim ersten
+                  // Start, um die App aus einer Sicherung wiederherzustellen.
+                  Container(
+                    margin: const EdgeInsets.only(top: 14),
+                    child: TextButton.icon(
+                      key: const ValueKey<String>('importConfigOnLogin'),
+                      onPressed: _importConfig,
+                      icon: const Icon(Icons.file_download_rounded, size: 18),
+                      label: Text(
+                        AppLocalizations.of(context)!.backupImportRestore,
+                        style: const TextStyle(fontSize: 15),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }

@@ -245,7 +245,42 @@ Future<Widget> wartenderAppStart([SharedPreferences? prefs]) async {
     startThemeMode: AppAppearance.modeOf(AppAppearance.themeOf(instance)),
     // `null`, wenn die App der Systemsprache folgt – siehe [AppLanguage].
     startLocale: AppLanguage.forMaterialApp(instance),
-    initialPage: hasCredentials ? null : VPlanLogin(blockBack: true),
+    initialPage:
+        hasCredentials ? null : _anmeldeseiteOhneZurueckMoeglichkeit(instance),
+  );
+}
+
+/// Die Anmeldeseite für einen Schulbereich, der noch keine Zugangsdaten hat.
+///
+/// ## Zwei Fälle, und sie sind nicht gleich
+///
+/// * Die **erste** Schule: Ohne Zugangsdaten gibt es nichts zu sehen, und
+///   zurückzugehen hieße, die App zu verlassen. Das Zurückgehen ist deshalb
+///   gesperrt – unveränderte Pflicht-Anmeldung beim allerersten Start.
+/// * Eine **neu angelegte** Schule: Die App ist längst eingerichtet, es fehlen
+///   nur die Daten *dieses* Bereichs. Sie zu verlassen muss möglich sein –
+///   sonst stünde man auf der Anmeldeseite einer Schule fest, ohne Weg in die
+///   Schulen-Übersicht zurück.
+///
+/// ## Warum der Weg über die native Seite läuft
+///
+/// Auf iOS steht diese Seite **in einem Abschnitt** der nativen Schale, und die
+/// Schulen-Übersicht ist ein nativer Bildschirm im Abschnitt „Mehr“. Beide
+/// liegen in derselben Leiste, aber in **verschiedenen** Stapeln: Aus dieser
+/// Seite heraus gibt es keine Flutter-Route dorthin.
+///
+/// Nur unter der nativen Schale ist das ein Problem – ohne sie (Android, Web)
+/// liegt die Schulen-Übersicht im selben Stapel und `Navigator.pop` führt
+/// dorthin. Deshalb wird [NativeShell.backToSchools] nur dort gesetzt, und
+/// sonst bleibt die Seite gesperrt wie beim ersten Start: Ein Zurück-Pfeil, der
+/// nirgendwohin führt, ist schlimmer als keiner.
+Widget _anmeldeseiteOhneZurueckMoeglichkeit(SharedPreferences prefs) {
+  final bool istErsteSchule =
+      SchoolStorage.activeSchoolId(prefs) == SchoolStorage.defaultSchoolId;
+  final bool zurueckMoeglich = NativeShell.isSection && !istErsteSchule;
+  return VPlanLogin(
+    blockBack: !zurueckMoeglich,
+    onBack: zurueckMoeglich ? NativeShell.backToSchools : null,
   );
 }
 

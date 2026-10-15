@@ -73,6 +73,47 @@ class _SchoolsState extends State<Schools> {
     );
   }
 
+  /// Öffnet die gerade aktive Schule: die Anmeldeseite, solange der Bereich
+  /// keine Zugangsdaten hat, sonst die Hauptansicht.
+  ///
+  /// ## Warum der Weg bei einer **neuen** Schule zur Anmeldung führt
+  ///
+  /// Sie hat keine Zugangsdaten, und die Hauptansicht wäre die Klassenauswahl
+  /// eines Bereichs, für den es keine Pläne gibt: eine leere Seite, auf der man
+  /// zuerst erraten muss, dass man sich anmelden muss. Geöffnet wird deshalb
+  /// das, woran man tatsächlich weiterarbeiten kann – die Anmeldung.
+  Future<void> _openActiveSchool() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final bool hasCredentials = await SchoolStorage.hasCredentials(prefs);
+    if (!mounted) return;
+
+    if (!hasCredentials) {
+      await Navigator.of(context).push(
+        SwipePageTransition(
+          type: PageTransitionType.rightToLeft,
+          child: VPlanLogin(),
+        ),
+      );
+      await _loadSchools();
+      return;
+    }
+
+    if (activeSchoolId == SchoolStorage.defaultSchoolId) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => HomePageWithVPlanTab()),
+        (Route<dynamic> route) => false,
+      );
+    } else {
+      await Navigator.of(context).push(
+        SwipePageTransition(
+          type: PageTransitionType.rightToLeft,
+          child: HomePageWithVPlanTab(showBackButton: true),
+        ),
+      );
+      await _loadSchools();
+    }
+  }
+
   Future<void> _addSchool() async {
     final String? name = await _askSchoolName();
     if (name == null || name.trim().isEmpty) return;
@@ -81,14 +122,10 @@ class _SchoolsState extends State<Schools> {
     await SchoolStorage.setActiveSchool(school.id);
     if (!mounted) return;
 
-    await Navigator.push(
-      context,
-      SwipePageTransition(
-        type: PageTransitionType.rightToLeft,
-        child: VPlanLogin(),
-      ),
-    );
-    await _loadSchools();
+    // Sofort öffnen – wie beim Tippen auf eine Zeile. Wer eine Schule anlegt,
+    // will **in** sie hinein, nicht zurück in die Liste, die ohnehin sichtbar
+    // bleibt.
+    await _openActiveSchool();
   }
 
   Future<void> _renameSchool(SchoolProfile school) async {
@@ -139,47 +176,21 @@ class _SchoolsState extends State<Schools> {
     await _loadSchools();
   }
 
+  /// Eine Schule antippen.
+  ///
+  /// Auch bei der **schon aktiven**: Nach dem Zurückkommen aus einer Schule
+  /// (siehe [_openActiveSchool]) ist man wieder in dieser Liste, und das Tippen
+  /// auf die eigene Schule muss einen Weg zurück öffnen – nicht nichts tun.
   Future<void> _activateSchool(SchoolProfile school) async {
-    await SchoolStorage.setActiveSchool(school.id);
-    Fluttertoast.showToast(msg: '${school.name} ist jetzt aktiv');
+    if (school.id != activeSchoolId) {
+      await SchoolStorage.setActiveSchool(school.id);
+      if (!mounted) return;
+      setState(() => activeSchoolId = school.id);
+      Fluttertoast.showToast(msg: '${school.name} ist jetzt aktiv');
+    }
     if (!mounted) return;
 
-    // Nur bei einer separaten (hinzugefügten) Schule soll man zur
-    // Schulen-Übersicht zurückkehren können – also normaler Push mit
-    // Zurück-Pfeil und iOS-Back-Geste. Die Default-Schule ('Meine Schule')
-    // bleibt der Hauptbereich ohne Zurück-Möglichkeit.
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final bool hasCredentials = await SchoolStorage.hasCredentials(prefs);
-
-    // Eine neu angelegte Schule hat zunächst keine Zugangsdaten. Öffne den
-    // Login direkt aus der Schulen-Liste, damit Zurück wieder genau dorthin
-    // führt und nicht anschließend ein gesperrter Login aus der Startseite
-    // über dem Navigationsstapel geöffnet wird.
-    if (!hasCredentials) {
-      await Navigator.of(context).push(
-        SwipePageTransition(
-          type: PageTransitionType.rightToLeft,
-          child: const VPlanLogin(),
-        ),
-      );
-      await _loadSchools();
-      return;
-    }
-
-    if (school.id == SchoolStorage.defaultSchoolId) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => HomePageWithVPlanTab()),
-        (Route<dynamic> route) => false,
-      );
-    } else {
-      await Navigator.of(context).push(
-        SwipePageTransition(
-          type: PageTransitionType.rightToLeft,
-          child: HomePageWithVPlanTab(showBackButton: true),
-        ),
-      );
-      await _loadSchools();
-    }
+    await _openActiveSchool();
   }
 
   @override

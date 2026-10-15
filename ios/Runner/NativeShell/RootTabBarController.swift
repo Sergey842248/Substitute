@@ -112,6 +112,15 @@ final class RootTabBarController: UITabBarController {
             self, selector: #selector(settingsDidChange),
             name: UIApplication.didBecomeActiveNotification, object: nil)
 
+        // Die Schulen-Übersicht **öffnet** einen Bereich (siehe
+        // [oeffneSchule]). Das ist etwas anderes als ein Wechsel – und wird
+        // darum auch nicht über [AppStore.activeSchoolDidChange] gemeldet:
+        // Ein Wechsel baut die Abschnitte neu auf, ein Öffnen will nur den
+        // passenden Abschnitt zeigen.
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(openSchool),
+            name: AppStore.openSchoolRequested, object: nil)
+
         bauen()
         farbenSetzen()
     }
@@ -393,6 +402,11 @@ final class RootTabBarController: UITabBarController {
         farbenSetzen()
     }
 
+    /// Aus der Schulen-Übersicht heraus: den aktiven Bereich öffnen.
+    @objc private func openSchool() {
+        oeffneSchule()
+    }
+
     // ------------------------------------------------------------ von Flutter
 
     /// Wird von `NativeShellBridge` gerufen, wenn Flutter etwas geändert hat.
@@ -429,8 +443,44 @@ final class RootTabBarController: UITabBarController {
         // Der Plan ist der erste Abschnitt der Leiste – er ist die einzige
         // Stelle, von der aus die Anmeldung zu erreichen ist, und er ist
         // immer gebaut (siehe [abschnitte]).
+        zeigePlan()
+    }
+
+    /// Öffnet den aktiven Schulbereich: den Plan, oder – bei einem Bereich ohne
+    /// Zugangsdaten – dessen Anmeldung.
+    ///
+    /// Aufgerufen von der Schulen-Übersicht, wenn eine Schule geöffnet wird.
+    /// Siehe [AppStore.openSchool].
+    func oeffneSchule() {
+        bauen()
+        farbenSetzen()
+        zeigePlan()
+    }
+
+    private func zeigePlan() {
         guard controllers.first == .plan, selectedIndex != 0 else { return }
         selectedIndex = 0
+    }
+
+    /// Führt aus einem **Abschnitt** zurück in die Schulen-Übersicht.
+    ///
+    /// ## Warum das kein `popViewController` sein kann
+    ///
+    /// Die Schulen-Übersicht steht in der Bildschirmreihe des Abschnitts
+    /// „Mehr“, der Plan in einem ganz anderen Stapel – der erste Abschnitt der
+    /// Leiste hat gar keine Bildschirmreihe, sondern eine Flutter-Ansicht. Von
+    /// dort aus gibt es kein Zurückgeben, das irgendwo ankäme.
+    ///
+    /// Deshalb wird der Abschnitt gewechselt und dort die Schulen-Übersicht
+    /// erneut gezeigt. Liegt sie noch im Stapel, wird **nicht** neu gebaut: Man
+    /// erwartet genau dieselbe Liste an derselben Stelle wieder, mit
+    /// Markierung und Scrollstand.
+    func zurueckInDieSchulen() {
+        guard let mehr = viewControllers?
+            .compactMap({ $0 as? MoreSectionController }).first
+        else { return }
+        mehr.zeigeSchulen()
+        if let index = controllers.firstIndex(of: .more) { selectedIndex = index }
     }
 
     /// Blendet die Leiste aus – für die Einführung und die Anmeldung.
@@ -590,6 +640,35 @@ enum FlutterEngines {
 /// Dart-Isolate, und sie sehen dadurch aus wie die übrigen Apps auf dem Gerät.
 class MoreSectionController: UIViewController {
     private var navigation: UINavigationController!
+
+    /// Zeigt die Schulen-Übersicht – und zwar die **gleiche**, von der aus man
+    /// zuletzt wegging.
+    ///
+    /// Liegt sie noch im Stapel, wird nur zu ihr zurückgegangen: Sie zu ersetzen
+    /// würde die Liste neu aufbauen und Scrollstand und Markierung wegwerfen,
+    /// obwohl sich an ihr nichts geändert hat.
+    ///
+    /// Andernfalls wird sie **ohne Animation** aufgesetzt. Sie kam aus einem
+    /// anderen Abschnitt, in dem sie nie stand – es gibt keine Bewegung, von der
+    /// aus man dorthin zurückfahren könnte, und eine erfundene Übergangsbewegung
+    /// wäre eine Behauptung, die nicht dem entspricht, was man gedrückt hat.
+    func zeigeSchulen() {
+        // Die Bildschirmreihe entsteht erst in [viewDidLoad]. Solange dieser
+        // Abschnitt noch nie sichtbar war, ist sie noch nicht da – und genau
+        // das ist hier der Normalfall: Man kommt aus dem Plan, in dem „Mehr“
+        // unter Umständen noch gar nicht aufgebaut wurde.
+        loadViewIfNeeded()
+        guard let nav = navigation else { return }
+
+        if let vorhanden = nav.viewControllers.first(where: {
+            $0 is SchoolsScreen
+        }) {
+            nav.popToViewController(vorhanden, animated: true)
+        } else {
+            nav.popToRootViewController(animated: false)
+            nav.pushViewController(SchoolsScreen(), animated: false)
+        }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()

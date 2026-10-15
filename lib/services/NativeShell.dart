@@ -261,6 +261,27 @@ class NativeShell {
     unawaited(_send('chromeVisible', visible));
   }
 
+  /// Bittet die native Seite, zur **Schulen-Übersicht** zurückzugehen.
+  ///
+  /// ## Wozu das da ist
+  ///
+  /// Auf iOS ist die Schulen-Übersicht ein **nativer** Bildschirm im Abschnitt
+  /// „Mehr“, und das Zurück von dort führt in den Plan (bzw. auf die
+  /// Anmeldeseite). Von dort aus gibt es keinen Weg zurück: Die Leiste ist
+  /// ausgeblendet, solange der Schulbereich keine Zugangsdaten hat, und die
+  /// Anmeldeseite der ersten Schule lässt sich nicht verlassen.
+  ///
+  /// Deshalb fragt die Anmeldeseite die native Seite ausdrücklich, wenn man
+  /// zurück will – und nicht nur, wenn man zurück*gehen könnte*: Ob es einen
+  /// Weg zurückgibt, entscheidet allein die native Seite, und die weiss es.
+  ///
+  /// Auf Android und im Web gibt es diesen Weg nicht, der Aufruf läuft ins
+  /// Leere – siehe [_send]. Dort gibt es die Schulen-Übersicht in Flutter, und
+  /// das Zurück dorthin macht der [Navigator].
+  static void backToSchools() {
+    unawaited(_send('backToSchools'));
+  }
+
   /// Sendet eine Meldung und lässt Fehler verschwinden.
   ///
   /// Fehler **werden** verschluckt, und das ist Absicht: Auf Android und im Web

@@ -93,6 +93,19 @@ enum NativeShellBridge {
                     name: AppStore.settingsDidChange, object: nil)
                 result(nil)
 
+            case "backToSchools":
+                // „Zurück aus dieser Schule“ – gesagt von der Anmeldeseite eines
+                // Schulbereichs ohne Zugangsdaten. Dort gibt es keine
+                // Flutter-Route, die zurückführen könnte: Die Schulen-Übersicht
+                // ist ein **nativer** Bildschirm im Abschnitt „Mehr“.
+                //
+                // Deshalb sagt die Seite der nativen Seite, wohin zurück – und
+                // die Leiste macht es, weil sie als einzige beide Stapel kennt.
+                DispatchQueue.main.async {
+                    tabBarController?.zurueckInDieSchulen()
+                }
+                result(nil)
+
             case "chromeVisible":
                 let sichtbar = (call.arguments as? Bool) ?? true
                 // An **alle** Ansichten: Die Leiste ist eine, und wer sie
