@@ -84,11 +84,50 @@ final class RootTabBarController: UITabBarController {
 
     // --------------------------------------------------------------- Aufbau
 
+    /// Legt fest, **wo** die Leiste steht: unten – auf jedem Gerät.
+    ///
+    /// ## Warum das überhaupt festzulegen ist
+    ///
+    /// `UITabBarController` darf sich seine Form selbst wählen, und auf dem iPad
+    /// tut es das auch: Seit iPadOS 18 kann das System aus der unteren Leiste
+    /// eine **Seitenspalte** machen, und seit iPadOS 26 darf die Leiste
+    /// zusätzlich **schrumpfen** – dann zieht sie als schmale Leiste an den
+    /// **oberen** Rand und nimmt dort den Platz ein, der auf der Kopfzeile
+    /// hingehört. Auf dem iPhone geschieht nichts davon, weil es dort nur die
+    /// untere Leiste gibt. Genau deshalb fällt der Unterschied erst auf dem iPad
+    /// auf.
+    ///
+    /// Beides ist hier unerwünscht: Die Abschnitte sind ein Weg durch die App
+    /// hindurch, kein Erkunden eines Raumes. Eine Leiste oben drängte die
+    /// Kopfzeile nach unten und würde Platz wegnehmen, den es dort nicht gibt.
+    ///
+    /// ## Warum `mode` und nicht bloss `tabBarMinimizeBehavior`
+    ///
+    /// Weil es zwei verschiedene Entscheidungen sind: [mode] verbietet die
+    /// Seitenspalte, [tabBarMinimizeBehavior] das Schrumpfen. Wer nur eines
+    /// davon festlegt, lässt dem iPad den anderen Weg offen.
+    ///
+    /// ## Warum die Versionsprüfungen
+    ///
+    /// Beide Werte gibt es erst ab iPadOS 18 bzw. 26. Die App baut aber bis
+    /// iOS 15 – dort steht hinter der Prüfung nichts, und die Leiste bleibt so,
+    /// wie sie auf diesen Geräten ohnehin aussieht: unten.
+    private func stellungSetzen() {
+        if #available(iOS 18.0, *) {
+            mode = .tabBar
+        }
+        if #available(iOS 26.0, *) {
+            tabBarMinimizeBehavior = .never
+        }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
         view.backgroundColor = Appearance.background
         delegate = self
+
+        stellungSetzen()
 
         NotificationCenter.default.addObserver(
             self, selector: #selector(settingsDidChange),
@@ -386,13 +425,24 @@ final class RootTabBarController: UITabBarController {
         // Der obere Rand der Leiste, bezogen auf **diesen** Bildschirm. Liegt
         // die Leiste ausserhalb (etwa weil sie gerade weganimiert wird), ergibt
         // das einen Unsinn – deshalb wird das abgefangen.
-        let leistenOberrand = tabBar.frame.minY
-        guard leistenOberrand > 0, leistenOberrand < view.bounds.height else {
+        //
+        // Und ist sie gar nicht die untere, sondern etwa eine Seitenspalte, gilt
+        // derselbe Satz: Eine schmale Spalte am Rand verdeckt nichts flächig am
+        // unteren, und ihre Position erlaubt keine Rückschlüsse auf ihn. Nach
+        // [stellungSetzen] kommt das nicht mehr vor – aber eine Zahl, die sich
+        // aus einer fremden Form ergibt, wäre schlimmer als gar keine.
+        let rahmen = tabBar.frame
+        let istUnten =
+            rahmen.width >= view.bounds.width / 2
+            && rahmen.height > 0
+            && rahmen.minY > 0
+            && rahmen.minY < view.bounds.height
+        guard istUnten else {
             NativeShellBridge.setzeUeberdeckung(view.safeAreaInsets.bottom)
             return
         }
 
-        let ueberdeckt = view.bounds.height - leistenOberrand
+        let ueberdeckt = view.bounds.height - rahmen.minY
         // Der sichere Bereich kommt mit: Ist die Leiste unterhalb des Inhalts,
         // ist der Streifen zwar leer, aber das Gerät hat unten einen Bereich,
         // in den der Inhalt nicht hineinreichen soll.
