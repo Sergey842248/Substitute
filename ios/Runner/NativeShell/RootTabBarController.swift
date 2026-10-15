@@ -476,11 +476,17 @@ final class RootTabBarController: UITabBarController {
     /// erwartet genau dieselbe Liste an derselben Stelle wieder, mit
     /// Markierung und Scrollstand.
     func zurueckInDieSchulen() {
-        guard let mehr = viewControllers?
-            .compactMap({ $0 as? MoreSectionController }).first
+        guard let index = controllers.firstIndex(of: .more) else { return }
+        // `controllers` und `viewControllers` werden in [bauen] immer
+        // gemeinsam gesetzt – die Prüfung ist nur deshalb da, weil ein
+        // Index-Zugriff sonst ein Absturz wäre statt einer ausgelassenen
+        // Aktion.
+        guard index < (viewControllers?.count ?? 0) else { return }
+        guard let mehr = viewControllers?[index] as? MoreSectionController
         else { return }
+
         mehr.zeigeSchulen()
-        if let index = controllers.firstIndex(of: .more) { selectedIndex = index }
+        selectedIndex = index
     }
 
     /// Blendet die Leiste aus – für die Einführung und die Anmeldung.
@@ -660,9 +666,7 @@ class MoreSectionController: UIViewController {
         loadViewIfNeeded()
         guard let nav = navigation else { return }
 
-        if let vorhanden = nav.viewControllers.first(where: {
-            $0 is SchoolsScreen
-        }) {
+        if let vorhanden = nav.viewControllers.first(where: { $0 is SchoolsScreen }) {
             nav.popToViewController(vorhanden, animated: true)
         } else {
             nav.popToRootViewController(animated: false)

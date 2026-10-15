@@ -147,9 +147,11 @@ enum AppStore {
     /// Deshalb wird hier nichts geöffnet, sondern nur gemeldet – wer das
     /// Zeichen empfängt, ist die Leiste, und die entscheidet dann, welcher
     /// Abschnitt sichtbar sein soll. Sie ist die einzige Stelle, die das weiß.
-    static func openSchoolRequested = Notification.Name(
+    static let openSchoolRequested = Notification.Name(
         "AppStore.openSchoolRequested")
 
+    /// Meldet, dass der aktive Bereich geöffnet werden soll – siehe
+    /// [openSchoolRequested].
     static func openSchool() {
         NotificationCenter.default.post(name: openSchoolRequested, object: nil)
     }
