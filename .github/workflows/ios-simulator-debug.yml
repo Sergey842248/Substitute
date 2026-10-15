@@ -1,4 +1,4 @@
-name: Build iOS Simulator Debug App
+name: Build iOS Simulator Debug App for Appetize
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   build-simulator-debug:
-    name: Build and package iOS Simulator Debug app
+    name: Build and package Appetize-ready iOS Simulator app
     runs-on: macos-26
     timeout-minutes: 45
 
@@ -27,6 +27,7 @@ jobs:
 
           sudo xcode-select --switch /Applications/Xcode_26.6.app
           xcodebuild -version
+          echo "Runner architecture: $(uname -m)"
           xcrun simctl list devices available >/dev/null
 
       - name: Set up Flutter stable
@@ -88,6 +89,9 @@ jobs:
 
       - name: Build iOS Simulator Debug app
         shell: bash
+        env:
+          APP_VERSION: ${{ steps.app-version.outputs.app_version }}
+          BUILD_NUMBER: ${{ steps.app-version.outputs.build_number }}
         run: |
           set -euo pipefail
 
@@ -95,10 +99,10 @@ jobs:
             --simulator \
             --debug \
             --no-codesign \
-            --build-name "${{ steps.app-version.outputs.app_version }}" \
-            --build-number "${{ steps.app-version.outputs.build_number }}"
+            --build-name "$APP_VERSION" \
+            --build-number "$BUILD_NUMBER"
 
-      - name: Package simulator app for Appetize
+      - name: Package and validate Appetize .app.zip
         shell: bash
         run: |
           set -euo pipefail
@@ -113,22 +117,55 @@ jobs:
             exit 1
           fi
 
-          # Include the .app bundle itself at the root of the archive.
-          cd "$(dirname "$APP_PATH")"
-          /usr/bin/zip -qry "$ZIP_PATH" "$(basename "$APP_PATH")"
-
-          if [[ ! -s "$ZIP_PATH" ]]; then
-            echo "::error::The simulator archive was not created."
+          INFO_PLIST="${APP_PATH}/Info.plist"
+          if [[ ! -f "$INFO_PLIST" ]]; then
+            echo "::error::Runner.app/Info.plist is missing."
             exit 1
           fi
 
-          echo "Created simulator package: ${ZIP_PATH}"
-          echo "Package size: $(du -h "$ZIP_PATH" | cut -f1)"
+          EXECUTABLE_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$INFO_PLIST")"
+          EXECUTABLE_PATH="${APP_PATH}/${EXECUTABLE_NAME}"
+          if [[ ! -f "$EXECUTABLE_PATH" ]]; then
+            echo "::error::App executable is missing: ${EXECUTABLE_PATH}"
+            exit 1
+          fi
 
-      - name: Upload simulator build artifact
-        uses: actions/upload-artifact@v4
+          echo "Bundle identifier: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$INFO_PLIST")"
+          echo "App executable architectures: $(/usr/bin/lipo -archs "$EXECUTABLE_PATH")"
+
+          if ! /usr/bin/lipo -archs "$EXECUTABLE_PATH" | grep -qw arm64; then
+            echo "::error::The simulator app does not contain an arm64 slice. Appetize recommends ARM simulator builds."
+            exit 1
+          fi
+
+          # Include the complete Runner.app bundle as the top-level item in the ZIP.
+          # ditto preserves macOS bundle metadata and directory structure.
+          rm -f "$ZIP_PATH"
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_PATH"
+
+          /usr/bin/unzip -tq "$ZIP_PATH"
+          if ! /usr/bin/unzip -Z1 "$ZIP_PATH" | grep -Fxq 'Runner.app/Info.plist'; then
+            echo "::error::ZIP does not contain Runner.app/Info.plist at its root."
+            /usr/bin/unzip -Z1 "$ZIP_PATH" | head -n 40
+            exit 1
+          fi
+          if ! /usr/bin/unzip -Z1 "$ZIP_PATH" | grep -Fxq "Runner.app/${EXECUTABLE_NAME}"; then
+            echo "::error::ZIP does not contain the app executable at the expected path."
+            /usr/bin/unzip -Z1 "$ZIP_PATH" | head -n 40
+            exit 1
+          fi
+
+          echo "Created Appetize upload file: ${ZIP_PATH}"
+          echo "File size: $(du -h "$ZIP_PATH" | cut -f1)"
+          echo "ZIP contents (first entries):"
+          /usr/bin/unzip -Z1 "$ZIP_PATH" | head -n 20
+
+      # archive:false is important: GitHub must expose Runner.app.zip itself,
+      # not wrap it inside a second artifact ZIP that Appetize cannot parse.
+      - name: Upload Runner.app.zip directly
+        uses: actions/upload-artifact@v7
         with:
-          name: ios-simulator-debug-app
           path: Runner.app.zip
+          archive: false
           if-no-files-found: error
           retention-days: 7
