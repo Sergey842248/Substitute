@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:substitute/services/NativeShell.dart';
 import 'package:intl/intl.dart';
@@ -82,6 +84,13 @@ class WeekPlanGrid extends StatelessWidget {
   ///
   /// Scrollen, obwohl wenig da ist, ist trotzdem unschön; es bewegt sich aber
   /// nur um die Höhe der Leiste, und dafür ist die letzte Stunde erreichbar.
+  ///
+  /// ## Zweite Bedeutung: Obergrenze der Zeilenhöhe
+  ///
+  /// Dieselbe Zahl sagt zugleich, wie hoch **eine** Stunde höchstens wird.
+  /// Ohne diese Grenze teilte ein Tag mit drei Stunden die verfügbare Höhe
+  /// durch drei, und jede Zelle wäre ein mehrere hundert Pixel hohes Feld,
+  /// in dem der Inhalt oben klebt – ein sehr gestreckt wirkendes Raster.
   static const int rowsWithoutScrolling = 8;
 
   /// Wie viele Zeilen über [rowsWithoutScrolling] hinaus bequem sichtbar sind
@@ -150,23 +159,40 @@ class WeekPlanGrid extends StatelessWidget {
         // Zeilen nur, indem es sie auf rund 80 % verkleinerte – die Schrift
         // sah dadurch deutlich kleiner aus, als sie eingestellt war.
         const double headerHeight = 42;
-        // Die Zeilen teilen sich den Rest der Höhe – und zwar **alle**:
-        // Hat ein Tag 6 Stunden, wird durch 6 geteilt (nicht durch 8), sonst
-        // bliebe unten ein leeres Band stehen und die Stunden würden kleiner
-        // gesetzt als nötig.
+        // Die Höhe, die den Stundenzeilen überhaupt zur Verfügung steht.
+        final double rowsArea = constraints.maxHeight - headerHeight;
+
+        // Die Zeilen teilen sich den Rest der Höhe – aber **nie mehr, als**
+        // eine Zeile braucht, um gut auszusehen.
+        //
+        // ## Der Fall, um den es hier geht
+        //
+        // Gäbe es einen Tag mit drei Stunden, teilte man die Höhe durch drei:
+        // Jede Zelle wäre gut 200 Pixel hoch – gut viermal so hoch wie eine
+        // normale. Der Inhalt ([FittedBox], oben ausgerichtet) füllt davon aber
+        // nur ein Dritel, sodass unten in jeder Zelle ein leeres Stück Fläche
+        // klebt und das Raster **gestreckt** aussieht: Die Stunden schweben als
+        // schmale Streifen in einem viel zu hohen Feld, statt dicht
+        // untereinander zu stehen.
+        //
+        // Deshalb ist [rowsWithoutScrolling] eine Obergrenze für die
+        // Zeilenhöhe: Acht Zeilen füllen den Bereich, jede einzelne wird
+        // höchstens so hoch. Hat ein Tag weniger Stunden, bleiben die Zellen
+        // Normalgröße, und der Rest ist ein leeres Band **unter** dem Raster –
+        // dort, wo ohnehin die Navigationsleiste liegt, und nicht als
+        // Leerraum in jeder Zelle.
         //
         // Ab der neunten Zeile wird durch `8 + scrollPeekRows` geteilt: Acht
         // volle Zeilen plus ein halber Rest der neunten, der sichtbar bleibt und
-        // damit verrät, dass noch etwas kommt.
-        //
-        // Diese Aufteilung ist **unverändert** geblieben. Sie ist gutes Gestealten
-        // und hat mit der Navigationsleiste nichts zu tun – sie zu ändern wäre
-        // eine zweite, stillere Verschlechterung: Die Stundenzeilen würden nur
-        // noch kleiner, wenn viele da sind.
-        final double rowHeight = (constraints.maxHeight - headerHeight) /
-            (rows < rowsWithoutScrolling
-                ? rows
-                : rowsWithoutScrolling + scrollPeekRows);
+        // damit verrät, dass noch etwas kommt. Diese Kappung greift dann nicht,
+        // weil acht Zeilen neun gar nicht erreichen.
+        final double rowHeight = math.min(
+          rowsArea /
+              (rows < rowsWithoutScrolling
+                  ? rows
+                  : rowsWithoutScrolling + scrollPeekRows),
+          rowsArea / rowsWithoutScrolling,
+        );
 
         final Widget rowsWidget = Column(
           mainAxisSize: MainAxisSize.min,
@@ -196,6 +222,17 @@ class WeekPlanGrid extends StatelessWidget {
                   }).toList(),
                 ),
               ),
+            // Der Rest der Höhe, den die (nach unten hin gekappten) Zeilen nicht
+            // mehr brauchen.
+            //
+            // Er gehört **hier**her und nicht in die Zellen: Nur so bleibt der
+            // Platz für die Navigationsleiste – weiter unten – am Ende der
+            // Scrollstrecke, auch wenn das Raster den Bereich nicht füllt.
+            // Ohne ihn stünde der Platz mitten im leeren Band, statt unter den
+            // Stunden zu warten, wo man ihn zum Hochschieben der letzten
+            // Stunde braucht.
+            if (rows * rowHeight < rowsArea)
+              SizedBox(height: rowsArea - rows * rowHeight),
             // Der Platz für die native Tab-Leiste, **am Ende der
             // Scrollstrecke** und nicht als fester Rand um das Raster.
             //

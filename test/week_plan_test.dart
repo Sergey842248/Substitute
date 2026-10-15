@@ -559,6 +559,107 @@ void main() {
     await AppClock.setOverriddenNow(null);
   });
 
+  /// Wie [_planWithLessons], aber **genau** [lessons] Stunden an einem Tag –
+  /// auch weniger, als der Demo-Plan hat.
+  Map<String, dynamic> _planWithExactly(DateTime date, int lessons) {
+    final Map<String, dynamic> plan = DemoData.buildDayPlan(date);
+    final List<dynamic> kl = plan['data']['Klassen']['Kl'] as List<dynamic>;
+    final Map<String, dynamic> kl0 = Map<String, dynamic>.from(kl.first as Map);
+    final Map<String, dynamic> pl = Map<String, dynamic>.from(kl0['Pl'] as Map);
+    final List<dynamic> std = List<dynamic>.from(pl['Std'] as List<dynamic>);
+    final List<dynamic> many = <dynamic>[];
+    for (int i = 0; i < lessons; i++) {
+      final Map<String, dynamic> lesson =
+          Map<String, dynamic>.from(std[i % std.length] as Map);
+      // Eigene Stundennummer, sonst hätte das Raster weniger Zeilen als
+      // gewünschte Einträge.
+      lesson['St'] = '${i + 1}';
+      many.add(lesson);
+    }
+    pl['Std'] = many;
+    kl0['Pl'] = pl;
+    kl[0] = kl0;
+    plan['data']['Klassen']['Kl'] = kl;
+    return plan;
+  }
+
+  testWidgets('few lessons a day keep the row height and are not stretched',
+      (WidgetTester tester) async {
+    Future<double> cellHeightWith(int lessons) async {
+      SharedPreferences.setMockInitialValues({
+        'vplanSchoolnumber': '999999',
+        'vplanUsername': 'lehrer',
+        'vplanPassword': 'geheim',
+        'classes': ['5a'],
+        'offlineVPData': <String>[
+          for (int i = 0; i < 5; i++)
+            jsonEncode(_planWithExactly(
+                DateTime(2026, 9, 21).add(Duration(days: i)), lessons)),
+        ],
+      });
+      await pumpWeekPlan(tester);
+      return tester
+          .getRect(
+            find
+                .descendant(
+                  of: find.byType(WeekPlanGrid),
+                  matching: find
+                      .byKey(const ValueKey<String>('lessonCell_2026-9-21_0')),
+                )
+                .first,
+          )
+          .height;
+    }
+
+    // Acht Stunden sind die Menge, für die der Bereich gedacht ist: Eine
+    // Zelle ist so hoch, wie sie sein soll.
+    final double expected = await cellHeightWith(8);
+
+    // Drei Stunden am Tag dürfen die Zellen **nicht** dreimal so hoch machen.
+    //
+    // Vor der Kappung teilte das Raster die verfügbare Höhe durch die Zahl der
+    // Stunden: Aus drei wurden Zellen von über 200 Pixeln, deren Inhalt oben
+    // klebt – das sehr gestreckt wirkende Raster, um das es hier geht.
+    final double withThree = await cellHeightWith(3);
+
+    expect(withThree, lessThanOrEqualTo(expected + 0.5),
+        reason: 'wenige Stunden dürfen die Zellen nicht in die Höhe ziehen');
+    expect(tester.takeException(), isNull);
+
+    // Die dritte Stunde steht dicht unter der zweiten, statt am oberen Rand
+    // eines dreifach hohen Feldes zu schweben.
+    final Finder second = find
+        .descendant(
+          of: find.byType(WeekPlanGrid),
+          matching:
+              find.byKey(const ValueKey<String>('lessonCell_2026-9-21_1')),
+        )
+        .first;
+    final Finder third = find
+        .descendant(
+          of: find.byType(WeekPlanGrid),
+          matching:
+              find.byKey(const ValueKey<String>('lessonCell_2026-9-21_2')),
+        )
+        .first;
+    expect(tester.getRect(third).height, closeTo(expected, 1));
+    expect(tester.getRect(third).top - tester.getRect(second).top,
+        closeTo(expected + 2, 1),
+        reason: 'the rows sit directly below each other');
+
+    // Der frei gebliebene Raum liegt **unter** dem Raster – dort, wo er auch
+    // hingehört: Der Platz für die Navigationsleiste bleibt am Ende der
+    // Scrollstrecke und steht nicht mitten im leeren Band.
+    expect(find.byType(NativeShellScrollEndInset), findsOneWidget);
+    expect(
+      tester.getRect(find.byType(NativeShellScrollEndInset)).top,
+      greaterThan(tester.getRect(find.byType(WeekPlanGrid)).bottom),
+      reason: 'der Platz für die Leiste liegt unter dem Raster, nicht darin',
+    );
+
+    await AppClock.setOverriddenNow(null);
+  });
+
   testWidgets('more than eight lessons a day make the week scrollable',
       (WidgetTester tester) async {
     // Neun Einträge am Montag.
