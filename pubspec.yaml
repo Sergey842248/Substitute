@@ -3,7 +3,7 @@ description: A extended version of indiware.
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 3.9.43+3943
+version: 3.9.44+3944
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

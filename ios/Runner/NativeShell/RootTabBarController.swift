@@ -46,6 +46,12 @@ final class RootTabBarController: UITabBarController {
     private let engines = FlutterEngineGroup(name: "substitute-shell", project: nil)
     private var controllers: [Tab] = []
     private var chromeHidden = false
+    /// iPadOS legt die Tab-Leiste seit iPadOS 18 oberhalb des Inhalts ab –
+    /// auch dann, wenn [mode] auf `.tabBar` steht. Die App braucht die
+    /// Navigation jedoch wie auf dem iPhone am unteren Bildschirmrand. Daher
+    /// bekommt das iPad eine eigene, native `UITabBar`, während der vom
+    /// `UITabBarController` verwaltete Balken unsichtbar bleibt.
+    private let untereTabLeiste = UITabBar()
     /// Die Schule, die vor einer noch nicht eingerichteten Schule aktiv war.
     /// Beim Abbrechen der Anmeldung wird sie wiederhergestellt.
     private var schoolBeforeLogin: String?
@@ -84,30 +90,15 @@ final class RootTabBarController: UITabBarController {
 
     // --------------------------------------------------------------- Aufbau
 
-    /// Legt fest, **wo** die Leiste steht: unten – auf jedem Gerät.
+    /// Legt die Darstellung des vom System verwalteten Tab-Controllers fest.
     ///
     /// ## Warum das überhaupt festzulegen ist
     ///
-    /// `UITabBarController` darf sich seine Form selbst wählen, und auf dem iPad
-    /// tut es das auch: Seit iPadOS 18 kann das System aus der unteren Leiste
-    /// eine **Seitenspalte** machen, und seit iPadOS 26 darf die Leiste
-    /// zusätzlich **schrumpfen** – dann zieht sie als schmale Leiste an den
-    /// **oberen** Rand und nimmt dort den Platz ein, der auf der Kopfzeile
-    /// hingehört. Auf dem iPhone geschieht nichts davon, weil es dort nur die
-    /// untere Leiste gibt. Genau deshalb fällt der Unterschied erst auf dem iPad
-    /// auf.
+    /// `UITabBarController` darf sich seine Form selbst wählen. Auf dem iPad
+    /// verhindert `.tabBar` die Seitenspalte; die Position bleibt dennoch oben.
+    /// Für die tatsächlich untere Leiste ist deshalb [untereTabLeiste] zuständig.
     ///
-    /// Beides ist hier unerwünscht: Die Abschnitte sind ein Weg durch die App
-    /// hindurch, kein Erkunden eines Raumes. Eine Leiste oben drängte die
-    /// Kopfzeile nach unten und würde Platz wegnehmen, den es dort nicht gibt.
-    ///
-    /// ## Warum `mode` und nicht bloss `tabBarMinimizeBehavior`
-    ///
-    /// Weil es zwei verschiedene Entscheidungen sind: [mode] verbietet die
-    /// Seitenspalte, [tabBarMinimizeBehavior] das Schrumpfen. Wer nur eines
-    /// davon festlegt, lässt dem iPad den anderen Weg offen.
-    ///
-    /// ## Warum die Versionsprüfungen
+    /// Die Versionsprüfungen halten die App weiterhin mit iOS 15 kompatibel.
     ///
     /// Beide Werte gibt es erst ab iPadOS 18 bzw. 26. Die App baut aber bis
     /// iOS 15 – dort steht hinter der Prüfung nichts, und die Leiste bleibt so,
@@ -128,6 +119,7 @@ final class RootTabBarController: UITabBarController {
         delegate = self
 
         stellungSetzen()
+        untereLeisteEinrichten()
 
         NotificationCenter.default.addObserver(
             self, selector: #selector(settingsDidChange),
@@ -226,6 +218,7 @@ final class RootTabBarController: UITabBarController {
 
         controllers = neuListe
         setViewControllers(neuer, animated: false)
+        untereTabLeiste.items = neuListe.map(untererTabBarEintrag)
 
         // Der zuletzt gesehen Abschnitt wird wiederhergestellt, wenn er noch
         // da ist – sonst die erste Stelle.
@@ -236,6 +229,7 @@ final class RootTabBarController: UITabBarController {
         } else {
             selectedIndex = 0
         }
+        untereAuswahlAktualisieren()
     }
 
     /// Erzeugt nur Tabs, die vorher noch nicht Teil der Leiste waren.
@@ -330,6 +324,41 @@ final class RootTabBarController: UITabBarController {
         return eintrag
     }
 
+    /// Die iPad-Variante benutzt dieselben Symbole und zugänglichen Namen wie
+    /// die Systemleiste, aber als eigenständige Leiste am unteren Rand.
+    private func untererTabBarEintrag(for section: Tab) -> UITabBarItem {
+        let item = tabBarItem(for: section)
+        item.title = nil
+        return item
+    }
+
+    private var benutztUntereTabLeiste: Bool {
+        traitCollection.userInterfaceIdiom == .pad
+    }
+
+    private func untereLeisteEinrichten() {
+        untereTabLeiste.delegate = self
+        untereTabLeiste.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(untereTabLeiste)
+
+        let hoehe = untereTabLeiste.heightAnchor.constraint(equalToConstant: 49)
+        NSLayoutConstraint.activate([
+            untereTabLeiste.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            untereTabLeiste.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            untereTabLeiste.bottomAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            hoehe,
+        ])
+        untereTabLeiste.isHidden = !benutztUntereTabLeiste
+    }
+
+    private func untereAuswahlAktualisieren() {
+        guard selectedIndex >= 0,
+              selectedIndex < (untereTabLeiste.items?.count ?? 0)
+        else { return }
+        untereTabLeiste.selectedItem = untereTabLeiste.items?[selectedIndex]
+    }
+
     //// Trägt die gewählte Helligkeit auf die Leiste.
     ///
     /// Nur die Leiste, nicht den ganzen Bildschirm: Die Abschnitte tragen ihr
@@ -337,6 +366,7 @@ final class RootTabBarController: UITabBarController {
     /// Umschalten kurz das falsche.
     private func farbenSetzen() {
         tabBar.tintColor = Appearance.accent
+        untereTabLeiste.tintColor = Appearance.accent
         view.backgroundColor = Appearance.background
 
         // Die Leiste ist die oberste Ebene direkt über dem Flutter-Inhalt.
@@ -355,9 +385,13 @@ final class RootTabBarController: UITabBarController {
         appearance.backgroundColor = .clear
         appearance.shadowColor = .clear
         tabBar.isTranslucent = true
+        untereTabLeiste.isTranslucent = true
         tabBar.standardAppearance = appearance
         tabBar.scrollEdgeAppearance = appearance
         tabBar.backgroundColor = .clear
+        untereTabLeiste.standardAppearance = appearance
+        untereTabLeiste.scrollEdgeAppearance = appearance
+        untereTabLeiste.backgroundColor = .clear
 
         // Das Fenster trägt die Helligkeit für alles, was **das System** malt:
         // Alarme, Auswahllisten, die Action-Sheets. Ohne dieses Nachziehen
@@ -374,7 +408,23 @@ final class RootTabBarController: UITabBarController {
         // ausgeblendet". Sonst hinge die Leiste in einem Zustand fest, den
         // jemand anders gesetzt hat, und niemand bräuchte sie wieder
         // einzuschalten.
-        tabBar.isHidden = chromeHidden || !AppStore.hasCredentials
+        let sichtbar = !chromeHidden && AppStore.hasCredentials
+        // iPadOS platziert die vom Controller verwaltete Leiste grundsätzlich
+        // oben. Sie darf dort nie Platz beanspruchen; die eigene Leiste liegt
+        // stattdessen fest unten.
+        if benutztUntereTabLeiste {
+            // Das ist mehr als `tabBar.isHidden = true`: Der Controller gibt
+            // seinen oberen Inhaltsbereich ebenfalls frei. Sonst bliebe nach
+            // dem Ausblenden eine unsichtbare Safe-Area über der Appbar.
+            if #available(iOS 18.0, *) {
+                setTabBarHidden(true, animated: false)
+            } else {
+                tabBar.isHidden = true
+            }
+        } else {
+            tabBar.isHidden = !sichtbar
+        }
+        untereTabLeiste.isHidden = !benutztUntereTabLeiste || !sichtbar
     }
 
     // MARK: - Wie viel die Leiste überdeckt
@@ -417,7 +467,8 @@ final class RootTabBarController: UITabBarController {
         // Ohne Leiste verdeckt sie nichts – und die Ansicht reicht dann bis zum
         // unteren Rand. `safeAreaInsets.bottom` greift trotzdem, weil der
         // Inhalt nicht in die Geste-Zone hineinreichen soll.
-        guard !tabBar.isHidden else {
+        let aktiveLeiste = benutztUntereTabLeiste ? untereTabLeiste : tabBar
+        guard !aktiveLeiste.isHidden else {
             NativeShellBridge.setzeUeberdeckung(view.safeAreaInsets.bottom)
             return
         }
@@ -431,7 +482,7 @@ final class RootTabBarController: UITabBarController {
         // unteren, und ihre Position erlaubt keine Rückschlüsse auf ihn. Nach
         // [stellungSetzen] kommt das nicht mehr vor – aber eine Zahl, die sich
         // aus einer fremden Form ergibt, wäre schlimmer als gar keine.
-        let rahmen = tabBar.frame
+        let rahmen = aktiveLeiste.frame
         let istUnten =
             rahmen.width >= view.bounds.width / 2
             && rahmen.height > 0
@@ -549,6 +600,7 @@ final class RootTabBarController: UITabBarController {
         if selectedIndex != 0 {
             selectedIndex = 0
         }
+        untereAuswahlAktualisieren()
     }
 
     /// Führt aus einem **Abschnitt** zurück in die Schulen-Übersicht.
@@ -591,6 +643,7 @@ final class RootTabBarController: UITabBarController {
 
         mehr.zeigeSchulen()
         selectedIndex = index
+        untereAuswahlAktualisieren()
     }
 
     /// Blendet die Leiste aus – für die Einführung und die Anmeldung.
@@ -627,6 +680,35 @@ extension RootTabBarController: UITabBarControllerDelegate {
             return false
         }
         return true
+    }
+
+    func tabBarController(
+        _ tabBarController: UITabBarController, didSelect viewController: UIViewController
+    ) {
+        untereAuswahlAktualisieren()
+    }
+}
+
+extension RootTabBarController: UITabBarDelegate {
+    func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
+        guard tabBar === untereTabLeiste,
+              let index = untereTabLeiste.items?.firstIndex(of: item),
+              index < (viewControllers?.count ?? 0),
+              let controller = viewControllers?[index]
+        else { return }
+
+        // Dasselbe Verhalten wie bei der Systemleiste: Ein erneutes Antippen
+        // des Einstellungen-Reiters führt in dessen Wurzel zurück.
+        if index == selectedIndex,
+           let navigation = controller as? UINavigationController,
+           navigation.viewControllers.count > 1
+        {
+            navigation.popToRootViewController(animated: true)
+            return
+        }
+
+        selectedIndex = index
+        untereAuswahlAktualisieren()
     }
 }
 
