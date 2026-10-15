@@ -439,11 +439,25 @@ final class RootTabBarController: UITabBarController {
         bauen()
         farbenSetzen()
 
-        guard !AppStore.hasCredentials else { return }
-        // Der Plan ist der erste Abschnitt der Leiste – er ist die einzige
-        // Stelle, von der aus die Anmeldung zu erreichen ist, und er ist
-        // immer gebaut (siehe [abschnitte]).
-        zeigePlan()
+        if !AppStore.hasCredentials {
+            // Der Plan ist der erste Abschnitt der Leiste – er ist die einzige
+            // Stelle, von der aus die Anmeldung zu erreichen ist, und er ist
+            // immer gebaut (siehe [abschnitte]).
+            //
+            // Wichtig ist die Reihenfolge: Erst wird der Abschnitt sichtbar
+            // (und seine Flutter-Maschine damit sicher eingerichtet), *dann*
+            // wird der Schulwechsel an Flutter gemeldet. Sonst kann die
+            // Meldung beim Anlegen einer Schule ins Leere gehen, wenn der
+            // Plan-Abschnitt bisher noch nicht geladen war. Dann blieb die
+            // alte Home-Ansicht stehen, bis ein App-Neustart den Speicher neu
+            // gelesen hat.
+            zeigePlan()
+        }
+
+        // Alle bereits bestehenden Flutter-Abschnitte müssen ihren Cache auf
+        // den neuen Bereich umstellen. Noch nicht erzeugte Abschnitte lesen
+        // den aktiven Bereich beim Start selbst.
+        NativeShellBridge.activeSchoolChanged()
     }
 
     /// Öffnet den aktiven Schulbereich: den Plan, oder – bei einem Bereich ohne
@@ -458,8 +472,16 @@ final class RootTabBarController: UITabBarController {
     }
 
     private func zeigePlan() {
-        guard controllers.first == .plan, selectedIndex != 0 else { return }
-        selectedIndex = 0
+        guard controllers.first == .plan else { return }
+
+        // `selectedIndex` kann die View erst im nächsten UIKit-Durchlauf
+        // laden. Der anschließende Kanalruf für den Schulwechsel hätte dann
+        // noch keinen Empfänger. Das Laden hier ist absichtlich synchron.
+        (viewControllers?.first as? PlanSectionController)?.loadViewIfNeeded()
+
+        if selectedIndex != 0 {
+            selectedIndex = 0
+        }
     }
 
     /// Führt aus einem **Abschnitt** zurück in die Schulen-Übersicht.
@@ -532,10 +554,17 @@ extension RootTabBarController: UITabBarControllerDelegate {
 /// Abschnitt zum ersten Mal aufgerufen wird – vorher wäre eine Dart-Isolate da,
 /// die niemand sieht, und die Zeit, bis der erste Plan erscheint, wäre um die
 /// Zeit für **alle drei** Abschnitte länger.
-class PlanSectionController: UIViewController {
+class PlanSectionController: UIViewController, UIGestureRecognizerDelegate {
     private let engines: FlutterEngineGroup
     private var flutterViewController: FlutterViewController?
     private var role = "plan"
+    private lazy var schoolLoginBackGesture: UIScreenEdgePanGestureRecognizer = {
+        let gesture = UIScreenEdgePanGestureRecognizer(
+            target: self, action: #selector(handleSchoolLoginBackGesture(_:)))
+        gesture.edges = .left
+        gesture.delegate = self
+        return gesture
+    }()
 
     init(engines: FlutterEngineGroup) {
         self.engines = engines
@@ -584,6 +613,12 @@ class PlanSectionController: UIViewController {
         let hostView = UIView()
         hostView.backgroundColor = Appearance.background
         view = hostView
+        // Die Anmeldung einer zusätzlich angelegten Schule ist die Wurzel
+        // dieses Flutter-Abschnitts. Es gibt dort keine Flutter-Route, die
+        // eine interaktive iOS-Zurück-Geste auslösen könnte. Die echte
+        // Bildschirmrand-Geste führt deshalb denselben nativen Rückweg aus
+        // wie der sichtbare Zurück-Pfeil.
+        hostView.addGestureRecognizer(schoolLoginBackGesture)
 
         addChild(controller)
         let flutterView = controller.view!
@@ -597,6 +632,40 @@ class PlanSectionController: UIViewController {
         ])
         controller.didMove(toParent: self)
         flutterViewController = controller
+    }
+
+    @objc private func handleSchoolLoginBackGesture(
+        _ gesture: UIScreenEdgePanGestureRecognizer
+    ) {
+        guard role == "plan",
+              AppStore.activeSchoolId != "default",
+              !AppStore.hasCredentials,
+              gesture.state == .ended
+        else { return }
+
+        let translation = gesture.translation(in: view).x
+        let velocity = gesture.velocity(in: view).x
+        // Nicht jede Berührung am Rand ist ein Zurückgehen. Die Schwelle
+        // entspricht der Erwartung an eine absichtliche iOS-Wischgeste.
+        guard translation > 60 || velocity > 500 else { return }
+        (tabBarController as? RootTabBarController)?.zurueckInDieSchulen()
+    }
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer)
+        -> Bool
+    {
+        // Außerhalb der Anmeldung darf der Erkenner nicht einmal anfangen:
+        // Sonst würde er horizontale Flutter-Gesten im Plan unnötig
+        // unterbrechen, obwohl er am Ende ohnehin nichts tun dürfte.
+        guard gestureRecognizer === schoolLoginBackGesture,
+              role == "plan",
+              AppStore.activeSchoolId != "default",
+              !AppStore.hasCredentials,
+              let edgeGesture = gestureRecognizer as? UIScreenEdgePanGestureRecognizer
+        else { return false }
+
+        let velocity = edgeGesture.velocity(in: view)
+        return velocity.x > 0 && abs(velocity.x) > abs(velocity.y)
     }
 
     private func titleForSection() -> String? {

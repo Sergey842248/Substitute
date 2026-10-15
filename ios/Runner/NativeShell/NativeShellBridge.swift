@@ -68,7 +68,6 @@ enum NativeShellBridge {
             forName: AppStore.activeSchoolDidChange, object: nil, queue: .main
         ) { _ in
             controller.schuleGeaendert()
-            activeSchoolChanged()
         }
     }
 
