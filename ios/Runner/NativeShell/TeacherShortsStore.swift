@@ -251,17 +251,25 @@ enum TeacherShortsStore {
             // `customUrl` kommt aus einem Eingabefeld; ein Text, der kein gültiger
             // Speicherort ist, ist beim Speichern der Anmeldung aufgefallen. Die
             // zweite Datei oben in diesem Bildschirm fängt den Rest ab.
-            return URL(string: daten.customUrl + "mobdaten/Klassen.xml")!
+            return URL(
+                string: daten.customUrl + "mobdaten/Klassen.xml",
+                encodingInvalidCharacters: true)!
         }
-        // `interpolationAllowed: true` ist hier **nicht** Kosmetik: Die
-        // Schulnummer kommt aus einem Eingabefeld, und ohne diesen Schalter
-        // wäre `URL(string:)` `nil`, sobald jemand einen Bindestrich eintippt –
-        // und das ist bei Schulnummern ausdrücklich erlaubt, siehe
-        // [CredentialsScreen].
+        // `encodingInvalidCharacters: true` ist hier **nicht** Kosmetik: Die
+        // Schulnummer kommt aus einem Eingabefeld, und `URL(string:)` gibt `nil`
+        // zurück, sobald ein Zeichen vorkommt, das in einer Adresse nichts zu
+        // suchen hat. Bei Schulnummern sind das Bindestriche und Schrägstriche
+        // – ausdrücklich erlaubt, siehe [CredentialsScreen].
+        //
+        // Der Schalter heisst `encodingInvalidCharacters` und nicht etwa
+        // `interpolationAllowed`: Letzteren gibt es nicht, und der Compiler sagt
+        // bei einem erfundenen Namen nicht „das meinst du wohl", sondern
+        // „expected 'string:encodingInvalidCharacters:'" - und damit immerhin
+        // den richtigen.
         return URL(
             string: "https://www.stundenplan24.de/\(daten.schoolNumber)"
                 + "/mobil/mobdaten/Klassen.xml",
-            interpolationAllowed: true)!
+            encodingInvalidCharacters: true)!
     }
 
     /// Der Kopf mit Benutzername und Passwort – dieselbe Anmeldung wie in Dart.

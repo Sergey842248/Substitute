@@ -119,9 +119,12 @@ final class TeacherShortsScreen: FormScreen {
                         symbol: "",
                         text: eintrag.echterName,
                         sicher: false,
-                        // `.name`: Gross/Klein und Umschauten sind bei Namen die
-                        // Regel, und die Tastatur soll sie von sich aus anbieten.
-                        tastatur: .name
+                        // Die **normale** Tastatur: `UIKeyboardType` hat kein
+                        // `.name` (nur `.namePhonePad`, und das ist ein
+                        // Telefonfeld). Ausserdem schaltet [FeldCell] Autokorrektur
+                        // und automatische GROSSschreibung ab - die gelten für
+                        // Zugangsdaten, nicht für Namen.
+                        tastatur: .default
                     ) {[weak self] neu in self?.geaendert(nummer, neu) }
                 })
         ]
