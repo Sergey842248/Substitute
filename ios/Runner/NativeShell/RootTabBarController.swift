@@ -401,6 +401,38 @@ final class RootTabBarController: UITabBarController {
         farbenSetzen()
     }
 
+    /// Ein anderer Schulbereich wurde gewählt – in den Einstellungen.
+    ///
+    /// ## Was hier passiert und warum
+    ///
+    /// Ein Schulwechsel ist der eine Vorgang, bei dem sich **zwei** Dinge
+    /// ändern: ob die Leiste überhaupt stehen darf (der neue Bereich kann
+    /// Zugangsdaten haben oder keine) und welcher Abschnitt offen ist.
+    ///
+    /// Der zweite Teil ist der Grund, warum es diese Methode gibt und nicht bloß
+    /// ein weiteres `farbenSetzen()`: Eine neu angelegte Schule hat **keine**
+    /// Zugangsdaten, und eine bestehende, gerade nicht verwendete vielleicht
+    /// auch nicht. In dem Fall wäre die Leiste fortan weg – und wer gerade in
+    /// den Einstellungen steht, käme von dort nicht mehr heraus: Die Leiste ist
+    /// der einzige Weg zu den Abschnitten, und in den Einstellungen gäbe es die
+    /// Zeile „Zugangsdaten" gar nicht (sie hängt an denselben Zugangsdaten).
+    ///
+    /// Deshalb wird der Plan gezeigt, wenn die Leiste ausbleiben würde. Er ist
+    /// der Abschnitt, der ohnehin die Anmeldung zeigt, und von dort aus kann man
+    /// sich anmelden – worauf die Leiste wieder erscheint. Auf Android macht es
+    /// dasselbe: Nach dem Anlegen einer Schule öffnet sich sofort die Anmeldung.
+    func schuleGeaendert() {
+        bauen()
+        farbenSetzen()
+
+        guard !AppStore.hasCredentials else { return }
+        // Der Plan ist der erste Abschnitt der Leiste – er ist die einzige
+        // Stelle, von der aus die Anmeldung zu erreichen ist, und er ist
+        // immer gebaut (siehe [abschnitte]).
+        guard controllers.first == .plan, selectedIndex != 0 else { return }
+        selectedIndex = 0
+    }
+
     /// Blendet die Leiste aus – für die Einführung und die Anmeldung.
     ///
     /// Die beiden Bildschirme stehen **über** allem. Eine halb sichtbare Leiste

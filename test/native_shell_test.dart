@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:substitute/services/NativeShell.dart';
 
@@ -112,16 +113,55 @@ void main() {
   });
 
   group('Was an die native Seite gemeldet wird', () {
-    test('aus einem Abschnitt heraus gar nichts', () {
-      // Die Abschnitte melden nichts: Es gibt nichts, was die Leiste aus
-      // ihnen erfahren müsste, und die Einstellungen stehen in derselben
-      // Ablage. Jede Meldung wäre ein Umweg ohne Ziel.
-      //
-      // Und sie könnten nicht einmal ankommen: Der Kanal einer Ansicht, die
-      // gerade nicht gebaut wurde, existiert auf der nativen Seite noch gar
-      // nicht.
+    /// Die Meldungen, die in [gesendet] gelandet sind.
+    late List<MethodCall> gesendet;
+
+    setUp(() {
+      gesendet = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(NativeShell.channel,
+              (MethodCall call) async {
+        gesendet.add(call);
+        return null;
+      });
+    });
+
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(NativeShell.channel, null);
+    });
+
+    test('ein Abschnitt meldet seine Zugangsdaten', () async {
+      // Der gemeldete Fehler: Die Anmeldeseite steht in einem **Abschnitt**
+      // (auf iOS ist sie beim ersten Start der einzige Bildschirm der
+      // Plan-Ansicht), und die Navigationsleiste steht nach dem ersten
+      // Benutzernamen da. Blieb die Meldung aus einem Abschnitt aus – wie sie
+      // früher abgefangen wurde –, wüsste die Leiste nie davon und bliebe bis
+      // zum nächsten Neustart weg.
       NativeShell.debugSetRole(NativeShellRole.sectionPlan);
-      expect(NativeShell.isSection, isTrue);
+
+      NativeShell.notifySettingsChanged();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        gesendet.map((MethodCall c) => c.method),
+        contains('settingsChanged'),
+        reason: 'ohne diese Meldung bliebe die Leiste bis zum Neustart weg',
+      );
+    });
+
+    test('ein Abschnitt blendet die Leiste nicht von sich aus aus', () async {
+      // Umgekehrt: Die Sichtbarkeit der Leiste entscheidet sich in einem
+      // Abschnitt **von selbst** – ohne Zugangsdaten ist sie weg, mit dem
+      // ersten Benutzernamen ist sie da (siehe `farbenSetzen` auf der nativen
+      // Seite). Blendete die Anmeldeseite sie zusätzlich ab, gäbe es niemanden,
+      // der sie wieder einschaltet.
+      NativeShell.debugSetRole(NativeShellRole.sectionPlan);
+
+      NativeShell.setChromeVisible(false);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(gesendet, isEmpty);
     });
 
     testWidgets('aus der ganzen App heraus – ohne zu scheitern',
@@ -142,6 +182,54 @@ void main() {
       expect(uhr.elapsedMilliseconds, lessThan(100),
           reason: 'eine Meldung darf das Warten nie aufhalten');
       await tester.pump();
+    });
+  });
+
+  group('Was von der nativen Seite ankommt', () {
+    /// Ruft [methode] auf dem Kanal so auf, wie die native Seite es tut.
+    Future<void> vonDerNativenSeite(String methode, [Object? argumente]) async {
+      await TestDefaultBinaryMessengerBinding
+          .instance.defaultBinaryMessenger
+          .handlePlatformMessage(
+        NativeShell.channelName,
+        const StandardMethodCodec()
+            .encodeMethodCall(MethodCall(methode, argumente)),
+        (ByteData? _) {},
+      );
+    }
+
+    testWidgets('ein Schulwechsel wird **eigen** gemeldet',
+        (WidgetTester tester) async {
+      // Getrennt von `appearanceChanged`, weil es etwas anderes bedeutet:
+      // Dort heisst „lies deine Farben neu", hier „alles, was du zeigst,
+      // gehört zu einer anderen Schule". Wer beides vermischte, würde den Plan
+      // der alten Schule weiterzeigen, nur in der richtigen Helligkeit.
+      int farben = 0;
+      int schulen = 0;
+      NativeShell.onAppearanceChanged(
+        () => farben++,
+        schuleGeaendert: () => schulen++,
+      );
+
+      await vonDerNativenSeite('appearanceChanged');
+      expect(farben, 1);
+      expect(schulen, 0);
+
+      await vonDerNativenSeite('activeSchoolChanged');
+      expect(schulen, 1);
+      expect(farben, 1, reason: 'der Schulwechsel ist keine Farbänderung');
+    });
+
+    testWidgets('die Überdeckung meldet die Leiste weiter', (tester) async {
+      int schulen = 0;
+      addTearDown(() => NativeShell.ueberdeckung.value = 0);
+      NativeShell.onAppearanceChanged(() {}, schuleGeaendert: () => schulen++);
+
+      await vonDerNativenSeite('tabBarInset', <String, Object>{
+        'height': 49,
+      });
+      expect(NativeShell.ueberdeckung.value, 49);
+      expect(schulen, 0);
     });
   });
 }

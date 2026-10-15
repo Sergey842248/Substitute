@@ -15,6 +15,8 @@ import '../../../models/InputField.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import '../../../models/QRScanner.dart';
 import '../../../main.dart';
+import '../../../services/AppLanguage.dart';
+import '../../../services/NativeShell.dart';
 import '../../../services/SchoolStorage.dart';
 import '../../../services/ConfigBackup.dart';
 import '../../../services/ConfigBackupFlow.dart';
@@ -97,6 +99,9 @@ class _VPlanLoginState extends State<VPlanLogin> {
     setState(() {});
 
     ConfigBackupFlow.showResult(context, result);
+    // Die Sicherung kann Zugangsdaten gebracht haben – und auf iOS entscheidet
+    // daran, ob die Navigationsleiste steht. Siehe [_meldeAnDieNativeSeite].
+    _meldeAnDieNativeSeite();
 
     // Sind mit der Sicherung Zugangsdaten gekommen, ist die Anmeldung erledigt
     // und die App kann direkt geöffnet werden.
@@ -139,6 +144,10 @@ class _VPlanLoginState extends State<VPlanLogin> {
     passwordController.text = jsonData['password'];
 
     customUrlController.text = jsonData['customUrl'];
+
+    // Übernommene Zugangsdaten sind gespeicherte Zugangsdaten: Die Leiste
+    // entscheidet daran, ob sie steht. Siehe [_meldeAnDieNativeSeite].
+    _meldeAnDieNativeSeite();
   }
 
   /// Öffnet ein Auswahl-Menü, um die Sprache direkt auf der Anmeldeseite zu
@@ -211,13 +220,39 @@ class _VPlanLoginState extends State<VPlanLogin> {
   }
 
   /// Speichert die Sprache und wendet sie sofort auf die ganze App an.
+  ///
+  /// Über [AppLanguage.setLanguage] und nicht mit einem eigenen
+  /// `prefs.setString`: Das ist derselbe Aufruf wie in allen anderen
+  /// Sprachbildschirmen – und nur er sagt der nativen Seite Bescheid. Bei einem
+  /// eigenen Schreiben bliebe die Leiste (auf iOS) in der alten Sprache stehen,
+  /// bis die App neu gestartet würde.
   void _setLanguage(String languageCode) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('languageCode', languageCode);
+    await AppLanguage.setLanguage(languageCode);
+    if (!mounted) return;
     MyApp.setLocale(context, Locale(languageCode, ''));
   }
 
   bool customUrlField = false;
+
+  /// Sagt der nativen Seite, dass es jetzt Zugangsdaten gibt.
+  ///
+  /// ## Warum das hier nötig ist – und warum es erst auf iOS auffällt
+  ///
+  /// Auf iOS baut eine native Schale die Navigationsleiste, und die steht **nach
+  /// dem ersten Benutzernamen** da (`AppStore.hasCredentials` auf der nativen
+  /// Seite). Die Zugangsdaten werden aber **hier** eingetragen – beim allerersten
+  /// Start ist diese Seite sogar der einzige Bildschirm, den es gibt.
+  ///
+  /// Die native Seite liest ihren Wert aus `UserDefaults` und erfährt sonst
+  /// nichts davon: Sie prüft ihn beim Wiedererwachen der App, und bis dahin
+  /// bliebe die Leiste weg. Genau das war der gemeldete Fehler – nach dem
+  /// Anmelden war die Leiste erst nach einem Neustart da.
+  ///
+  /// Der Aufruf ist harmlos, wo es keine native Seite gibt: Auf Android und im
+  /// Web verschluckt [NativeShell] den fehlenden Kanal.
+  void _meldeAnDieNativeSeite() {
+    NativeShell.notifySettingsChanged();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -496,6 +531,10 @@ class _VPlanLoginState extends State<VPlanLogin> {
                     }
                     Fluttertoast.showToast(
                         msg: AppLocalizations.of(context)!.credsSaved);
+                    // Ohne diese Meldung blieb die Navigationsleiste weg, bis
+                    // die App neu gestartet wurde – siehe
+                    // [_meldeAnDieNativeSeite].
+                    _meldeAnDieNativeSeite();
                     // Bei der Default-Schule (Pflicht-Anmeldung) ohne Zurück zur
                     // Hauptansicht navigieren. Bei einer separaten Schule dagegen
                     // zur vorherigen Ansicht (z.B. Schulen-Liste) zurückkehren,

@@ -115,11 +115,22 @@ enum AppStore {
         defaults.set(value, forKey: key(name, schoolId: schoolId))
     }
 
+    /// Wird ein anderer Schulbereich verwendet, gilt er ab sofort – für beide
+    /// Seiten.
+    ///
+    /// ## Warum hier [didWrite] steht
+    ///
+    /// Ein Schulwechsel ändert, was **alles** bedeutet: die Leiste (hat der
+    /// neue Bereich Zugangsdaten?), die Listen in den Einstellungen und der
+    /// Inhalt jedes Flutter-Abschnitts. Ohne diese Meldung bliebe die Leiste so,
+    /// wie sie war, und die Abschnitte zeigten weiter die Daten der alten Schule –
+    /// bis zum nächsten Neustart.
     static func setActiveSchool(_ schoolId: String) {
         // Siehe [activeSchoolKey]: Auch beim Schreiben **ohne** den
         // Schulbereich einbezogen. Über [key] ginge es nicht – der Aufruf
         // müsste erst den Bereich lesen, den man gerade setzt.
         defaults.set(schoolId, forKey: prefix + activeSchoolKey)
+        didWrite()
     }
 
     /// Entfernt einen Wert ganz – statt ihn auf einen Leerwert zu setzen.
@@ -390,15 +401,37 @@ enum AppStore {
 
     // ------------------------------------------------------------- Schulnamen
 
+    /// Der Schlüssel der Profilliste – und zwar **ohne** den Schulbereich.
+    ///
+    /// ## Warum ausgerechnet dieser Wert keinem Bereich gehört
+    ///
+    /// Die Profilliste **ist** die Liste aller Bereiche. Hinge sie an einem
+    /// davon, wäre sie nur noch für **diesen einen** lesbar: Sobald eine zweite
+    /// Schule aktiv wäre, suchte man sie unter `schools.<id>.schoolProfiles` –
+    /// und fände dort nichts.
+    ///
+    /// Das ist keine theoretische Überlegung, sondern der gemeldete Fehler:
+    /// Nach dem Anlegen einer Schule wurde diese sofort aktiv, und schon beim
+    /// nächsten Aufbau der Liste suchte der Bildschirm nach einem Schlüssel,
+    /// den niemand geschrieben hatte. Ergebnis: „Noch keine Schule angelegt",
+    /// obwohl eben eine angelegt worden war – und eine zweite Schule war
+    /// ebenfalls nicht anzulegen, weil das Anlegen in genau diese leere Liste
+    /// schrieb und sie danach wieder verschwand.
+    ///
+    /// Dart schreibt denselben Text ohne Vorspann – siehe `_profilesKey` in
+    /// `SchoolStorage.dart`. Siehe auch [plainKey].
+    static let schoolProfilesKey = "schoolProfiles"
+
     /// Die angelegten Schulbereiche, in der Reihenfolge, in der sie
     /// gespeichert wurden.
     ///
-    /// Gelesen wird derselbe JSON-Text, den `SchoolStorage` schreibt. Ein
+    /// Gelesen wird derselbe JSON-Text, den `SchoolStorage` schreibt – und
+    /// ausdrücklich **ohne** den Schulbereich, siehe [schoolProfilesKey]. Ein
     /// beschädigter Text liefert **keine** Profile statt erfundener – eine
     /// leere Liste zeigt das als "keine Schulen", und das ist ehrlicher als ein
     /// Bereich, den es nicht gibt.
     static func schoolProfiles() -> [SchoolProfile] {
-        guard let raw = string("schoolProfiles"),
+        guard let raw = plainString(schoolProfilesKey),
               let data = raw.data(using: .utf8)
         else { return [] }
         guard let entries = try? JSONSerialization.jsonObject(with: data)
@@ -412,12 +445,18 @@ enum AppStore {
         }
     }
 
+    /// Schreibt die Profilliste zurück.
+    ///
+    /// Ohne [didWrite] – das ruft der Aufrufer am Ende seiner Änderung auf.
+    /// Diese Funktion wird auch von [deleteSchool] benutzt, das danach noch den
+    /// aktiven Bereich umsetzt; eine Meldung mitten drin würde die Leiste
+    /// zweimal neu bauen.
     static func saveSchoolProfiles(_ profiles: [SchoolProfile]) {
         let encoded = profiles.map { ["id": $0.id, "name": $0.name] }
         guard let data = try? JSONSerialization.data(withJSONObject: encoded),
               let text = String(data: data, encoding: .utf8)
         else { return }
-        setString(text, for: "schoolProfiles")
+        setPlainString(text, for: schoolProfilesKey)
     }
 
     static func addSchool(named name: String) -> SchoolProfile {
@@ -431,6 +470,7 @@ enum AppStore {
             id: id, name: trimmed.isEmpty ? "Neue Schule" : trimmed)
         profiles.append(profile)
         saveSchoolProfiles(profiles)
+        didWrite()
         return profile
     }
 
@@ -443,6 +483,7 @@ enum AppStore {
                 id: profile.id, name: trimmed.isEmpty ? profile.name : trimmed)
         }
         saveSchoolProfiles(profiles)
+        didWrite()
     }
 
     static func deleteSchool(_ id: String) {
@@ -455,8 +496,11 @@ enum AppStore {
         guard !profiles.isEmpty else { return }
         saveSchoolProfiles(profiles)
         if activeSchoolId == id {
-            setActiveSchool(profiles[0].id)
+            // Ohne [didWrite] hier: Das Löschen meldet unten **einmal** – und
+            // der aktive Bereich gehört zu derselben Änderung.
+            defaults.set(profiles[0].id, forKey: prefix + activeSchoolKey)
         }
+        didWrite()
     }
 
     // ------------------------------------------------------- Anmeldedaten

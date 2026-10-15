@@ -59,6 +59,17 @@ enum NativeShellBridge {
             // sie ist längst gebaut, und sie liest von selbst nichts neu.
             controller.settingsGeaendertInFlutter()
         }
+
+        // Ein **anderer Schulbereich** ist mehr als eine Einstellungsänderung:
+        // Er ändert, was die Leiste zeigt (hat der Bereich Zugangsdaten?) und was
+        // **jede** Flutter-Ansicht zeigt (deren ganze Welt ist der Bereich).
+        // Deshalb hat er einen eigenen Weg – siehe [activeSchoolChanged].
+        NotificationCenter.default.addObserver(
+            forName: AppStore.activeSchoolDidChange, object: nil, queue: .main
+        ) { _ in
+            controller.schuleGeaendert()
+            activeSchoolChanged()
+        }
     }
 
     /// Registriert den Kanal einer Ansicht.
@@ -97,6 +108,27 @@ enum NativeShellBridge {
                 // Statt sie abzulehnen, wird sie übergangen.
                 result(nil)
             }
+        }
+    }
+
+    /// Sagt **allen** Ansichten, dass ein anderer Schulbereich gilt.
+    ///
+    /// ## Warum das eine eigene Meldung ist und nicht Teil von [appearanceChanged]
+    ///
+    /// [appearanceChanged] sagt: „lies deine Farben neu". Der Schulbereich sagt
+    /// etwas anderes: „alles, was du zeigst, gehört zu einer anderen Schule" –
+    /// der Plan, die Klassen, die Vorschauen, und vor allem die Frage, ob es
+    /// Zugangsdaten gibt.
+    ///
+    /// Dart baut daraufhin seine Ansicht **neu auf** (siehe
+    /// `main.dart`, `_schuleGeaendert`) und nicht nur ihre Farben. Ein Neuaufbau
+    /// wäre bei einer Helligkeitsänderung genau das Falsche: Er würde den
+    /// Plan zerlegen, obwohl sich an ihm nichts geändert hat.
+    ///
+    /// An **alle** Ansichten, aus demselben Grund wie bei [appearanceChanged].
+    static func activeSchoolChanged() {
+        for channel in channels {
+            channel.invokeMethod("activeSchoolChanged", arguments: nil)
         }
     }
 

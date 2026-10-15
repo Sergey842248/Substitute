@@ -459,7 +459,10 @@ class _MyAppState extends State<MyApp> {
     // Einstellungsseite mitziehen, der Plan aber in der alten Helligkeit
     // stehen bleiben: zwei Helligkeiten auf einmal, und beide „richtig"
     // gerechnet.
-    NativeShell.onAppearanceChanged(_themeVonDerNativenSeite);
+    NativeShell.onAppearanceChanged(
+      _themeVonDerNativenSeite,
+      schuleGeaendert: _schuleGeaendert,
+    );
 
     // Nur noch, wenn die Einstellung **nicht** schon mitgegeben wurde. Sonst
     // wäre das ein `setState` auf denselben Wert und ein zweiter Aufbau des
@@ -468,6 +471,47 @@ class _MyAppState extends State<MyApp> {
       _ladeTheme().then((ThemeMode mode) {
         if (mounted) setState(() => _themeMode = mode);
       });
+    }
+  }
+
+  /// Baut die ganze Ansicht neu auf, weil ein anderer Schulbereich gilt.
+  ///
+  /// ## Warum das ein **Neubau** ist und nicht ein Neuladen
+  ///
+  /// Der Schulbereich steckt in fast jedem Wert, den diese App liest: Klassen,
+  /// Pläne, Personen, Vorschauen, Zugangsdaten. Eine Ansicht, die nur ihre
+  /// Farben neu holt, zeigte weiter den Plan der **alten** Schule – und das
+  /// wäre kein Schönheitsfehler, sondern ein Plan aus einem fremden Bereich.
+  ///
+  /// Deshalb wird derselbe Weg gegangen wie beim allerersten Start
+  /// ([wartenderAppStart]): dieselbe Frage – hat dieser Bereich Zugangsdaten? –
+  /// und dieselbe Antwort. Eine neu angelegte Schule hat keine, und genau dann
+  /// steht danach die Anmeldeseite da. Das ist auf Android genauso: Dort öffnet
+  /// sich nach dem Anlegen einer Schule sofort die Anmeldung.
+  ///
+  /// ## Warum vor dem Neubau `reload()`
+  ///
+  /// Die Nachricht kommt aus der nativen Seite, und die schreibt direkt in
+  /// `UserDefaults`. Dart liest aber aus dem **Cache** von [SharedPreferences],
+  /// und der kennt nur, was Dart selbst geschrieben hat – siehe
+  /// `AppAppearance.reloadTheme`. Ohne das `reload()` würde der Neubau mit dem
+  /// Stand der **alten** Schule beginnen und der Fehler wäre wieder da, nur
+  /// eine Ebene tiefer.
+  Future<void> _schuleGeaendert() async {
+    if (!mounted) return;
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      // Die Vorschauen stehen im Speicher, nicht im Bildschirm – sie gehören
+      // zum Bereich und müssen mit ihm neu geladen werden.
+      await loadDisplayCache(prefs);
+      if (!mounted) return;
+      runApp(await wartenderAppStart(prefs));
+    } catch (fehler, stapel) {
+      // Ein Fehler hier darf nicht die ganze App mitnehmen: Die Leiste ist
+      // längst neu eingefärbt, und ohne Neuaufbau zeigt die Ansicht eben den
+      // alten Stand weiter, statt zu verschwinden.
+      debugPrint('Schulwechsel: $fehler\n$stapel');
     }
   }
 

@@ -219,8 +219,21 @@ class NativeShell {
   ///
   /// Deshalb wird abgeschickt und **nicht** auf das Ergebnis gewartet. Der
   /// Fehler wird trotzdem behandelt, nur eben dort, wo er auftaucht.
+  ///
+  /// ## Warum ein Abschnitt meldet – und früher nicht
+  ///
+  /// Hier stand lange `if (isSection) return;`, mit der Begründung, ein
+  /// Abschnitt habe der Leiste nichts zu sagen. Das stimmte für das Aussehen,
+  /// aber nicht für die Sache, um die es hier geht: **Die Zugangsdaten werden
+  /// in einem Abschnitt eingetragen** – die Anmeldeseite steht in der
+  /// Plan-Ansicht. Ohne diese Meldung erfuhr die Leiste nie, dass es jetzt
+  /// Zugangsdaten gibt, und blieb weg, bis die App neu gestartet wurde.
+  ///
+  /// Der zweite Grund ist derselbe wie bei [_send]: Fehler sind harmlos, und
+  /// eine Meldung aus einem Abschnitt kommt zuverlässig an – der Kanal einer
+  /// Ansicht wird beim Anlegen ihrer Maschine registriert, also lange bevor
+  /// jemand in ihr etwas speichern kann.
   static void notifySettingsChanged() {
-    if (isSection) return;
     unawaited(_send('settingsChanged'));
   }
 
@@ -230,6 +243,19 @@ class NativeShell {
   /// Die Einführung und die Anmeldeseite stehen **über** allem und sollen die
   /// Leiste nicht halb sichtbar unter sich durchscheinen lassen. Deshalb wird
   /// die Leiste dort ausgeblendet – und genau hier gesagt, wohin.
+  ///
+  /// ## Warum ein Abschnitt das **nicht** sagt
+  ///
+  /// Anders als bei [notifySettingsChanged]. In einem Abschnitt entscheidet sich
+  /// die Sichtbarkeit der Leiste von allein: Solange der Schulbereich keine
+  /// Zugangsdaten hat, blendet die native Seite sie aus (siehe
+  /// `farbenSetzen` in `RootTabBarController.swift`), und mit dem ersten
+  /// Benutzernamen steht sie wieder da – ohne dass irgendwer sie einschaltet.
+  ///
+  /// Blendete stattdessen die Anmeldeseite eines Abschnitts sie **ab**, gäbe es
+  /// niemanden, der sie wieder einschaltet: Diese Ansicht ist nach dem Anmelden
+  /// eine ganz andere, und sie sendet nichts. Die Leiste bliebe für den Rest
+  /// der Sitzung weg – bis zum nächsten Neustart.
   static void setChromeVisible(bool visible) {
     if (isSection) return;
     unawaited(_send('chromeVisible', visible));
@@ -271,15 +297,27 @@ class NativeShell {
   /// der Hell-Modus blieb aus, während die Leiste und die Einstellungsseite
   /// hell wurden. Zwei Helligkeiten nebeneinander, beide „richtig“ gerechnet.
   ///
+  /// [schuleGeaendert] wird gerufen, wenn ein **anderer Schulbereich**
+  /// verwendet wird. Siehe [_schuleGeaendert] in `main.dart`.
+  ///
   /// ## Warum kein Wert mitkommt
   ///
   /// Es wird nur die **Aufforderung** geschickt, ihn zu holen. Ein
   /// mitgeschickter Wert wäre eine zweite Quelle für dieselbe Sache.
-  static void onAppearanceChanged(VoidCallback neuLaden) {
+  static void onAppearanceChanged(
+    VoidCallback neuLaden, {
+    VoidCallback? schuleGeaendert,
+  }) {
     channel.setMethodCallHandler((MethodCall call) async {
       switch (call.method) {
         case 'appearanceChanged':
           neuLaden();
+        case 'activeSchoolChanged':
+          // Eine eigene Meldung und nicht Teil von `appearanceChanged`: Der
+          // Schulbereich ändert nicht die Farben, sondern die **Daten**. Wer
+          // hier nur neu einfärben ließe, zeigte weiter den Plan der alten
+          // Schule – bis zum Neustart.
+          schuleGeaendert?.call();
         case 'tabBarInset':
           // Wie viele Punkte die Leiste am unteren Rand verdeckt. Gemessen von
           // der nativen Seite – sie weiss, wo die Leiste wirklich liegt.
