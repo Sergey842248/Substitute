@@ -33,10 +33,10 @@
 		AB010000000000000000D5 /* QRScannerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000C5 /* QRScannerController.swift */; };
 		AB010000000000000000D6 /* DateTimePickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000C6 /* DateTimePickerSheet.swift */; };
 		AB010000000000000000D7 /* Meldung.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000C7 /* Meldung.swift */; };
-		AB010000000000000000D9 /* BackupScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000C9 /* BackupScreen.swift */; };
-		AB010000000000000000DA /* TeacherShortsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000CA /* TeacherShortsScreen.swift */; };
-		AB010000000000000000DB /* ConfigBackupStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000CB /* ConfigBackupStore.swift */; };
-		AB010000000000000000DC /* TeacherShortsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000CC /* TeacherShortsStore.swift */; };
+		AB010000000000000000D9 /* BackupScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000E0 /* BackupScreen.swift */; };
+		AB010000000000000000DA /* TeacherShortsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000E1 /* TeacherShortsScreen.swift */; };
+		AB010000000000000000DB /* ConfigBackupStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000E2 /* ConfigBackupStore.swift */; };
+		AB010000000000000000DC /* TeacherShortsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB010000000000000000E3 /* TeacherShortsStore.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
@@ -84,10 +84,10 @@
 		AB010000000000000000C5 /* QRScannerController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = QRScannerController.swift; sourceTree = "<group>"; };
 		AB010000000000000000C6 /* DateTimePickerSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DateTimePickerSheet.swift; sourceTree = "<group>"; };
 		AB010000000000000000C7 /* Meldung.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Meldung.swift; sourceTree = "<group>"; };
-		AB010000000000000000C9 /* BackupScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BackupScreen.swift; sourceTree = "<group>"; };
-		AB010000000000000000CA /* TeacherShortsScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TeacherShortsScreen.swift; sourceTree = "<group>"; };
-		AB010000000000000000CB /* ConfigBackupStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ConfigBackupStore.swift; sourceTree = "<group>"; };
-		AB010000000000000000CC /* TeacherShortsStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TeacherShortsStore.swift; sourceTree = "<group>"; };
+		AB010000000000000000E0 /* BackupScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BackupScreen.swift; sourceTree = "<group>"; };
+		AB010000000000000000E1 /* TeacherShortsScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TeacherShortsScreen.swift; sourceTree = "<group>"; };
+		AB010000000000000000E2 /* ConfigBackupStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ConfigBackupStore.swift; sourceTree = "<group>"; };
+		AB010000000000000000E3 /* TeacherShortsStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TeacherShortsStore.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
@@ -179,10 +179,10 @@
 				AB010000000000000000C5 /* QRScannerController.swift */,
 				AB010000000000000000C6 /* DateTimePickerSheet.swift */,
 				AB010000000000000000C7 /* Meldung.swift */,
-				AB010000000000000000C9 /* BackupScreen.swift */,
-				AB010000000000000000CA /* TeacherShortsScreen.swift */,
-				AB010000000000000000CB /* ConfigBackupStore.swift */,
-				AB010000000000000000CC /* TeacherShortsStore.swift */,
+				AB010000000000000000E0 /* BackupScreen.swift */,
+				AB010000000000000000E1 /* TeacherShortsScreen.swift */,
+				AB010000000000000000E2 /* ConfigBackupStore.swift */,
+				AB010000000000000000E3 /* TeacherShortsStore.swift */,
 			);
 			path = NativeShell;
 			sourceTree = "<group>";

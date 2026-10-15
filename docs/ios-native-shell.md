@@ -258,26 +258,46 @@ Aussehen und die Sprache.
 
 ## Wichtig fürs Bearbeiten
 
-Fünf Dinge, die man leicht übersieht:
+Neun Dinge, die man leicht übersieht:
 
-1. **Jede neue Flutter-Maschine braucht ihre Programme.**
+1. **Eine neue Swift-Datei braucht vier Einträge – und eine eigene Kennung.**
+   `Runner.xcodeproj` nimmt nichts von selbst auf. Sie kommt in vier Abschnitte:
+   `PBXBuildFile`, `PBXFileReference`, die Gruppe `NativeShell` und
+   `PBXSourcesBuildPhase`.
+
+   Und die Kennung muss **frei** sein. Der gemeldete Fehler war
+   `-[PBXFileReference buildPhase]: unrecognized selector` mit dem Zusatz „the
+   project is damaged": Eine Kennung (`C9`–`CC`) beschrieb **zwei** Objekte – ein
+   `PBXFileReference` und ein `PBXBuildFile` eines ganz anderen Bildschirms.
+   Xcode las die zweite Definition als Dateiverweis und rief `buildPhase` darauf
+   auf; die Methode hat nur eine Build-Phase. Das Ergebnis war kein
+   übersehener Buildfehler, sondern ein **unlesbares Projekt** – und das zeigt
+   sich schon beim Aufruf von `flutter build`, lange bevor irgendetwas
+   übersetzt wird.
+
+   Prüfbar über `tool/check_pbxproj.py`: Es zählt, wie oft jede Kennung ein
+   Objekt beschreibt, prüft jedes `fileRef`, jedes `PBXBuildFile` gegen die
+   Build-Phasen und die Gruppe gegen den Ordner. Der Fall von oben ist damit
+   der erste, den es findet.
+
+2. **Jede neue Flutter-Maschine braucht ihre Programme.**
    `GeneratedPluginRegistrant.register(with:)` im `AppDelegate` gilt nur für die
    Maschine, die iOS von selbst anlegt. Jede hier von Hand erzeugte braucht
    `FlutterEngines.registerPlugins(on:)` – sonst fehlt ihr unter anderem
    `shared_preferences`, und damit jeder gespeicherte Wert.
 
-2. **Eine Einstellung darf nicht auf ihr Ergebnis warten.**
+3. **Eine Einstellung darf nicht auf ihr Ergebnis warten.**
    `NativeShell.notifySettingsChanged()` wird abgeschickt und **nicht**
    abgewartet. Wer darauf wartet, hängt das Umstellen einer Einstellung an
    einem Kanal, der auf Android und in den Tests gar nicht antwortet.
 
-3. **Die Routennamen müssen auf beiden Seiten gleich sein.**
+4. **Die Routennamen müssen auf beiden Seiten gleich sein.**
    Die native Seite baut die Route aus der Rolle – und die ist englisch:
    `/abschnitt/search`. Stand in Dart `/abschnitt/suche`, lief der Reiter ins
    Leere und blieb auf „loading...". Prüfbar über
    `test/native_shell_route_test.dart`.
 
-4. **Zeilenhöhen in nativen Listen nicht fest vorgeben – und die Liste messen
+5. **Zeilenhöhen in nativen Listen nicht fest vorgeben – und die Liste messen
    lassen, *wann* sie will.**
    Feste Werte sind für irgend eine Sprache zu klein, und was nicht passt, wird
    nicht abgeschnitten, sondern **überlagert**. Die Listen lassen ihre Höhe
@@ -329,21 +349,21 @@ Fünf Dinge, die man leicht übersieht:
      Breite braucht `contentMode = .scaleAspectFit` – sonst dehnt die
      Vorgabemode `scaleToFill` das Symbol und der Haken sitzt verzerrt da.
 
-5. **Wer von `UserDefaults` schreibt, muss `SharedPreferences.reload()` sagen.**
+6. **Wer von `UserDefaults` schreibt, muss `SharedPreferences.reload()` sagen.**
    Dart liest aus einem Cache, und der kennt nur Darts eigene Schreibvorgänge.
    Jede native Änderung an einer Einstellung, die Dart anzeigt, braucht deshalb
    ein `reload()` auf der Dart-Seite – sonst bleibt der alte Wert stehen, ohne
    dass irgendwo ein Fehler erscheint. Auf der nativen Seite heisst das: nach
    jedem Schreiben `AppStore.didWrite()` aufrufen (siehe oben).
 
-6. **Eingabefelder werden nicht wiederverwendet.**
+7. **Eingabefelder werden nicht wiederverwendet.**
    `UITableView` gibt Zeellen zum Wiederverwenden frei. Eine Zelle mit einem
    Eingabefeld herauszugeben hiesse: Das Feld, in dem man tippt, gehört plötzlich
    einer anderen Zeile, und der getippte Text verschwindet – ohne Fehler.
    Deshalb baut `FormScreen` für jede Feldzeile eine **neue** Zelle, und der Text
    liegt beim Bildschirm, nicht in der Zelle.
 
-7. **Eine `UITableViewDelegate`-Methode lässt sich nicht überschreiben.**
+8. **Eine `UITableViewDelegate`-Methode lässt sich nicht überschreiben.**
    Die Delegate-Methoden stehen in einer Erweiterung auf `ListScreen`, und was
    dort steht, kann eine Unterklasse nicht mit `override` ersetzen – der
    Compiler sagt „does not override any method from its superclass", und die
@@ -351,7 +371,7 @@ Fünf Dinge, die man leicht übersieht:
    im Klassenrumpf (`swipeActions(at:)`, `zeileVerschoben(von:nach:)`,
    `reihenfolgeMoeglich`), den die Liste nur abfragt.
 
-8. **Ein QR-Code gehört in ein weisses Feld.**
+9. **Ein QR-Code gehört in ein weisses Feld.**
    Ein Scanner rechnet mit dunkel auf hell. Ein heller Code auf dunklem Grund
    liest sich bei vielen Kameras gar nicht. `QRCodeView` setzt den Code deshalb
    immer in einen weissen Rahmen – auch im dunklen Erscheinungsbild.
