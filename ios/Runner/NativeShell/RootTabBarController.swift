@@ -662,6 +662,30 @@ final class RootTabBarController: UITabBarController {
         super.traitCollectionDidChange(previousTraitCollection)
         farbenSetzen()
     }
+
+    override func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
+        guard tabBar === untereTabLeiste,
+              let index = untereTabLeiste.items?.firstIndex(of: item),
+              index < (viewControllers?.count ?? 0),
+              let controller = viewControllers?[index]
+        else {
+            super.tabBar(tabBar, didSelect: item)
+            return
+        }
+
+        // Dasselbe Verhalten wie bei der Systemleiste: Ein erneutes Antippen
+        // des Einstellungen-Reiters führt in dessen Wurzel zurück.
+        if index == selectedIndex,
+           let navigation = controller as? UINavigationController,
+           navigation.viewControllers.count > 1
+        {
+            navigation.popToRootViewController(animated: true)
+            return
+        }
+
+        selectedIndex = index
+        untereAuswahlAktualisieren()
+    }
 }
 
 extension RootTabBarController: UITabBarControllerDelegate {
@@ -685,29 +709,6 @@ extension RootTabBarController: UITabBarControllerDelegate {
     func tabBarController(
         _ tabBarController: UITabBarController, didSelect viewController: UIViewController
     ) {
-        untereAuswahlAktualisieren()
-    }
-}
-
-extension RootTabBarController: UITabBarDelegate {
-    func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
-        guard tabBar === untereTabLeiste,
-              let index = untereTabLeiste.items?.firstIndex(of: item),
-              index < (viewControllers?.count ?? 0),
-              let controller = viewControllers?[index]
-        else { return }
-
-        // Dasselbe Verhalten wie bei der Systemleiste: Ein erneutes Antippen
-        // des Einstellungen-Reiters führt in dessen Wurzel zurück.
-        if index == selectedIndex,
-           let navigation = controller as? UINavigationController,
-           navigation.viewControllers.count > 1
-        {
-            navigation.popToRootViewController(animated: true)
-            return
-        }
-
-        selectedIndex = index
         untereAuswahlAktualisieren()
     }
 }
