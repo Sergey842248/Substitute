@@ -4,7 +4,7 @@ import UIKit
 ///
 /// ## Was hier steht und was nicht
 ///
-/// Hier stehen die Dinge, die man **nicht** jeden Tag braucht – und alleallealle
+/// Hier stehen die Dinge, die man **nicht** jeden Tag braucht – und alle
 /// Bildschirme, die auf iOS **nativ** sind. Sie stehen deshalb hier und nicht in
 /// Flutter: Sie brauchen keine Dart-Isolate, und sie sehen dadurch aus wie die
 /// übrigen Apps auf dem Gerät. Die Zeilen, die es über die Leiste gibt, sind
@@ -17,7 +17,7 @@ import UIKit
 /// ## Fast alles hier ist jetzt nativ
 ///
 /// Aussehen, Sprache, Schulen, Anmeldedaten, Plan-Einstellungen mit ihren vier
-/// Untermenüs,,, die Entwickleroptionen, **Lehrerkürzel** und **Sichern &
+/// Untermenüs, die Entwickleroptionen, **Lehrerkürzel** und **Sichern &
 /// Wiederherstellen** sind in `UIKit` gebaut, nicht in Flutter. Nicht, weil
 /// Flutter das nicht könnte, sondern weil sie es nicht brauchen:
 ///
@@ -28,10 +28,10 @@ import UIKit
 ///   Punkt der Umstellung: grosse Titel, Listen in Gruppen, Schalter wie von
 ///   iOS.
 ///
-/// ## WasWasWas dasdasdas fürfürfür diediedie beidenbeidenbeiden letztenletztenletzten gekostetgekostetgekostet hathathat
+/// ## Was das für die beiden letzten gekostet hat
 ///
-/// BeideBeideBeide brauchtenbrauchtenbrauchten anfangsanfangsanfangs fremde Frameworks, und genau das war ihr Grund, in
-/// Flutter zuzuzu bleiben:
+/// Beide brauchten anfangs fremde Frameworks, und genau das war ihr Grund, in
+/// Flutter zu bleiben:
 ///
 /// * **Lehrerkürzel** brauchte den Vertretungsplan. Jetzt holt
 ///   [TeacherShortsStore] die Kürzel selbst – mit `URLSession` und einem
@@ -116,7 +116,7 @@ final class MoreScreen: ListScreen {
                 title: L.teacherShorts,
                 subtitle: L.teacherShortsSubtitle,
                 symbol: "person.text.rectangle"
-            ) { self.zeigezeigezeige(TeacherShortsScreen()) },
+            ) { self.zeige(TeacherShortsScreen()) },
         ]
 
         // Die Zugangsdaten stehen **nur** da, wenn es welche gibt.
@@ -153,7 +153,7 @@ final class MoreScreen: ListScreen {
                 title: L.backup,
                 subtitle: L.backupSubtitle,
                 symbol: "externaldrive.badge.timemachine"
-            ) { self.zeigezeigezeige(BackupScreen()) })
+            ) { self.zeige(BackupScreen()) })
 
         einstellungen.append(
             .choice(

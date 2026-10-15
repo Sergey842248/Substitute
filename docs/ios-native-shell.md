@@ -31,11 +31,11 @@ und die Abschnitte der App liegen als echte Ansichtssteuerer darin.
 | &nbsp;&nbsp;├ Standard-Planmodus | nativ |
 | &nbsp;&nbsp;└ Stundenzeiten | nativ |
 | └ Entwickleroptionen | nativ |
-| └ Lehrerkürzel | nativnativ |
-| └ Sichern & Wiederherstellen | nativnativ |
+| └ Lehrerkürzel | nativ |
+| └ Sichern & Wiederherstellen | nativ |
 | └ Krankheitstracker | Flutter |
 
-Fast alles im Werkzeugkasten ist damit **Einstellungen** in `UIKit`: DreizehnDreizehn
+Fast alles im Werkzeugkasten ist damit **Einstellungen** in `UIKit`: dreizehn
 Bildschirme, die Speicherwerte lesen und schreiben. Dafür eine ganze
 Dart-Isolate hochzufahren wäre Aufwand ohne Gegenwert – und sie sehen dadurch
 aus wie die übrigen Apps auf dem Gerät.
@@ -43,10 +43,10 @@ aus wie die übrigen Apps auf dem Gerät.
 Die Abschnitte mit Plan, Suche und Sync bleiben Flutter, weil dort die Arbeit
 liegt: XML lesen, Pläne rechnen, synchronisieren, verschlüsseln.
 
-### WasWas dasdas fürfür LehrerkürzelLehrerkürzel undund SicherungSicherung gekostet hatgekostet hat
+### Was das für Lehrerkürzel und Sicherung gekostet hat
 
-BeideBeide sindsind erst nativ gewordenerst nativ geworden, nachdemnachdem klarklar war,war, **was****was** siesie wirklichwirklich brauchen.brauchen.
-Das ist bei beiden nicht das, was der Name vermuten lässtDas ist bei beiden nicht das, was der Name vermuten lässt:
+Beide sind erst nativ geworden, nachdem klar war, **was** sie wirklich brauchen.
+Das ist bei beiden nicht das, was der Name vermuten lässt:
 
 * **Lehrerkürzel** braucht tatsächlich den Vertretungsplan – aber nicht den
   ganzen. `TeacherShortsStore` holt `Klassen.xml` mit `URLSession` und liest
@@ -110,9 +110,8 @@ Werkzeugkasten ersetzt. Damit wäre die alte Flutter-Einstellungsseite nicht meh
 zu erreichen gewesen – und mit ihr fünf Einträge (Plan-Einstellungen,
 Lehrerkürzel, Sicherung, Entwickleroptionen, Anmeldedaten).
 
-Deshalb stehen diese fünf jetzt im Werkzeugkasten,, undund inzwischeninzwischen sind **alle**alle
-fünf** native Bildschirme. Sie sind  damit nicht verschwunden, nur an einen
-
+Deshalb stehen diese fünf jetzt im Werkzeugkasten, und inzwischen sind **alle
+fünf** native Bildschirme. Sie sind damit nicht verschwunden, nur an einen
 anderen Ort – und aus einer Liste mit fünf gemischten Einträgen ist eine
 geworden, in der jede Zeile dasselbe kann: tippen.
 
@@ -175,8 +174,8 @@ der man ihn gedrückt hat.
 Der Startbildschirm bleibt derselbe, die Pläne bleiben dieselben, und die
 Einstellungen sind dieselben. Neu sind:
 
-* die Leiste und die dreizehndreizehn Einstellungsbildschirme – sie folgen jetzt iOS
-  statt Flutter,
+* die Leiste und die dreizehn Einstellungsbildschirme – sie folgen jetzt iOS statt
+  Flutter,
 * der unterste Bildschirm heißt „Dashboard" und enthält Werkzeuge; Sync hat
   einen eigenen Reiter wie vorher,
 * **iOS 15** ist die Mindestversion (vorher 13). Grund sind `UIButton.Configuration`

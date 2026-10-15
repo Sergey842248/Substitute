@@ -54,19 +54,17 @@ final class BackupScreen: ListScreen {
     // --------------------------------------------------------------- Export
 
     private func export() {
-        // DieDie **vollständigevollständige** Datei wirdwird zuerst gebaut – und auszuerst gebaut – und aus ihr liest sich
-        // ab, ob es überhaupt Zugangsdaten im Spiel sind. AusAus einereiner Datei **ohne**
-        //**ohne**
-        // ZugangsdatenZugangsdaten liest sich das nie ab: Die Frage würde also immer mit
-        // „nein" beantwortet, und niemand bekäme die Wahl, die er sonst bekämeliest sich das nie ab: Die Frage würde also immer mit
+        // Die **vollständige** Datei wird zuerst gebaut – und aus ihr liest sich
+        // ab, ob es überhaupt Zugangsdaten im Spiel sind. Aus einer Datei **ohne**
+        // Zugangsdaten liest sich das nie ab: Die Frage würde also immer mit
         // „nein" beantwortet, und niemand bekäme die Wahl, die er sonst bekäme.
-        let vollstaendigvollstaendig = ConfigBackupStore.baueExport(mitZugangsdaten: truetrue)
-        let settings = vollstaendigvollstaendig["settings"] as? [String: Any] ?? [:]
+        let vollstaendig = ConfigBackupStore.baueExport(mitZugangsdaten: true)
+        let settings = vollstaendig["settings"] as? [String: Any] ?? [:]
 
         // Ohne hinterlegte Zugangsdaten gibt es nichts zu fragen – dann geht
         // genau die Datei raus, die gerade gebaut wurde.
         guard ConfigBackupStore.enthaeltZugangsdaten(settings) else {
-            teile(vollstaendigvollstaendig)
+            teile(vollstaendig)
             return
         }
 

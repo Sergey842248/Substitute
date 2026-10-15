@@ -321,11 +321,6 @@ enum ConfigBackupStore {
             // Plänen aus drei Schulbereichen hätte sonst dreimal denselben Wert.
             // Beim Ersetzen wird ohnehin gleich gelöscht, was da ist – da gibt es
             // nichts zu vereinigen.
-            // Die lokal gespeicherten Pläne werden **vor** der Schleife und
-            // **einmal** gelesen: Sie zu kopieren kostet, und eine Datei mit
-            // Plänen aus drei Schulbereichen hätte sonst dreimal denselben Wert.
-            // Beim Ersetzen wird ohnehin gleich gelöscht, was da ist – da gibt es
-            // nichts zu vereinigen.
             let vorhanden = AppStore.alleWerte()
             for name in settings.keys where istPlanSchluessel(name) {
                 lokalePlaene[name] = (vorhanden[name] as? [Any])?

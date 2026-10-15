@@ -115,9 +115,9 @@ enum L {
 
     // ------------------------------------------------------------ Werkzeuge
     //
-    // DieDie WerkzeugeWerkzeuge, die derder WerkzeugkastenWerkzeugkasten zeigt – und diezeigt – und die in `MoreScreen`
-    // stehen. Vorher waren zweizwei davondavon inin Flutter und deshalbdeshalb hierhier nurnur soso
-    // verlinkt, dass sie nichtnicht spurlos verschwanden; jetzt sind alle **nativ**
+    // Die Werkzeuge, die der Werkzeugkasten zeigt – und die in `MoreScreen`
+    // stehen. Vorher waren zwei davon in Flutter und deshalb hier nur so
+    // verlinkt, dass sie nicht spurlos verschwanden; jetzt sind alle **nativ**
     // (siehe `TeacherShortsScreen` und `BackupScreen`).
     //
     // Der Krankheitstracker steht hier **nicht** mehr: Er ist in die Suche
@@ -143,6 +143,159 @@ enum L {
         pick(
             "Einstellungen, Klassen, Personen und gespeicherte Vertretungspläne exportieren und importieren",
             "Export and import settings, classes, persons and cached substitution plans")
+    }
+
+    // -------------------------------------------- Sichern & Wiederherstellen
+    //
+    // Wortgleich mit `app_localizations_de.dart` und `_en.dart` – siehe die
+    // Beschreibung dieser Datei oben. Die Sätze stehen hier und nicht dort, weil
+    // der Bildschirm jetzt in `UIKit` steht und die Uebersetzungen von Flutter
+    // nicht mehr erreicht.
+
+    static var backupExport: String {
+        pick("Konfiguration exportieren", "Export configuration")
+    }
+
+    static var backupExportSubtitle: String {
+        pick(
+            "Alle Einstellungen als Datei teilen oder speichern",
+            "Share or save all settings as a file")
+    }
+
+    static var backupImport: String {
+        pick("Konfiguration importieren", "Import configuration")
+    }
+
+    static var backupImportSubtitle: String {
+        pick("Eine zuvor exportierte Datei einlesen", "Read a previously exported file")
+    }
+
+    static var backupNote: String {
+        pick(
+            "Gesichert werden Einstellungen, Klassen, Personen, Kurse und Zugangsdaten. Nur zwischengespeicherte Pläne sind nicht enthalten. Achtung: Die Datei enthält das Passwort im Klartext. Nach dem Import empfiehlt es sich, die App neu zu starten.",
+            "Settings, classes, persons, courses, room data and credentials are backed up. Only cached plans are left out. Note: the file contains your password in plain text. After importing, restarting the app is recommended.")
+    }
+
+    static var backupCredentialsTitle: String {
+        pick("Zugangsdaten enthalten", "Contains credentials")
+    }
+
+    static var backupCredentialsWarning: String {
+        pick(
+            "Die Exportdatei enthält dein Passwort im Klartext. Teile sie nur mit Personen, denen du vertraust – oder teile sie ohne Zugangsdaten.",
+            "The exported file contains your password in plain text. Only share it with people you trust – or share it without credentials.")
+    }
+
+    static var backupCredentialsContinue: String {
+        pick("Mit Zugangsdaten", "With credentials")
+    }
+
+    static var backupShareWithoutCredentials: String {
+        pick("Ohne Zugangsdaten teilen", "Share without credentials")
+    }
+
+    static var backupImportTitle: String {
+        pick("Konfiguration importieren", "Import configuration")
+    }
+
+    static var backupImportQuestion: String {
+        pick(
+            "Sollen die vorhandenen Einstellungen ersetzt werden?",
+            "Should the existing settings be replaced?")
+    }
+
+    static var backupImportKeepsCredentials: String {
+        pick(
+            "Die Datei enthält keine Zugangsdaten – deine Zugangsdaten bleiben auch beim Ersetzen erhalten.",
+            "This file contains no credentials – your credentials are kept even when replacing.")
+    }
+
+    static var backupImportMerge: String { pick("Ergänzen", "Merge") }
+
+    static var backupImportReplace: String { pick("Ersetzen", "Replace") }
+
+    /// Die Meldung nach einem Import – dieselbe wie in Dart, mit derselben Zahl.
+    static func backupImportDone(_ uebernommen: Int, _ entfernt: Int) -> String {
+        pick(
+            "Import fertig: \(uebernommen) Einstellungen übernommen, \(entfernt) entfernt.",
+            "Import done: \(uebernommen) settings applied, \(entfernt) removed.")
+    }
+
+    static var backupImportFailed: String {
+        pick("Die Datei konnte nicht gelesen werden.", "The file could not be read.")
+    }
+
+    static var backupFailed: String {
+        pick("Der Export ist fehlgeschlagen.", "Export failed.")
+    }
+
+    static var backupErrorForeign: String {
+        pick("Diese Datei stammt nicht aus dieser App.", "This file was not created by this app.")
+    }
+
+    static var backupErrorFutureSchema: String {
+        pick(
+            "Die Datei wurde mit einer neueren App-Version erstellt.",
+            "The file was created by a newer version of the app.")
+    }
+
+    // ---------------------------------------------------------- Lehrerkürzel
+
+    static var realName: String { pick("Echter Name", "Real name") }
+
+    /// Der Satz über einer Liste, die gerade geholt wird.
+    static var teacherShortsLoading: String {
+        pick("Lehrende werden geladen …", "Loading teachers …")
+    }
+
+    static var teacherShortsNone: String {
+        pick("Noch keine Lehrenden bekannt", "No teachers known yet")
+    }
+
+    static var teacherShortsNoneFooter: String {
+        pick(
+            "Die Kürzel stehen im Vertretungsplan. Sie werden beim ersten Abruf vom VPlan geholt – dafür sind Zugangsdaten nötig.",
+            "The abbreviations are in the substitution plan. They are fetched from the VPlan on first use – this needs credentials.")
+    }
+
+    static var teacherShortsFooter: String {
+        pick(
+            "Der eingetragene Name ersetzt das Kürzel überall im Vertretungsplan und in der Suche. Ein leeres Feld stellt das Kürzel wieder her.",
+            "The name you enter replaces the abbreviation everywhere in the substitution plan and in search. An empty field brings the abbreviation back.")
+    }
+
+    static var teacherShortsFailed: String {
+        pick("Die Lehrenden konnten nicht geholt werden.", "The teachers could not be fetched.")
+    }
+
+    static var teacherShortsNoCredentials: String {
+        pick(
+            "Zum Holen der Lehrenden sind Zugangsdaten nötig.",
+            "Fetching the teachers needs credentials.")
+    }
+
+    static var teacherShortsNotLoggedIn: String {
+        pick(
+            "Die Zugangsdaten wurden vom VPlan abgelehnt.",
+            "The VPlan rejected the credentials.")
+    }
+
+    static var teacherShortsWrongSchool: String {
+        pick(
+            "Die Schulnummer wurde vom VPlan nicht gefunden.",
+            "The VPlan did not find the school number.")
+    }
+
+    static var teacherShortsOffline: String {
+        pick(
+            "Keine Verbindung zum VPlan. Die Liste zeigt, was zuletzt bekannt war.",
+            "No connection to the VPlan. The list shows what was last known.")
+    }
+
+    static func teacherShortsServer(_ code: Int) -> String {
+        pick(
+            "Der VPlan antwortete mit einem Fehler (\(code)).",
+            "The VPlan answered with an error (\(code)).")
     }
 
     static var developerOptions: String {
