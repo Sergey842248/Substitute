@@ -447,6 +447,8 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   late Locale? _locale;
+  late Widget? _initialPage;
+  int _navigatorGeneration = 0;
   bool _orientationLocked = false;
 
   /// Das gewählte Theme. `null` bedeutet: noch nicht gelesen.
@@ -476,6 +478,7 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     _themeMode = widget.startThemeMode;
     _locale = widget.startLocale;
+    _initialPage = widget.initialPage;
     _materialYou = getMaterialYouColor();
     _appearanceListener = () {
       if (!mounted) return;
@@ -541,7 +544,19 @@ class _MyAppState extends State<MyApp> {
       // zum Bereich und müssen mit ihm neu geladen werden.
       await loadDisplayCache(prefs);
       if (!mounted) return;
-      runApp(await wartenderAppStart(prefs));
+      final bool hasCredentials = await SchoolStorage.hasCredentials(prefs);
+      if (!mounted) return;
+
+      // Diese Flutter-Instanz ist ein dauerhaft lebender iOS-Tab. `runApp`
+      // würde ihren Navigator während eines UIKit-Tabwechsels aus seiner View
+      // lösen – zurück bleibt dann nur die hellgraue Host-Fläche. Stattdessen
+      // bekommt derselbe Root einen frischen Navigator mit dem neuen Bereich.
+      setState(() {
+        _initialPage = hasCredentials
+            ? null
+            : _anmeldeseiteOhneZurueckMoeglichkeit(prefs);
+        _navigatorGeneration++;
+      });
     } catch (fehler, stapel) {
       // Ein Fehler hier darf nicht die ganze App mitnehmen: Die Leiste ist
       // längst neu eingefärbt, und ohne Neuaufbau zeigt die Ansicht eben den
@@ -683,6 +698,7 @@ class _MyAppState extends State<MyApp> {
         final indicatorColorLight = primarySwatchLight;
 
         return MaterialApp(
+          key: ValueKey<int>(_navigatorGeneration),
           locale: _locale,
           themeMode: _themeMode,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -771,7 +787,7 @@ class _MyAppState extends State<MyApp> {
           // stünde daneben als zweite, widersprechende Angabe.
           home: NativeShell.isSection
               ? null
-              : widget.initialPage ?? Scaffold(body: HomePage()),
+              : _initialPage ?? Scaffold(body: HomePage()),
 
           // Die native Schale sagt, welchen Abschnitt sie geöffnet hat. Ohne
           // diese beiden Zeilen fände `Navigator` zu `/abschnitt/plan` keinen
@@ -832,13 +848,13 @@ class _MyAppState extends State<MyApp> {
 
     // Die Leiste verschwindet für Werkzeuge und für die Anmeldung – beides
     // sind Bildschirme, die **über** allem stehen.
-    if (werkzeug || widget.initialPage != null) {
+    if (werkzeug || _initialPage != null) {
       NativeShell.setChromeVisible(false);
     }
 
-    if (widget.initialPage != null) {
+    if (_initialPage != null) {
       return MaterialPageRoute(
-        builder: (_) => widget.initialPage!,
+        builder: (_) => _initialPage!,
         settings: settings,
       );
     }

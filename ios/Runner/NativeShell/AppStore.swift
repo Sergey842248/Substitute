@@ -66,6 +66,11 @@ enum AppStore {
     /// `SchoolStorage` schreibt ihn aus demselben Grund ohne Vorspann: siehe
     /// `_activeSchoolKey` dort.
     private static let activeSchoolKey = "activeSchoolId"
+    /// Die Auswahl vor dem Anlegen einer Schule ohne Zugangsdaten. Dieser Wert
+    /// ist absichtlich nicht bereichsgebunden: Er ist ein kurzer
+    /// Navigationszustand und muss auch nach einem App-Neustart noch den Weg
+    /// aus der Anmeldung zurück kennen.
+    private static let loginReturnSchoolKey = "loginReturnSchoolId"
 
     /// Die Kennung des Schulbereichs, für den gerade gespeichert wird.
     ///
@@ -76,6 +81,18 @@ enum AppStore {
     /// unsichtbar – die App erschiene frisch installiert.
     static var activeSchoolId: String {
         defaults.string(forKey: prefix + activeSchoolKey) ?? "default"
+    }
+
+    static var loginReturnSchoolId: String? {
+        defaults.string(forKey: prefix + loginReturnSchoolKey)
+    }
+
+    static func setLoginReturnSchool(_ schoolId: String) {
+        defaults.set(schoolId, forKey: prefix + loginReturnSchoolKey)
+    }
+
+    static func clearLoginReturnSchool() {
+        defaults.removeObject(forKey: prefix + loginReturnSchoolKey)
     }
 
     /// Der Schlüssel einer Einstellung, so wie Flutter sie schreibt.

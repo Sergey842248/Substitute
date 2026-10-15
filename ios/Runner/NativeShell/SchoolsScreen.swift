@@ -87,6 +87,10 @@ final class SchoolsScreen: ListScreen {
         frageNachName(titel: L.addSchool) { [weak self] name in
             guard let self else { return }
             let profil = AppStore.addSchool(named: name)
+            // Die neue Schule ist noch leer. Merke daher die tatsächlich
+            // benutzte Schule, damit Abbrechen – auch nach einem Neustart –
+            // genau dorthin zurückführt.
+            AppStore.setLoginReturnSchool(AppStore.activeSchoolId)
             AppStore.setActiveSchool(profil.id)
             self.neuLaden()
             NotificationCenter.default.post(

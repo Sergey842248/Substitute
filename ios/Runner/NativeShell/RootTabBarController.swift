@@ -46,6 +46,10 @@ final class RootTabBarController: UITabBarController {
     private let engines = FlutterEngineGroup(name: "substitute-shell", project: nil)
     private var controllers: [Tab] = []
     private var chromeHidden = false
+    /// Die Schule, die vor einer noch nicht eingerichteten Schule aktiv war.
+    /// Beim Abbrechen der Anmeldung wird sie wiederhergestellt.
+    private var schoolBeforeLogin: String?
+    private var lastActiveSchoolId = AppStore.activeSchoolId
 
     /// Die Abschnitte der Leiste, in der Reihenfolge, in der sie stehen.
     ///
@@ -411,6 +415,13 @@ final class RootTabBarController: UITabBarController {
 
     /// Wird von `NativeShellBridge` gerufen, wenn Flutter etwas geändert hat.
     func settingsGeaendertInFlutter() {
+        // Wurden die Zugangsdaten gespeichert, ist die Anmeldung erfolgreich
+        // abgeschlossen; ein späteres Zurück darf nicht in die alte Schule
+        // springen.
+        if AppStore.hasCredentials {
+            schoolBeforeLogin = nil
+            AppStore.clearLoginReturnSchool()
+        }
         bauen()
         farbenSetzen()
     }
@@ -436,6 +447,12 @@ final class RootTabBarController: UITabBarController {
     /// sich anmelden – worauf die Leiste wieder erscheint. Auf Android macht es
     /// dasselbe: Nach dem Anlegen einer Schule öffnet sich sofort die Anmeldung.
     func schuleGeaendert() {
+        let activeSchoolId = AppStore.activeSchoolId
+        if !AppStore.hasCredentials, activeSchoolId != lastActiveSchoolId {
+            schoolBeforeLogin = lastActiveSchoolId
+        }
+        lastActiveSchoolId = activeSchoolId
+
         bauen()
         farbenSetzen()
 
@@ -498,6 +515,21 @@ final class RootTabBarController: UITabBarController {
     /// erwartet genau dieselbe Liste an derselben Stelle wieder, mit
     /// Markierung und Scrollstand.
     func zurueckInDieSchulen() {
+        if let previousSchool = schoolBeforeLogin ?? AppStore.loginReturnSchoolId,
+           previousSchool != AppStore.activeSchoolId
+        {
+            // Das Verlassen der Anmeldung verwirft nicht die zuvor benutzte
+            // Schule. Sie hat Zugangsdaten und damit wieder eine sichtbare
+            // Tab-Leiste; erst danach wird die Schulen-Liste gezeigt.
+            schoolBeforeLogin = nil
+            AppStore.clearLoginReturnSchool()
+            AppStore.setActiveSchool(previousSchool)
+            schuleGeaendert()
+        } else {
+            schoolBeforeLogin = nil
+            AppStore.clearLoginReturnSchool()
+        }
+
         guard let index = controllers.firstIndex(of: .more) else { return }
         // `controllers` und `viewControllers` werden in [bauen] immer
         // gemeinsam gesetzt – die Prüfung ist nur deshalb da, weil ein
