@@ -40,6 +40,19 @@ import UIKit
 /// Hintergrund-Sync und den Hintergrund-Abruf – sonst liefe beides dreimal.
 /// Siehe `NativeShell.runsBackgroundWork` auf der Dart-Seite.
 final class RootTabBarController: UITabBarController {
+    /// Die untere iPad-Leiste ist nicht die vom `UITabBarController`
+    /// verwaltete Leiste. Ihr Delegate darf daher nicht der Controller selbst
+    /// sein: UIKit verwendet dessen eigene Delegate-Implementierung intern
+    /// für die Systemleiste. Ein getrenntes Objekt verhindert, dass ein Tap
+    /// auf die Zusatzleiste die App mit einer inkonsistenten Tabbar beendet.
+    private final class UntereTabLeistenDelegate: NSObject, UITabBarDelegate {
+        weak var host: RootTabBarController?
+
+        func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
+            host?.unterenTabWaehlen(tabBar, item: item)
+        }
+    }
+
     // `FlutterEngineGroup` braucht einen Namen und das Projekt – die blosse
     // Initialisierung ist nicht zugelassen (`init NS_UNAVAILABLE`). Der Name
     // ist nur die Bezeichnung der gemeinsamen Gruppe; er erscheint nirgends.
@@ -52,6 +65,7 @@ final class RootTabBarController: UITabBarController {
     /// bekommt das iPad eine eigene, native `UITabBar`, während der vom
     /// `UITabBarController` verwaltete Balken unsichtbar bleibt.
     private let untereTabLeiste = UITabBar()
+    private let untereTabLeistenDelegate = UntereTabLeistenDelegate()
     /// Die Schule, die vor einer noch nicht eingerichteten Schule aktiv war.
     /// Beim Abbrechen der Anmeldung wird sie wiederhergestellt.
     private var schoolBeforeLogin: String?
@@ -218,7 +232,13 @@ final class RootTabBarController: UITabBarController {
 
         controllers = neuListe
         setViewControllers(neuer, animated: false)
-        untereTabLeiste.items = neuListe.map(untererTabBarEintrag)
+        untereTabLeiste.items = neuListe.enumerated().map { index, section in
+            let item = untererTabBarEintrag(for: section)
+            // `UITabBar` darf seine Einträge intern neu aufbauen. Der Tag
+            // bleibt dabei der stabile Bezug zum gleichnamigen Controller.
+            item.tag = index
+            return item
+        }
 
         // Der zuletzt gesehen Abschnitt wird wiederhergestellt, wenn er noch
         // da ist – sonst die erste Stelle.
@@ -337,7 +357,8 @@ final class RootTabBarController: UITabBarController {
     }
 
     private func untereLeisteEinrichten() {
-        untereTabLeiste.delegate = self
+        untereTabLeistenDelegate.host = self
+        untereTabLeiste.delegate = untereTabLeistenDelegate
         untereTabLeiste.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(untereTabLeiste)
 
@@ -663,15 +684,13 @@ final class RootTabBarController: UITabBarController {
         farbenSetzen()
     }
 
-    override func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
+    private func unterenTabWaehlen(_ tabBar: UITabBar, item: UITabBarItem) {
+        let index = item.tag
         guard tabBar === untereTabLeiste,
-              let index = untereTabLeiste.items?.firstIndex(of: item),
+              index >= 0,
               index < (viewControllers?.count ?? 0),
               let controller = viewControllers?[index]
-        else {
-            super.tabBar(tabBar, didSelect: item)
-            return
-        }
+        else { return }
 
         // Dasselbe Verhalten wie bei der Systemleiste: Ein erneutes Antippen
         // des Einstellungen-Reiters führt in dessen Wurzel zurück.
