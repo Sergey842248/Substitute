@@ -160,7 +160,17 @@ class WeekPlanGrid extends StatelessWidget {
         // sah dadurch deutlich kleiner aus, als sie eingestellt war.
         const double headerHeight = 42;
         // Die Höhe, die den Stundenzeilen überhaupt zur Verfügung steht.
-        final double rowsArea = constraints.maxHeight - headerHeight;
+        //
+        // Eine Flutter-View in der nativen iOS-Schale kann beim ersten Layout
+        // noch eine ungebundene Höhenvorgabe liefern. `maxHeight / 8` würde
+        // daraus eine unendliche Zeilenhöhe machen; wenige Stunden wirken dann
+        // wie weit auseinandergezogene Karten. Für diesen Übergangsframe ist
+        // die sichtbare Fensterhöhe die belastbare Obergrenze. Im normalen
+        // (gebundenen) Layout bleibt es exakt die Höhe des Inhaltsbereichs.
+        final double availableHeight = constraints.hasBoundedHeight
+            ? constraints.maxHeight
+            : MediaQuery.sizeOf(context).height;
+        final double rowsArea = math.max(0, availableHeight - headerHeight);
 
         // Die Zeilen teilen sich den Rest der Höhe – aber **nie mehr, als**
         // eine Zeile braucht, um gut auszusehen.

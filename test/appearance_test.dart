@@ -59,6 +59,23 @@ void main() {
       expect(AppAppearance.showSyncShareTab(prefs), isTrue);
       expect(AppAppearance.themeOf(prefs), AppAppearance.dark);
     });
+
+    test('liest das Theme im aktiven Schulbereich', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'activeSchoolId': 'zweite-schule',
+        'appearance.theme': 'dark',
+        'schools.zweite-schule.appearance.theme': 'light',
+      });
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+      // Dies ist derselbe Schlüssel, den die native iOS-Einstellungsseite
+      // liest. Der globale Wert darf nicht mehr den Flutter-Inhalt bestimmen.
+      expect(AppAppearance.themeOf(prefs), AppAppearance.light);
+      await AppAppearance.setTheme(prefs, AppAppearance.dark);
+      expect(prefs.getString('schools.zweite-schule.appearance.theme'),
+          AppAppearance.dark);
+      expect(prefs.getString('appearance.theme'), AppAppearance.dark);
+    });
   });
 
   group('Der Sync-Eintrag in der Leiste', () {

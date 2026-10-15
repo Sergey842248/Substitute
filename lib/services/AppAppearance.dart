@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'NativeShell.dart';
+import 'SchoolStorage.dart';
 
 /// Wie die App aussieht – und was in der Navigationsleiste steht.
 ///
@@ -61,8 +62,17 @@ class AppAppearance {
   }
 
   /// `dark` oder `light` – ohne `system`, denn die Auswahl bietet nur zwei an.
+  /// Die Darstellung gehört – genau wie die native iOS-Einstellungsseite –
+  /// zum aktiven Schulbereich.  `AppStore` auf iOS liest diesen Schlüssel über
+  /// `key(...)`, also mit dem Schul-Präfix.  Ohne denselben Präfix hier hatte
+  /// Flutter bei einer zweiten Schule weiter den globalen (meist dunklen)
+  /// Wert im Cache, während die native Einstellungen-Seite und Tab-Leiste
+  /// schon hell waren.
+  static String _themeStorageKey(SharedPreferences prefs) =>
+      SchoolStorage.scopedKey(prefs, _themeKey);
+
   static String themeOf(SharedPreferences prefs) =>
-      prefs.getString(_themeKey) ?? dark;
+      prefs.getString(_themeStorageKey(prefs)) ?? dark;
 
   /// true, wenn der Sync-Eintrag in der Navigationsleiste stehen soll – und
   /// damit auch, ob Sync und Teilen laufen (siehe `SyncShareEnabled`).
@@ -79,7 +89,7 @@ class AppAppearance {
     SharedPreferences prefs,
     String wert,
   ) async {
-    await prefs.setString(_themeKey, wert);
+    await prefs.setString(_themeStorageKey(prefs), wert);
     aenderung.value++;
     NativeShell.notifySettingsChanged();
   }

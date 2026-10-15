@@ -80,6 +80,16 @@ void main() {
   });
 
   group('Pfadform bei Supabase', () {
+    test('löscht alle Shares eines Nutzers in einer Anfrage', () async {
+      final SyncApiClient client = supabase(<String, dynamic>{'removed': 3});
+
+      expect(await client.deleteSharesForUsername('ant bear cat'), 3);
+      final http.Request request = sent.single as http.Request;
+      expect(request.method, 'DELETE');
+      expect(request.url.path, '/functions/v1/shares');
+      expect(request.url.queryParameters['owner_username'], 'ant bear cat');
+    });
+
     test('setzt den Publishable Key als apikey-Kopf', () async {
       await supabase().fetchChain('c1');
       expect(sent.single.headers['apikey'],

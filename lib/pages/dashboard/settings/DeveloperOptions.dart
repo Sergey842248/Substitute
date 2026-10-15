@@ -7,6 +7,7 @@ import '../../../models/SettingsSwitchTile.dart';
 import '../../../services/SchoolStorage.dart';
 import '../../../services/AppClock.dart';
 import '../../../services/sync/SyncEngine.dart';
+import 'DeleteShares.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -230,6 +231,36 @@ class _DeveloperOptionsState extends State<DeveloperOptions> {
                 'transferred entries to the sync page',
             value: _showSyncDetails,
             onChanged: _setSyncDetails,
+          ),
+          Container(
+            margin: const EdgeInsets.all(10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Delete Shares',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      SizedBox(height: 4),
+                      Text(
+                        'Delete shares of any user or an entire sync chain',
+                        style: TextStyle(color: Colors.grey, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+                Button(
+                  text: 'Open',
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const DeleteShares(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           ...options.map(
             (e) => Container(

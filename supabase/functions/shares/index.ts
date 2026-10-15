@@ -3,7 +3,8 @@
  *
  *   GET    ?id=X      einen Share samt Huellen
  *   PUT              anlegen oder aktualisieren
- *   DELETE ?id=X      loeschen
+ *   DELETE ?id=X      einen Share loeschen
+ *   DELETE ?owner_username=X  alle Shares eines Nutzers loeschen (Entwicklerwerkzeug)
  *
  * Der Server kann den Inhalt nicht lesen – er speichert `envelopes` als
  * unlesbaren Blob. Was im Klartext steht, ist genau das, was die Suche
@@ -214,6 +215,22 @@ function parseEnvelopes(value: unknown): Record<string, Record<string, unknown>>
 
 async function deleteShare(req: Request, client: ReturnType<typeof db>): Promise<Response> {
   await throttle(client, clientAddress(req), 'share-delete', WRITE_LIMIT, 60);
+
+  const url = new URL(req.url);
+  const ownerUsername = url.searchParams.get('owner_username');
+  if (ownerUsername !== null) {
+    const username = ownerUsername.trim();
+    if (username.length < 1 || username.length > MAX_USERNAME_LENGTH) {
+      throw new ApiError('invalidShare', 400, 'owner_username');
+    }
+    const { data, error } = await client
+      .from('shares')
+      .delete()
+      .eq('owner_username', username)
+      .select('id');
+    if (error) throw error;
+    return json({ removed: (data ?? []).length });
+  }
 
   const id = idParam(req, 'id');
   if (!isValidId(id)) {
