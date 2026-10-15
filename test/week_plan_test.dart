@@ -643,9 +643,8 @@ void main() {
         )
         .first;
     expect(tester.getRect(third).height, closeTo(expected, 1));
-    expect(tester.getRect(third).top - tester.getRect(second).top,
-        closeTo(expected + 2, 1),
-        reason: 'the rows sit directly below each other');
+    expect(tester.getRect(third).top, closeTo(tester.getRect(second).bottom, 1),
+        reason: 'the rows sit directly below each other without a gap');
 
     // Der frei gebliebene Raum liegt **unter** dem Raster – dort, wo er auch
     // hingehört: Der Platz für die Navigationsleiste bleibt am Ende der

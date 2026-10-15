@@ -211,6 +211,13 @@ class WeekPlanGrid extends StatelessWidget {
               SizedBox(
                 height: rowHeight,
                 child: Row(
+                  // Jede Zelle muss die vollständige Höhe ihrer Rasterzeile
+                  // belegen. Ohne `stretch` richtet [Row] die Zelle nur nach
+                  // ihrer Inhaltshöhe aus und zentriert sie vertikal. Das
+                  // fällt besonders in der nativen iOS-Hülle auf: Bei wenigen
+                  // Stunden ist eine Rasterzeile höher als ihr Textinhalt und
+                  // zwischen den Stunden bleiben sichtbare Lücken.
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: days.map((WeekDayColumn day) {
                     final dynamic lesson =
                         row < day.lessons.length ? day.lessons[row] : null;
@@ -455,7 +462,7 @@ class WeekPlanGrid extends StatelessWidget {
     if (lesson is! Map) {
       return Container(
         width: cellWidth,
-        margin: const EdgeInsets.symmetric(vertical: 1, horizontal: 0.5),
+        margin: const EdgeInsets.symmetric(horizontal: 0.5),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
@@ -608,7 +615,10 @@ class WeekPlanGrid extends StatelessWidget {
 
     return Container(
       width: cellWidth,
-      margin: const EdgeInsets.symmetric(vertical: 1, horizontal: 0.5),
+      // Die Stunden einer Spalte sind ein durchgehendes Raster. Ein vertikaler
+      // Außenabstand erzeugt zwischen zwei Stunden eine sichtbare Lücke,
+      // sobald iOS die Zeilen größer als ihren Inhalt legt.
+      margin: const EdgeInsets.symmetric(horizontal: 0.5),
       // Eindeutiger Schlüssel: Die Zellen sind von außen nicht unterscheidbar,
       // und ein Test muss genau eine Stundenzelle treffen können – der
       // gleichnamige Tageskopf ist ebenfalls eine [InkWell].

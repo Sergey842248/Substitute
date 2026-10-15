@@ -1,5 +1,4 @@
 import UIKit
-import CryptoKit
 
 /// Die Entwickleroptionen.
 ///
@@ -169,11 +168,6 @@ final class DeveloperOptionsScreen: ListScreen {
                         self?.speichern(L.lessonTimesDeleted)
                     },
 
-                    .destructive(
-                        title: "Delete Shares",
-                        subtitle: "Remove any user’s shares or a sync chain",
-                        symbol: "person.crop.circle.badge.minus"
-                    ) { [weak self] in self?.deleteSharesMenu() },
                 ]),
 
             Section(
@@ -205,138 +199,6 @@ final class DeveloperOptionsScreen: ListScreen {
     private func loescheOfflinePlaene() {
         AppStore.removeOfflinePlans()
         speichern(L.offlinePlansDeleted)
-    }
-
-    // --------------------------------------------------------- Delete Shares
-
-    /// Die iOS-Einstellungen sind nativ. Deshalb lebt dieses Werkzeug auch
-    /// hier, statt nur in der Flutter-Version der Entwickleroptionen zu
-    /// existieren. Ein Nutzername ist auf dem Server Klartext-Metadatum; eine
-    /// Sync-Kette wird dagegen aus ihrem Code abgeleitet, genau wie in
-    /// `SyncEngine.chainIdFor`.
-    private func deleteSharesMenu() {
-        let menu = UIAlertController(
-            title: "Delete Shares",
-            message: "This can remove data belonging to other users.",
-            preferredStyle: .actionSheet)
-        menu.addAction(UIAlertAction(title: "Delete user shares", style: .destructive) {
-            [weak self] _ in self?.askToDeleteUserShares()
-        })
-        menu.addAction(UIAlertAction(title: "Delete sync chain", style: .destructive) {
-            [weak self] _ in self?.askToDeleteSyncChain()
-        })
-        menu.addAction(UIAlertAction(title: L.cancel, style: .cancel))
-        if let popover = menu.popoverPresentationController {
-            popover.sourceView = view
-            popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY,
-                                        width: 1, height: 1)
-        }
-        present(menu, animated: true)
-    }
-
-    private func askToDeleteUserShares() {
-        askForPhrase(
-            title: "Delete user shares",
-            message: "Enter the user name (ten words). All of that user’s shares will be removed.") {
-                [weak self] username in self?.deleteUserShares(username)
-            }
-    }
-
-    private func askToDeleteSyncChain() {
-        askForPhrase(
-            title: "Delete sync chain",
-            message: "Enter the sync code (ten words). Every device snapshot in the chain will be removed.") {
-                [weak self] code in self?.deleteSyncChain(code)
-            }
-    }
-
-    private func askForPhrase(
-        title: String, message: String, completion: @escaping (String) -> Void
-    ) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addTextField { field in
-            field.autocapitalizationType = .none
-            field.autocorrectionType = .no
-            field.placeholder = "ten words"
-        }
-        alert.addAction(UIAlertAction(title: L.cancel, style: .cancel))
-        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { _ in
-            let phrase = alert.textFields?.first?.text ?? ""
-            guard !phrase.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-            completion(phrase)
-        })
-        present(alert, animated: true)
-    }
-
-    private var syncServerURL: URL? {
-        let raw = AppStore.plainString("sync.serverUrl")
-        return URL(string: raw?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-            ? raw! : "https://socgdoyooyiupnmzuaox.supabase.co")
-    }
-
-    private func deleteUserShares(_ username: String) {
-        guard let base = syncServerURL,
-              var components = URLComponents(
-                url: base.appendingPathComponent(
-                    isSupabase(base) ? "functions/v1/shares" : "v1/shares/owner/\(username)"),
-                resolvingAgainstBaseURL: false)
-        else { return }
-        if isSupabase(base) {
-            components.queryItems = [URLQueryItem(
-                name: "owner_username",
-                value: username.trimmingCharacters(in: .whitespacesAndNewlines))]
-        }
-        deleteFromServer(components.url, success: "User shares deleted.")
-    }
-
-    private func deleteSyncChain(_ code: String) {
-        guard let base = syncServerURL,
-              var components = URLComponents(
-                url: base.appendingPathComponent(
-                    isSupabase(base) ? "functions/v1/chain-snapshots" : "v1/chain"),
-                resolvingAgainstBaseURL: false)
-        else { return }
-        let normalized = code.lowercased()
-            .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
-            .map(String.init).sorted().joined(separator: " ")
-        let source = "substitute/sync-chain/v1\n\(normalized)"
-        let chainId = Data(SHA256.hash(data: Data(source.utf8)))
-            .base64EncodedString()
-            .replacingOccurrences(of: "+", with: "-")
-            .replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "=", with: "")
-        if isSupabase(base) {
-            components.queryItems = [URLQueryItem(name: "chain_id", value: chainId)]
-        } else {
-            components.path += "/\(chainId)"
-        }
-        deleteFromServer(components.url, success: "Sync chain deleted.")
-    }
-
-    private func deleteFromServer(_ url: URL?, success: String) {
-        guard let url else { return }
-        var request = URLRequest(url: url)
-        request.httpMethod = "DELETE"
-        if isSupabase(url) {
-            request.setValue("sb_publishable_MQtaHWk6WqUlCYr9rHuabA_u26D9N8M", forHTTPHeaderField: "apikey")
-        }
-        Task { [weak self] in
-            do {
-                let (_, response) = try await URLSession.shared.data(for: request)
-                guard let http = response as? HTTPURLResponse,
-                      (200..<300).contains(http.statusCode) else {
-                    throw URLError(.badServerResponse)
-                }
-                await MainActor.run { self?.melde(success) }
-            } catch {
-                await MainActor.run { self?.melde("Could not delete data from the server.") }
-            }
-        }
-    }
-
-    private func isSupabase(_ url: URL) -> Bool {
-        let host = url.host?.lowercased() ?? ""
-        return host == "supabase.co" || host.hasSuffix(".supabase.co")
     }
 
     /// Fragt nach, bevor **alles** gelöscht wird.

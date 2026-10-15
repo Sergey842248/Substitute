@@ -313,20 +313,6 @@ class SyncApiClient {
     return _uri('/v1/share/$shareId');
   }
 
-  /// Der Verwaltungsweg fuer alle Shares eines Nutzernamens.
-  ///
-  /// Die Supabase Function erledigt das als eine Datenbankoperation. Das ist
-  /// wichtig, weil eine Person bis zu 50 Shares haben darf, der normale
-  /// Lösch-Endpunkt aber absichtlich pro Anfrage gedrosselt wird.
-  Uri _shareOwnerPath(String username) {
-    if (_isSupabase) {
-      return _uri('/functions/v1/shares').replace(
-        queryParameters: <String, String>{'owner_username': username},
-      );
-    }
-    return _uri('/v1/shares/owner/$username');
-  }
-
   /// Der Pfad zum Suchverzeichnis.
   Uri _directoryPath(String schoolNumber) {
     if (_isSupabase) {
@@ -531,18 +517,6 @@ class SyncApiClient {
   /// Löscht einen Share.
   Future<void> deleteShare(String shareId) =>
       _send('DELETE', _sharePath(shareId));
-
-  /// Löscht sämtliche Shares eines Nutzers und liefert ihre Anzahl zurück.
-  ///
-  /// Ein Nutzer besitzt auf dem Server keinen eigenen Datensatz; ohne Shares
-  /// ist er damit auch nicht mehr im Verzeichnis vorhanden.
-  Future<int> deleteSharesForUsername(String username) async {
-    final Map<String, dynamic> response =
-        await _send('DELETE', _shareOwnerPath(username));
-    return response['removed'] is num
-        ? (response['removed'] as num).toInt()
-        : 0;
-  }
 
   // ----------------------------------------------------------------- Internes
 
